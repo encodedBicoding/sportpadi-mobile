@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "912400814442",
+    "project_id": "sportpadi",
+    "storage_bucket": "sportpadi.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:912400814442:android:668c38f4a2da069e67d513",
+        "android_client_info": {
+          "package_name": "com.sportpadi.sportpadi_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAikqwogXopWTzig35yJ8SMwedzciYxPCI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,10 @@
+# Config for `swagger_parser` (dart pub global activate swagger_parser).
+swagger_parser:
+  schema_path: openapi/openapi.json
+  output_directory: lib/data/api/generated
+  language: dart
+  json_serializer: freezed
+  root_client: true
+  root_client_name: SportpadiApi
+  put_clients_in_folder: true
+  enums_to_json: true
