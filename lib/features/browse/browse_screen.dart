@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/core/location/location_provider.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/event_models.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
+import 'package:sportpadi_mobile/features/ads/ad_display.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
@@ -49,8 +50,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
     super.initState();
     _loadMore(reset: true);
     _scroll.addListener(() {
-      if (_scroll.position.pixels >
-          _scroll.position.maxScrollExtent - 600) {
+      if (_scroll.position.pixels > _scroll.position.maxScrollExtent - 600) {
         _loadMore();
       }
     });
@@ -84,8 +84,9 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
             tournamentsOnly: _tournamentsOnly,
             lat: _locationFilter ? loc.location?.lat : null,
             lng: _locationFilter ? loc.location?.lng : null,
-            radiusMiles:
-                _locationFilter && loc.location != null ? loc.radiusMiles : null,
+            radiusMiles: _locationFilter && loc.location != null
+                ? loc.radiusMiles
+                : null,
           );
       if (!mounted) return;
       setState(() {
@@ -156,24 +157,19 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                         _loadMore(reset: true);
                       },
                       child: Text('Clear',
-                          style: TextStyle(
-                              color: p.danger, fontSize: 12.5)),
+                          style: TextStyle(color: p.danger, fontSize: 12.5)),
                     ),
                 ]),
                 const SizedBox(height: 12),
                 if (loc.location == null) ...[
                   SpButton(
-                    label: loc.loading
-                        ? 'Locating…'
-                        : 'Use my location',
+                    label: loc.loading ? 'Locating…' : 'Use my location',
                     icon: Icons.my_location_rounded,
                     expand: true,
                     onTap: loc.loading
                         ? null
                         : () async {
-                            await ref
-                                .read(locationProvider.notifier)
-                                .request();
+                            await ref.read(locationProvider.notifier).request();
                             final st = ref.read(locationProvider);
                             if (st.location != null) {
                               setState(() => _locationFilter = true);
@@ -191,8 +187,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                   Row(children: [
                     Expanded(
                       child: Text('Events within',
-                          style:
-                              TextStyle(color: p.muted, fontSize: 12.5)),
+                          style: TextStyle(color: p.muted, fontSize: 12.5)),
                     ),
                     Text('${loc.radiusMiles} miles',
                         style: TextStyle(
@@ -245,6 +240,8 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
           child: Row(children: [
+            const AdDisplay(slots: ['home_ads'], carousel: true),
+            const SizedBox(height: 10),
             Expanded(
               child: TextField(
                 controller: _search,
@@ -265,8 +262,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                           child: SizedBox(
                               width: 14,
                               height: 14,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2)),
+                              child: CircularProgressIndicator(strokeWidth: 2)),
                         )
                       : _search.text.isNotEmpty
                           ? InkWell(
@@ -280,8 +276,8 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                           : null,
                   filled: true,
                   fillColor: p.surface,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 12),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide(color: p.line)),
@@ -304,8 +300,8 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                        color: _locationFilter ? p.accent : p.line),
+                    border:
+                        Border.all(color: _locationFilter ? p.accent : p.line),
                   ),
                   child: Icon(Icons.place_outlined,
                       size: 21,
@@ -325,8 +321,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
 
   /// Sport chips (All + active sports) and the Live / Tournaments toggles.
   Widget _filterChips(AppPalette p) {
-    final sports =
-        ref.watch(browseCategoriesProvider).valueOrNull ?? const [];
+    final sports = ref.watch(browseCategoriesProvider).valueOrNull ?? const [];
 
     Widget chip(String label, bool active, VoidCallback onTap) => Padding(
           padding: const EdgeInsets.only(right: 8),
@@ -337,12 +332,11 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
               borderRadius: BorderRadius.circular(999),
               onTap: onTap,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 13, vertical: 7),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(999),
-                  border:
-                      Border.all(color: active ? p.accent : p.line),
+                  border: Border.all(color: active ? p.accent : p.line),
                 ),
                 child: Text(label,
                     style: TextStyle(
@@ -373,17 +367,14 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                   .trim(),
               _categoryId == parseStr(c['id']),
               () => apply(() => _categoryId =
-                  _categoryId == parseStr(c['id'])
-                      ? null
-                      : parseStr(c['id'])),
+                  _categoryId == parseStr(c['id']) ? null : parseStr(c['id'])),
             ),
           Container(
             width: 1,
             margin: const EdgeInsets.only(right: 8, top: 4, bottom: 12),
             color: p.line,
           ),
-          chip('🔴 Live', _liveOnly,
-              () => apply(() => _liveOnly = !_liveOnly)),
+          chip('🔴 Live', _liveOnly, () => apply(() => _liveOnly = !_liveOnly)),
           chip('🏆 Tournaments', _tournamentsOnly,
               () => apply(() => _tournamentsOnly = !_tournamentsOnly)),
         ],
@@ -397,8 +388,8 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
     final r = _results;
     if (r == null) {
       return Center(
-        child: Text('Searching…',
-            style: TextStyle(color: p.muted, fontSize: 13)),
+        child:
+            Text('Searching…', style: TextStyle(color: p.muted, fontSize: 13)),
       );
     }
     List<Map<String, dynamic>> section(String key) => r[key] is List
@@ -411,10 +402,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
     final groups = section('groups');
     final teams = section('teams');
     final players = section('players');
-    if (events.isEmpty &&
-        groups.isEmpty &&
-        teams.isEmpty &&
-        players.isEmpty) {
+    if (events.isEmpty && groups.isEmpty && teams.isEmpty && players.isEmpty) {
       return Center(
         child: Text('Nothing on the network matches that.',
             style: TextStyle(color: p.muted, fontSize: 13)),
@@ -523,8 +511,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                 ? Text('@${parseStr(u['username'])}',
                     style: TextStyle(color: p.muted, fontSize: 11.5))
                 : null,
-            onTap: () =>
-                context.push('/players/${parseStr(u['userId'])}'),
+            onTap: () => context.push('/players/${parseStr(u['userId'])}'),
           ),
       ],
       const SizedBox(height: 24),
@@ -543,8 +530,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 13)),
             const SizedBox(height: 10),
-            SpButton(
-                label: 'Retry', onTap: () => _loadMore(reset: true)),
+            SpButton(label: 'Retry', onTap: () => _loadMore(reset: true)),
           ]),
         ),
       );

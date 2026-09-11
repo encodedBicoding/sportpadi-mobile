@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/data/groups/group_models.dart';
 import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
@@ -160,6 +161,8 @@ class _GroupLeaderboardScreenState
 
   Widget _row(BuildContext context, LeaderboardRow r, int rank) {
     final p = context.palette;
+    // Highlight the viewer's own row so they spot themselves instantly.
+    final mine = ref.watch(meProvider).valueOrNull?.userId == r.playerId;
     final medal = rank == 1
         ? '🥇'
         : rank == 2
@@ -184,7 +187,7 @@ class _GroupLeaderboardScreenState
         }
       }
     }
-    return GlassCard(
+    final card = GlassCard(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(children: [
         SizedBox(
@@ -206,13 +209,34 @@ class _GroupLeaderboardScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(r.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: p.ink,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600)),
+              Row(children: [
+                Flexible(
+                  child: Text(r.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 13.5,
+                          fontWeight:
+                              mine ? FontWeight.w800 : FontWeight.w600)),
+                ),
+                if (mine) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 1.5),
+                    decoration: BoxDecoration(
+                      color: p.accent.withAlpha(31),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text('You',
+                        style: TextStyle(
+                            color: p.accent,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800)),
+                  ),
+                ],
+              ]),
               Text(
                 [
                   '${r.wins}W-${r.draws}D-${r.losses}L',
@@ -236,6 +260,14 @@ class _GroupLeaderboardScreenState
           Text('pts', style: TextStyle(color: p.muted, fontSize: 10)),
         ]),
       ]),
+    );
+    if (!mine) return card;
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: p.accent, width: 1.6),
+      ),
+      child: card,
     );
   }
 }

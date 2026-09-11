@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/features/shell/home_shell.dart';
 import 'package:sportpadi_mobile/data/events/event_models.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/groups/group_models.dart';
@@ -24,6 +26,17 @@ class ProfileScreen extends ConsumerStatefulWidget {
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
+PopupMenuItem<String> _menuItem(String value, IconData icon, String label) {
+  return PopupMenuItem(
+    value: value,
+    child: Row(children: [
+      Icon(icon, size: 18),
+      const SizedBox(width: 10),
+      Text(label),
+    ]),
+  );
+}
+
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   int _tab = 0; // 0 events, 1 posts, 2 groups
 
@@ -38,19 +51,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         title: const Text('Profile',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
         actions: [
+          // Same menu as the web profile: main destinations first (those are
+          // bottom tabs here, so they switch tabs), then personal pages.
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded, size: 22),
-            onSelected: (v) => context.push(v),
-            itemBuilder: (_) => const [
-              PopupMenuItem(
-                  value: '/scan', child: Text('Scan to check in')),
-              PopupMenuItem(value: '/my-qr', child: Text('My QR code')),
-              PopupMenuItem(
-                  value: '/tickets', child: Text('My purchases')),
-              PopupMenuItem(value: '/fines', child: Text('My fines')),
-              PopupMenuItem(
-                  value: '/notifications', child: Text('Notifications')),
-              PopupMenuItem(value: '/settings', child: Text('Settings')),
+            onSelected: (v) {
+              if (v.startsWith('tab:')) {
+                ref.read(homeTabIndexProvider.notifier).state =
+                    int.parse(v.substring(4));
+              } else {
+                context.push(v);
+              }
+            },
+            itemBuilder: (_) => [
+              _menuItem('tab:0', Icons.space_dashboard_outlined, 'Dashboard'),
+              _menuItem('tab:1', Icons.explore_outlined, 'Discover'),
+              _menuItem('tab:2', Icons.groups_outlined, 'Groups'),
+              _menuItem('/scan', Icons.qr_code_scanner_rounded, 'Scan to check in'),
+              _menuItem('/fines', Icons.receipt_long_outlined, 'My fines'),
+              const PopupMenuDivider(),
+              _menuItem('/tickets', Icons.confirmation_num_outlined, 'My purchases'),
+              _menuItem('/my-qr', Icons.qr_code_2_rounded, 'My QR code'),
+              _menuItem('/notifications', Icons.notifications_outlined, 'Notifications'),
+              _menuItem('/settings', Icons.settings_outlined, 'Settings'),
             ],
           ),
           const SizedBox(width: 4),
@@ -65,23 +88,40 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           }
           return RefreshIndicator(
             onRefresh: () async => ref.refresh(meProvider.future),
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
+            child: CustomScrollView(slivers: [
+              SliverList(
+                  delegate: SliverChildListDelegate([
                 _Hero(profile: profile),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Eyebrow('My sports'),
-                      const SizedBox(height: 8),
-                      const _SportsSection(),
-                      const SizedBox(height: 18),
-                      _ProfileTabs(
-                          tab: _tab,
-                          onChanged: (i) => setState(() => _tab = i)),
-                      const SizedBox(height: 12),
+                      Eyebrow('My sports'),
+                      SizedBox(height: 8),
+                      _SportsSection(),
+                      SizedBox(height: 18),
+                    ],
+                  ),
+                ),
+              ])),
+              // Events / Posts / Groups pins while the hero scrolls away.
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _PinnedProfileTabs(
+                  child: Container(
+                    color: context.palette.bg,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _ProfileTabs(
+                        tab: _tab,
+                        onChanged: (i) => setState(() => _tab = i)),
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                sliver: SliverList(
+                    delegate: SliverChildListDelegate([
                       if (_tab == 0)
                         const _AttendedEventsGrid()
                       else if (_tab == 1)
@@ -97,11 +137,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         )
                       else
                         const _MyGroupsGrid(),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+                    ])),
+              ),
+            ]),
           );
         },
       ),
@@ -283,8 +321,28 @@ class _HeroState extends ConsumerState<_Hero> {
             ],
           ),
           const SizedBox(height: 2),
-          Text('@${profile.username}',
-              style: TextStyle(color: p.muted, fontSize: 13.5)),
+          // Tap to copy — the username is the handle friends use to buy
+          // tickets for you.
+          InkWell(
+            onTap: () async {
+              await Clipboard.setData(ClipboardData(text: profile.username));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text(
+                        'Username copied — share it so friends can buy tickets for you.')));
+              }
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text('@${profile.username}',
+                    style: TextStyle(color: p.muted, fontSize: 13.5)),
+                const SizedBox(width: 4),
+                Icon(Icons.copy_rounded, size: 13, color: p.muted),
+              ]),
+            ),
+          ),
           if (profile.bio != null && profile.bio!.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
@@ -435,32 +493,32 @@ class _SportsSection extends ConsumerWidget {
     final others =
         data.categories.where((c) => !mineIds.contains(c.id)).toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (mine.isEmpty)
-          GlassCard(
-            child: Text(
-              'Add the sports you play — groups use this to balance teams.',
-              style: TextStyle(color: p.muted, fontSize: 13),
-            ),
-          )
-        else
-          for (final m in mine)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _SportRow(category: byId[m.categoryId]!, mine: m),
-            ),
-        if (others.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Wrap(spacing: 6, runSpacing: 6, children: [
-            for (final c in others)
-              Material(
-                color: p.surface,
-                borderRadius: BorderRadius.circular(999),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(999),
+    Future<void> addSport() async {
+      // Web's "Add a sport" dialog, as a bottom sheet: pick from the sports
+      // you haven't added yet.
+      await showModalBottomSheet<void>(
+        context: context,
+        builder: (ctx) => SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+                child: Text('Add a sport',
+                    style: TextStyle(
+                        color: p.ink,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800)),
+              ),
+              for (final c in others)
+                ListTile(
+                  leading: Text(c.emoji ?? '🏅',
+                      style: const TextStyle(fontSize: 20)),
+                  title: Text(c.name),
+                  trailing: Icon(Icons.add_rounded, color: p.accent),
                   onTap: () async {
+                    Navigator.pop(ctx);
                     try {
                       await ref
                           .read(profileRepositoryProvider)
@@ -468,30 +526,63 @@ class _SportsSection extends ConsumerWidget {
                       ref.invalidate(sportsSetupProvider);
                     } catch (e) {
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('$e')));
+                        ScaffoldMessenger.of(context)
+                            .showSnackBar(SnackBar(content: Text('$e')));
                       }
                     }
                   },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 11, vertical: 6),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: p.line),
-                    ),
-                    child: Text(
-                      '+ ${c.emoji ?? ''} ${c.name}'.trim(),
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600),
-                    ),
-                  ),
                 ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Web-style header: hint + "+ Add" button.
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            child: Text(
+              'The sports you play. Tap a card to say how you play — it helps balance teams.',
+              style: TextStyle(color: p.muted, fontSize: 12),
+            ),
+          ),
+          if (others.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              onPressed: addSport,
+              icon: const Icon(Icons.add_rounded, size: 16),
+              label: const Text('Add'),
+              style: OutlinedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
               ),
-          ]),
-        ],
+            ),
+          ],
+        ]),
+        const SizedBox(height: 8),
+        if (mine.isEmpty)
+          GlassCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(children: [
+              Text("You haven't added any sports yet.",
+                  style: TextStyle(color: p.muted, fontSize: 13)),
+              const SizedBox(height: 10),
+              SpButton(
+                label: 'Add a sport',
+                icon: Icons.add_rounded,
+                onTap: addSport,
+              ),
+            ]),
+          )
+        else
+          for (final m in mine)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _SportRow(category: byId[m.categoryId]!, mine: m),
+            ),
       ],
     );
   }
@@ -910,4 +1001,27 @@ class _MyGroupsGrid extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// Pins the profile tab row to the top of the scroll view.
+class _PinnedProfileTabs extends SliverPersistentHeaderDelegate {
+  const _PinnedProfileTabs({required this.child});
+  final Widget child;
+
+  static const double _height = 42;
+
+  @override
+  double get minExtent => _height;
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return SizedBox(height: _height, child: child);
+  }
+
+  @override
+  bool shouldRebuild(covariant _PinnedProfileTabs oldDelegate) =>
+      oldDelegate.child != child;
 }

@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/payments/payment_models.dart';
 import 'package:sportpadi_mobile/data/payments/payments_repository.dart';
+import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/features/payments/checkout_flow.dart';
+import 'package:sportpadi_mobile/features/payments/recipient_sheet.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
@@ -32,17 +34,62 @@ class EventTicketsCard extends ConsumerStatefulWidget {
 class _EventTicketsCardState extends ConsumerState<EventTicketsCard> {
   bool _busy = false;
 
+  /// Single ticket: ask who it's for (self and/or others), then check out.
+  Future<void> _paySingle(EventTicket t) async {
+    final recipients = await showRecipientSheet(
+      context,
+      priceMinor: t.priceMinor,
+      feeMinor: t.feeMinor,
+      currency: t.currency,
+      exponent: t.currencyExponent,
+      maxTotal: t.remaining,
+      selfPaid: t.paid,
+    );
+    if (recipients == null || recipients.isEmpty) return;
+    await _checkout(() => ref
+        .read(paymentsRepositoryProvider)
+        .startCheckout(t.id, recipientIds: recipients));
+  }
+
   Future<void> _pay(List<String> ids) async {
+    await _checkout(() {
+      final repo = ref.read(paymentsRepositoryProvider);
+      return ids.length == 1
+          ? repo.startCheckout(ids.first)
+          : repo.startBulkCheckout(ids);
+    });
+  }
+
+  Future<void> _follow(String groupId) async {
     setState(() => _busy = true);
     try {
-      final repo = ref.read(paymentsRepositoryProvider);
-      final co = ids.length == 1
-          ? await repo.startCheckout(ids.first)
-          : await repo.startBulkCheckout(ids);
+      await ref.read(eventsRepositoryProvider).setFollow(groupId, true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                "Following — this group's events now show on your home page.")));
+      }
+      ref.invalidate(eventTicketsProvider(widget.eventId));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _checkout(
+      Future<({String url, String code})> Function() start) async {
+    setState(() => _busy = true);
+    try {
+      final co = await start();
       if (!mounted) return;
       final done = await runHostedCheckout(context, co.url);
       if (done && co.code.isNotEmpty) {
-        final status = await repo.verify(co.code);
+        final status =
+            await ref.read(paymentsRepositoryProvider).verify(co.code);
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(status == 'paid'
@@ -72,8 +119,9 @@ class _EventTicketsCardState extends ConsumerState<EventTicketsCard> {
     final payableRequired =
         required.where((t) => !t.paid && t.canBuy).toList();
     final allPaid = data.allRequiredPaid;
-    final payAllTotal =
-        payableRequired.fold<int>(0, (a, t) => a + t.totalMinor);
+    // Price sum only — the fees line shows on the provider's checkout page.
+    final payAllPrice =
+        payableRequired.fold<int>(0, (a, t) => a + t.priceMinor);
 
     return Padding(
       padding: const EdgeInsets.only(top: 12),
@@ -132,14 +180,44 @@ class _EventTicketsCardState extends ConsumerState<EventTicketsCard> {
               _TicketRow(
                 ticket: t,
                 busy: _busy,
-                onPay: () => _pay([t.id]),
+                onPay: () => _paySingle(t),
               ),
               const SizedBox(height: 8),
+            ],
+            // Holder outside the group → urge a follow so this event stays
+            // on their home page.
+            if (data.viewerRelation == 'none' &&
+                data.groupId != null &&
+                data.tickets.any((t) => t.paid)) ...[
+              Container(
+                padding: const EdgeInsets.all(10),
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: const Color.fromRGBO(23, 166, 94, 0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border:
+                      Border.all(color: const Color.fromRGBO(23, 166, 94, 0.30)),
+                ),
+                child: Row(children: [
+                  Expanded(
+                    child: Text(
+                      "You've got a ticket here 🎟 Follow ${data.groupName ?? 'this group'} so this event always shows on your home page.",
+                      style: TextStyle(color: p.ink, fontSize: 12, height: 1.4),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SpButton(
+                    label: 'Follow',
+                    icon: Icons.favorite_rounded,
+                    onTap: _busy ? null : () => _follow(data.groupId!),
+                  ),
+                ]),
+              ),
             ],
             if (payableRequired.length > 1)
               SpButton(
                 label:
-                    'Pay all required · ${formatMoney(payAllTotal, data.currency, data.currencyExponent)}',
+                    'Pay all required · ${formatMoney(payAllPrice, data.currency, data.currencyExponent)} + fees',
                 icon: Icons.confirmation_num_rounded,
                 expand: true,
                 onTap: _busy
@@ -236,11 +314,7 @@ class _TicketRow extends StatelessWidget {
                     if (rec != null)
                       Text(rec,
                           style: TextStyle(color: p.muted, fontSize: 10)),
-                    if (t.feeMinor > 0)
-                      Text(
-                        '+ ${formatMoney(t.feeMinor, '', t.currencyExponent).trim()} fees · ${formatMoney(t.totalMinor, '', t.currencyExponent).trim()} total',
-                        style: TextStyle(color: p.muted, fontSize: 10),
-                      ),
+                    // Ticket price only — fees appear at the payment step.
                   ],
                 ),
               ]),
@@ -255,23 +329,60 @@ class _TicketRow extends StatelessWidget {
                       fontSize: 11)),
               const SizedBox(height: 8),
               if (t.paid)
-                InkWell(
-                  onTap: () => context.push('/tickets'),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.check_circle_rounded,
-                        size: 15, color: p.accent),
-                    const SizedBox(width: 5),
-                    Text('Paid · view your ticket',
-                        style: TextStyle(
-                            color: p.accent,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700)),
-                  ]),
-                )
+                Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  InkWell(
+                    onTap: () => context.push('/tickets'),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.check_circle_rounded,
+                          size: 15, color: p.accent),
+                      const SizedBox(width: 5),
+                      Flexible(
+                        child: Text('Paid · view your ticket',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: p.accent,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                    ]),
+                  ),
+                  // Already covered — but they can still buy for someone else.
+                  if (!t.soldOut && !t.closed && !t.notOpenYet) ...[
+                    const SizedBox(height: 8),
+                    Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: busy ? null : onPay,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: p.line),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.card_giftcard_rounded,
+                                  size: 15, color: p.ink),
+                              const SizedBox(width: 6),
+                              Text('Buy for someone else',
+                                  style: TextStyle(
+                                      color: p.ink,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ])
               else if (t.canBuy)
                 SpButton(
-                  label:
-                      'Pay ${formatMoney(t.totalMinor, t.currency, t.currencyExponent)}',
+                  label: 'Buy ticket',
                   icon: Icons.confirmation_num_rounded,
                   onTap: busy ? null : onPay,
                 )
@@ -305,9 +416,10 @@ class EventTicketedLine extends ConsumerWidget {
       return const SizedBox.shrink();
     }
     final p = context.palette;
+    // Ticket PRICE only — fees show up at the payment step, not here.
     int? cheapest;
     for (final t in data.tickets) {
-      if (cheapest == null || t.totalMinor < cheapest) cheapest = t.totalMinor;
+      if (cheapest == null || t.priceMinor < cheapest) cheapest = t.priceMinor;
     }
     final parts = <String>[
       'Ticketed',

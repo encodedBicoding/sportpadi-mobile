@@ -64,6 +64,68 @@ class ProfileRepository {
   }
 
   /// Events I checked in to (for the profile Events grid).
+  /// Soft-delete the account: PII is wiped, sign-in is disabled everywhere,
+  /// historic records render as "Deleted user". Irreversible.
+  Future<void> deleteAccount() async {
+    try {
+      await _dio.post('/api/mobile/me', data: {'action': 'deleteAccount'});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not delete the account.');
+    }
+  }
+
+  // ── Payment methods (cards on file) ──────────────────────────────────
+
+  Future<List<PaymentCard>> cards() async {
+    try {
+      final res = await _dio.get('/api/mobile/billing');
+      final list = res.data is List ? res.data as List : const [];
+      return [
+        for (final c in list)
+          PaymentCard.fromJson(Map<String, dynamic>.from(c as Map)),
+      ];
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load your cards.');
+    }
+  }
+
+  /// URL of Stripe's hosted card-setup page (open in browser, then [syncCards]).
+  Future<String> startAddCard() async {
+    try {
+      final res =
+          await _dio.post('/api/mobile/billing', data: {'action': 'start'});
+      return Map<String, dynamic>.from(res.data as Map)['url'] as String;
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not start card setup.');
+    }
+  }
+
+  Future<void> syncCards() async {
+    try {
+      await _dio.post('/api/mobile/billing', data: {'action': 'sync'});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not refresh cards.');
+    }
+  }
+
+  Future<void> setPrimaryCard(String id) async {
+    try {
+      await _dio
+          .post('/api/mobile/billing', data: {'action': 'primary', 'id': id});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not update the card.');
+    }
+  }
+
+  Future<void> removeCard(String id) async {
+    try {
+      await _dio
+          .post('/api/mobile/billing', data: {'action': 'remove', 'id': id});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not remove the card.');
+    }
+  }
+
   Future<List<EventSummary>> attendedEvents() async {
     try {
       final res = await _dio.get('/api/mobile/me/events');
@@ -80,6 +142,9 @@ class ProfileRepository {
 
 final profileRepositoryProvider = Provider<ProfileRepository>(
     (ref) => ProfileRepository(ref.watch(dioProvider)));
+
+final myCardsProvider = FutureProvider.autoDispose<List<PaymentCard>>(
+    (ref) => ref.watch(profileRepositoryProvider).cards());
 
 final meProvider = FutureProvider.autoDispose<Profile?>(
     (ref) => ref.watch(profileRepositoryProvider).me());

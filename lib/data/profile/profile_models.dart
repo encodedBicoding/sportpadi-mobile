@@ -2,6 +2,7 @@ import '../../shared/format/parse.dart';
 
 class Profile {
   const Profile({
+    this.userId,
     required this.displayName,
     required this.username,
     this.avatarUrl,
@@ -9,8 +10,10 @@ class Profile {
     this.gender,
     this.dateOfBirth,
     this.qrCode,
+    this.email,
   });
 
+  final String? userId;
   final String displayName;
   final String username;
   final String? avatarUrl;
@@ -18,8 +21,10 @@ class Profile {
   final String? gender;
   final String? dateOfBirth;
   final String? qrCode;
+  final String? email;
 
   factory Profile.fromJson(Map<String, dynamic> j) => Profile(
+        userId: parseStr(j['userId']),
         displayName: (j['displayName'] ?? j['username'] ?? 'You') as String,
         username: (j['username'] ?? 'user') as String,
         avatarUrl: parseStr(j['avatarUrl']),
@@ -27,6 +32,7 @@ class Profile {
         gender: parseStr(j['gender']),
         dateOfBirth: parseStr(j['dateOfBirth']),
         qrCode: parseStr(j['qrCode']),
+        email: parseStr(j['email']),
       );
 }
 
@@ -115,5 +121,37 @@ class SportsSetup {
                   MySport.fromJson(Map<String, dynamic>.from(m as Map))
               ]
             : const [],
+      );
+}
+
+/// A saved card on file (personal — speeds up ticket checkout).
+class PaymentCard {
+  const PaymentCard({
+    required this.id,
+    required this.isPrimary,
+    this.brand,
+    this.last4,
+    this.expMonth,
+    this.expYear,
+  });
+  final String id;
+  final bool isPrimary;
+  final String? brand;
+  final String? last4;
+  final int? expMonth;
+  final int? expYear;
+
+  String get label =>
+      '${(brand ?? 'Card')[0].toUpperCase()}${(brand ?? 'Card').substring(1)} •••• ${last4 ?? '????'}';
+  String? get expiry =>
+      expMonth != null && expYear != null ? '$expMonth/$expYear' : null;
+
+  factory PaymentCard.fromJson(Map<String, dynamic> j) => PaymentCard(
+        id: (j['id'] ?? '') as String,
+        isPrimary: j['isPrimary'] == true,
+        brand: parseStr(j['brand']),
+        last4: parseStr(j['last4']),
+        expMonth: parseInt(j['expMonth']),
+        expYear: parseInt(j['expYear']),
       );
 }

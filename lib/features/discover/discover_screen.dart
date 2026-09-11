@@ -242,9 +242,7 @@ class _NearMeCard extends ConsumerWidget {
                     ? 'Near ${state.location!.label}'
                     : 'Find events near you',
                 style: TextStyle(
-                    color: p.ink,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700),
+                    color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w700),
               ),
             ),
             if (active)
@@ -253,8 +251,7 @@ class _NearMeCard extends ConsumerWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(4),
                   child: Text('Clear',
-                      style:
-                          TextStyle(color: p.muted, fontSize: 12)),
+                      style: TextStyle(color: p.muted, fontSize: 12)),
                 ),
               ),
           ]),
@@ -314,17 +311,15 @@ class _NearMeCard extends ConsumerWidget {
           ] else ...[
             const SizedBox(height: 6),
             Row(children: [
-              Text('Radius',
-                  style: TextStyle(color: p.muted, fontSize: 11.5)),
+              Text('Radius', style: TextStyle(color: p.muted, fontSize: 11.5)),
               Expanded(
                 child: Slider(
                   value: state.radiusMiles.toDouble(),
                   min: 5,
                   max: 100,
                   divisions: 19,
-                  onChanged: (v) => ref
-                      .read(locationProvider.notifier)
-                      .setRadius(v.round()),
+                  onChanged: (v) =>
+                      ref.read(locationProvider.notifier).setRadius(v.round()),
                 ),
               ),
               Text('${state.radiusMiles} mi',

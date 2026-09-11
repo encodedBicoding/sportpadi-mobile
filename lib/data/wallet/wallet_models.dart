@@ -110,6 +110,7 @@ class WithdrawalPolicy {
   const WithdrawalPolicy({
     required this.maturationDays,
     required this.heldMinor,
+    this.pendingApprovalMinor = 0,
     required this.withdrawableMinor,
     required this.payoutDays,
     required this.payoutDayAllowedToday,
@@ -121,9 +122,15 @@ class WithdrawalPolicy {
     required this.settledToBankMinor,
     this.nextPayoutDate,
     this.periodRemainingMinor,
+    this.providerName,
+    this.providerAvailableMinor,
+    this.payableNowMinor,
+    this.settlingAtProviderMinor = 0,
   });
   final int maturationDays;
   final int heldMinor;
+  /// Locked by requests still awaiting approval (not yet debited).
+  final int pendingApprovalMinor;
   final int withdrawableMinor;
   final List<int> payoutDays;
   final bool payoutDayAllowedToday;
@@ -136,10 +143,39 @@ class WithdrawalPolicy {
   final int availableBalance;
   final int settledToBankMinor;
 
-  /// Withdrawable after the per-period cap.
+  /// Payment provider powering this wallet (`stripe`, `paystack`, `flutterwave`).
+  final String? providerName;
+  /// What the provider reports as settled and payable right now (null = unknown).
+  final int? providerAvailableMinor;
+  /// min(withdrawable on SportPadi, provider-available). Null when the server
+  /// didn't send it (older API) — falls back to [withdrawableMinor].
+  final int? payableNowMinor;
+  /// Matured on SportPadi but still settling with the provider.
+  final int settlingAtProviderMinor;
+
+  bool get hasProviderFigure => providerAvailableMinor != null;
+
+  String get providerLabel {
+    switch (providerName) {
+      case 'stripe':
+        return 'Stripe';
+      case 'paystack':
+        return 'Paystack';
+      case 'flutterwave':
+        return 'Flutterwave';
+      default:
+        return 'your payment provider';
+    }
+  }
+
+  /// Payable right now: matured on SportPadi, capped by what the provider has settled.
+  int get payableNow => payableNowMinor ?? withdrawableMinor;
+
+  /// Withdrawable after the per-period cap and the provider's settled balance.
   int get cappedWithdrawable {
     final r = periodRemainingMinor;
-    return r != null && r < withdrawableMinor ? r : withdrawableMinor;
+    final base = payableNow;
+    return r != null && r < base ? r : base;
   }
 
   bool get dayBlocked => !payoutDayAllowedToday && payoutDays.isNotEmpty;
@@ -147,6 +183,7 @@ class WithdrawalPolicy {
   factory WithdrawalPolicy.fromJson(Map<String, dynamic> j) => WithdrawalPolicy(
         maturationDays: parseInt(j['maturationDays']) ?? 0,
         heldMinor: parseInt(j['heldMinor']) ?? 0,
+        pendingApprovalMinor: parseInt(j['pendingApprovalMinor']) ?? 0,
         withdrawableMinor: parseInt(j['withdrawableMinor']) ?? 0,
         payoutDays: j['payoutDays'] is List
             ? [for (final d in j['payoutDays'] as List) parseInt(d) ?? 0]
@@ -160,6 +197,10 @@ class WithdrawalPolicy {
         withdrawalsEnabled: j['withdrawalsEnabled'] != false,
         availableBalance: parseInt(j['availableBalance']) ?? 0,
         settledToBankMinor: parseInt(j['settledToBankMinor']) ?? 0,
+        providerName: parseStr(j['providerName']),
+        providerAvailableMinor: parseInt(j['providerAvailableMinor']),
+        payableNowMinor: parseInt(j['payableNowMinor']),
+        settlingAtProviderMinor: parseInt(j['settlingAtProviderMinor']) ?? 0,
       );
 }
 
@@ -174,6 +215,7 @@ class WalletOverview {
     required this.availableBalance,
     required this.accounts,
     required this.walletAllowed,
+    this.hasPrimaryCard = true,
     required this.collectedMinor,
     required this.ticketCount,
     this.policy,
@@ -186,7 +228,8 @@ class WalletOverview {
   final bool testMode;
   final int availableBalance;
   final List<PaymentAccount> accounts;
-  final bool walletAllowed; // plan includes GROUP_WALLET
+  final bool walletAllowed;
+  final bool hasPrimaryCard; // a primary card backs plan renewals
   final int collectedMinor;
   final int ticketCount;
   final WithdrawalPolicy? policy;
@@ -235,6 +278,7 @@ class WalletOverview {
       availableBalance: parseInt(w?['availableBalance']) ?? 0,
       accounts: accts,
       walletAllowed: j['walletAllowed'] == true,
+      hasPrimaryCard: j['hasPrimaryCard'] == true,
       collectedMinor: parseInt(summary['collected']) ?? 0,
       ticketCount: parseInt(summary['count']) ?? 0,
       policy: j['policy'] is Map

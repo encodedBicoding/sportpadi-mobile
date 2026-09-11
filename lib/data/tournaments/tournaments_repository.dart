@@ -9,6 +9,33 @@ class TournamentsRepository {
   TournamentsRepository(this._dio);
   final Dio _dio;
 
+  /// Nav-badge probe: any live or upcoming tournament for my teams?
+  /// Fails closed (no badge) on any error — never blocks the shell.
+  Future<bool> mineHasActive() async {
+    try {
+      final res = await _dio.get('/api/mobile/my-tournaments',
+          queryParameters: {'view': 'flag'});
+      return res.data is Map && res.data['active'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// "My tournaments" tab — tournaments the signed-in user is in via a
+  /// group-team roster spot, with that team's games.
+  Future<List<MyTournamentEntry>> mine() async {
+    try {
+      final res = await _dio.get('/api/mobile/my-tournaments');
+      final list = res.data is Map ? (res.data['entries'] as List? ?? []) : const [];
+      return [
+        for (final e in list)
+          MyTournamentEntry.fromJson(Map<String, dynamic>.from(e as Map)),
+      ];
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load your tournaments.');
+    }
+  }
+
   Future<List<TournamentSummary>> forGroup(String groupId) async {
     try {
       final res = await _dio.get('/api/mobile/groups/$groupId/tournaments');
@@ -164,3 +191,11 @@ final tournamentGamesProvider = FutureProvider.autoDispose
 final tournamentAwardsProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>?, String>((ref, eventId) =>
         ref.watch(tournamentsRepositoryProvider).awards(eventId));
+
+final myTournamentsProvider =
+    FutureProvider.autoDispose<List<MyTournamentEntry>>(
+        (ref) => ref.watch(tournamentsRepositoryProvider).mine());
+
+/// Drives the dot on the Tournaments bottom-nav item (a dot, never a count).
+final myTournamentsActiveProvider = FutureProvider.autoDispose<bool>(
+    (ref) => ref.watch(tournamentsRepositoryProvider).mineHasActive());
