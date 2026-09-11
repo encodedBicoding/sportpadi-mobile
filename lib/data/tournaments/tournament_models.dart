@@ -58,3 +58,90 @@ class TournamentSummary {
     );
   }
 }
+
+
+/// One line on the "My tournaments" tab: a tournament one of my teams is in.
+class MyTournamentGame {
+  const MyTournamentGame({
+    required this.gameId,
+    required this.status,
+    this.scheduledDate,
+    this.scheduledTime,
+    this.myScore = 0,
+    this.oppScore = 0,
+    this.result,
+    this.opponentName = 'TBD',
+  });
+  final String gameId;
+  final String status;
+  final String? scheduledDate;
+  final String? scheduledTime;
+  final int myScore;
+  final int oppScore;
+  final String? result; // win | draw | loss
+  final String opponentName;
+
+  factory MyTournamentGame.fromJson(Map<String, dynamic> j) => MyTournamentGame(
+        gameId: (j['gameId'] ?? '') as String,
+        status: (j['status'] ?? '') as String,
+        scheduledDate: parseStr(j['scheduledDate']),
+        scheduledTime: parseStr(j['scheduledTime']),
+        myScore: (j['myScore'] as num?)?.toInt() ?? 0,
+        oppScore: (j['oppScore'] as num?)?.toInt() ?? 0,
+        result: parseStr(j['result']),
+        opponentName: (j['opponentName'] ?? 'TBD') as String,
+      );
+}
+
+class MyTournamentEntry {
+  const MyTournamentEntry({
+    required this.eventId,
+    required this.title,
+    this.eventDate,
+    required this.tournamentStatus,
+    this.hostGroupName,
+    required this.teamId,
+    required this.teamName,
+    this.teamLogoUrl,
+    this.teamGroupName,
+    this.category,
+    required this.role,
+    required this.entryStatus,
+    this.games = const [],
+  });
+  final String eventId;
+  final String title;
+  final DateTime? eventDate;
+  final String tournamentStatus;
+  final String? hostGroupName;
+  final String teamId;
+  final String teamName;
+  final String? teamLogoUrl;
+  final String? teamGroupName;
+  final String? category;
+  final String role; // host | guest
+  final String entryStatus; // pending | approved
+  final List<MyTournamentGame> games;
+
+  factory MyTournamentEntry.fromJson(Map<String, dynamic> j) =>
+      MyTournamentEntry(
+        eventId: (j['eventId'] ?? '') as String,
+        title: (j['title'] ?? 'Tournament') as String,
+        eventDate: parseDate(j['eventDate']),
+        tournamentStatus: (j['tournamentStatus'] ?? '') as String,
+        hostGroupName: parseStr(j['hostGroupName']),
+        teamId: (j['teamId'] ?? '') as String,
+        teamName: (j['teamName'] ?? 'Team') as String,
+        teamLogoUrl: parseStr(j['teamLogoUrl']),
+        teamGroupName: parseStr(j['teamGroupName']),
+        category: parseStr(j['category']),
+        role: (j['role'] ?? 'guest') as String,
+        entryStatus: (j['entryStatus'] ?? '') as String,
+        games: j['games'] is List
+            ? [
+                for (final g in j['games'] as List)
+                  MyTournamentGame.fromJson(Map<String, dynamic>.from(g as Map)),
+              ]
+            : const [],
+      );
+}

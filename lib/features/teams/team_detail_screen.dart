@@ -63,15 +63,26 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
           return RefreshIndicator(
             onRefresh: () async =>
                 ref.refresh(teamDetailProvider(teamId).future),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-              children: [
-                _Header(team: t),
-                const SizedBox(height: 10),
-                _RecordStrip(teamId: teamId),
-                const SizedBox(height: 12),
-                // Scrollable tab bar.
-                Container(
+            child: CustomScrollView(slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                  _Header(team: t),
+                  const SizedBox(height: 10),
+                  _RecordStrip(teamId: teamId),
+                  const SizedBox(height: 12),
+                ])),
+              ),
+              // Tab bar pins while the header scrolls away.
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _PinnedTeamTabs(
+                  child: Container(
+                    color: p.bg,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    // Scrollable tab bar.
+                    child: Container(
                   decoration: BoxDecoration(
                     border: Border(bottom: BorderSide(color: p.line)),
                   ),
@@ -108,17 +119,24 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
                     ]),
                   ),
                 ),
-                const SizedBox(height: 14),
-                if (_tab == 0)
-                  _PlayersTab(team: t, onChanged: _refetch)
-                else if (_tab == 1)
-                  _FormationTab(team: t)
-                else if (_tab == 2)
-                  _CoachesTab(team: t)
-                else
-                  _GamesTab(teamId: teamId),
-              ],
-            ),
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+                sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                  if (_tab == 0)
+                    _PlayersTab(team: t, onChanged: _refetch)
+                  else if (_tab == 1)
+                    _FormationTab(team: t)
+                  else if (_tab == 2)
+                    _CoachesTab(team: t)
+                  else
+                    _GamesTab(teamId: teamId),
+                ])),
+              ),
+            ]),
           );
         },
       ),
@@ -1157,4 +1175,28 @@ class _GamesTab extends ConsumerWidget {
       ],
     );
   }
+}
+
+
+/// Pins the team tab bar to the top of the scroll view.
+class _PinnedTeamTabs extends SliverPersistentHeaderDelegate {
+  const _PinnedTeamTabs({required this.child});
+  final Widget child;
+
+  static const double _height = 43;
+
+  @override
+  double get minExtent => _height;
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return SizedBox(height: _height, child: child);
+  }
+
+  @override
+  bool shouldRebuild(covariant _PinnedTeamTabs oldDelegate) =>
+      oldDelegate.child != child;
 }

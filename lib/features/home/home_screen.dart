@@ -11,8 +11,10 @@ import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_tile_square.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart';
-import 'package:sportpadi_mobile/features/shell/home_shell.dart' show homeTabIndexProvider;
+import 'package:sportpadi_mobile/features/shell/home_shell.dart'
+    show homeTabIndexProvider;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/features/ads/ad_display.dart';
 
 /// Home — the user's personal dashboard: their upcoming events across every
 /// group they belong to (live events beep on the tab), a Kids tab (future),
@@ -27,8 +29,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   String _range = 'today'; // live | today | upcoming | kids | all
   String? _sport; // category name filter, null = All
 
-  static bool _live(EventSummary e) =>
-      e.isLive || e.status == 'kicked_off';
+  static bool _live(EventSummary e) => e.isLive || e.status == 'kicked_off';
 
   /// "Today" follows the user's own clock/timezone (local date); event dates
   /// are UTC wall-clock faces — compare the face to the local day.
@@ -77,13 +78,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               cats[e.categoryName!] = e.categoryEmoji ?? '';
             }
           }
-          List<EventSummary> bySport(List<EventSummary> list) =>
-              _sport == null
-                  ? list
-                  : [
-                      for (final e in list)
-                        if (e.categoryName == _sport) e
-                    ];
+          List<EventSummary> bySport(List<EventSummary> list) => _sport == null
+              ? list
+              : [
+                  for (final e in list)
+                    if (e.categoryName == _sport) e
+                ];
           final all = bySport(f.upcoming);
           final liveList = all.where(_live).toList();
           final todayList = all.where(_isToday).toList();
@@ -114,13 +114,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ? 'Hi, ${me.displayName.split(' ').first} 👋'
                       : 'Home',
                   style: TextStyle(
-                      color: p.ink,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800),
+                      color: p.ink, fontSize: 22, fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 2),
-                Text("Here's what's on across your groups.",
+                Text(
+                    "Here's what's on across the groups you belong to and follow.",
                     style: TextStyle(color: p.muted, fontSize: 13)),
+
+                // Local ads — invisible until the owner activates mobile
+                // slots with this key; location-targeted server-side.
+                const SizedBox(height: 12),
+                const AdDisplay(slots: ['mobile_home'], carousel: true),
 
                 // Quick actions
                 const SizedBox(height: 14),
@@ -131,11 +135,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _quickAction(
-                        p,
-                        Icons.qr_code_scanner_rounded,
-                        'Scan QR',
-                        () => context.push('/scan')),
+                    child: _quickAction(p, Icons.qr_code_scanner_rounded,
+                        'Scan QR', () => context.push('/scan')),
                   ),
                 ]),
 
@@ -154,8 +155,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               p,
                               '${e.value} ${e.key}'.trim(),
                               _sport == e.key,
-                              () => setState(() => _sport =
-                                  _sport == e.key ? null : e.key)),
+                              () => setState(() =>
+                                  _sport = _sport == e.key ? null : e.key)),
                       ],
                     ),
                   ),
@@ -180,50 +181,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           "events on your Home. Browse what's happening on "
                           'SportPadi and find your crew.',
                           textAlign: TextAlign.center,
-                          style:
-                              TextStyle(color: p.muted, fontSize: 12.5),
+                          style: TextStyle(color: p.muted, fontSize: 12.5),
                         ),
                         const SizedBox(height: 12),
                         SpButton(
                           label: 'Browse events',
                           icon: Icons.explore_outlined,
-                          onTap: () => ref
-                              .read(homeTabIndexProvider.notifier)
-                              .state = 1,
+                          onTap: () =>
+                              ref.read(homeTabIndexProvider.notifier).state = 1,
                         ),
                       ]),
                     )
                   else
-                    _calendarPanel(context, p, panelList, liveList,
-                        todayList, upcomingList, all),
+                    _calendarPanel(context, p, panelList, liveList, todayList,
+                        upcomingList, all),
 
+                  const SizedBox(height: 10),
+                  const AdDisplay(slots: ['home_ads'], carousel: true),
                   // Past events (hidden when the whole feed is empty —
                   // the Browse CTA covers it).
                   if (!(f.upcoming.isEmpty && f.past.isEmpty)) ...[
-                  const SizedBox(height: 18),
-                  const Eyebrow('Past events'),
-                  const SizedBox(height: 10),
-                  if (past.isEmpty)
-                    GlassCard(
-                      child: Center(
-                        child: Text(
-                            'No past events in the last two months.',
-                            style: TextStyle(
-                                color: p.muted, fontSize: 13)),
+                    const SizedBox(height: 18),
+                    const Eyebrow('Past events'),
+                    const SizedBox(height: 10),
+                    if (past.isEmpty)
+                      GlassCard(
+                        child: Center(
+                          child: Text('No past events in the last two months.',
+                              style: TextStyle(color: p.muted, fontSize: 13)),
+                        ),
+                      )
+                    else
+                      GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                        children: [
+                          for (final e in past) EventTileSquare(event: e),
+                        ],
                       ),
-                    )
-                  else
-                    GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
-                      children: [
-                        for (final e in past)
-                          EventTileSquare(event: e),
-                      ],
-                    ),
                   ],
                 ],
               ],
@@ -273,8 +271,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             borderRadius: BorderRadius.circular(999),
             onTap: onTap,
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(color: active ? p.accent : p.line),
@@ -302,20 +299,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       List<EventSummary> all) {
     final tabs = <({String key, String label, int count, bool live})>[
       (key: 'live', label: 'Live', count: liveList.length, live: true),
-      (
-        key: 'today',
-        label: 'Today',
-        count: todayList.length,
-        live: false
-      ),
+      (key: 'today', label: 'Today', count: todayList.length, live: false),
       (
         key: 'upcoming',
         label: 'Upcoming',
         count: upcomingList.length,
         live: false
       ),
-      if (_hasWards)
-        (key: 'kids', label: 'Kids', count: 0, live: false),
+      if (_hasWards) (key: 'kids', label: 'Kids', count: 0, live: false),
       (key: 'all', label: 'View All', count: all.length, live: false),
     ];
 
@@ -330,19 +321,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               padding: const EdgeInsets.only(right: 4),
               child: InkWell(
                 onTap: () => setState(() => _range = t.key),
-                borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(12)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(12)),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 9),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                   decoration: BoxDecoration(
                     color: _range == t.key
                         ? p.surface
                         : t.key == 'all'
                             ? p.accent
                             : p.accent.withAlpha(46),
-                    borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(12)),
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(12)),
                     border: _range == t.key
                         ? Border(
                             top: BorderSide(color: p.line),
@@ -425,19 +416,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               : _range == 'today'
                                   ? 'Nothing happening today.'
                                   : _sport != null
-                                  ? 'No upcoming $_sport events.'
-                                  : 'No upcoming events across your groups.',
+                                      ? 'No upcoming $_sport events.'
+                                      : 'No upcoming events across the groups you belong to or follow.',
                           textAlign: TextAlign.center,
-                          style:
-                              TextStyle(color: p.muted, fontSize: 13),
+                          style: TextStyle(color: p.muted, fontSize: 13),
                         ),
                         const SizedBox(height: 12),
                         SpButton(
                           label: 'Browse events',
                           icon: Icons.explore_outlined,
-                          onTap: () => ref
-                              .read(homeTabIndexProvider.notifier)
-                              .state = 1,
+                          onTap: () =>
+                              ref.read(homeTabIndexProvider.notifier).state = 1,
                         ),
                       ],
                     ),
@@ -476,24 +465,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ]),
           const SizedBox(width: 14),
           Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (e.groupName != null)
-                    Text(e.groupName!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style:
-                            TextStyle(color: p.muted, fontSize: 11)),
-                  Text(
-                      '${e.categoryEmoji != null ? '${e.categoryEmoji} ' : ''}${e.title}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w800)),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (e.groupName != null)
+                Text(e.groupName!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: p.muted, fontSize: 11)),
+              Text(
+                  '${e.categoryEmoji != null ? '${e.categoryEmoji} ' : ''}${e.title}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: p.ink,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w800)),
+            ]),
           ),
           const SizedBox(width: 8),
           if (e.isLive || e.status == 'kicked_off')
@@ -528,8 +515,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => Padding(
-        padding:
-            EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
@@ -549,8 +535,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     decoration: InputDecoration(
                       isDense: true,
                       hintText: 'Group name',
-                      hintStyle:
-                          TextStyle(color: p.muted, fontSize: 13.5),
+                      hintStyle: TextStyle(color: p.muted, fontSize: 13.5),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 11),
                       border: OutlineInputBorder(
@@ -566,8 +551,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     decoration: InputDecoration(
                       isDense: true,
                       hintText: 'Description (optional)',
-                      hintStyle:
-                          TextStyle(color: p.muted, fontSize: 13.5),
+                      hintStyle: TextStyle(color: p.muted, fontSize: 13.5),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 11),
                       border: OutlineInputBorder(
@@ -590,8 +574,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         if (ctx.mounted) Navigator.pop(ctx, id);
                       } catch (e) {
                         if (ctx.mounted) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(content: Text('$e')));
+                          ScaffoldMessenger.of(ctx)
+                              .showSnackBar(SnackBar(content: Text('$e')));
                         }
                       }
                     },
@@ -631,8 +615,8 @@ class _PulseDotState extends State<_PulseDot>
   @override
   Widget build(BuildContext context) {
     return FadeTransition(
-      opacity: Tween(begin: 0.25, end: 1.0).animate(
-          CurvedAnimation(parent: _c, curve: Curves.easeInOut)),
+      opacity: Tween(begin: 0.25, end: 1.0)
+          .animate(CurvedAnimation(parent: _c, curve: Curves.easeInOut)),
       child: Container(
         width: 8,
         height: 8,

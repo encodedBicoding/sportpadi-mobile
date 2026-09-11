@@ -194,7 +194,18 @@ class _GroupTicketsScreenState extends ConsumerState<GroupTicketsScreen> {
     final wallet = ref.watch(groupWalletProvider(widget.groupId)).valueOrNull;
     final walletOk = wallet?.active ?? false;
     return Scaffold(
-      appBar: AppBar(backgroundColor: p.bg, title: const Text('Tickets')),
+      appBar: AppBar(
+        backgroundColor: p.bg,
+        title: const Text('Tickets'),
+        actions: [
+          // Gate validation: scan holders' ticket QRs.
+          IconButton(
+            tooltip: 'Scan tickets',
+            icon: const Icon(Icons.qr_code_scanner_rounded),
+            onPressed: () => context.push('/scan'),
+          ),
+        ],
+      ),
       floatingActionButton: walletOk
           ? FloatingActionButton.extended(
               onPressed: _busy ? null : () => _openEditor(),

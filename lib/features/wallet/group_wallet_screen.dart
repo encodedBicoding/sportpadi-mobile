@@ -26,6 +26,19 @@ class GroupWalletScreen extends ConsumerStatefulWidget {
 
 class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
   bool _busy = false;
+  bool _planEmailFired = false;
+
+  // Plan-locked wallet: the app shows no upgrade CTAs and never links out to
+  // web purchases (App Store 3.1.1/3.1.3 — kept uniform across platforms), but
+  // emailing the admin OUTSIDE the app is allowed — so quietly ask the server
+  // to send the plans/billing link. Server-side throttled per admin+group;
+  // nothing is surfaced in the UI.
+  void _maybeEmailPlanInfo() {
+    if (_planEmailFired) return;
+    _planEmailFired = true;
+    Future.microtask(
+        () => ref.read(walletRepositoryProvider).requestPlanEmail(widget.groupId));
+  }
 
   void _refetch() {
     ref.invalidate(walletOverviewProvider(widget.groupId));
@@ -108,7 +121,8 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
     await _run(() async {
       await ref.read(walletRepositoryProvider).requestWithdrawal(widget.groupId,
           paymentAccountId: acct.id, amountMinor: amountMinor);
-      _snack('Withdrawal requested');
+      _snack(
+          'Withdrawal requested — every group admin has been notified. The money is locked until it\'s approved or rejected.');
       _refetch();
     });
   }
@@ -198,21 +212,19 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
   }
 
   List<Widget> _body(WalletOverview o, AppPalette p) {
-    // No wallet + plan doesn't include it → upsell.
+    // No wallet + plan doesn't include it → neutral locked state. App-store
+    // rules forbid in-app upgrade CTAs / purchase link-outs, so (uniformly on
+    // every platform) the app states the fact and the server emails the admin
+    // the web plans link instead.
     if (o.planGated && !o.viewable) {
+      _maybeEmailPlanInfo();
       return [
         _centered(
           p,
-          icon: Icons.workspace_premium_rounded,
-          tone: p.amber,
-          title: 'The wallet is a paid feature',
-          body:
-              "Your group's current plan doesn't include the group wallet. Upgrade to sell tickets and collect payments.",
-          cta: SpButton(
-            label: 'See plans',
-            icon: Icons.open_in_new_rounded,
-            onTap: () => _openWeb('/groups/${widget.groupId}/upgrade'),
-          ),
+          icon: Icons.lock_outline_rounded,
+          tone: p.muted,
+          title: "The wallet isn't available for this group",
+          body: "This group's current plan doesn't include the group wallet.",
         ),
       ];
     }
@@ -244,6 +256,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
     final policy = o.policy;
     final acct = o.settlementAccount;
     final pausedByPlan = o.planGated && o.viewable;
+    if (pausedByPlan) _maybeEmailPlanInfo();
     return [
       if (o.testMode)
         Padding(
@@ -256,10 +269,20 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
           child: _notice(
             p,
             pausedByPlan
-                ? 'Your plan no longer includes the wallet. Records stay visible; sales and withdrawals are paused until you upgrade.'
+                ? "The wallet is paused on this group's current plan. Records stay visible; sales and withdrawals are on hold."
                 : 'This wallet is paused. Records stay visible; sales and withdrawals are on hold.',
-            action: pausedByPlan ? 'See plans' : null,
-            onAction: pausedByPlan ? () => _openWeb('/groups/${widget.groupId}/upgrade') : null,
+          ),
+        ),
+      // Wallet but no primary card — renewals need a fallback beyond the
+      // wallet balance, so urge admins to add one.
+      if (o.isActive && !o.hasPrimaryCard)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: _notice(
+            p,
+            'Add a primary card: plan renewals come from this wallet first, but if the balance falls short we need a card to fall back on — repeated failed renewals downgrade the group to the free tier.',
+            action: 'Add card',
+            onAction: () => _openWeb('/groups/${widget.groupId}/billing'),
           ),
         ),
       _balanceCard(o, policy, acct, p),
@@ -300,7 +323,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
       required Color tone,
       required String title,
       required String body,
-      required Widget cta,
+      Widget? cta,
       String? footnote}) {
     return GlassCard(
       padding: const EdgeInsets.all(24),
@@ -322,8 +345,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
         Text(body,
             textAlign: TextAlign.center,
             style: TextStyle(color: p.muted, fontSize: 13, height: 1.45)),
-        const SizedBox(height: 16),
-        cta,
+        if (cta != null) ...[const SizedBox(height: 16), cta],
         if (footnote != null) ...[
           const SizedBox(height: 10),
           Text(footnote,
@@ -493,14 +515,46 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
         withdrawable > 0 &&
         !(policy?.dayBlocked ?? false);
 
+    final providerKnown = appControlled && (policy?.hasProviderFigure ?? false);
+    final providerLabel = policy?.providerLabel ?? 'your payment provider';
+    final matured = policy?.withdrawableMinor ?? 0;
+    final settling = policy?.settlingAtProviderMinor ?? 0;
+    final eyebrow = !appControlled
+        ? 'COLLECTED'
+        : providerKnown
+            ? 'AVAILABLE AT ${providerLabel.toUpperCase()} NOW'
+            : 'AVAILABLE TO WITHDRAW';
+
     return GlassCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(appControlled ? 'AVAILABLE TO WITHDRAW' : 'COLLECTED',
+        Text(eyebrow,
             style: TextStyle(
-                color: p.muted, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+                color: providerKnown ? p.accent : p.muted,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2)),
         const SizedBox(height: 4),
         Text(formatMoney(appControlled ? withdrawable : o.collectedMinor, cur, exp),
             style: TextStyle(color: p.ink, fontSize: 30, fontWeight: FontWeight.w900)),
+        if (providerKnown) ...[
+          const SizedBox(height: 6),
+          Text('Matured on SportPadi: ${formatMoney(matured, cur, exp)}',
+              style: TextStyle(color: p.muted, fontSize: 12.5, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 2),
+          Text(
+            settling > 0
+                ? '${formatMoney(settling, cur, exp)} is still settling with $providerLabel and becomes payable as it clears.'
+                : 'Fully settled with $providerLabel.',
+            style: TextStyle(color: settling > 0 ? p.amber : p.muted, fontSize: 12),
+          ),
+        ],
+        if (appControlled && (policy?.pendingApprovalMinor ?? 0) > 0) ...[
+          const SizedBox(height: 6),
+          Text(
+            '${formatMoney(policy!.pendingApprovalMinor, cur, exp)} is locked by a withdrawal awaiting approval — excluded from the balance above.',
+            style: TextStyle(color: p.amber, fontSize: 12),
+          ),
+        ],
         if (appControlled) ...[
           const SizedBox(height: 10),
           if (policy != null && policy.dayBlocked && policy.nextPayoutDate != null)
@@ -642,6 +696,48 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
           '${w.reason != null ? '\n"${w.reason}"' : ''}',
           style: TextStyle(color: p.muted, fontSize: 12),
         ),
+        Builder(builder: (context) {
+          final approvedBy = w.approvals
+              .where((a) => a.decision == 'approved')
+              .map((a) => a.approver?.name ?? 'an admin')
+              .toList();
+          final rejectedBy = w.approvals
+              .where((a) => a.decision == 'rejected')
+              .map((a) => a.approver?.name ?? 'an admin')
+              .toList();
+          final at =
+              w.resolvedAt != null ? ' · ${timeAgo(w.resolvedAt)}' : '';
+          final (String line, Color color) = switch (w.status) {
+            'pending_approval' => (
+                'Awaiting approval — this money is locked and can\'t be spent or re-requested until an admin decides.',
+                p.amber
+              ),
+            'paid' => (
+                'Paid out to the bank$at${approvedBy.isNotEmpty ? ' · approved by ${approvedBy.first}' : ''}.',
+                p.accent
+              ),
+            'processing' || 'approved' => (
+                '${approvedBy.isNotEmpty ? 'Approved by ${approvedBy.first}' : 'Approved'}$at — sent to the bank, settling now.',
+                const Color(0xFF0EA5E9)
+              ),
+            'rejected' => (
+                'Denied by ${rejectedBy.isNotEmpty ? rejectedBy.first : 'an admin'}$at — the money is back in the withdrawable balance.',
+                p.danger
+              ),
+            'failed' => (
+                'The bank payout failed — see the details with support.',
+                p.danger
+              ),
+            _ => ('', p.muted),
+          };
+          if (line.isEmpty) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(line,
+                style: TextStyle(
+                    color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+          );
+        }),
         if (w.approvals.isNotEmpty) ...[
           const SizedBox(height: 6),
           for (final a in w.approvals)
@@ -787,8 +883,14 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
     final v = double.tryParse(_amount.text.trim());
     if (v == null || v <= 0) return setState(() => _error = 'Enter an amount');
     final minor = (v * _pow10(widget.exponent)).round();
-    if (minor > widget.policy.cappedWithdrawable) {
-      return setState(() => _error = 'Amount exceeds what you can withdraw right now');
+    final pol = widget.policy;
+    if (minor > pol.cappedWithdrawable) {
+      final providerCapped = pol.hasProviderFigure &&
+          pol.payableNow < pol.withdrawableMinor &&
+          minor <= pol.withdrawableMinor;
+      return setState(() => _error = providerCapped
+          ? 'Only ${formatMoney(pol.payableNow, widget.currency, widget.exponent)} has settled with ${pol.providerLabel} so far'
+          : 'Amount exceeds what you can withdraw right now');
     }
     Navigator.pop(context, minor);
   }
@@ -810,9 +912,20 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
           decoration: BoxDecoration(
               color: p.surface2, borderRadius: BorderRadius.circular(12)),
           child: Column(children: [
-            _kv('Available now', formatMoney(pol.withdrawableMinor, cur, exp), p),
+            if (pol.hasProviderFigure) ...[
+              _kv('Available at ${pol.providerLabel} now',
+                  formatMoney(pol.providerAvailableMinor!, cur, exp), p),
+              _kv('Matured on SportPadi', formatMoney(pol.withdrawableMinor, cur, exp), p),
+              if (pol.settlingAtProviderMinor > 0)
+                _kv('Still settling with ${pol.providerLabel}',
+                    formatMoney(pol.settlingAtProviderMinor, cur, exp), p),
+            ] else
+              _kv('Available now', formatMoney(pol.withdrawableMinor, cur, exp), p),
             if (pol.heldMinor > 0)
               _kv('Maturing (${pol.maturationDays} days)', formatMoney(pol.heldMinor, cur, exp), p),
+            if (pol.pendingApprovalMinor > 0)
+              _kv('Locked · awaiting approval',
+                  formatMoney(pol.pendingApprovalMinor, cur, exp), p),
             if (pol.periodRemainingMinor != null)
               _kv('Left this ${pol.periodDays}-day period',
                   formatMoney(pol.periodRemainingMinor!, cur, exp), p),

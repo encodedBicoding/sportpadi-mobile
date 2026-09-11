@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.sportpadi.sportpadiMobile</string>
+	<string>com.sportpadi.app</string>
 	<key>PROJECT_ID</key>
 	<string>sportpadi</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:912400814442:ios:0f6192fcb72be2e067d513</string>
+	<string>1:912400814442:ios:a6488fed9b14246567d513</string>
 </dict>
 </plist>

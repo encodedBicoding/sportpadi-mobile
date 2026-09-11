@@ -12,6 +12,27 @@ class EventsRepository {
   EventsRepository(this._dio);
   final Dio _dio;
 
+  /// Compulsory "balance by attribute" gate. Null on any failure — the event
+  /// screen fails open rather than blocking on a network error.
+  Future<Map<String, dynamic>?> balanceSetup(String eventId) async {
+    try {
+      final res = await _dio.get('/api/mobile/balance-setup',
+          queryParameters: {'eventId': eventId});
+      return res.data is Map ? Map<String, dynamic>.from(res.data as Map) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> saveBalanceRoles(String categoryId, List<String> roles) async {
+    try {
+      await _dio.post('/api/mobile/balance-setup',
+          data: {'categoryId': categoryId, 'roles': roles});
+    } catch (e) {
+      throw apiError(e, fallback: "Couldn't save. Try again.");
+    }
+  }
+
   Future<List<EventSummary>> discover() async {
     try {
       final res = await _dio.get('/api/mobile/discover');
@@ -175,6 +196,34 @@ class EventsRepository {
           data: {'action': 'set-status', 'status': status});
     } catch (e) {
       throw apiError(e, fallback: 'Could not update the event.');
+    }
+  }
+
+  /// Refund sweep status for a cancelled event (organizer only).
+  Future<Map<String, dynamic>> refundStatus(String eventId) async {
+    try {
+      final res = await _dio.post('/api/mobile/event-actions/$eventId',
+          data: {'action': 'refund-status'});
+      return res.data is Map
+          ? Map<String, dynamic>.from(res.data as Map)
+          : const {};
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load refund status.');
+    }
+  }
+
+  /// Retry outstanding refunds on a cancelled event. Idempotent server-side:
+  /// per-charge claims + provider idempotency keys mean nobody is refunded
+  /// twice, however often this is tapped.
+  Future<Map<String, dynamic>> retryRefunds(String eventId) async {
+    try {
+      final res = await _dio.post('/api/mobile/event-actions/$eventId',
+          data: {'action': 'retry-refunds'});
+      return res.data is Map
+          ? Map<String, dynamic>.from(res.data as Map)
+          : const {};
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not retry the refunds.');
     }
   }
 
@@ -509,15 +558,25 @@ class EventsRepository {
     String eventId,
     List<String> teamIds, {
     int? durationMinutes,
+    String? homeTeamId,
+    Map<String, String> teamColors = const {},
     List<String> officiantIds = const [],
   }) async {
     try {
+      final attributes = <String, dynamic>{
+        if (durationMinutes != null) 'durationMinutes': durationMinutes,
+        if (homeTeamId != null) 'homeTeamId': homeTeamId,
+      };
       final res =
           await _dio.post('/api/mobile/event-actions/$eventId', data: {
         'action': 'create-game',
         'teamIds': teamIds,
-        if (durationMinutes != null)
-          'attributes': {'durationMinutes': durationMinutes},
+        if (attributes.isNotEmpty) 'attributes': attributes,
+        if (teamColors.isNotEmpty)
+          'teamColors': [
+            for (final e in teamColors.entries)
+              {'teamId': e.key, 'color': e.value},
+          ],
         if (officiantIds.isNotEmpty) 'officiantIds': officiantIds,
       });
       return res.data is Map ? (res.data as Map)['id'] as String? : null;

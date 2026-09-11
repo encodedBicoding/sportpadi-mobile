@@ -7,6 +7,8 @@ class GroupMemberItem {
     this.username,
     this.avatarUrl,
     this.role,
+    this.isMember = false,
+    this.createdAt,
   });
 
   final String userId;
@@ -14,6 +16,10 @@ class GroupMemberItem {
   final String? username;
   final String? avatarUrl;
   final String? role;
+  /// Followers list only: already a member of the group (can't be promoted).
+  final bool isMember;
+  /// Followers list only: when they followed.
+  final DateTime? createdAt;
 
   factory GroupMemberItem.fromJson(Map<String, dynamic> j) => GroupMemberItem(
         userId: (j['userId'] ?? j['playerId'] ?? j['id'] ?? '') as String,
@@ -21,6 +27,8 @@ class GroupMemberItem {
         username: parseStr(j['username']),
         avatarUrl: parseStr(j['avatarUrl']),
         role: parseStr(j['role']),
+        isMember: j['isMember'] == true,
+        createdAt: parseDate(j['createdAt']),
       );
 }
 

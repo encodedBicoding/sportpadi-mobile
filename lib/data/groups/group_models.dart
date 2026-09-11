@@ -159,6 +159,7 @@ class GroupOverview {
     this.checkinLimit,
     this.checkinUnlimited = true,
     this.canUseWallet = false,
+    this.canCreateTournaments = false,
     this.walletExists = false,
     this.walletFrozen = false,
     this.walletStatus,
@@ -173,6 +174,7 @@ class GroupOverview {
   final int? checkinLimit;
   final bool checkinUnlimited;
   final bool canUseWallet;
+  final bool canCreateTournaments;
   final bool walletExists;
   final bool walletFrozen;
   final String? walletStatus;
@@ -202,6 +204,7 @@ class GroupOverview {
       checkinUnlimited:
           usage is Map ? usage['unlimited'] != false : true,
       canUseWallet: j['canUseWallet'] == true,
+      canCreateTournaments: j['canCreateTournaments'] == true,
       walletExists: wallet is Map && wallet['exists'] == true,
       walletFrozen: wallet is Map && wallet['status'] == 'frozen',
       walletStatus: wallet is Map ? wallet['status'] as String? : null,

@@ -18,6 +18,7 @@ import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournament_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
+import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
@@ -25,6 +26,11 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/emoji_badge.dart';
 import 'package:sportpadi_mobile/shared/widgets/entity_row.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+
+/// Group header geometry: cover banner height and how far the avatar/stats
+/// row hangs below it.
+const double _kCoverHeight = 140;
+const double _kHeaderOverhang = 34;
 
 class GroupDetailScreen extends ConsumerWidget {
   const GroupDetailScreen({super.key, required this.groupId});
@@ -44,34 +50,43 @@ class GroupDetailScreen extends ConsumerWidget {
         onRetry: () => ref.invalidate(groupProvider(groupId)),
         data: (g) => DefaultTabController(
           length: 3,
-          child: Column(
-            children: [
-              _Header(group: g),
-              Container(
-                decoration: BoxDecoration(
-                  border: Border(bottom: BorderSide(color: p.line)),
+          // The whole page scrolls: a tall header (cover, description, stats,
+          // admin cards) glides away and the tab bar pins to the top — so no
+          // amount of header content can trap the screen.
+          child: NestedScrollView(
+            headerSliverBuilder: (context, innerScrolled) => [
+              SliverToBoxAdapter(child: _Header(group: g)),
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _PinnedTabBar(
+                  backgroundColor: p.bg,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: p.bg,
+                      border: Border(bottom: BorderSide(color: p.line)),
+                    ),
+                    child: TabBar(
+                      labelColor: p.accent,
+                      unselectedLabelColor: p.muted,
+                      indicatorColor: p.accent,
+                      indicatorSize: TabBarIndicatorSize.label,
+                      labelStyle: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 13),
+                      tabs: const [
+                        Tab(text: 'Events'),
+                        Tab(text: 'Teams'),
+                        Tab(text: 'Tournaments'),
+                      ],
+                    ),
+                  ),
                 ),
-                child: TabBar(
-                  labelColor: p.accent,
-                  unselectedLabelColor: p.muted,
-                  indicatorColor: p.accent,
-                  indicatorSize: TabBarIndicatorSize.label,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                  tabs: const [
-                    Tab(text: 'Events'),
-                    Tab(text: 'Teams'),
-                    Tab(text: 'Tournaments'),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: TabBarView(children: [
-                  _EventsTab(groupId: groupId),
-                  _TeamsTab(groupId: groupId),
-                  _TournamentsTab(groupId: groupId),
-                ]),
               ),
             ],
+            body: TabBarView(children: [
+              _EventsTab(groupId: groupId),
+              _TeamsTab(groupId: groupId),
+              _TournamentsTab(groupId: groupId, canManage: g.canManage),
+            ]),
           ),
         ),
       ),
@@ -161,18 +176,44 @@ class _HeaderState extends ConsumerState<_Header> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Cover banner + overlapping avatar & stats.
-        Stack(
-          clipBehavior: Clip.none,
+        // Cover banner + overlapping avatar & stats. The stack is sized to
+        // include the avatar/stats overhang: a Stack only hit-tests inside
+        // its own bounds, so a row hanging below the cover via a negative
+        // `bottom` never received taps on its lower half.
+        SizedBox(
+          height: _kCoverHeight + _kHeaderOverhang,
+          width: double.infinity,
+          child: Stack(
           children: [
-            SizedBox(
-              height: 96,
-              width: double.infinity,
-              child: group.coverImageUrl != null
-                  ? Image.network(group.coverImageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const _CoverWash())
-                  : const _CoverWash(),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: _kCoverHeight,
+              child: Stack(fit: StackFit.expand, children: [
+                group.coverImageUrl != null
+                    ? Image.network(group.coverImageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const _CoverWash())
+                    : const _CoverWash(),
+                // Same treatment as the web cover: a bottom-up fade into the
+                // page background so the photo melts into the screen instead
+                // of cutting across it.
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: const [0.30, 0.72, 1.0],
+                      colors: [
+                        Colors.transparent,
+                        p.bg.withAlpha(96),
+                        p.bg,
+                      ],
+                    ),
+                  ),
+                ),
+              ]),
             ),
             if (canManage)
               Positioned(
@@ -183,7 +224,7 @@ class _HeaderState extends ConsumerState<_Header> {
             Positioned(
               left: 16,
               right: 16,
-              bottom: -34,
+              bottom: 0,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -244,8 +285,9 @@ class _HeaderState extends ConsumerState<_Header> {
               ),
             ),
           ],
+          ),
         ),
-        const SizedBox(height: 44),
+        const SizedBox(height: 10),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           child: Column(
@@ -316,24 +358,65 @@ class _HeaderState extends ConsumerState<_Header> {
   }
 
   Widget _stat(String value, String label, {VoidCallback? onTap}) {
-    return Builder(builder: (context) {
-      final p = context.palette;
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(value,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w700, fontSize: 17)),
-            Text(label, style: TextStyle(color: p.muted, fontSize: 11)),
-          ]),
-        ),
-      );
-    });
+    return Expanded(
+      child: Builder(builder: (context) {
+        final p = context.palette;
+        // Full-width, ≥44pt tall tap target per stat.
+        return InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(value,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w700, fontSize: 17)),
+              Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: p.muted, fontSize: 11)),
+            ]),
+          ),
+        );
+      }),
+    );
   }
+}
+
+/// "+ New tournament" for every tier. Entitled groups go straight to the
+/// creation flow (same behaviour as web); gated groups get a neutral explainer
+/// while the server quietly emails the admin the upgrade info — out-of-app
+/// comms only, the app itself shows no upgrade CTA (app-store rules, uniform
+/// across platforms). Server-side enforcement still guards actual creation.
+void _handleNewTournament(BuildContext context, WidgetRef ref, String groupId) {
+  final ov = ref.read(groupOverviewProvider(groupId)).valueOrNull;
+  // Fail open when the overview hasn't resolved — the server still enforces.
+  final allowed = ov?.canCreateTournaments ?? true;
+  if (allowed) {
+    context.push('/groups/$groupId/new-tournament');
+    return;
+  }
+  // Quiet nudge (server-throttled alongside the wallet one), then the modal.
+  ref
+      .read(walletRepositoryProvider)
+      .requestPlanEmail(groupId, topic: 'tournaments');
+  showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text("Tournaments aren't in this plan"),
+      content: const Text(
+          "This group's current plan doesn't include tournament events — "
+          'creating brackets or friendlies and inviting teams from other '
+          'groups.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: const Text('OK'),
+        ),
+      ],
+    ),
+  );
 }
 
 class _ManageMenu extends ConsumerWidget {
@@ -384,31 +467,243 @@ class _ManageMenu extends ConsumerWidget {
             case 'fines':
               _openWeb(ref, '/groups/$groupId/fines');
               break;
-            case 'upgrade':
-              _openWeb(ref, '/groups/$groupId/upgrade');
-              break;
             case 'team':
               context.push('/groups/$groupId/new-team');
               break;
             case 'tournament':
-              context.push('/groups/$groupId/new-tournament');
+              _handleNewTournament(context, ref, groupId);
               break;
             case 'invites':
               context.push('/groups/$groupId/invites');
               break;
+            case 'promo':
+              showModalBottomSheet<void>(
+                context: context,
+                backgroundColor: Colors.transparent,
+                isScrollControlled: true,
+                builder: (_) => _PromoSheet(groupId: groupId),
+              );
+              break;
           }
         },
-        itemBuilder: (_) => const [
-          PopupMenuItem(value: 'link', child: Text('Copy membership link')),
-          PopupMenuItem(value: 'edit', child: Text('Edit group')),
-          PopupMenuItem(value: 'billing', child: Text('Payment methods')),
-          PopupMenuItem(value: 'wallet', child: Text('Wallet')),
-          PopupMenuItem(value: 'fines', child: Text('Fines')),
-          PopupMenuItem(value: 'upgrade', child: Text('Upgrade plan')),
-          PopupMenuDivider(),
-          PopupMenuItem(value: 'team', child: Text('New team')),
-          PopupMenuItem(value: 'tournament', child: Text('New tournament')),
-          PopupMenuItem(value: 'invites', child: Text('Tournament invites')),
+        itemBuilder: (_) => [
+          _menuItem('link', Icons.link_rounded, 'Copy membership link'),
+          _menuItem('edit', Icons.edit_outlined, 'Edit group'),
+          _menuItem('billing', Icons.credit_card_rounded, 'Payment methods'),
+          _menuItem('wallet', Icons.account_balance_wallet_outlined, 'Wallet'),
+          _menuItem('fines', Icons.gavel_rounded, 'Fines'),
+          // No upgrade entry point in the app — plan changes are discovered via
+          // the web / email, never linked from here (app-store rules; uniform
+          // across platforms).
+          _menuItem('promo', Icons.redeem_rounded, 'Promo codes'),
+          const PopupMenuDivider(),
+          _menuItem('team', Icons.shield_outlined, 'New team'),
+          _menuItem('tournament', Icons.emoji_events_outlined, 'New tournament'),
+          _menuItem('invites', Icons.mail_outline_rounded, 'Tournament invites'),
+        ],
+      ),
+    );
+  }
+
+  PopupMenuItem<String> _menuItem(String value, IconData icon, String label) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(children: [
+        Icon(icon, size: 18),
+        const SizedBox(width: 10),
+        Text(label),
+      ]),
+    );
+  }
+}
+
+/// Redeem + view promo codes — native version of the web GroupPromoDialog.
+class _PromoSheet extends ConsumerStatefulWidget {
+  const _PromoSheet({required this.groupId});
+  final String groupId;
+
+  @override
+  ConsumerState<_PromoSheet> createState() => _PromoSheetState();
+}
+
+class _PromoSheetState extends ConsumerState<_PromoSheet> {
+  final _code = TextEditingController();
+  bool _busy = false;
+  List<Map<String, dynamic>>? _promos;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _code.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    try {
+      final rows =
+          await ref.read(groupsRepositoryProvider).groupPromos(widget.groupId);
+      if (mounted) setState(() => _promos = rows);
+    } catch (_) {
+      if (mounted) setState(() => _promos = const []);
+    }
+  }
+
+  Future<void> _redeem() async {
+    final code = _code.text.trim();
+    if (code.isEmpty || _busy) return;
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(groupsRepositoryProvider)
+          .redeemPromo(widget.groupId, code);
+      _code.clear();
+      await _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Promo activated 🎉 Its features are live now.')));
+        ref.invalidate(groupProvider(widget.groupId));
+        ref.invalidate(groupOverviewProvider(widget.groupId));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e'.replaceFirst('Exception: ', ''))));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final promos = _promos;
+    return Container(
+      constraints:
+          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+      decoration: BoxDecoration(
+        color: p.bg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+          20, 18, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(Icons.redeem_rounded, size: 20, color: p.accent),
+            const SizedBox(width: 8),
+            Text('Promo codes',
+                style: TextStyle(
+                    color: p.ink, fontSize: 17, fontWeight: FontWeight.w800)),
+          ]),
+          const SizedBox(height: 6),
+          Text(
+            'Redeem a code to unlock features or a plan for this group — no card needed.',
+            style: TextStyle(color: p.muted, fontSize: 12.5),
+          ),
+          const SizedBox(height: 14),
+          Row(children: [
+            Expanded(
+              child: TextField(
+                controller: _code,
+                textCapitalization: TextCapitalization.characters,
+                decoration: InputDecoration(
+                  hintText: 'Enter code…',
+                  isDense: true,
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                onSubmitted: (_) => _redeem(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: _busy ? null : _redeem,
+              style: FilledButton.styleFrom(
+                backgroundColor: p.accent,
+                // The app theme makes filled buttons full-width
+                // (minimumSize: Size.fromHeight(50)) — inside a Row that
+                // forces infinite width. Size to content here instead.
+                minimumSize: const Size(0, 48),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              ),
+              child: _busy
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Text('Redeem'),
+            ),
+          ]),
+          const SizedBox(height: 16),
+          if (promos == null)
+            const Center(
+                child: Padding(
+              padding: EdgeInsets.all(12),
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ))
+          else if (promos.isEmpty)
+            Text('No promo codes redeemed yet.',
+                style: TextStyle(color: p.muted, fontSize: 12.5))
+          else
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: promos.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (_, i) {
+                  final r = promos[i];
+                  final active = r['active'] == true;
+                  final code = (r['code'] ?? '') as String;
+                  final desc = r['description'] as String?;
+                  final ends = DateTime.tryParse('${r['endsAt'] ?? r['ends_at'] ?? ''}');
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: p.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: active ? p.accent.withAlpha(102) : p.line),
+                    ),
+                    child: Row(children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(code,
+                                style: TextStyle(
+                                    color: p.ink,
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w800,
+                                    fontFamily: 'monospace')),
+                            if (desc != null && desc.isNotEmpty)
+                              Text(desc,
+                                  style: TextStyle(
+                                      color: p.muted, fontSize: 12)),
+                            if (ends != null)
+                              Text(
+                                  '${active ? 'Ends' : 'Ended'} ${ends.toLocal().toString().split(' ').first}',
+                                  style: TextStyle(
+                                      color: p.muted, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                      SpBadge(active ? 'Active' : 'Expired',
+                          tone: active ? p.accent : p.muted),
+                    ]),
+                  );
+                },
+              ),
+            ),
         ],
       ),
     );
@@ -592,12 +887,13 @@ class _TeamCard extends StatelessWidget {
 }
 
 class _TournamentsTab extends ConsumerWidget {
-  const _TournamentsTab({required this.groupId});
+  const _TournamentsTab({required this.groupId, this.canManage = false});
   final String groupId;
+  final bool canManage;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(groupTournamentsProvider(groupId));
-    return AsyncView(
+    final body = AsyncView(
       value: t,
       onRetry: () => ref.invalidate(groupTournamentsProvider(groupId)),
       data: (list) => list.isEmpty
@@ -609,6 +905,27 @@ class _TournamentsTab extends ConsumerWidget {
               itemBuilder: (_, i) => _TournamentCard(t: list[i]),
             ),
     );
+    if (!canManage) return body;
+    // Every tier sees the button; _handleNewTournament decides what a tap
+    // does (create flow vs neutral gated modal + quiet email nudge).
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 40),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+            ),
+            onPressed: () => _handleNewTournament(context, ref, groupId),
+            icon: const Icon(Icons.add_rounded, size: 18),
+            label: const Text('New tournament'),
+          ),
+        ),
+      ),
+      Expanded(child: body),
+    ]);
   }
 }
 
@@ -741,20 +1058,10 @@ class _OverviewSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Free-tier upsell — unlock the wallet to receive payments.
-        if (canManage && ov != null && ov.showUnlockBanner) ...[
-          _quickCard(
-            context,
-            icon: Icons.account_balance_wallet_outlined,
-            iconTone: p.accent,
-            title: 'Unlock the wallet to receive payments ✨',
-            subtitle:
-                'Sell tickets, collect dues, and get paid straight to your bank.',
-            highlighted: true,
-            onTap: () => context.push('/groups/$groupId/wallet'),
-          ),
-          const SizedBox(height: 8),
-        ],
+        // No free-tier upsell banner in the app — the Wallet quick card below
+        // shows on every plan (a "not on your current plan" state when locked),
+        // so admins still discover the wallet; upgrade prompts themselves live
+        // on the web / in email (app-store rules; uniform across platforms).
         // Quick links grid.
         Row(children: [
           Expanded(
@@ -787,38 +1094,33 @@ class _OverviewSection extends ConsumerWidget {
         if (canManage && ov != null) ...[
           const SizedBox(height: 8),
           Row(children: [
-            if (ov.showWalletCard) ...[
-              Expanded(
-                child: _quickCard(
-                  context,
-                  icon: Icons.account_balance_wallet_outlined,
-                  iconTone: (ov.walletFrozen || ov.walletActionNeeded)
-                      ? p.amber
-                      : p.accent,
-                  title: 'Wallet',
-                  subtitle: ov.walletFrozen
-                      ? 'Paused — view records'
-                      : ov.walletActionNeeded
-                          ? (ov.walletOnboardingStep == 'verify_identity'
-                              ? 'Action needed — verify your identity with Stripe'
-                              : 'Action needed — finish Stripe setup')
-                          : ov.walletUnderReview
-                              ? 'Stripe is reviewing your details'
-                              : 'Collect & withdraw',
-                  highlighted: ov.walletActionNeeded,
-                  onTap: () => context.push('/groups/$groupId/wallet'),
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
+            // Always visible to admins: locked groups get a neutral "not on
+            // your current plan" state so they know the wallet exists. Tapping
+            // opens the native wallet screen (its locked state quietly emails
+            // the admin the web plans link).
             Expanded(
               child: _quickCard(
                 context,
-                icon: Icons.workspace_premium_outlined,
-                iconTone: p.amber,
-                title: 'Plan',
-                subtitle: 'Upgrade on the web ↗',
-                onTap: () => _openWeb(ref, '/groups/$groupId/upgrade'),
+                icon: Icons.account_balance_wallet_outlined,
+                iconTone: ov.showUnlockBanner
+                    ? p.muted
+                    : (ov.walletFrozen || ov.walletActionNeeded)
+                        ? p.amber
+                        : p.accent,
+                title: 'Wallet',
+                subtitle: ov.showUnlockBanner
+                    ? 'Not on your current plan'
+                    : ov.walletFrozen
+                        ? 'Paused — view records'
+                        : ov.walletActionNeeded
+                            ? (ov.walletOnboardingStep == 'verify_identity'
+                                ? 'Action needed — verify your identity with Stripe'
+                                : 'Action needed — finish Stripe setup')
+                            : ov.walletUnderReview
+                                ? 'Stripe is reviewing your details'
+                                : 'Collect & withdraw',
+                highlighted: ov.walletActionNeeded,
+                onTap: () => context.push('/groups/$groupId/wallet'),
               ),
             ),
             const SizedBox(width: 8),
@@ -845,13 +1147,6 @@ class _OverviewSection extends ConsumerWidget {
         ],
       ],
     );
-  }
-
-  /// Plan upgrades stay on the web (digital subscription → app-store billing
-  /// rules); everything else money-related is native now.
-  Future<void> _openWeb(WidgetRef ref, String path) async {
-    final base = ref.read(appConfigProvider).apiBaseUrl;
-    await launchUrl(Uri.parse('$base$path'), mode: LaunchMode.externalApplication);
   }
 
   Widget _quickCard(
@@ -1357,4 +1652,30 @@ class _EditGroupSheetState extends ConsumerState<_EditGroupSheet> {
       ),
     );
   }
+}
+
+
+/// Pins the group tab bar under the app bar while the header scrolls away.
+class _PinnedTabBar extends SliverPersistentHeaderDelegate {
+  const _PinnedTabBar({required this.child, required this.backgroundColor});
+  final Widget child;
+  final Color backgroundColor;
+
+  static const double _height = 47;
+
+  @override
+  double get minExtent => _height;
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return SizedBox(height: _height, child: child);
+  }
+
+  @override
+  bool shouldRebuild(covariant _PinnedTabBar oldDelegate) =>
+      oldDelegate.child != child ||
+      oldDelegate.backgroundColor != backgroundColor;
 }

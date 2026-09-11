@@ -101,6 +101,11 @@ class MyTicket {
     this.eventTitle,
     this.eventDate,
     this.paidAt,
+    this.giftedByName,
+    this.groupId,
+    this.groupRelation,
+    this.feeMinor = 0,
+    this.redeemedAt,
   });
   final String id;
   final String code;
@@ -112,6 +117,16 @@ class MyTicket {
   final String? eventTitle;
   final DateTime? eventDate;
   final DateTime? paidAt;
+  /// Set when someone else paid for this ticket (gift purchase).
+  final String? giftedByName;
+  final String? groupId;
+  /// member | follower | none — powers the "follow this group" nudge.
+  final String? groupRelation;
+  /// Platform fee paid on top of [amountMinor].
+  final int feeMinor;
+  final DateTime? redeemedAt;
+
+  int get totalMinor => amountMinor + feeMinor;
 
   factory MyTicket.fromJson(Map<String, dynamic> j) {
     final t = j['ticket'];
@@ -129,6 +144,13 @@ class MyTicket {
       eventTitle: ev is Map ? parseStr(ev['title']) : null,
       eventDate: ev is Map ? parseDate(ev['eventDate']) : null,
       paidAt: parseDate(j['paidAt']),
+      giftedByName: j['giftedBy'] is Map
+          ? parseStr((j['giftedBy'] as Map)['displayName'])
+          : null,
+      groupId: grp is Map ? parseStr(grp['id']) : null,
+      groupRelation: parseStr(j['groupRelation']),
+      feeMinor: parseInt(j['platformFee']) ?? 0,
+      redeemedAt: parseDate(j['redeemedAt']),
     );
   }
 }
@@ -273,6 +295,9 @@ class EventTickets {
     required this.tickets,
     required this.unpaidRequiredIds,
     required this.unpaidRequiredTotalMinor,
+    this.groupId,
+    this.groupName,
+    this.viewerRelation,
   });
   final bool ticketed;
   final String currency;
@@ -280,6 +305,10 @@ class EventTickets {
   final List<EventTicket> tickets;
   final List<String> unpaidRequiredIds;
   final int unpaidRequiredTotalMinor;
+  final String? groupId;
+  final String? groupName;
+  /// member | follower | none (null = signed out).
+  final String? viewerRelation;
 
   bool get anyRequired => tickets.any((t) => t.required);
   bool get allRequiredPaid => anyRequired && unpaidRequiredIds.isEmpty;
@@ -289,8 +318,12 @@ class EventTickets {
     final ids = j['unpaidRequiredIds'] is List
         ? (j['unpaidRequiredIds'] as List).map((e) => '$e').toList()
         : <String>[];
+    final grp = j['group'] is Map ? Map<String, dynamic>.from(j['group'] as Map) : null;
     return EventTickets(
       ticketed: j['ticketed'] == true,
+      groupId: grp != null ? parseStr(grp['id']) : null,
+      groupName: grp != null ? parseStr(grp['name']) : null,
+      viewerRelation: parseStr(j['viewerRelation']),
       currency: parseStr(j['currency']) ?? '',
       currencyExponent: parseInt(j['currencyExponent']) ?? 2,
       tickets: [
@@ -301,4 +334,25 @@ class EventTickets {
       unpaidRequiredTotalMinor: parseInt(j['unpaidRequiredTotal']) ?? 0,
     );
   }
+}
+
+/// Someone a ticket can be bought FOR (found by username or exact email).
+class RecipientUser {
+  const RecipientUser({
+    required this.userId,
+    required this.displayName,
+    required this.username,
+    this.avatarUrl,
+  });
+  final String userId;
+  final String displayName;
+  final String username;
+  final String? avatarUrl;
+
+  factory RecipientUser.fromJson(Map<String, dynamic> j) => RecipientUser(
+        userId: parseStr(j['userId']) ?? '',
+        displayName: parseStr(j['displayName']) ?? 'Player',
+        username: parseStr(j['username']) ?? '',
+        avatarUrl: parseStr(j['avatarUrl']),
+      );
 }

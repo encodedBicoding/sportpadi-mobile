@@ -16,6 +16,7 @@ import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
 import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
+import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/data/groups/members_repository.dart';
 import 'package:sportpadi_mobile/features/events/event_tickets_card.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
@@ -38,11 +39,295 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   // Post-assignment tab: 0 = Games, 1 = Teams, 2 = Check-ins.
   int _tab = 0;
   String? _busy;
+  Timer? _live;
+  ProviderSubscription<AsyncValue<EventDetail>>? _watch;
+  ProviderSubscription<AsyncValue<EventDetail>>? _balanceWatch;
+  bool _balanceChecked = false;
 
   String get slug => widget.slug;
 
+  @override
+  void initState() {
+    super.initState();
+    // Around game day the screen stays live: a check-in (scanned on this or
+    // any other device) shows up within seconds — no pull-to-refresh needed.
+    _live = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted) return;
+      final e = ref.read(eventDetailProvider(slug)).valueOrNull;
+      if (e == null) return;
+      if (e.status == 'completed' || e.status == 'cancelled') return;
+      final d = e.eventDate;
+      if (d == null) return;
+      final diff = d.difference(DateTime.now()).inHours.abs();
+      if (e.status == 'live' || diff <= 36) {
+        ref.invalidate(eventDetailProvider(slug));
+      }
+    });
+    // Loud feedback when a refresh brings news: your own check-in landed, or
+    // (for organizers) a player just scanned in — mirrors the web live feed.
+    _watch = ref.listenManual(eventDetailProvider(slug), (prev, next) {
+      final a = prev?.valueOrNull;
+      final b = next.valueOrNull;
+      if (a == null || b == null || !mounted) return;
+      if (!a.myCheckedIn && b.myCheckedIn) {
+        HapticFeedback.mediumImpact();
+        _flash("You're checked in ✅");
+        return;
+      }
+      if (b.canManage) {
+        final before = a.attendees
+            .where((x) => x.checkedInAt != null)
+            .map((x) => x.userId)
+            .toSet();
+        final fresh = b.attendees
+            .where((x) => x.checkedInAt != null && !before.contains(x.userId))
+            .toList();
+        if (fresh.isNotEmpty) {
+          HapticFeedback.mediumImpact();
+          _flash(fresh.length == 1
+              ? '🎉 ${fresh.first.displayName} checked in'
+              : '🎉 ${fresh.first.displayName} +${fresh.length - 1} checked in');
+        }
+      }
+    });
+
+    // Compulsory balance-by-attribute setup: once the event resolves, ask the
+    // server whether this viewer still owes their role/position for the
+    // event's category (smart-balancing sports only) and block until saved.
+    _balanceWatch = ref.listenManual(eventDetailProvider(slug),
+        fireImmediately: true, (prev, next) {
+      final e = next.valueOrNull;
+      if (e == null || _balanceChecked || !mounted) return;
+      _balanceChecked = true;
+      _checkBalanceSetup(e.id);
+    });
+  }
+
+  Future<void> _checkBalanceSetup(String eventId) async {
+    final data =
+        await ref.read(eventsRepositoryProvider).balanceSetup(eventId);
+    if (!mounted || data == null) return;
+    if (data['required'] != true) return;
+    final field = data['field'];
+    final categoryId = data['categoryId'];
+    if (field is! Map || categoryId is! String || categoryId.isEmpty) return;
+    await _showBalanceSheet(
+      categoryId: categoryId,
+      categoryName: (data['categoryName'] as String?) ?? 'this sport',
+      label: (field['label'] as String?) ?? 'position',
+      options: field['options'] is List
+          ? (field['options'] as List).map((x) => x.toString()).toList()
+          : const <String>[],
+      maxPicks: field['maxPicks'] is int ? field['maxPicks'] as int : 3,
+    );
+  }
+
+  Future<void> _showBalanceSheet({
+    required String categoryId,
+    required String categoryName,
+    required String label,
+    required List<String> options,
+    required int maxPicks,
+  }) async {
+    final p = context.palette;
+    final picked = <String>{};
+    final freeCtrl = TextEditingController();
+    var saving = false;
+    await showModalBottomSheet<void>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: StatefulBuilder(
+          builder: (ctx, setSheet) {
+            final canSave = options.isNotEmpty
+                ? picked.isNotEmpty
+                : freeCtrl.text.trim().isNotEmpty;
+            Future<void> doSave() async {
+              if (saving || !canSave) return;
+              setSheet(() => saving = true);
+              try {
+                final roles = options.isNotEmpty
+                    ? picked.toList()
+                    : [freeCtrl.text.trim()];
+                await ref
+                    .read(eventsRepositoryProvider)
+                    .saveBalanceRoles(categoryId, roles);
+                if (ctx.mounted) Navigator.of(ctx).pop();
+                if (mounted) _flash("You're set for $categoryName ✅");
+              } catch (e) {
+                setSheet(() => saving = false);
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                    content: Text(e.toString()),
+                    behavior: SnackBarBehavior.floating,
+                  ));
+                }
+              }
+            }
+
+            return Container(
+              padding: EdgeInsets.fromLTRB(
+                  20, 16, 20, 28 + MediaQuery.of(ctx).viewInsets.bottom),
+              decoration: BoxDecoration(
+                color: Theme.of(ctx).scaffoldBackgroundColor,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: p.muted.withAlpha(90),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text('Set your ${label.toLowerCase()}',
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 6),
+                    Text(
+                      '$categoryName events use smart team balancing, and it '
+                      'needs every player\'s ${label.toLowerCase()}. '
+                      '${maxPicks == 1 ? 'Pick one' : 'Pick up to $maxPicks'} — '
+                      'you can change this later from your profile.',
+                      style: TextStyle(
+                          color: p.muted, fontSize: 13, height: 1.45),
+                    ),
+                    const SizedBox(height: 14),
+                    if (options.isNotEmpty)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final opt in options)
+                            GestureDetector(
+                              onTap: () => setSheet(() {
+                                if (picked.contains(opt)) {
+                                  picked.remove(opt);
+                                } else if (maxPicks == 1) {
+                                  picked
+                                    ..clear()
+                                    ..add(opt);
+                                } else if (picked.length < maxPicks) {
+                                  picked.add(opt);
+                                }
+                              }),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: picked.contains(opt)
+                                      ? p.accent.withAlpha(36)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(99),
+                                  border: Border.all(
+                                    color: picked.contains(opt)
+                                        ? p.accent
+                                        : p.muted.withAlpha(80),
+                                  ),
+                                ),
+                                child: Text(
+                                  opt,
+                                  style: TextStyle(
+                                    color: picked.contains(opt)
+                                        ? p.accent
+                                        : p.muted,
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      )
+                    else
+                      TextField(
+                        controller: freeCtrl,
+                        onChanged: (_) => setSheet(() {}),
+                        maxLength: 60,
+                        textInputAction: TextInputAction.done,
+                        decoration: InputDecoration(
+                          hintText: 'Your ${label.toLowerCase()}',
+                          counterText: '',
+                        ),
+                      ),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, 48)),
+                      onPressed: canSave && !saving ? doSave : null,
+                      child: Text(saving ? 'Saving…' : 'Save & continue'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    freeCtrl.dispose();
+  }
+
+  void _flash(String msg) {
+    final p = context.palette;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg,
+          style: const TextStyle(
+              fontWeight: FontWeight.w700, color: Colors.white)),
+      backgroundColor: p.accent,
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 3),
+    ));
+  }
+
+  @override
+  void dispose() {
+    _live?.cancel();
+    _watch?.close();
+    _balanceWatch?.close();
+    super.dispose();
+  }
+
   void _refetch() {
     ref.invalidate(eventDetailProvider(slug));
+  }
+
+  /// Manual completion ends the event for everyone — always confirm first
+  /// (a stray tap by one admin closes it for the whole group).
+  Future<bool> _confirmComplete() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Complete this event?'),
+        content: const Text(
+            'This ends the event for everyone — check-ins close and results '
+            'are finalized. If the game is still being played, keep it open.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Keep it open')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Complete event')),
+        ],
+      ),
+    );
+    return ok == true;
   }
 
   Future<void> _do(String key, Future<void> Function() op) async {
@@ -77,8 +362,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                 '${detail.valueOrNull!.categoryEmoji ?? '🏅'} ${detail.valueOrNull!.title}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style:
-                    const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                    fontSize: 15.5, fontWeight: FontWeight.w700),
               ),
         actions: [
           if (detail.valueOrNull?.canManage == true &&
@@ -143,11 +428,17 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   }
 
   bool _isPast(EventDetail e) {
+    // The server computes this in the EVENT's own timezone (venue coords →
+    // IANA zone, stored on create/edit) against endTime — or end of that day
+    // when no end time is set. Device-local date math is wrong across zones.
+    final ended = e.hasEnded;
+    if (ended != null) return ended;
+    // Legacy fallback for old payloads without the field.
     final d = e.eventDate;
     if (d == null) return false;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    return DateTime(d.year, d.month, d.day).isBefore(today);
+    return DateTime(d.year, d.month, d.day, d.hour).isBefore(today);
   }
 
   Widget _body(EventDetail e) {
@@ -163,225 +454,265 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     final canCheckIn =
         e.status == 'open' || (e.status == 'kicked_off' && e.hasLatePool);
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-      children: [
-        if (e.isPrivate) ...[
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-            decoration: BoxDecoration(
-              color: const Color.fromRGBO(245, 167, 10, 0.10),
-              borderRadius: BorderRadius.circular(12),
-              border:
-                  Border.all(color: const Color.fromRGBO(245, 167, 10, 0.4)),
-            ),
-            child: Row(children: [
-              Icon(Icons.lock_outline, size: 14, color: p.amber),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Private event — only members of ${e.groupName ?? 'this group'} can see it.',
-                  style: TextStyle(color: p.amber, fontSize: 12),
-                ),
+    final children = <Widget>[
+      if (e.isPrivate) ...[
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          decoration: BoxDecoration(
+            color: const Color.fromRGBO(245, 167, 10, 0.10),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color.fromRGBO(245, 167, 10, 0.4)),
+          ),
+          child: Row(children: [
+            Icon(Icons.lock_outline, size: 14, color: p.amber),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Private event — only members of ${e.groupName ?? 'this group'} can see it.',
+                style: TextStyle(color: p.amber, fontSize: 12),
               ),
-            ]),
-          ),
-          const SizedBox(height: 12),
-        ],
-        _Photos(event: e),
-        if (e.canManage && e.status != 'completed') ...[
-          const SizedBox(height: 10),
-          _PhotoManager(event: e, onChanged: _refetch),
-        ],
-        const SizedBox(height: 14),
-        _InfoCard(event: e),
-        if (e.groupId != null) ...[
-          const SizedBox(height: 12),
-          _HostedByCard(
-              groupId: e.groupId!,
-              name: e.groupName ?? 'Group',
-              imageUrl: e.groupImageUrl),
-        ],
-        const SizedBox(height: 12),
-        _StatsRow(event: e),
-        if (e.typicalAttendance != null) ...[
-          const SizedBox(height: 8),
-          Center(
-            child: Text(
-              '${e.groupName != null ? "${e.groupName}'s " : ''}${e.categoryName ?? 'These'} events usually draw ~${e.typicalAttendance} players',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: p.muted, fontSize: 12),
             ),
+          ]),
+        ),
+        const SizedBox(height: 12),
+      ],
+      _Photos(event: e),
+      if (e.canManage && e.status != 'completed') ...[
+        const SizedBox(height: 10),
+        _PhotoManager(event: e, onChanged: _refetch),
+      ],
+      const SizedBox(height: 14),
+      _InfoCard(event: e),
+      if (e.groupId != null) ...[
+        const SizedBox(height: 12),
+        _HostedByCard(
+            groupId: e.groupId!,
+            name: e.groupName ?? 'Group',
+            imageUrl: e.groupImageUrl),
+      ],
+      const SizedBox(height: 12),
+      _StatsRow(event: e),
+      if (e.typicalAttendance != null) ...[
+        const SizedBox(height: 8),
+        Center(
+          child: Text(
+            '${e.groupName != null ? "${e.groupName}'s " : ''}${e.categoryName ?? 'These'} events usually draw ~${e.typicalAttendance} players',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: p.muted, fontSize: 12),
           ),
-        ],
-        if (e.status != 'cancelled') EventTicketsCard(eventId: e.id),
-        if (canCheckIn) ...[
-          const SizedBox(height: 12),
-          _EngageBlock(event: e, onChanged: _refetch),
-        ],
-        if (e.canManage && canCheckIn && e.qrCode != null) ...[
-          const SizedBox(height: 12),
-          _QrCard(event: e),
-        ],
-        if (e.isTeamFlow && e.canManage && e.status == 'open') ...[
-          const SizedBox(height: 12),
-          _AssignTeamsCard(
-            event: e,
-            busy: _busy == 'assign',
-            onAssign: (count) => _do('assign', () async {
+        ),
+      ],
+      if (e.status != 'cancelled') EventTicketsCard(eventId: e.id),
+      // Cancelled + organizer → surface any refunds still outstanding, with a
+      // safe (idempotent) retry.
+      if (e.canManage && e.status == 'cancelled') ...[
+        const SizedBox(height: 12),
+        _RefundRetryCard(eventId: e.id),
+      ],
+      if (canCheckIn) ...[
+        const SizedBox(height: 12),
+        _EngageBlock(event: e, onChanged: _refetch),
+      ],
+      if (e.canManage && canCheckIn && e.qrCode != null) ...[
+        const SizedBox(height: 12),
+        _QrCard(event: e),
+      ],
+      if (e.isTeamFlow && e.canManage && e.status == 'open') ...[
+        const SizedBox(height: 12),
+        _AssignTeamsCard(
+          event: e,
+          busy: _busy == 'assign',
+          onAssign: (count) => _do('assign', () async {
+            await ref
+                .read(eventsRepositoryProvider)
+                .generateTeams(e.id, teamCount: count);
+            ref.invalidate(eventTeamsProvider(e.id));
+          }),
+          onDraft: () async {
+            final count = await _AssignTeamsCard.pickCount(context);
+            if (count == null) return;
+            await _do('draft', () async {
               await ref
                   .read(eventsRepositoryProvider)
-                  .generateTeams(e.id, teamCount: count);
-              ref.invalidate(eventTeamsProvider(e.id));
-            }),
-            onDraft: () async {
+                  .draftStart(e.id, teamCount: count);
+            });
+          },
+        ),
+      ],
+      if (e.isTeamFlow && e.status == 'drafting') ...[
+        const SizedBox(height: 16),
+        _DraftBoard(
+          eventId: e.id,
+          onDone: () {
+            _refetch();
+            ref.invalidate(eventTeamsProvider(e.id));
+          },
+        ),
+      ],
+      if (showTabs) ...[
+        const SizedBox(height: 16),
+        if (e.canManage && e.interestedPeople.isNotEmpty) ...[
+          _InterestedList(people: e.interestedPeople),
+          const SizedBox(height: 12),
+        ],
+        if (e.canManage && e.status == 'kicked_off') ...[
+          _OrganizerTeamControls(
+            hasGames: hasGames,
+            busy: _busy,
+            onReshuffle: () async {
               final count = await _AssignTeamsCard.pickCount(context);
               if (count == null) return;
-              await _do('draft', () async {
+              await _do('assign', () async {
                 await ref
                     .read(eventsRepositoryProvider)
-                    .draftStart(e.id, teamCount: count);
+                    .generateTeams(e.id, teamCount: count);
+                ref.invalidate(eventTeamsProvider(e.id));
               });
             },
-          ),
-        ],
-        if (e.isTeamFlow && e.status == 'drafting') ...[
-          const SizedBox(height: 16),
-          _DraftBoard(
-            eventId: e.id,
-            onDone: () {
-              _refetch();
-              ref.invalidate(eventTeamsProvider(e.id));
-            },
-          ),
-        ],
-        if (showTabs) ...[
-          const SizedBox(height: 16),
-          if (e.canManage && e.interestedPeople.isNotEmpty) ...[
-            _InterestedList(people: e.interestedPeople),
-            const SizedBox(height: 12),
-          ],
-          if (e.canManage && e.status == 'kicked_off') ...[
-            _OrganizerTeamControls(
-              hasGames: hasGames,
-              busy: _busy,
-              onReshuffle: () async {
-                final count = await _AssignTeamsCard.pickCount(context);
-                if (count == null) return;
-                await _do('assign', () async {
-                  await ref
-                      .read(eventsRepositoryProvider)
-                      .generateTeams(e.id, teamCount: count);
-                  ref.invalidate(eventTeamsProvider(e.id));
-                });
-              },
-              onComplete: () => _do('complete', () async {
+            onComplete: () async {
+              if (!await _confirmComplete()) return;
+              await _do('complete', () async {
                 await ref
                     .read(eventsRepositoryProvider)
                     .setEventStatus(e.id, 'completed');
-              }),
-              onReset: () => _do('reset', () async {
-                await ref.read(eventsRepositoryProvider).resetTeams(e.id);
-                ref.invalidate(eventTeamsProvider(e.id));
-              }),
-            ),
-            const SizedBox(height: 12),
-          ],
-          if (e.status == 'kicked_off' &&
-              (e.canManage || e.hasLatePool)) ...[
-            _PoolSection(event: e, teams: teams, onChanged: () {
-              _refetch();
+              });
+            },
+            onReset: () => _do('reset', () async {
+              await ref.read(eventsRepositoryProvider).resetTeams(e.id);
               ref.invalidate(eventTeamsProvider(e.id));
-              ref.invalidate(availablePoolProvider(e.id));
             }),
-            const SizedBox(height: 12),
-          ],
-          _TabRow(
-            tab: e.canCreateGames && _tab == 0 ? 0 : (_tab == 0 ? 1 : _tab),
-            showGames: e.canCreateGames,
-            onChanged: (i) => setState(() => _tab = i),
           ),
           const SizedBox(height: 12),
-          if (_tab == 0 && e.canCreateGames)
-            _GamesTab(event: e, teams: teams, onChanged: _refetch)
-          else if (_tab <= 1)
-            _TeamsTab(teams: teams)
-          else
-            _CheckinsList(event: e, onChanged: _refetch),
-        ] else ...[
-          if (e.canManage && e.interestedPeople.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _InterestedList(people: e.interestedPeople),
-          ],
-          const SizedBox(height: 16),
+        ],
+        if (e.status == 'kicked_off' && (e.canManage || e.hasLatePool)) ...[
+          _PoolSection(
+              event: e,
+              teams: teams,
+              onChanged: () {
+                _refetch();
+                ref.invalidate(eventTeamsProvider(e.id));
+                ref.invalidate(availablePoolProvider(e.id));
+              }),
+          const SizedBox(height: 12),
+        ],
+        _TabRow(
+          tab: e.canCreateGames && _tab == 0 ? 0 : (_tab == 0 ? 1 : _tab),
+          showGames: e.canCreateGames,
+          onChanged: (i) => setState(() => _tab = i),
+        ),
+        const SizedBox(height: 12),
+        if (_tab == 0 && e.canCreateGames)
+          _GamesTab(event: e, teams: teams, onChanged: _refetch)
+        else if (_tab <= 1)
+          _TeamsTab(teams: teams)
+        else
           _CheckinsList(event: e, onChanged: _refetch),
+      ] else ...[
+        if (e.canManage && e.interestedPeople.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _InterestedList(people: e.interestedPeople),
         ],
-        if (!e.isTeamFlow &&
-            e.canManage &&
-            e.status == 'open' &&
-            !_isPast(e) &&
-            e.attendeeCount >= 1) ...[
-          const SizedBox(height: 14),
-          SpButton(
-            label: 'Complete event',
-            icon: Icons.flag_outlined,
-            expand: true,
-            onTap: _busy != null
-                ? null
-                : () => _do('complete', () async {
-                      await ref
-                          .read(eventsRepositoryProvider)
-                          .setEventStatus(e.id, 'completed');
-                    }),
-          ),
-        ],
-        if (e.canManage && e.status != 'completed' && _isPast(e)) ...[
-          const SizedBox(height: 14),
-          SpButton(
-            label: 'Close this past event',
-            icon: Icons.flag_outlined,
-            expand: true,
-            onTap: _busy != null ? null : () => _closePast(e),
-          ),
-        ],
-        if (e.canManage &&
-            e.status != 'completed' &&
-            e.status != 'cancelled') ...[
-          const SizedBox(height: 10),
-          Material(
-            color: p.surface,
+        const SizedBox(height: 16),
+        _CheckinsList(event: e, onChanged: _refetch),
+      ],
+      if (!e.isTeamFlow &&
+          e.canManage &&
+          e.status == 'open' &&
+          !_isPast(e) &&
+          e.attendeeCount >= 1) ...[
+        const SizedBox(height: 14),
+        SpButton(
+          label: 'Complete event',
+          icon: Icons.flag_outlined,
+          expand: true,
+          onTap: _busy != null
+              ? null
+              : () async {
+                  if (!await _confirmComplete()) return;
+                  await _do('complete', () async {
+                    await ref
+                        .read(eventsRepositoryProvider)
+                        .setEventStatus(e.id, 'completed');
+                  });
+                },
+        ),
+      ],
+      if (e.canManage && e.status != 'completed' && _isPast(e)) ...[
+        const SizedBox(height: 14),
+        SpButton(
+          label: 'Close this past event',
+          icon: Icons.flag_outlined,
+          expand: true,
+          onTap: _busy != null ? null : () => _closePast(e),
+        ),
+      ],
+      if (e.canManage &&
+          e.status != 'completed' &&
+          e.status != 'cancelled') ...[
+        const SizedBox(height: 10),
+        Material(
+          color: p.surface,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
             borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: _busy != null ? null : () => _cancelEvent(e),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: const Color.fromRGBO(222, 33, 33, 0.4)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.event_busy_outlined,
-                        size: 16, color: p.danger),
-                    const SizedBox(width: 6),
-                    Text('Cancel event',
-                        style: TextStyle(
-                            color: p.danger,
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700)),
-                  ],
-                ),
+            onTap: _busy != null ? null : () => _cancelEvent(e),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border:
+                    Border.all(color: const Color.fromRGBO(222, 33, 33, 0.4)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.event_busy_outlined, size: 16, color: p.danger),
+                  const SizedBox(width: 6),
+                  Text('Cancel event',
+                      style: TextStyle(
+                          color: p.danger,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700)),
+                ],
               ),
             ),
           ),
-        ],
+        ),
       ],
-    );
+    ];
+    // Pin the Games / Teams / Check-ins row while everything above scrolls
+    // away — same behavior as the group page.
+    final ti = children.indexWhere((w) => w is _TabRow);
+    if (ti < 0) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        children: children,
+      );
+    }
+    return CustomScrollView(slivers: [
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        sliver: SliverList(
+            delegate: SliverChildListDelegate(children.sublist(0, ti))),
+      ),
+      SliverPersistentHeader(
+        pinned: true,
+        delegate: _PinnedTabs(
+          child: Container(
+            color: p.bg,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: children[ti],
+          ),
+        ),
+      ),
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+        sliver: SliverList(
+            delegate: SliverChildListDelegate(children.sublist(ti + 1))),
+      ),
+    ]);
   }
 
   Future<void> _cancelEvent(EventDetail e) async {
@@ -389,10 +720,13 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Cancel this event?'),
-        content: const Text(
-            'Anyone who paid for a ticket is refunded automatically. If no '
-            'money ever changed hands, the event is removed entirely. This '
-            'cannot be undone.'),
+        content: Text(e.repeats
+            ? 'Anyone who paid for a ticket is refunded automatically. This is '
+                'a repeating event — cancelling stops the series; it will not '
+                'be re-created. This cannot be undone.'
+            : 'Anyone who paid for a ticket is refunded automatically. If no '
+                'money ever changed hands, the event is removed entirely. This '
+                'cannot be undone.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -413,9 +747,11 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       messenger.showSnackBar(SnackBar(
           content: Text(r['deleted'] == true
               ? 'Event deleted'
-              : refunded > 0
-                  ? 'Event cancelled — refunded $refunded ticket holder${refunded == 1 ? '' : 's'}.'
-                  : 'Event cancelled')));
+              : r['queued'] == true
+                  ? 'Event cancelled — ticket refunds are processing.'
+                  : refunded > 0
+                      ? 'Event cancelled — refunded $refunded ticket holder${refunded == 1 ? '' : 's'}.'
+                      : 'Event cancelled')));
       if (router.canPop()) router.pop();
     } catch (err) {
       messenger.showSnackBar(SnackBar(content: Text('$err')));
@@ -549,9 +885,8 @@ class _InfoCard extends StatelessWidget {
       formatClock(e.startTime),
       if (e.endTime != null) formatClock(e.endTime),
     ].where((s) => s != null && s.isNotEmpty).join(' – ');
-    final comp = e.competitiveLevel != null
-        ? _competitive[e.competitiveLevel!]
-        : null;
+    final comp =
+        e.competitiveLevel != null ? _competitive[e.competitiveLevel!] : null;
 
     return GlassCard(
       child: Column(
@@ -591,8 +926,8 @@ class _InfoCard extends StatelessWidget {
               trailing: InkWell(
                 onTap: () => _openMaps(e),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 4, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Text('Directions',
                         style: TextStyle(
@@ -600,8 +935,7 @@ class _InfoCard extends StatelessWidget {
                             fontSize: 12,
                             fontWeight: FontWeight.w600)),
                     const SizedBox(width: 3),
-                    Icon(Icons.open_in_new_rounded,
-                        size: 12, color: p.accent),
+                    Icon(Icons.open_in_new_rounded, size: 12, color: p.accent),
                   ]),
                 ),
               ),
@@ -614,8 +948,8 @@ class _InfoCard extends StatelessWidget {
                 border: Border(top: BorderSide(color: p.line)),
               ),
               child: Text(e.description!,
-                  style: TextStyle(
-                      color: p.muted, fontSize: 13.5, height: 1.55)),
+                  style:
+                      TextStyle(color: p.muted, fontSize: 13.5, height: 1.55)),
             ),
           ],
         ],
@@ -661,9 +995,8 @@ class _HostedByCardState extends ConsumerState<_HostedByCard> {
 
   Future<void> _load() async {
     try {
-      final st = await ref
-          .read(eventsRepositoryProvider)
-          .followState(widget.groupId);
+      final st =
+          await ref.read(eventsRepositoryProvider).followState(widget.groupId);
       if (mounted) {
         setState(() {
           _following = st.following;
@@ -683,9 +1016,7 @@ class _HostedByCardState extends ConsumerState<_HostedByCard> {
       _followers += was ? -1 : 1;
     });
     try {
-      await ref
-          .read(eventsRepositoryProvider)
-          .setFollow(widget.groupId, !was);
+      await ref.read(eventsRepositoryProvider).setFollow(widget.groupId, !was);
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -715,9 +1046,7 @@ class _HostedByCardState extends ConsumerState<_HostedByCard> {
               onTap: () => context.push('/groups/${widget.groupId}'),
               child: ClipOval(
                 child: Crest(
-                    logoUrl: widget.imageUrl,
-                    label: widget.name,
-                    size: 44),
+                    logoUrl: widget.imageUrl, label: widget.name, size: 44),
               ),
             ),
             const SizedBox(width: 12),
@@ -756,8 +1085,8 @@ class _HostedByCardState extends ConsumerState<_HostedByCard> {
                 borderRadius: BorderRadius.circular(999),
                 onTap: _busy || _following == null ? null : _toggle,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   child: Text(
                     following ? 'Following' : 'Follow',
                     style: TextStyle(
@@ -793,12 +1122,9 @@ class _StatsRow extends StatelessWidget {
             child: Column(children: [
               Text(value,
                   style: TextStyle(
-                      color: color,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800)),
+                      color: color, fontSize: 22, fontWeight: FontWeight.w800)),
               const SizedBox(height: 2),
-              Text(label,
-                  style: TextStyle(color: p.muted, fontSize: 11)),
+              Text(label, style: TextStyle(color: p.muted, fontSize: 11)),
             ]),
           ),
         );
@@ -833,9 +1159,7 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      await ref
-          .read(eventsRepositoryProvider)
-          .toggleInterest(widget.event.id);
+      await ref.read(eventsRepositoryProvider).toggleInterest(widget.event.id);
       widget.onChanged();
     } catch (e) {
       if (mounted) {
@@ -849,6 +1173,24 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
 
   Future<void> _checkOut() async {
     if (_busy) return;
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Check out of this event?'),
+        content: const Text(
+            "You'll be taken off the attendee list. You can check in again by scanning the event QR."),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Stay checked in')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Check out',
+                  style: TextStyle(color: Color(0xFFDC2626)))),
+        ],
+      ),
+    );
+    if (sure != true || !mounted) return;
     setState(() => _busy = true);
     try {
       await ref.read(eventsRepositoryProvider).checkOut(widget.event.id);
@@ -925,13 +1267,11 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
                         borderRadius: BorderRadius.circular(12),
                         onTap: _busy ? null : _checkOut,
                         child: Container(
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                                color: const Color.fromRGBO(
-                                    222, 33, 33, 0.4)),
+                                color: const Color.fromRGBO(222, 33, 33, 0.4)),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -1022,9 +1362,7 @@ class _QrCard extends StatelessWidget {
         const SizedBox(height: 8),
         Text(e.qrCode!,
             style: TextStyle(
-                color: p.muted,
-                fontSize: 10.5,
-                fontFamily: 'monospace')),
+                color: p.muted, fontSize: 10.5, fontFamily: 'monospace')),
       ]),
     );
   }
@@ -1054,8 +1392,7 @@ class _AssignTeamsCard extends StatelessWidget {
         return Container(
           decoration: BoxDecoration(
             color: p.bg,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(22)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
           ),
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
           child: Column(
@@ -1064,11 +1401,10 @@ class _AssignTeamsCard extends StatelessWidget {
             children: [
               Text('How many teams?',
                   style: TextStyle(
-                      color: p.ink,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700)),
+                      color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
-              Text('Checked-in players are shuffled evenly and the event kicks off.',
+              Text(
+                  'Checked-in players are shuffled evenly and the event kicks off.',
                   style: TextStyle(color: p.muted, fontSize: 12.5)),
               const SizedBox(height: 14),
               Wrap(spacing: 10, children: [
@@ -1116,9 +1452,7 @@ class _AssignTeamsCard extends StatelessWidget {
             const SizedBox(width: 6),
             Text('Assign teams',
                 style: TextStyle(
-                    color: p.ink,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700)),
+                    color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
           ]),
           const SizedBox(height: 4),
           Text(
@@ -1142,8 +1476,7 @@ class _AssignTeamsCard extends StatelessWidget {
             child: InkWell(
               onTap: busy || e.attendeeCount < 2 ? null : () => onDraft(),
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 child: Text(
                   'Or run a live captain draft',
                   style: TextStyle(
@@ -1205,8 +1538,8 @@ class _OrganizerTeamControls extends StatelessWidget {
     );
   }
 
-  Widget _chip(BuildContext context, String label, IconData icon,
-      VoidCallback? onTap) {
+  Widget _chip(
+      BuildContext context, String label, IconData icon, VoidCallback? onTap) {
     final p = context.palette;
     return Material(
       color: p.surface,
@@ -1225,9 +1558,7 @@ class _OrganizerTeamControls extends StatelessWidget {
             const SizedBox(width: 5),
             Text(label,
                 style: TextStyle(
-                    color: p.ink,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600)),
+                    color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w600)),
           ]),
         ),
       ),
@@ -1333,8 +1664,8 @@ class _GamesTab extends ConsumerWidget {
               padding: const EdgeInsets.only(bottom: 10),
               child: GlassCard(
                 onTap: () => context.push('/games/${g.id}'),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 child: Row(children: [
                   Expanded(
                     child: Text(
@@ -1424,21 +1755,45 @@ class _GamesTab extends ConsumerWidget {
   }
 
   Future<void> _createMatch(BuildContext context, WidgetRef ref) async {
+    // Web GamesSection parity: VS sports (maxTeamsPerGame == 2, e.g. soccer)
+    // pick two explicit teams with optional Home & Away; other sports pick
+    // 2+ teams. Both support per-game team colors and officiants.
+    final vsMode = event.maxTeamsPerGame == 2;
     final selected = <String>{};
+    String? homeId;
+    String? awayId;
+    var useHomeAway = false;
+    var uniqueColors = false;
+    final colorMap = <String, String>{};
     final officiants = <String>{};
     var useOfficiants = false;
+    var officiantQuery = '';
     final duration = TextEditingController();
+    const palette = [
+      '#22C55E', '#3B82F6', '#EAB308', '#EF4444',
+      '#8B5CF6', '#EC4899', '#F97316', '#14B8A6',
+    ];
     List<GroupMemberItem> candidates = const [];
     if (event.groupId != null) {
       try {
         candidates =
-            (await ref.read(groupMembersProvider(event.groupId!).future))
-                .items;
+            (await ref.read(groupMembersProvider(event.groupId!).future)).items;
       } catch (_) {
         candidates = const [];
       }
     }
     if (!context.mounted) return;
+
+    Color hexColor(String? hex) {
+      var h = (hex ?? '#22C55E').replaceAll('#', '');
+      if (h.length == 6) h = 'FF$h';
+      return Color(int.tryParse(h, radix: 16) ?? 0xFF22C55E);
+    }
+
+    List<String> pickedIds() => vsMode
+        ? [if (homeId != null) homeId!, if (awayId != null) awayId!]
+        : selected.toList();
+
     final ok = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1446,128 +1801,320 @@ class _GamesTab extends ConsumerWidget {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) {
           final p = ctx.palette;
+          final canCreate = vsMode
+              ? homeId != null && awayId != null && homeId != awayId
+              : selected.length >= 2;
+
+          Widget teamDropdown(String label, String? value,
+              ValueChanged<String?> onChanged) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: TextStyle(color: p.muted, fontSize: 11.5)),
+                const SizedBox(height: 4),
+                DropdownButtonFormField<String>(
+                  key: ValueKey('$label-$value'),
+                  initialValue: value,
+                  isExpanded: true,
+                  hint: Text('Pick a team',
+                      style: TextStyle(color: p.muted, fontSize: 13)),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  items: [
+                    for (final t in teams)
+                      DropdownMenuItem(
+                        value: t.id,
+                        child: Row(children: [
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                                color: hexColor(t.color),
+                                shape: BoxShape.circle),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(t.name,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: p.ink, fontSize: 13.5)),
+                          ),
+                        ]),
+                      ),
+                  ],
+                  onChanged: onChanged,
+                ),
+              ],
+            );
+          }
+
           return Container(
+            constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(ctx).size.height * 0.9),
             decoration: BoxDecoration(
               color: p.bg,
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(22)),
             ),
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Pick the teams playing',
-                    style: TextStyle(
-                        color: p.ink,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700)),
-                const SizedBox(height: 10),
-                for (final t in teams)
-                  CheckboxListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    value: selected.contains(t.id),
-                    onChanged: (v) => setSheet(() {
-                      if (v == true) {
-                        selected.add(t.id);
-                      } else {
-                        selected.remove(t.id);
-                      }
-                    }),
-                    title: Text(t.name,
-                        style: TextStyle(color: p.ink, fontSize: 14)),
-                  ),
-                const SizedBox(height: 8),
-                Row(children: [
-                  Expanded(
-                    child: Text('Duration (minutes, optional)',
-                        style:
-                            TextStyle(color: p.muted, fontSize: 12.5)),
-                  ),
-                  SizedBox(
-                    width: 76,
-                    child: TextField(
-                      controller: duration,
-                      keyboardType: TextInputType.number,
-                      style: TextStyle(color: p.ink, fontSize: 13.5),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        hintText: '—',
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 8),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: p.line)),
+            // Rise above the keyboard so every field stays reachable.
+            padding: EdgeInsets.fromLTRB(
+                20, 18, 20, 28 + MediaQuery.of(ctx).viewInsets.bottom),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Create a game',
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 12),
+                  if (vsMode) ...[
+                    teamDropdown(useHomeAway ? 'Home team' : 'Team 1', homeId,
+                        (v) => setSheet(() => homeId = v)),
+                    const SizedBox(height: 10),
+                    teamDropdown(useHomeAway ? 'Away team' : 'Team 2', awayId,
+                        (v) => setSheet(() => awayId = v)),
+                    if (homeId != null && homeId == awayId)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text('Pick two different teams.',
+                            style: TextStyle(
+                                color: p.danger, fontSize: 11.5)),
                       ),
+                    CheckboxListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      value: useHomeAway,
+                      onChanged: (v) =>
+                          setSheet(() => useHomeAway = v == true),
+                      title: Text('Use Home & Away',
+                          style: TextStyle(color: p.ink, fontSize: 14)),
                     ),
-                  ),
-                ]),
-                if (candidates.isNotEmpty) ...[
+                  ] else ...[
+                    Text('Teams (pick 2 or more)',
+                        style: TextStyle(color: p.muted, fontSize: 11.5)),
+                    for (final t in teams)
+                      CheckboxListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        value: selected.contains(t.id),
+                        onChanged: (v) => setSheet(() {
+                          if (v == true) {
+                            selected.add(t.id);
+                          } else {
+                            selected.remove(t.id);
+                          }
+                        }),
+                        title: Text(t.name,
+                            style: TextStyle(color: p.ink, fontSize: 14)),
+                      ),
+                  ],
+                  // Per-game color overrides (web "Use unique team colors").
                   CheckboxListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    value: useOfficiants,
+                    value: uniqueColors,
                     onChanged: (v) =>
-                        setSheet(() => useOfficiants = v == true),
-                    title: Text('Add officiants',
+                        setSheet(() => uniqueColors = v == true),
+                    title: Text('Use unique team colors',
                         style: TextStyle(color: p.ink, fontSize: 14)),
-                    subtitle: Text(
-                        'Extra people (besides group admins) who can record stats.',
-                        style: TextStyle(color: p.muted, fontSize: 11)),
                   ),
-                  if (useOfficiants)
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 180),
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: [
-                          for (final m in candidates)
-                            CheckboxListTile(
-                              dense: true,
-                              contentPadding: EdgeInsets.zero,
-                              value: officiants.contains(m.userId),
-                              onChanged: (v) => setSheet(() {
-                                if (v == true) {
-                                  officiants.add(m.userId);
-                                } else {
-                                  officiants.remove(m.userId);
-                                }
+                  if (uniqueColors)
+                    if (pickedIds().isEmpty)
+                      Text('Pick teams above to set their colors.',
+                          style: TextStyle(color: p.muted, fontSize: 11.5))
+                    else
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: p.line),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (final tid in pickedIds()) ...[
+                              Builder(builder: (_) {
+                                final t = teams
+                                    .where((x) => x.id == tid)
+                                    .toList();
+                                final name = t.isNotEmpty
+                                    ? t.first.name
+                                    : 'Team';
+                                return Text(name,
+                                    style: TextStyle(
+                                        color: p.ink,
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600));
                               }),
-                              title: Text(m.displayName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      color: p.ink, fontSize: 13.5)),
-                            ),
-                        ],
+                              const SizedBox(height: 5),
+                              Wrap(
+                                spacing: 7,
+                                children: [
+                                  for (final c in palette)
+                                    InkWell(
+                                      onTap: () => setSheet(
+                                          () => colorMap[tid] = c),
+                                      borderRadius:
+                                          BorderRadius.circular(99),
+                                      child: Container(
+                                        width: 26,
+                                        height: 26,
+                                        decoration: BoxDecoration(
+                                          color: hexColor(c),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: colorMap[tid] == c
+                                                ? p.ink
+                                                : Colors.transparent,
+                                            width: 2,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                            Text(
+                                "Overrides each team's default color for this game only.",
+                                style: TextStyle(
+                                    color: p.muted, fontSize: 10.5)),
+                          ],
+                        ),
+                      ),
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    Expanded(
+                      child: Text('Duration (minutes, optional)',
+                          style:
+                              TextStyle(color: p.muted, fontSize: 12.5)),
+                    ),
+                    SizedBox(
+                      width: 76,
+                      child: TextField(
+                        controller: duration,
+                        keyboardType: TextInputType.number,
+                        textInputAction: TextInputAction.done,
+                        style: TextStyle(color: p.ink, fontSize: 13.5),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          hintText: '90',
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: p.line)),
+                        ),
                       ),
                     ),
+                  ]),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text(
+                        'A reference length — the live match clock counts up and stoppage time is added during the game.',
+                        style: TextStyle(color: p.muted, fontSize: 10.5)),
+                  ),
+                  if (candidates.isNotEmpty) ...[
+                    CheckboxListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      value: useOfficiants,
+                      onChanged: (v) =>
+                          setSheet(() => useOfficiants = v == true),
+                      title: Text('Use game officiants',
+                          style: TextStyle(color: p.ink, fontSize: 14)),
+                      subtitle: Text(
+                          'Group admins can always score. Pick who else may update stats.',
+                          style: TextStyle(color: p.muted, fontSize: 11)),
+                    ),
+                    if (useOfficiants) ...[
+                      if (candidates.length > 6)
+                        TextField(
+                          onChanged: (v) =>
+                              setSheet(() => officiantQuery = v),
+                          textInputAction: TextInputAction.done,
+                          style: TextStyle(color: p.ink, fontSize: 13),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            hintText: 'Search members',
+                            prefixIcon: const Icon(Icons.search_rounded,
+                                size: 18),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 8),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 180),
+                        child: ListView(
+                          shrinkWrap: true,
+                          children: [
+                            for (final m in candidates)
+                              if (officiantQuery.trim().isEmpty ||
+                                  m.displayName.toLowerCase().contains(
+                                      officiantQuery.trim().toLowerCase()))
+                                CheckboxListTile(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  value: officiants.contains(m.userId),
+                                  onChanged: (v) => setSheet(() {
+                                    if (v == true) {
+                                      officiants.add(m.userId);
+                                    } else {
+                                      officiants.remove(m.userId);
+                                    }
+                                  }),
+                                  title: Text(m.displayName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                          color: p.ink, fontSize: 13.5)),
+                                ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                  const SizedBox(height: 8),
+                  SpButton(
+                    label: 'Create game',
+                    expand: true,
+                    onTap:
+                        canCreate ? () => Navigator.pop(ctx, true) : null,
+                  ),
                 ],
-                const SizedBox(height: 8),
-                SpButton(
-                  label: 'Create match',
-                  expand: true,
-                  onTap: selected.length >= 2
-                      ? () => Navigator.pop(ctx, true)
-                      : null,
-                ),
-              ],
+              ),
             ),
           );
         },
       ),
     );
-    if (ok != true || selected.length < 2) return;
+    final ids = pickedIds();
+    if (ok != true || ids.length < 2) return;
     try {
-      final gameId =
-          await ref.read(eventsRepositoryProvider).createGame(
-                event.id,
-                selected.toList(),
-                durationMinutes: int.tryParse(duration.text.trim()),
-                officiantIds:
-                    useOfficiants ? officiants.toList() : const [],
-              );
+      final gameId = await ref.read(eventsRepositoryProvider).createGame(
+            event.id,
+            ids,
+            durationMinutes: int.tryParse(duration.text.trim()),
+            homeTeamId: vsMode && useHomeAway ? homeId : null,
+            teamColors: uniqueColors
+                ? {
+                    for (final tid in ids)
+                      if (colorMap[tid] != null) tid: colorMap[tid]!,
+                  }
+                : const {},
+            officiantIds: useOfficiants ? officiants.toList() : const [],
+          );
       ref.invalidate(eventGamesProvider(event.id));
       onChanged();
       if (context.mounted && gameId != null && gameId.isNotEmpty) {
@@ -1587,7 +2134,7 @@ class _GamesTab extends ConsumerWidget {
 // starter/sub counts, tap → roster sheet.
 // ---------------------------------------------------------------------------
 
-class _TeamsTab extends StatelessWidget {
+class _TeamsTab extends ConsumerWidget {
   const _TeamsTab({required this.teams});
   final List<EventTeam> teams;
 
@@ -1599,18 +2146,23 @@ class _TeamsTab extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
+    // Web parity: outline + "You're here" on the viewer's own team.
+    final meId = ref.watch(meProvider).valueOrNull?.userId;
     return Column(children: [
       for (final t in teams)
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
-          child: _teamBox(context, t, p),
+          child: _teamBox(context, t, p,
+              mine: meId != null &&
+                  t.players.any((x) => x.userId == meId)),
         ),
     ]);
   }
 
-  Widget _teamBox(BuildContext context, EventTeam t, AppPalette p) {
+  Widget _teamBox(BuildContext context, EventTeam t, AppPalette p,
+      {bool mine = false}) {
     final color = _color(t.color, p);
     final starters = t.players.where((x) => !x.isSub).length;
     final subs = t.players.where((x) => x.isSub).length;
@@ -1618,7 +2170,8 @@ class _TeamsTab extends StatelessWidget {
       decoration: BoxDecoration(
         color: p.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: p.line),
+        border: Border.all(
+            color: mine ? p.accent : p.line, width: mine ? 1.6 : 1),
       ),
       clipBehavior: Clip.antiAlias,
       child: Material(
@@ -1638,8 +2191,8 @@ class _TeamsTab extends StatelessWidget {
                       Container(
                         width: 13,
                         height: 13,
-                        decoration: BoxDecoration(
-                            color: color, shape: BoxShape.circle),
+                        decoration:
+                            BoxDecoration(color: color, shape: BoxShape.circle),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -1666,8 +2219,7 @@ class _TeamsTab extends StatelessWidget {
                             child: Container(
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                border:
-                                    Border.all(color: p.surface, width: 2),
+                                border: Border.all(color: p.surface, width: 2),
                               ),
                               child: ClipOval(
                                 child: Crest(
@@ -1687,8 +2239,7 @@ class _TeamsTab extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: p.surface2,
                                 shape: BoxShape.circle,
-                                border:
-                                    Border.all(color: p.surface, width: 2),
+                                border: Border.all(color: p.surface, width: 2),
                               ),
                               child: Text('+${t.players.length - 6}',
                                   style: TextStyle(
@@ -1706,6 +2257,22 @@ class _TeamsTab extends StatelessWidget {
                       if (subs > 0) ...[
                         const SizedBox(width: 6),
                         _pill(context, '$subs sub${subs == 1 ? '' : 's'}'),
+                      ],
+                      if (mine) ...[
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: p.accent.withAlpha(31),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text("You're here",
+                              style: TextStyle(
+                                  color: p.accent,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w800)),
+                        ),
                       ],
                     ]),
                   ],
@@ -1779,9 +2346,7 @@ class _TeamsTab extends StatelessWidget {
                             size: 32)),
                     title: Text(x.displayName,
                         style: TextStyle(color: p.ink, fontSize: 14)),
-                    trailing: x.isSub
-                        ? const _RosterTag(text: 'SUB')
-                        : null,
+                    trailing: x.isSub ? const _RosterTag(text: 'SUB') : null,
                   ),
               ]),
             ),
@@ -1832,8 +2397,7 @@ class _InterestedList extends StatelessWidget {
           child: Wrap(spacing: 6, runSpacing: 6, children: [
             for (final x in people)
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 9, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
                   color: const Color.fromRGBO(236, 72, 153, 0.10),
                   borderRadius: BorderRadius.circular(999),
@@ -1885,8 +2449,8 @@ class _CheckinsList extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: GlassCard(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 child: Row(children: [
                   Container(
                     width: 26,
@@ -1923,15 +2487,14 @@ class _CheckinsList extends ConsumerWidget {
                                 fontWeight: FontWeight.w600)),
                         if (e.attendees[i].checkedInAt != null)
                           Text(timeAgo(e.attendees[i].checkedInAt),
-                              style: TextStyle(
-                                  color: p.muted, fontSize: 11)),
+                              style: TextStyle(color: p.muted, fontSize: 11)),
                       ],
                     ),
                   ),
                   if (canEdit)
                     InkWell(
-                      onTap: () => _checkOut(
-                          context, ref, e.attendees[i].userId),
+                      onTap: () => _checkOut(context, ref,
+                          e.attendees[i].userId, e.attendees[i].displayName),
                       child: Padding(
                         padding: const EdgeInsets.all(6),
                         child: Icon(Icons.person_remove_outlined,
@@ -1945,8 +2508,26 @@ class _CheckinsList extends ConsumerWidget {
     );
   }
 
-  Future<void> _checkOut(
-      BuildContext context, WidgetRef ref, String playerId) async {
+  Future<void> _checkOut(BuildContext context, WidgetRef ref, String playerId,
+      String playerName) async {
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Remove $playerName?'),
+        content: Text(
+            '$playerName will be taken off the checked-in list. They can check in again by scanning the event QR.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Keep them')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Remove',
+                  style: TextStyle(color: Color(0xFFDC2626)))),
+        ],
+      ),
+    );
+    if (sure != true || !context.mounted) return;
     try {
       await ref
           .read(eventsRepositoryProvider)
@@ -1960,8 +2541,6 @@ class _CheckinsList extends ConsumerWidget {
     }
   }
 }
-
-
 
 // ---------------------------------------------------------------------------
 // Edit event (creator / group admin) — web EditEventDialog replica.
@@ -2033,8 +2612,7 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
           hour: int.tryParse(parts[0]) ?? 18,
           minute: int.tryParse(parts[1]) ?? 0);
     }
-    final picked =
-        await showTimePicker(context: context, initialTime: initial);
+    final picked = await showTimePicker(context: context, initialTime: initial);
     if (picked == null) return;
     final hhmm =
         '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
@@ -2060,16 +2638,13 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
     try {
       await ref.read(eventsRepositoryProvider).updateEvent(widget.event.id, {
         'title': title,
-        'description':
-            _desc.text.trim().isEmpty ? null : _desc.text.trim(),
+        'description': _desc.text.trim().isEmpty ? null : _desc.text.trim(),
         if (_date != null)
-          'eventDate':
-              DateTime.utc(_date!.year, _date!.month, _date!.day)
-                  .toIso8601String(),
+          'eventDate': DateTime.utc(_date!.year, _date!.month, _date!.day)
+              .toIso8601String(),
         'startTime': _start,
         'endTime': _end,
-        'locationName':
-            _venue.text.trim().isEmpty ? null : _venue.text.trim(),
+        'locationName': _venue.text.trim().isEmpty ? null : _venue.text.trim(),
         'recurrence': _recurrence,
         'visibility': _private ? 'private' : 'public',
         'competitiveLevel': _competitive,
@@ -2115,9 +2690,7 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
             const SizedBox(height: 16),
             Text('Edit event',
                 style: TextStyle(
-                    color: p.ink,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700)),
+                    color: p.ink, fontSize: 18, fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
             TextField(
               controller: _title,
@@ -2190,8 +2763,7 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
             ]),
             if (_error != null) ...[
               const SizedBox(height: 8),
-              Text(_error!,
-                  style: TextStyle(color: p.danger, fontSize: 12.5)),
+              Text(_error!, style: TextStyle(color: p.danger, fontSize: 12.5)),
             ],
             const SizedBox(height: 16),
             SpButton(
@@ -2217,8 +2789,7 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: p.line),
@@ -2226,8 +2797,7 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label,
-                  style: TextStyle(color: p.muted, fontSize: 10.5)),
+              Text(label, style: TextStyle(color: p.muted, fontSize: 10.5)),
               const SizedBox(height: 2),
               Text(value,
                   maxLines: 1,
@@ -2255,9 +2825,7 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
       children: [
         Text(label,
             style: TextStyle(
-                color: p.muted,
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600)),
+                color: p.muted, fontSize: 11.5, fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
         Wrap(spacing: 6, runSpacing: 6, children: [
           for (final entry in options.entries)
@@ -2268,19 +2836,16 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
                 borderRadius: BorderRadius.circular(999),
                 onTap: () => onChanged(entry.key),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 7),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(
-                        color:
-                            value == entry.key ? p.accent : p.line),
+                        color: value == entry.key ? p.accent : p.line),
                   ),
                   child: Text(entry.value,
                       style: TextStyle(
-                        color: value == entry.key
-                            ? Colors.white
-                            : p.ink,
+                        color: value == entry.key ? Colors.white : p.ink,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       )),
@@ -2340,8 +2905,7 @@ class _PoolSection extends ConsumerWidget {
             InkWell(
               onTap: () => _autoAssign(context, ref),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 child: Text('Auto-assign all',
                     style: TextStyle(
                         color: p.accent,
@@ -2358,8 +2922,9 @@ class _PoolSection extends ConsumerWidget {
         if (event.canManage && !event.hasLatePool) ...[
           const SizedBox(height: 6),
           Text(
-            'These players checked in after teams were set. Upgrade the '
-            'group plan to slot late arrivals into teams.',
+            // No upgrade prompts in the app (app-store rules) — facts only.
+            'These players checked in after teams were set. Slotting late '
+            'arrivals into teams is not available on this group plan.',
             style: TextStyle(color: p.amber, fontSize: 11.5),
           ),
         ],
@@ -2368,14 +2933,11 @@ class _PoolSection extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: GlassCard(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(children: [
                 ClipOval(
                   child: Crest(
-                      logoUrl: x.avatarUrl,
-                      label: x.displayName,
-                      size: 30),
+                      logoUrl: x.avatarUrl, label: x.displayName, size: 30),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -2393,8 +2955,7 @@ class _PoolSection extends ConsumerWidget {
                         Text(x.positions.join(' · '),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: p.muted, fontSize: 11)),
+                            style: TextStyle(color: p.muted, fontSize: 11)),
                     ],
                   ),
                 ),
@@ -2406,12 +2967,11 @@ class _PoolSection extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(10),
                       onTap: () => _addToTeam(context, ref, x),
                       child: const Padding(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 7),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                         child: Text('Add',
                             style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700)),
+                                fontSize: 12, fontWeight: FontWeight.w700)),
                       ),
                     ),
                   ),
@@ -2443,8 +3003,7 @@ class _PoolSection extends ConsumerWidget {
       builder: (ctx) => Container(
         decoration: BoxDecoration(
           color: p.bg,
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(22)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
         child: Column(
@@ -2453,19 +3012,15 @@ class _PoolSection extends ConsumerWidget {
           children: [
             Text('Add ${x.displayName} to…',
                 style: TextStyle(
-                    color: p.ink,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700)),
+                    color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
             const SizedBox(height: 10),
             for (final t in teams)
               ListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                title:
-                    Text(t.name, style: TextStyle(color: p.ink)),
+                title: Text(t.name, style: TextStyle(color: p.ink)),
                 subtitle: Text('${t.players.length} players',
-                    style:
-                        TextStyle(color: p.muted, fontSize: 11.5)),
+                    style: TextStyle(color: p.muted, fontSize: 11.5)),
                 onTap: () => Navigator.pop(ctx, t.id),
               ),
             TextButton(
@@ -2570,8 +3125,7 @@ class _PhotoManagerState extends ConsumerState<_PhotoManager> {
       builder: (ctx) => Container(
         decoration: BoxDecoration(
           color: p.bg,
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(22)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -2589,8 +3143,7 @@ class _PhotoManagerState extends ConsumerState<_PhotoManager> {
             onTap: () {
               Navigator.pop(ctx);
               final next = e.images.where((x) => x != url).toList();
-              _save(next,
-                  e.thumbnailUrl == url ? null : e.thumbnailUrl);
+              _save(next, e.thumbnailUrl == url ? null : e.thumbnailUrl);
             },
           ),
         ]),
@@ -2624,10 +3177,8 @@ class _PhotoManagerState extends ConsumerState<_PhotoManager> {
                         child: SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2)))
-                    : Icon(Icons.add_photo_alternate_outlined,
-                        color: p.accent),
+                            child: CircularProgressIndicator(strokeWidth: 2)))
+                    : Icon(Icons.add_photo_alternate_outlined, color: p.accent),
               ),
             ),
           ),
@@ -2648,8 +3199,7 @@ class _PhotoManagerState extends ConsumerState<_PhotoManager> {
                 child: CachedNetworkImage(
                   imageUrl: url,
                   fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) =>
-                      Container(color: p.surface2),
+                  errorWidget: (_, __, ___) => Container(color: p.surface2),
                 ),
               ),
             ),
@@ -2699,10 +3249,7 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
 
   void _listen() {
     _sub?.cancel();
-    _sub = ref
-        .read(eventsRepositoryProvider)
-        .draftPings(widget.eventId)
-        .listen(
+    _sub = ref.read(eventsRepositoryProvider).draftPings(widget.eventId).listen(
           (_) => _refresh(),
           onError: (_) => _scheduleReconnect(),
           onDone: _scheduleReconnect,
@@ -2798,7 +3345,8 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
           ),
           const SizedBox(height: 12),
           for (final raw in teams)
-            if (raw is Map) _teamTile(context, Map<String, dynamic>.from(raw), currentIdx),
+            if (raw is Map)
+              _teamTile(context, Map<String, dynamic>.from(raw), currentIdx),
           if (pool.isNotEmpty && !isDone) ...[
             const SizedBox(height: 8),
             Text('AVAILABLE',
@@ -2822,8 +3370,8 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
                     .read(eventsRepositoryProvider)
                     .draftUndo(widget.eventId)),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                   child: Text('Undo last pick',
                       style: TextStyle(
                           color: p.muted,
@@ -2836,8 +3384,8 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
               InkWell(
                 onTap: () => _confirmCancel(context),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                   child: Text('Cancel draft',
                       style: TextStyle(
                           color: p.danger,
@@ -2882,8 +3430,7 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
         color: p.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-            color: onClock ? p.accent : p.line,
-            width: onClock ? 1.6 : 1),
+            color: onClock ? p.accent : p.line, width: onClock ? 1.6 : 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2911,23 +3458,21 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(starters,
-                  style: TextStyle(
-                      color: p.ink, fontSize: 12, height: 1.4)),
+                  style: TextStyle(color: p.ink, fontSize: 12, height: 1.4)),
             ),
           if (subs.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text('Subs: $subs',
-                  style: TextStyle(
-                      color: p.muted, fontSize: 11.5, height: 1.4)),
+                  style:
+                      TextStyle(color: p.muted, fontSize: 11.5, height: 1.4)),
             ),
         ],
       ),
     );
   }
 
-  Widget _poolChip(
-      BuildContext context, Map<String, dynamic> m, bool canPick) {
+  Widget _poolChip(BuildContext context, Map<String, dynamic> m, bool canPick) {
     final p = context.palette;
     final name = '${m['displayName'] ?? 'Player'}';
     return Material(
@@ -2941,17 +3486,14 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
                 .draftPick(widget.eventId, '${m['userId']}'))
             : null,
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
             border: Border.all(color: canPick ? p.accent : p.line),
           ),
           child: Text(name,
               style: TextStyle(
-                  color: p.ink,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600)),
+                  color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w600)),
         ),
       ),
     );
@@ -2962,8 +3504,7 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Cancel the draft?'),
-        content:
-            const Text('Picks are discarded and the event reopens.'),
+        content: const Text('Picks are discarded and the event reopens.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -2975,10 +3516,116 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
       ),
     );
     if (ok == true) {
-      await _act(() =>
-          ref.read(eventsRepositoryProvider).draftCancel(widget.eventId));
+      await _act(
+          () => ref.read(eventsRepositoryProvider).draftCancel(widget.eventId));
       widget.onDone();
     }
   }
 }
 
+/// Pins the event tab row to the top of the scroll view.
+class _PinnedTabs extends SliverPersistentHeaderDelegate {
+  const _PinnedTabs({required this.child});
+  final Widget child;
+
+  static const double _height = 45;
+
+  @override
+  double get minExtent => _height;
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return SizedBox(height: _height, child: child);
+  }
+
+  @override
+  bool shouldRebuild(covariant _PinnedTabs oldDelegate) =>
+      oldDelegate.child != child;
+}
+
+
+/// Organizer card on a cancelled event: shows tickets still awaiting refund
+/// and retries the sweep. Retrying is safe — the server claims each charge
+/// and uses provider idempotency keys, so nobody can be refunded twice.
+class _RefundRetryCard extends ConsumerStatefulWidget {
+  const _RefundRetryCard({required this.eventId});
+  final String eventId;
+  @override
+  ConsumerState<_RefundRetryCard> createState() => _RefundRetryCardState();
+}
+
+class _RefundRetryCardState extends ConsumerState<_RefundRetryCard> {
+  Map<String, dynamic>? _status;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final st =
+          await ref.read(eventsRepositoryProvider).refundStatus(widget.eventId);
+      if (mounted) setState(() => _status = st);
+    } catch (_) {/* stays hidden */}
+  }
+
+  Future<void> _retry() async {
+    setState(() => _busy = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final r =
+          await ref.read(eventsRepositoryProvider).retryRefunds(widget.eventId);
+      final refunded = (r['refunded'] as num?)?.toInt() ?? 0;
+      messenger.showSnackBar(SnackBar(
+          content: Text(r['queued'] == true
+              ? 'Refund sweep queued — it runs in the background.'
+              : refunded > 0
+                  ? 'Refunded $refunded ticket${refunded == 1 ? '' : 's'}.'
+                  : 'No refunds went through — try again shortly.')));
+      await _load();
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final remaining = (_status?['paidRemaining'] as num?)?.toInt() ?? 0;
+    if (remaining <= 0) return const SizedBox.shrink();
+    final refunded = (_status?['refunded'] as num?)?.toInt() ?? 0;
+    return GlassCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$remaining ticket${remaining == 1 ? '' : 's'} still awaiting refund'
+            '${refunded > 0 ? ' ($refunded already refunded)' : ''}.',
+            style: TextStyle(
+                color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Retrying is safe — nobody is ever refunded twice.',
+            style: TextStyle(color: p.muted, fontSize: 12),
+          ),
+          const SizedBox(height: 10),
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+            onPressed: _busy ? null : _retry,
+            child: Text(_busy ? 'Retrying…' : 'Retry refunds'),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -46,6 +46,19 @@ class WalletRepository {
     }
   }
 
+  /// Fire-and-forget: asks the server to email the caller the web plans /
+  /// billing link. The app never links out to purchases itself (app-store
+  /// rules, kept uniform across platforms) — out-of-app email is allowed.
+  /// Server-side throttled; failures are deliberately swallowed.
+  Future<void> requestPlanEmail(String groupId, {String topic = 'wallet'}) async {
+    try {
+      await _dio.post(_path(groupId),
+          data: {'action': 'plan-email', 'topic': topic});
+    } catch (_) {
+      // Silent by design — the app never surfaces this flow.
+    }
+  }
+
   Future<void> requestWithdrawal(String groupId,
       {required String paymentAccountId, required int amountMinor, String? reason}) async {
     try {

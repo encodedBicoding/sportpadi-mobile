@@ -1,7 +1,7 @@
 name: sportpadi_mobile
 description: sportpadi — native mobile client (Flutter).
 publish_to: "none"
-version: 0.1.0+1
+version: 0.1.5+6
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -20,7 +20,7 @@ dependencies:
 
   # Networking
   dio: ^5.5.0
-  web_socket_channel: ^3.0.1   # live-game feed (Phase 3)
+  web_socket_channel: ^3.0.1 # live-game feed (Phase 3)
 
   # Storage
   flutter_secure_storage: ^10.0.0

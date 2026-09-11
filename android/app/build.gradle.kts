@@ -1,3 +1,11 @@
+// AGP 9 marks the old-DSL `android` accessor as an ERROR-level deprecation,
+// but gradle.properties still pins the Flutter template's android.newDsl=false
+// compatibility flag — suppress until Flutter migrates the template to the new
+// DSL (at which point drop this line and the flag together).
+@file:Suppress("DEPRECATION_ERROR", "DEPRECATION")
+
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -16,7 +24,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.sportpadi.sportpadi_mobile"
+        applicationId = "com.sportpadi.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -36,7 +44,7 @@ android {
     //   keyPassword=...
     // Until that file exists, release builds sign with the debug key so
     // `flutter run --release` keeps working.
-    val keystoreProperties = java.util.Properties()
+    val keystoreProperties = Properties()
     val keystoreFile = rootProject.file("key.properties")
     if (keystoreFile.exists()) {
         keystoreFile.inputStream().use { keystoreProperties.load(it) }

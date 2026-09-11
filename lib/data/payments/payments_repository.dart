@@ -65,14 +65,36 @@ class PaymentsRepository {
   }
 
   /// Start a hosted checkout for one ticket → (url, code to verify with).
-  Future<({String url, String code})> startCheckout(String ticketId) async {
+  /// `recipientIds` says who each ticket is FOR (multi-person / gift buys) —
+  /// omitted means "just me".
+  Future<({String url, String code})> startCheckout(String ticketId,
+      {List<String>? recipientIds}) async {
     try {
-      final res = await _dio.post('/api/mobile/payments',
-          data: {'action': 'checkout', 'ticketId': ticketId});
+      final res = await _dio.post('/api/mobile/payments', data: {
+        'action': 'checkout',
+        'ticketId': ticketId,
+        if (recipientIds != null) 'recipientIds': recipientIds,
+      });
       final d = Map<String, dynamic>.from(res.data as Map);
       return (url: d['url'] as String, code: (d['code'] ?? '') as String);
     } catch (e) {
       throw apiError(e, fallback: 'Could not start checkout.');
+    }
+  }
+
+  /// Find people to attach tickets to — username/display-name substring, or
+  /// an exact email address.
+  Future<List<RecipientUser>> searchRecipients(String q) async {
+    try {
+      final res = await _dio
+          .get('/api/mobile/users/search', queryParameters: {'q': q});
+      final list = res.data is List ? res.data as List : const [];
+      return [
+        for (final u in list)
+          RecipientUser.fromJson(Map<String, dynamic>.from(u as Map)),
+      ];
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not search.');
     }
   }
 

@@ -114,6 +114,7 @@ class EventDetail {
     this.categoryName,
     this.canManage = false,
     this.myCheckedIn = false,
+    this.hasEnded,
     this.myInterested = false,
     this.interestCount = 0,
     this.attendeeCount = 0,
@@ -131,6 +132,7 @@ class EventDetail {
     this.locationLat,
     this.locationLng,
     this.flowType = 'team_match',
+    this.maxTeamsPerGame,
     this.isTournament = false,
     this.hasLatePool = false,
     this.canCreateGames = false,
@@ -151,6 +153,8 @@ class EventDetail {
   final String? categoryName;
   final bool canManage;
   final bool myCheckedIn;
+  // Server truth: past its end time (or end of its day) in the VENUE's zone.
+  final bool? hasEnded;
   final bool myInterested;
   final int interestCount;
   final int attendeeCount;
@@ -168,6 +172,7 @@ class EventDetail {
   final double? locationLat;
   final double? locationLng;
   final String flowType; // team_match | attendance
+  final int? maxTeamsPerGame; // 2 = VS sports (soccer): explicit home/away pickers
   final bool isTournament;
   // Host-group entitlements (web: groups.entitlements) — gate late pool,
   // game creation and smart-shuffle copy.
@@ -197,6 +202,7 @@ class EventDetail {
       categoryName: cat is Map ? parseStr(cat['name']) : null,
       canManage: j['canManage'] == true,
       myCheckedIn: j['myCheckedIn'] == true,
+      hasEnded: j['hasEnded'] is bool ? j['hasEnded'] as bool : null,
       myInterested: j['myInterested'] == true,
       interestCount: parseInt(j['interestCount']) ?? 0,
       attendeeCount: parseInt(j['attendeeCount']) ?? 0,
@@ -221,6 +227,7 @@ class EventDetail {
       locationLat: parseDouble(j['locationLat']),
       locationLng: parseDouble(j['locationLng']),
       flowType: (cat is Map ? parseStr(cat['flowType']) : null) ?? 'team_match',
+      maxTeamsPerGame: cat is Map ? parseInt(cat['maxTeamsPerGame']) : null,
       isTournament: j['isTournament'] == true,
       hasLatePool: j['features'] is Map &&
           (j['features'] as Map)['LATE_POOL_ENTRY'] == true,

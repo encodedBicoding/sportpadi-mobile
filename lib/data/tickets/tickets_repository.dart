@@ -63,6 +63,20 @@ class TicketsRepository {
     }
   }
 
+  /// Organizer scans a holder's ticket QR at the gate. Returns
+  /// {ok, reason?, ticketTitle, redeemedAt?}; server checks group admin.
+  Future<Map<String, dynamic>> redeem(String code) async {
+    try {
+      final res = await _dio
+          .post('/api/mobile/tickets/redeem', data: {'code': code});
+      return res.data is Map
+          ? Map<String, dynamic>.from(res.data as Map)
+          : <String, dynamic>{};
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not verify that ticket.');
+    }
+  }
+
   Future<void> remove(String groupId, String id) async {
     try {
       await _dio.post(_path(groupId), data: {'action': 'remove', 'id': id});

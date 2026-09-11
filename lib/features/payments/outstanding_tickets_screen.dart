@@ -101,10 +101,7 @@ class _OutstandingTicketsScreenState
                               Text(
                                 [
                                   formatMoney(
-                                      t.priceMinor + t.feeMinor,
-                                      s.currency,
-                                      s.currencyExponent),
-                                  if (t.feeMinor > 0) 'incl. fees',
+                                      t.priceMinor, s.currency, s.currencyExponent),
                                   if (t.mandatory)
                                     'required to check in',
                                   if (t.eventTitle != null)
@@ -129,7 +126,7 @@ class _OutstandingTicketsScreenState
                 if (s.outstanding.length > 1)
                   SpButton(
                     label:
-                        'Pay all (${formatMoney(s.outstanding.fold<int>(0, (a, t) => a + t.priceMinor + t.feeMinor), s.currency, s.currencyExponent)})',
+                        'Pay all (${formatMoney(s.outstanding.fold<int>(0, (a, t) => a + t.priceMinor), s.currency, s.currencyExponent)} + fees)',
                     expand: true,
                     onTap: _busy
                         ? null

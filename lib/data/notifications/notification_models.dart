@@ -28,7 +28,9 @@ class AppNotification {
       title: (j['title'] ?? '') as String,
       read: j['readAt'] != null || j['read'] == true,
       body: parseStr(j['bodyText']) ?? parseStr(j['body']),
-      url: url,
+      // The API stores the destination on the row's own `url` column; some
+      // older rows carried it inside `data`.
+      url: parseStr(j['url']) ?? url,
       createdAt: parseDate(j['createdAt']),
     );
   }

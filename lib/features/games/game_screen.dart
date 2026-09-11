@@ -94,10 +94,17 @@ class GameScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 OfficiantPanel(gameId: gameId, game: g),
               ],
+              if (g.status == 'completed') ...[
+                // Web parity: the post-match summary replaces the lineups.
+                const SizedBox(height: 12),
+                _SummaryCard(game: g),
+              ],
               const SizedBox(height: 12),
               _TimelineCard(game: g, gameId: gameId),
-              const SizedBox(height: 12),
-              _Lineups(game: g),
+              if (g.status != 'completed') ...[
+                const SizedBox(height: 12),
+                _Lineups(game: g),
+              ],
             ],
           ),
         ),
@@ -700,7 +707,7 @@ class _TimelineCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Timeline',
+          Text(g.status == 'completed' ? 'Key moments' : 'Timeline',
               style: TextStyle(
                   color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
           const SizedBox(height: 10),
@@ -1050,5 +1057,127 @@ class _LineupCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+
+// ---------------------------------------------------------------------------
+// Post-match summary — web's PostMatchSummary essentials: the result line
+// ("Full time / After extra time / Penalties — X won") and per-team scorers.
+// ---------------------------------------------------------------------------
+
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({required this.game});
+  final GameDetail game;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final g = game;
+    final wentPens =
+        g.lifecycle?.phases.any((ph) => ph.kind == 'shootout') ?? false;
+    final wentEt =
+        g.lifecycle?.hasExtraPhases ?? false;
+    final label = wentPens
+        ? 'Penalties'
+        : wentEt
+            ? 'After extra time'
+            : 'Full time';
+    GameTeam? winner;
+    for (final t in g.teams) {
+      if (winner == null || t.score > winner.score) winner = t;
+    }
+    final drawn = g.teams.length > 1 &&
+        g.teams.every((t) => t.score == g.teams.first.score);
+    final result = drawn ? 'Draw' : '${winner?.name ?? '—'} won';
+
+    // Scorers: goals credited to the scorer's own team (web logic).
+    final byTeam = <String, Map<String, int>>{};
+    for (final a in g.activities) {
+      if (a.type != 'goal') continue;
+      final names = byTeam.putIfAbsent(a.teamId, () => {});
+      names['${a.jersey != null ? '#${a.jersey} ' : ''}${a.playerName}'] =
+          (names['${a.jersey != null ? '#${a.jersey} ' : ''}${a.playerName}'] ??
+                  0) +
+              1;
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      // Result pill — mirrors the web "🏆 Full time · X won" line.
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: p.accent.withAlpha(26),
+          border: Border.all(color: p.accent.withAlpha(102)),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          const Text('🏆 ', style: TextStyle(fontSize: 13)),
+          Text(label,
+              style: TextStyle(
+                  color: p.accent,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800)),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(result,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: p.ink,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600)),
+          ),
+        ]),
+      ),
+      if (byTeam.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        GlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Scorers',
+                  style: TextStyle(
+                      color: p.ink,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700)),
+              const SizedBox(height: 10),
+              for (final t in g.teams)
+                if (byTeam[t.teamId]?.isNotEmpty ?? false) ...[
+                  Row(children: [
+                    Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                          color: teamColor(t.color, p),
+                          shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 7),
+                    Text(t.name,
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700)),
+                  ]),
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16, bottom: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final e in byTeam[t.teamId]!.entries)
+                          Text(
+                            '⚽ ${e.key}${e.value > 1 ? ' ×${e.value}' : ''}',
+                            style:
+                                TextStyle(color: p.muted, fontSize: 12.5),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+            ],
+          ),
+        ),
+      ],
+    ]);
   }
 }

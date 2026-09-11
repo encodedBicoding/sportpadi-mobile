@@ -38,9 +38,40 @@ class PushService {
     }
     try {
       final messaging = FirebaseMessaging.instance;
-      final settings = await messaging.requestPermission();
+      final settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
       if (settings.authorizationStatus == AuthorizationStatus.denied) {
         return;
+      }
+      // iOS: FCM can't mint a token until APNs has issued one. Registration is
+      // asynchronous after requestPermission, so poll briefly — without this,
+      // getToken() throws apns-token-not-set and push silently never enables.
+      if (Platform.isIOS) {
+        String? apns = await messaging.getAPNSToken();
+        for (var i = 0; apns == null && i < 12; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+          apns = await messaging.getAPNSToken();
+        }
+        if (apns == null) {
+          if (kDebugMode) {
+            // NB: this is the DEVICE token Apple issues at runtime — nothing
+            // to do with the APNs .p8 key uploaded to Firebase (that is a
+            // server-side credential FCM uses to talk to Apple; it cannot
+            // affect this call). Null here means the device never registered:
+            //   • running on the iOS Simulator (no real APNs registration), or
+            //   • the build's aps-environment doesn't match its provisioning
+            //     profile (debug builds need "development"), or
+            //   • Push Notifications isn't enabled on the App ID, or
+            //   • no network / notification permission was denied.
+            debugPrint('[push] APNs device token is null — push disabled. '
+                'Run on a REAL device, and check Signing & Capabilities has '
+                'Push Notifications enabled for this build configuration.');
+          }
+          return;
+        }
       }
       _token = await messaging.getToken();
       if (_token != null) await _register(_token!);
