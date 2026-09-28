@@ -81,11 +81,23 @@ class AdMob {
           // "notDetermined" and the prompt is lost for that run.
           await WidgetsBinding.instance.endOfFrame;
           await Future<void>.delayed(const Duration(seconds: 1));
-          await AppTrackingTransparency.requestTrackingAuthorization();
+          // If another system alert is up (the notification permission
+          // prompt, typically) iOS answers "notDetermined" without showing
+          // ours and asks again next launch — fine. What must NOT happen is
+          // ads waiting forever on a prompt that never resolves.
+          await AppTrackingTransparency.requestTrackingAuthorization()
+              .timeout(const Duration(seconds: 15), onTimeout: () => status);
         }
       }
-      await MobileAds.instance.initialize();
+      final st = await MobileAds.instance.initialize();
       _ready = true;
+      if (kDebugMode) {
+        final adapters = st.adapterStatuses.entries
+            .map((e) => '${e.key}=${e.value.state.name}')
+            .join(', ');
+        debugPrint('[admob] ready on ${Platform.operatingSystem} '
+            '(native unit ${AdMobIds.native}); adapters: $adapters');
+      }
     } catch (e) {
       if (kDebugMode) debugPrint('[admob] init failed: $e');
     }
@@ -290,6 +302,7 @@ class _AdMobNativeCardState extends State<AdMobNativeCard> {
       request: const AdRequest(),
       listener: NativeAdListener(
         onAdLoaded: (_) {
+          if (kDebugMode) debugPrint('[admob] native loaded');
           if (mounted) setState(() => _loaded = true);
         },
         onAdFailedToLoad: (ad, err) {
