@@ -245,6 +245,7 @@ class PlayerEventStatsScreen extends ConsumerWidget {
                 else
                   ScopeBlock(
                     title: "$first's record in this event",
+                    collapseKey: 'event-record',
                     tally: record,
                     fields: fields,
                     accent: true,

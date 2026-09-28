@@ -21,6 +21,8 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_tile_square.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
+import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 
 /// Profile — the web profile page's mobile twin: gradient hero with avatar
 /// upload, My Sports editor, Events / Posts / Groups tabs, and the menu.
@@ -147,6 +149,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Gamification: level, streak, "Your game", achievements.
+                      ProfileProgressionSection(
+                        userId: userId,
+                        categoryId: parseStr(cat?['categoryId']),
+                        categoryNames: {
+                          for (final c in categories)
+                            if (parseStr(c['categoryId']) != null)
+                              parseStr(c['categoryId'])!:
+                                  parseStr(c['name']) ?? 'Sport',
+                        },
+                      ),
                       const Eyebrow('My sports'),
                       const SizedBox(height: 8),
                       const _SportsSection(),
@@ -392,9 +405,16 @@ class _HeroState extends ConsumerState<_Hero> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: p.surface,
+                      // Earned avatar frame (gamification) replaces the
+                      // default green ring once the player reaches Regular.
                       border: Border.all(
-                          color: const Color.fromRGBO(23, 166, 94, 0.45),
-                          width: 2),
+                          color: frameColor(ref
+                                      .watch(identityProvider(profile.userId ?? ''))
+                                      .valueOrNull
+                                      ?.frame ??
+                                  'none') ??
+                              const Color.fromRGBO(23, 166, 94, 0.45),
+                          width: 2.5),
                     ),
                     child: ClipOval(
                       child: Crest(

@@ -19,6 +19,8 @@ import 'package:sportpadi_mobile/features/browse/browse_screen.dart';
 import 'package:sportpadi_mobile/features/groups/groups_list_screen.dart';
 import 'package:sportpadi_mobile/features/profile/profile_screen.dart';
 import 'package:sportpadi_mobile/features/tournaments/my_tournaments_screen.dart';
+import 'package:sportpadi_mobile/core/referral/referral.dart';
+import 'package:sportpadi_mobile/core/network/dio_client.dart';
 
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
@@ -97,6 +99,12 @@ class _HomeShellState extends ConsumerState<HomeShell>
     // A new account on this device gets a fresh soft-ask budget.
     final userId = ref.read(authControllerProvider).valueOrNull?.user?.id;
     if (userId != null) await push.noteSignedInUser(userId);
+    // Opened from someone's share link before signing in? Record who brought
+    // this player (gamification: community XP; server ignores regulars).
+    if (userId != null) {
+      // ignore: discarded_futures
+      ref.read(referralStoreProvider).claim(ref.read(dioProvider), userId);
+    }
     final status = await push.init(
       onMessage: () {
         ref.invalidate(notificationsFeedProvider);

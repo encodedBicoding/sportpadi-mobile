@@ -17,6 +17,7 @@ import 'package:sportpadi_mobile/data/games/game_models.dart';
 import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
+import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 import 'package:sportpadi_mobile/data/groups/members_repository.dart';
 import 'package:sportpadi_mobile/features/events/event_tickets_card.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
@@ -24,6 +25,8 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/core/referral/referral.dart';
+import 'package:sportpadi_mobile/features/events/rsvp_info_sheet.dart';
 
 /// Event detail — a faithful mobile port of the web /events/[slug] page:
 /// photos, info, hosted-by (follow), stats, interest/check-in, organizer QR,
@@ -399,7 +402,9 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   void _share(EventDetail? e) {
     if (e == null) return;
     final base = ref.read(appConfigProvider).apiBaseUrl;
-    Clipboard.setData(ClipboardData(text: '$base/e/${e.slug}'));
+    // Carries who shared it (gamification: community XP for bringing people).
+    final me = ref.read(meProvider).valueOrNull?.userId;
+    Clipboard.setData(ClipboardData(text: withRef('$base/e/${e.slug}', me, 'event', e.id)));
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('Link copied')));
   }
@@ -1131,7 +1136,7 @@ class _StatsRow extends StatelessWidget {
           ),
         );
     return Row(children: [
-      cell('${event.interestCount}', 'Interested', const Color(0xFFEC4899)),
+      cell('${event.interestCount}', 'RSVPs', const Color(0xFFEC4899)),
       const SizedBox(width: 10),
       cell('${event.attendeeCount}', 'Checked in', p.accent),
       const SizedBox(width: 10),
@@ -1161,8 +1166,13 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      await ref.read(eventsRepositoryProvider).toggleInterest(widget.event.id);
+      final going = await ref.read(eventsRepositoryProvider).toggleInterest(widget.event.id);
       widget.onChanged();
+      // Gamification is reactive (server-side, in the same request): an
+      // RSVP moves "Your week", taking it back undoes it.
+      _refreshProgression(ref);
+      // An RSVP isn't a reserved spot: say so, and why showing up pays.
+      if (going && mounted) await RsvpInfoSheet.maybeShow(context);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -1197,6 +1207,7 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
     try {
       await ref.read(eventsRepositoryProvider).checkOut(widget.event.id);
       widget.onChanged();
+      _refreshProgression(ref);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -1238,14 +1249,14 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
                       children: [
                         Icon(
                           e.myInterested
-                              ? Icons.favorite_rounded
-                              : Icons.favorite_border_rounded,
+                              ? Icons.event_available_rounded
+                              : Icons.event_outlined,
                           size: 16,
                           color: e.myInterested ? Colors.white : _pink,
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          e.myInterested ? 'Interested' : "I'm interested",
+                          e.myInterested ? "RSVP'd — you're going" : 'RSVP',
                           style: TextStyle(
                             color: e.myInterested ? Colors.white : _pink,
                             fontSize: 13.5,
@@ -2480,7 +2491,7 @@ class _InterestedList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Eyebrow('Interested · ${people.length}'),
+        Eyebrow('RSVPs · ${people.length}'),
         const SizedBox(height: 8),
         GlassCard(
           padding: const EdgeInsets.all(12),
@@ -3751,4 +3762,11 @@ class _NextStepChip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "Your week" / XP / streak are recomputed server-side as part of an RSVP,
+/// un-RSVP or check-out — refresh every place that shows them.
+void _refreshProgression(WidgetRef ref) {
+  ref.invalidate(yourWeekProvider);
+  ref.invalidate(myProgressionProvider);
 }

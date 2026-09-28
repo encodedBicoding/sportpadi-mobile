@@ -17,6 +17,7 @@ import 'package:sportpadi_mobile/features/shell/home_shell.dart'
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/core/ads/admob.dart';
 import 'package:sportpadi_mobile/features/ads/ad_display.dart';
+import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
 
 /// Home — the user's personal dashboard: their upcoming events across every
 /// group they belong to (live events beep on the tab), a Kids tab (future),
@@ -150,6 +151,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         'Scan QR', () => context.push('/scan')),
                   ),
                 ]),
+
+                // Gamification: streak, this week's challenges, next unlock.
+                const YourWeekCard(),
 
                 // Sport filter — All or exactly one sport
                 if (cats.isNotEmpty) ...[

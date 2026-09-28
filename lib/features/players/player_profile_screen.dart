@@ -11,6 +11,8 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
+import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
 
 /// Public player profile — the scout's view (web /players/[id] twin).
 ///
@@ -222,11 +224,15 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
   Widget _identity(AppPalette p, Map<String, dynamic> profile) {
     return GlassCard(
       child: Row(children: [
-        ClipOval(
-          child: Crest(
-              logoUrl: parseStr(profile['avatarUrl']),
-              label: parseStr(profile['displayName']) ?? 'P',
-              size: 64),
+        // Earned avatar frame (gamification status perk).
+        FramedAvatar(
+          userId: widget.userId,
+          child: ClipOval(
+            child: Crest(
+                logoUrl: parseStr(profile['avatarUrl']),
+                label: parseStr(profile['displayName']) ?? 'P',
+                size: 64),
+          ),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -244,6 +250,16 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: p.muted, fontSize: 13)),
+              // Gamification identity: level (always public), streak (if
+              // the player made it public).
+              Builder(builder: (_) {
+                final id = ref.watch(identityProvider(widget.userId)).valueOrNull;
+                if (id == null) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 5),
+                  child: LevelBadge(level: id.level, title: id.title, streak: id.weeklyStreak),
+                );
+              }),
               // Positions / strong foot are per-sport: they live in the
               // sport's own profile card, not up here as one fixed fact.
             ],

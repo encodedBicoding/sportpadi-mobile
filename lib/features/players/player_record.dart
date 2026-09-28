@@ -256,17 +256,12 @@ class SportSetup extends StatelessWidget {
     final p = context.palette;
     final fields = listOf(category['setup']);
     if (fields.isEmpty) return const SizedBox.shrink();
-    return GlassCard(
+    return CollapsibleStatCard(
+      storageKey: 'setup',
+      title:
+          '${parseStr(category['emoji']) ?? ''} ${parseStr(category['name']) ?? 'Sport'} profile',
+      summary: fields.map((f) => parseStr(f['value']) ?? '').where((v) => v.isNotEmpty).join(' · '),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(
-            '${parseStr(category['emoji']) ?? ''} ${parseStr(category['name']) ?? 'Sport'} PROFILE'
-                .toUpperCase(),
-            style: TextStyle(
-                color: p.muted,
-                fontSize: 9.5,
-                letterSpacing: 0.6,
-                fontWeight: FontWeight.w800)),
-        const SizedBox(height: 6),
         for (final f in fields)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 2.5),
@@ -305,6 +300,7 @@ class ScopeBlock extends StatelessWidget {
     required this.empty,
     this.accent = false,
     this.rank = const {},
+    this.collapseKey,
   });
   final String title;
   final Map<String, dynamic> tally;
@@ -312,29 +308,28 @@ class ScopeBlock extends StatelessWidget {
   final String empty;
   final bool accent;
   final Map<String, dynamic> rank;
+  /// Which remembered fold state this card shares (defaults: local /
+  /// tournament by `accent`).
+  final String? collapseKey;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
     final counts = mapOf(tally['counts']);
     final games = statInt(tally['games']);
-    return GlassCard(
+    return CollapsibleStatCard(
+      // Remembered per card kind: fold "tournaments" once, it stays folded.
+      storageKey: collapseKey ?? (accent ? 'tournament' : 'local'),
+      title: title,
+      accent: accent,
+      trailing: rank.isNotEmpty
+          ? SpBadge('#${statInt(rank['rank'])} of ${statInt(rank['of'])}',
+              tone: p.accent)
+          : null,
+      summary: games == 0
+          ? empty
+          : '$games game${games == 1 ? '' : 's'} · ${statInt(tally['wins'])}-${statInt(tally['draws'])}-${statInt(tally['losses'])} · ${statInt(tally['winRate'])}% wins',
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(
-            child: Text(title.toUpperCase(),
-                maxLines: 2,
-                style: TextStyle(
-                    color: accent ? p.accent : p.muted,
-                    fontSize: 9.5,
-                    letterSpacing: 0.6,
-                    fontWeight: FontWeight.w800)),
-          ),
-          if (rank.isNotEmpty)
-            SpBadge('#${statInt(rank['rank'])} of ${statInt(rank['of'])}',
-                tone: p.accent),
-        ]),
-        const SizedBox(height: 8),
         if (games == 0)
           Text(empty, style: TextStyle(color: p.muted, fontSize: 12.5))
         else ...[
@@ -489,6 +484,85 @@ class TournamentList extends StatelessWidget {
               ]),
             ),
           ),
+      ]),
+    );
+  }
+}
+
+/// A stat card whose body folds away. The header stays (title, an optional
+/// badge) and, when folded, a one-line summary so the card still says
+/// something. The choice is remembered per card kind for the session — fold
+/// "tournaments" on one player and it stays folded on the next.
+class CollapsibleStatCard extends StatefulWidget {
+  const CollapsibleStatCard({
+    super.key,
+    required this.storageKey,
+    required this.title,
+    required this.child,
+    this.accent = false,
+    this.trailing,
+    this.summary,
+  });
+  final String storageKey;
+  final String title;
+  final Widget child;
+  final bool accent;
+  final Widget? trailing;
+  final String? summary;
+
+  static final Map<String, bool> _remembered = {};
+
+  @override
+  State<CollapsibleStatCard> createState() => _CollapsibleStatCardState();
+}
+
+class _CollapsibleStatCardState extends State<CollapsibleStatCard> {
+  late bool _open = CollapsibleStatCard._remembered[widget.storageKey] ?? true;
+
+  void _toggle() {
+    setState(() => _open = !_open);
+    CollapsibleStatCard._remembered[widget.storageKey] = _open;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final tone = widget.accent ? p.accent : p.muted;
+    return GlassCard(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        InkWell(
+          onTap: _toggle,
+          borderRadius: BorderRadius.circular(8),
+          child: Row(children: [
+            AnimatedRotation(
+              turns: _open ? 0 : -0.25,
+              duration: const Duration(milliseconds: 150),
+              child: Icon(Icons.expand_more_rounded, size: 18, color: tone),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(widget.title.toUpperCase(),
+                  maxLines: 2,
+                  style: TextStyle(
+                      color: tone,
+                      fontSize: 9.5,
+                      letterSpacing: 0.6,
+                      fontWeight: FontWeight.w800)),
+            ),
+            if (widget.trailing != null) widget.trailing!,
+          ]),
+        ),
+        if (_open) ...[
+          const SizedBox(height: 8),
+          widget.child,
+        ] else if ((widget.summary ?? '').isNotEmpty) ...[
+          const SizedBox(height: 4),
+          GestureDetector(
+            onTap: _toggle,
+            child: Text(widget.summary!,
+                style: TextStyle(color: p.muted, fontSize: 12)),
+          ),
+        ],
       ]),
     );
   }

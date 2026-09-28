@@ -304,6 +304,7 @@ class _InviteBannerState extends ConsumerState<_InviteBanner> {
       ref.invalidate(tournamentDetailProvider(widget.eventId));
       ref.invalidate(myTournamentInvitesProvider);
       ref.invalidate(myTournamentsProvider);
+      ref.invalidate(myTeamCardsProvider);
       // Accepting is the start of the work: go straight to calling the squad.
       final teamId = parseStr(widget.invite['teamId']);
       if (accept && teamId != null && mounted) {
@@ -2056,6 +2057,7 @@ class _EndTournamentCard extends ConsumerWidget {
       ref.invalidate(tournamentMatchProvider(eventId));
       ref.invalidate(tournamentGamesProvider(eventId));
       ref.invalidate(myTournamentsProvider);
+      ref.invalidate(myTeamCardsProvider);
       // The Home calendar is fed by myFeed — refresh it so the tournament
       // leaves the "live" list right away rather than on the next open.
       ref.invalidate(myFeedProvider);

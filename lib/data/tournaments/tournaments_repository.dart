@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournament_models.dart';
+import 'package:sportpadi_mobile/data/tournaments/my_team_models.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/squad_models.dart';
 
@@ -25,6 +26,31 @@ class TournamentsRepository {
 
   /// "My tournaments" tab — tournaments the signed-in user is in via a
   /// group-team roster spot, with that team's games.
+  /// "My tournaments", team first: one summary per team.
+  Future<List<MyTeamCard>> myTeams() async {
+    try {
+      final res = await _dio.get('/api/mobile/my-tournaments/teams');
+      final list = res.data is Map ? (res.data['teams'] as List? ?? []) : const [];
+      return [
+        for (final e in list)
+          if (e is Map) MyTeamCard.fromJson(Map<String, dynamic>.from(e)),
+      ];
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load your teams.');
+    }
+  }
+
+  /// One team's tournaments — live, upcoming, invited, past.
+  Future<MyTeamTournamentsView> myTeamTournaments(String teamId) async {
+    try {
+      final res = await _dio.get('/api/mobile/my-tournaments/teams/$teamId');
+      return MyTeamTournamentsView.fromJson(
+          res.data is Map ? Map<String, dynamic>.from(res.data as Map) : const {});
+    } catch (e) {
+      throw apiError(e, fallback: "Could not load this team's tournaments.");
+    }
+  }
+
   Future<List<MyTournamentEntry>> mine() async {
     try {
       final res = await _dio.get('/api/mobile/my-tournaments');
@@ -333,6 +359,13 @@ final tournamentGamesProvider = FutureProvider.autoDispose
 final tournamentAwardsProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>?, String>((ref, eventId) =>
         ref.watch(tournamentsRepositoryProvider).awards(eventId));
+
+final myTeamCardsProvider = FutureProvider.autoDispose<List<MyTeamCard>>(
+    (ref) => ref.watch(tournamentsRepositoryProvider).myTeams());
+
+final myTeamTournamentsProvider = FutureProvider.autoDispose
+    .family<MyTeamTournamentsView, String>((ref, teamId) =>
+        ref.watch(tournamentsRepositoryProvider).myTeamTournaments(teamId));
 
 final myTournamentsProvider =
     FutureProvider.autoDispose<List<MyTournamentEntry>>(

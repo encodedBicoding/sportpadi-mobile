@@ -30,6 +30,9 @@ import 'package:sportpadi_mobile/shared/widgets/emoji_badge.dart';
 import 'package:sportpadi_mobile/shared/widgets/entity_row.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/core/referral/referral.dart';
+import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
+import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
 
 /// Group header geometry: cover banner height and how far the avatar/stats
 /// row hangs below it.
@@ -346,6 +349,8 @@ class _HeaderState extends ConsumerState<_Header> {
               ],
               const SizedBox(height: 12),
               _OverviewSection(groupId: groupId, canManage: canManage),
+              // Group reputation (gamification): level, streak, achievements.
+              GroupReputationCard(groupId: groupId),
             ],
           ),
         ),
@@ -455,8 +460,9 @@ class _ManageMenu extends ConsumerWidget {
           switch (v) {
             case 'link':
               final base = ref.read(appConfigProvider).apiBaseUrl;
-              Clipboard.setData(
-                  ClipboardData(text: '$base/join/$groupId'));
+              final me = ref.read(meProvider).valueOrNull?.userId;
+              Clipboard.setData(ClipboardData(
+                  text: withRef('$base/join/$groupId', me, 'group', groupId)));
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                   content: Text(
                       'Membership link copied — anyone with it can join.')));
