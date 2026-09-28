@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/features/settings/push_notifications_card.dart';
 
 /// Settings — mirrors the web settings page: editable profile (display name,
 /// username, read-only email), payment methods (cards on file), sign out.
@@ -166,6 +167,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 18),
+
+          // ── Notifications: can this device receive pushes? (tap to fix) ──
+          const Eyebrow('Notifications'),
+          const SizedBox(height: 8),
+          const PushNotificationsCard(),
           const SizedBox(height: 18),
 
           // ── Payment methods (cards on file) ──

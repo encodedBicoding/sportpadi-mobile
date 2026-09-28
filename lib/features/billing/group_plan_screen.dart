@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show kDebugMode, setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
+import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/billing/iap_repository.dart';
 import 'package:sportpadi_mobile/data/groups/groups_repository.dart' show groupOverviewProvider;
@@ -357,10 +359,37 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen> {
                   textAlign: TextAlign.center,
                   style: TextStyle(color: p.muted, fontSize: 11, height: 1.4),
                 ),
+                // App Store 3.1.2: a subscription paywall must link to the
+                // Terms of Use (EULA) and Privacy Policy, in the binary too,
+                // not only in the store listing.
+                const SizedBox(height: 6),
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  _legalLink(p, 'Terms of Use', '/terms'),
+                  Text(' · ', style: TextStyle(color: p.muted, fontSize: 11)),
+                  _legalLink(p, 'Privacy Policy', '/privacy'),
+                ]),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _legalLink(AppPalette p, String label, String path) {
+    final base = ref.read(appConfigProvider).apiBaseUrl;
+    return InkWell(
+      onTap: () => launchUrl(Uri.parse('$base$path'),
+          mode: LaunchMode.inAppBrowserView),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        child: Text(label,
+            style: TextStyle(
+                color: p.accent,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                decoration: TextDecoration.underline,
+                decorationColor: p.accent)),
       ),
     );
   }

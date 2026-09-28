@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import 'dart:math' show Random;
 
 import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -71,6 +72,45 @@ class PushService {
   void Function()? _onMessage;
   void Function(String url)? _onOpened;
   void Function(PushAlert alert)? _onForeground;
+
+  /// This device's FCM token, once minted (for the diagnostics screen).
+  String? get token => _token;
+
+  /// Whether the server has been told about this token in this sign-in.
+  bool get registeredWithServer => _sentToken != null && _sentToken == _token;
+
+  /// Last registration error, if the POST failed (401, offline…).
+  String? _lastRegisterError;
+  String? get lastRegisterError => _lastRegisterError;
+
+  /// Ask the server to push to this account's devices — the whole chain,
+  /// end to end, from a button.
+  Future<({int devices, int ok, int failed, List<String> errors})>
+      sendSelfTest() async {
+    final res = await _dio.post('/api/mobile/push-token', data: {'action': 'test'});
+    final m = res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {};
+    int n(dynamic v) => v is num ? v.toInt() : int.tryParse('$v') ?? 0;
+    return (
+      devices: n(m['devices']),
+      ok: n(m['ok']),
+      failed: n(m['failed']),
+      // FCM's verdict per device ("404 UNREGISTERED", "403 SENDER_ID_MISMATCH"…)
+      errors: [
+        for (final e in (m['errors'] is List ? m['errors'] as List : const []))
+          '$e'
+      ],
+    );
+  }
+
+  /// What the server holds for this account.
+  Future<({bool serverEnabled, int devices})> serverStatus() async {
+    final res = await _dio.get('/api/mobile/push-token');
+    final m = res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {};
+    return (
+      serverEnabled: m['serverEnabled'] == true,
+      devices: m['devices'] is num ? (m['devices'] as num).toInt() : 0,
+    );
+  }
 
   /// Current OS-level status (null when Firebase isn't configured).
   AuthorizationStatus? _status;
@@ -270,6 +310,9 @@ class PushService {
   /// Post a foreground push as a system notification (Android). Returns
   /// false when it couldn't, so the caller can fall back to the in-app banner.
   Future<bool> _showLocal(String title, String? body, String? url) async {
+    // A failed first init (e.g. Firebase came up before the plugin's
+    // resources) is not permanent — try once more before giving up.
+    if (!_localReady) await _initLocal();
     if (!_localReady) return false;
     try {
       await _local.show(
@@ -363,6 +406,11 @@ class PushService {
         final n = m.notification;
         final title = n?.title ?? (m.data['title'] as String?);
         final body = n?.body ?? (m.data['body'] as String?);
+        if (kDebugMode) {
+          debugPrint('[push] onMessage id=${m.messageId} '
+              'notification=${n != null} title=$title data=${m.data} '
+              'localReady=$_localReady');
+        }
         if (title == null || title.isEmpty) return;
         final url = m.data['url'];
         final link = url is String && url.isNotEmpty ? url : null;
@@ -371,6 +419,7 @@ class PushService {
         // ourselves; only if that fails does the in-app banner step in.
         if (Platform.isIOS) return;
         final shown = await _showLocal(title, body, link);
+        if (kDebugMode) debugPrint('[push] foreground local shown=$shown');
         if (shown) return;
         _onForeground?.call(PushAlert(title: title, body: body, url: link));
       });
@@ -390,18 +439,45 @@ class PushService {
     }
   }
 
+  /// A stable id for THIS install, minted once and kept in secure storage.
+  /// It lets the server treat a new token from the same phone (reinstall,
+  /// FCM rotation, the app-id fix) as a REPLACEMENT of that phone's old row,
+  /// rather than a second device — while a second real device (a tablet)
+  /// keeps its own row. It is random, not a hardware id: nothing about the
+  /// device is disclosed, and it changes when the app is reinstalled.
+  static const _kDeviceId = 'sp_push_device_id';
+  String? _deviceId;
+  Future<String> deviceId() async {
+    if (_deviceId != null) return _deviceId!;
+    try {
+      final saved = await _storage.read(key: _kDeviceId);
+      if (saved != null && saved.length >= 16) return _deviceId = saved;
+    } catch (_) {}
+    final r = Random.secure();
+    final id = List.generate(16, (_) => r.nextInt(256))
+        .map((b) => b.toRadixString(16).padLeft(2, '0'))
+        .join();
+    try {
+      await _storage.write(key: _kDeviceId, value: id);
+    } catch (_) {}
+    return _deviceId = id;
+  }
+
   Future<void> _register(String token) async {
     try {
       await _dio.post('/api/mobile/push-token', data: {
         'token': token,
         'platform': Platform.isIOS ? 'ios' : 'android',
+        'deviceId': await deviceId(),
       });
       _sentToken = token;
+      _lastRegisterError = null;
       if (kDebugMode) debugPrint('[push] device registered with server');
     } catch (e) {
       // A 401 here is the common one: the shell mounted before the session
       // was in place. The next init() (resume, or the next launch) retries.
       _sentToken = null;
+      _lastRegisterError = '$e';
       if (kDebugMode) debugPrint('[push] register failed: $e');
     }
   }

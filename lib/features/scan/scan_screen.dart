@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/tickets/tickets_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/core/ads/admob.dart';
 
 /// One scanner for both QR kinds:
 ///  - event check-in QRs (a player checks themselves in), and
@@ -38,9 +39,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
   Future<void> _onDetect(BarcodeCapture capture) async {
     if (_handling) return;
-    final raw = capture.barcodes.isNotEmpty
-        ? capture.barcodes.first.rawValue
-        : null;
+    final raw =
+        capture.barcodes.isNotEmpty ? capture.barcodes.first.rawValue : null;
     if (raw == null || raw.isEmpty || raw == _lastCode) return;
     _lastCode = raw;
     setState(() => _handling = true);
@@ -87,8 +87,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     final reason = res['reason'] as String? ?? '';
     if (reason == 'already') {
       final at = res['redeemedAt'] as String?;
-      final when =
-          at != null ? DateTime.tryParse(at)?.toLocal() : null;
+      final when = at != null ? DateTime.tryParse(at)?.toLocal() : null;
       await _showSheet(
         tone: _Tone.warning,
         head: 'Already used',
@@ -205,14 +204,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
               Text(head,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      color: p.ink,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800)),
+                      color: p.ink, fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
               Text(body,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: p.muted, fontSize: 14, height: 1.45)),
+                  style: TextStyle(color: p.muted, fontSize: 14, height: 1.45)),
               const SizedBox(height: 20),
               Row(children: [
                 Expanded(
@@ -278,8 +274,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
               width: 240,
               height: 240,
               decoration: BoxDecoration(
-                border: Border.all(
-                    color: _handling ? p.amber : p.accent, width: 3),
+                border:
+                    Border.all(color: _handling ? p.amber : p.accent, width: 3),
                 borderRadius: BorderRadius.circular(24),
               ),
             ),
@@ -377,6 +373,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                   ),
                 ),
               ),
+              // AdMob native (Android). Takes no space until it fills.
+              const AdMobNativeCard(padding: EdgeInsets.only(top: 14)),
             ]),
           ),
           const SizedBox(height: 14),
@@ -387,7 +385,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: p.line),
             ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Icon(Icons.qr_code_scanner_rounded, size: 19, color: p.accent),
                 const SizedBox(width: 8),
