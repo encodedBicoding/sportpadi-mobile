@@ -14,7 +14,7 @@ import 'package:sportpadi_mobile/core/links/deep_links.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/home/home_screen.dart';
 import 'package:sportpadi_mobile/features/notifications/notification_permission_sheet.dart';
-import 'package:sportpadi_mobile/features/notifications/notifications_screen.dart';
+import 'package:sportpadi_mobile/features/shell/notification_target.dart';
 import 'package:sportpadi_mobile/features/browse/browse_screen.dart';
 import 'package:sportpadi_mobile/features/groups/groups_list_screen.dart';
 import 'package:sportpadi_mobile/features/profile/profile_screen.dart';
@@ -102,11 +102,9 @@ class _HomeShellState extends ConsumerState<HomeShell>
         ref.invalidate(notificationsFeedProvider);
         ref.invalidate(unreadCountProvider);
       },
+      // Tapped: its page if it names one, otherwise the Notifications inbox.
       onOpened: (url) {
-        // A push whose destination we can't place still has somewhere to go:
-        // the inbox, where the notification itself is readable.
-        final dest = NotificationsScreen.resolveUrl(url) ?? '/notifications';
-        if (mounted) context.push(dest);
+        if (mounted) openNotificationTarget(ref, url);
       },
       // Arrived while the app is open: the OS shows nothing, so hand it to
       // the in-app banner (PushBannerHost, wrapped around the whole app).

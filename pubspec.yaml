@@ -1,7 +1,7 @@
 name: sportpadi_mobile
 description: sportpadi — native mobile client (Flutter).
 publish_to: "none"
-version: 0.2.13+11
+version: 0.2.14+12
 
 environment:
   sdk: ">=3.4.0 <4.0.0"

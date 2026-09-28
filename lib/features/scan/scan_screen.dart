@@ -153,6 +153,23 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
               'You have an unpaid fine with this group — settle it to check in.',
         );
         return;
+      case 'self_checkin':
+        // An organiser scanned their own event. Explain, and when they are
+        // the only admin, take them straight to where they can fix that.
+        final groupId = res['groupId'] as String?;
+        final others = (res['otherAdmins'] as num?)?.toInt() ?? 0;
+        final act = await _showSheet(
+          tone: _Tone.warning,
+          head: 'Ask an admin to check you in',
+          body: res['reason'] as String? ??
+              "Organisers can't check themselves in. Make a trusted member an admin and ask them to check you in.",
+          actionLabel:
+              groupId != null && others == 0 ? 'Make someone an admin' : null,
+        );
+        if (act && mounted && groupId != null) {
+          context.push('/groups/$groupId/members');
+        }
+        return;
       default:
         await _showSheet(
             tone: _Tone.error, head: 'Hmm', body: 'Unexpected result: $status');
@@ -166,6 +183,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     required String head,
     required String body,
     bool doneButton = false,
+    // A way out of a failure, in place of "Done": returns true when tapped.
+    String? actionLabel,
   }) async {
     final p = context.palette;
     final color = switch (tone) {
@@ -223,7 +242,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                     ),
                   ),
                 ),
-                if (doneButton) ...[
+                if (doneButton || actionLabel != null) ...[
                   const SizedBox(width: 10),
                   Expanded(
                     child: FilledButton(
@@ -232,7 +251,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                         backgroundColor: p.accent,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text('Done'),
+                      child: Text(actionLabel ?? 'Done'),
                     ),
                   ),
                 ],

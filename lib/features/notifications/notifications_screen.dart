@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/links/link_resolver.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/notifications/notification_models.dart';
 import 'package:sportpadi_mobile/data/notifications/notifications_repository.dart';
 import 'package:sportpadi_mobile/features/notifications/notification_permission_sheet.dart';
+import 'package:sportpadi_mobile/features/shell/notification_target.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
@@ -141,15 +141,26 @@ class NotificationsScreen extends ConsumerWidget {
 
 /// Full notification: title, time, the complete message (scrollable), and an
 /// "Open" action when the notification points somewhere.
-class NotificationDetailScreen extends StatelessWidget {
+class NotificationDetailScreen extends ConsumerWidget {
   const NotificationDetailScreen({super.key, required this.notification});
   final AppNotification notification;
 
+  /// Does this notification point anywhere we can open — an app screen, a
+  /// tab, one of our web-only pages, or another site?
+  static bool hasDestination(String? url) {
+    final raw = url?.trim() ?? '';
+    if (raw.isEmpty) return false;
+    final t = resolveLink(raw);
+    if (t.route != null || t.tab != null || t.web) return true;
+    final host = raw.startsWith('http') ? Uri.tryParse(raw)?.host ?? '' : '';
+    return host.isNotEmpty && !host.endsWith('sportpadi.com');
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
     final n = notification;
-    final dest = NotificationsScreen.resolveUrl(n.url);
+    final canOpen = hasDestination(n.url);
     final text = n.fullBody ?? n.body ?? '';
     return Scaffold(
       appBar: AppBar(
@@ -192,13 +203,15 @@ class NotificationDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          if (dest != null)
+          if (canOpen)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: () => context.push(dest),
+                  // Same rules as tapping the push itself: its screen, its
+                  // tab, or the browser for a web-only / external page.
+                  onPressed: () => openNotificationTarget(ref, n.url),
                   style: FilledButton.styleFrom(
                     backgroundColor: p.accent,
                     padding: const EdgeInsets.symmetric(vertical: 13),
