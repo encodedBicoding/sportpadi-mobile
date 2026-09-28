@@ -53,8 +53,23 @@ import 'package:sportpadi_mobile/features/tournaments/tournament_team_screen.dar
 /// history) every time the auth provider emits.
 class _AuthRefresh extends ChangeNotifier {
   _AuthRefresh(Ref ref) {
-    ref.listen(authControllerProvider, (_, __) => notifyListeners());
+    ref.listen(authControllerProvider, (prev, next) {
+      notifyListeners();
+      // Signing OUT from a pushed page (Settings, a group, an event…) needs
+      // an explicit move: the redirect above only re-evaluates the BASE
+      // location of the stack, and /home is open to guests, so the pushed
+      // page would simply stay on screen without a session. Land on the
+      // guest dashboard, stack cleared, like the web's sign-out.
+      final wasIn = prev?.valueOrNull?.isAuthenticated ?? false;
+      final isIn = next.valueOrNull?.isAuthenticated ?? false;
+      if (wasIn && !isIn) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => router?.go('/home'));
+      }
+    });
   }
+
+  /// Set once the router exists (it needs this notifier first).
+  GoRouter? router;
 }
 
 /// Where sign-in should drop the user afterwards, if the `redirect` query
@@ -300,5 +315,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     analytics
         .logScreen(router.routerDelegate.currentConfiguration.uri.toString());
   });
+  refresh.router = router;
   return router;
 });

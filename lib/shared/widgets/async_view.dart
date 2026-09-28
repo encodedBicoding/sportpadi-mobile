@@ -28,6 +28,7 @@ class AsyncView<T> extends StatelessWidget {
       ),
       error: (e, _) => _ErrorState(
         message: e is ApiException ? e.message : 'Something went wrong.',
+        detail: e is ApiException ? e.detail : '${e.runtimeType}',
         onRetry: onRetry,
       ),
       data: data,
@@ -36,9 +37,10 @@ class AsyncView<T> extends StatelessWidget {
 }
 
 class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.message, this.onRetry});
+  const _ErrorState({required this.message, this.detail, this.onRetry});
 
   final String message;
+  final String? detail;
   final VoidCallback? onRetry;
 
   @override
@@ -57,6 +59,16 @@ class _ErrorState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(color: p.muted),
             ),
+            if (detail != null && detail!.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              // Small print for support: readable in a release build, and
+              // selectable so it can be copied into a message.
+              SelectableText(
+                detail!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: p.muted.withAlpha(170), fontSize: 11),
+              ),
+            ],
             if (onRetry != null) ...[
               const SizedBox(height: 16),
               OutlinedButton(onPressed: onRetry, child: const Text('Retry')),

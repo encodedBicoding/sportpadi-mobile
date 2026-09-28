@@ -2,11 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/push/push_alert.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
-import 'package:sportpadi_mobile/features/notifications/notifications_screen.dart';
+import 'package:sportpadi_mobile/features/shell/notification_target.dart';
 
 /// Renders a push that arrived while the app was open, as a banner over
 /// whatever is on screen. Wrapped around the whole app (MaterialApp.builder)
@@ -39,8 +38,8 @@ class _PushBannerHostState extends ConsumerState<PushBannerHost> {
 
   void _open(PushAlert alert, BuildContext context) {
     _dismiss();
-    final dest = NotificationsScreen.resolveUrl(alert.url) ?? '/notifications';
-    context.push(dest);
+    // Same rules as a tapped system notification.
+    openNotificationTarget(ref, alert.url);
   }
 
   @override

@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum Flavor { dev, staging, prod }
@@ -21,7 +23,15 @@ class AppConfig {
 
   factory AppConfig.of(Flavor flavor) {
     final fallback = switch (flavor) {
-      Flavor.dev => 'http://10.0.2.2:3000',
+      // The dev default only reaches a Next.js server on the SAME machine as
+      // an emulator/simulator: 10.0.2.2 is the Android emulator's alias for
+      // the host, localhost works on the iOS Simulator. A REAL phone can reach
+      // neither — it must be pointed at the machine's LAN address or at
+      // staging:  --dart-define=API_BASE_URL=http://192.168.1.20:3000
+      //           --dart-define=API_BASE_URL=https://test.sportpadi.com
+      // (plain http to a LAN host is allowed by NSAllowsLocalNetworking on
+      // iOS and usesCleartextTraffic in the debug manifest on Android).
+      Flavor.dev => Platform.isIOS ? 'http://localhost:3000' : 'http://10.0.2.2:3000',
       Flavor.staging => 'https://test.sportpadi.com',
       Flavor.prod => 'https://sportpadi.com',
     };

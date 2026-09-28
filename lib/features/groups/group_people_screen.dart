@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
 import 'package:sportpadi_mobile/data/groups/members_repository.dart';
+import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
@@ -43,7 +44,10 @@ class GroupPeopleScreen extends ConsumerWidget {
         ),
       ),
       body: isMembers
-          ? _MembersList(groupId: groupId)
+          ? _MembersList(
+              groupId: groupId,
+              canManage: group?.canManage ?? false,
+              myUserId: ref.watch(meProvider).valueOrNull?.userId)
           : _FollowersList(
               groupId: groupId, canManage: group?.canManage ?? false),
     );
@@ -51,20 +55,93 @@ class GroupPeopleScreen extends ConsumerWidget {
 }
 
 class _MembersList extends ConsumerWidget {
-  const _MembersList({required this.groupId});
+  const _MembersList({
+    required this.groupId,
+    required this.canManage,
+    this.myUserId,
+  });
   final String groupId;
+  final bool canManage;
+  final String? myUserId;
+
+  Future<void> _setRole(BuildContext context, WidgetRef ref,
+      GroupMemberItem m, String role) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(membersRepositoryProvider).setRole(groupId, m.userId, role);
+      messenger.showSnackBar(SnackBar(
+          content: Text(role == 'admin'
+              ? '${m.displayName} is now an admin — they can check you in and run events.'
+              : '${m.displayName} is a member again.')));
+      ref.invalidate(groupMembersProvider(groupId));
+      ref.invalidate(groupProvider(groupId));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final p = context.palette;
     final page = ref.watch(groupMembersProvider(groupId));
     return AsyncView(
       value: page,
       onRetry: () => ref.invalidate(groupMembersProvider(groupId)),
-      data: (data) => RefreshIndicator(
-        onRefresh: () async =>
-            ref.refresh(groupMembersProvider(groupId).future),
-        child: _PeopleList(items: data.items, showRole: true),
-      ),
+      data: (data) {
+        final admins = data.items.where((m) => m.role == 'admin').length;
+        return RefreshIndicator(
+          onRefresh: () async =>
+              ref.refresh(groupMembersProvider(groupId).future),
+          child: _PeopleList(
+            items: data.items,
+            showRole: true,
+            // Single-admin groups get told why a second admin matters:
+            // nobody can check themselves in, including the organiser.
+            header: canManage && admins <= 1
+                ? Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: GlassCard(
+                      child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.admin_panel_settings_outlined,
+                                size: 18, color: p.accent),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                "You're the only admin. Nobody can check themselves in — so make a trusted member an admin (tap the ⋮ on their row) and they can check you in on match day, and run things when you're away.",
+                                style: TextStyle(
+                                    color: p.muted, fontSize: 12.5, height: 1.4),
+                              ),
+                            ),
+                          ]),
+                    ),
+                  )
+                : null,
+            trailingFor: (m) {
+              final badge = _roleBadge(context, m.role);
+              // Nobody edits their own row (the server also refuses to
+              // change the creator's role).
+              if (!canManage || m.userId == myUserId) return badge;
+              final isAdmin = m.role == 'admin';
+              return Row(mainAxisSize: MainAxisSize.min, children: [
+                badge,
+                PopupMenuButton<String>(
+                  tooltip: 'Role',
+                  icon: Icon(Icons.more_vert_rounded, size: 18, color: p.muted),
+                  onSelected: (v) => _setRole(context, ref, m, v),
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: isAdmin ? 'member' : 'admin',
+                      child: Text(isAdmin ? 'Remove admin' : 'Make admin'),
+                    ),
+                  ],
+                ),
+              ]);
+            },
+          ),
+        );
+      },
     );
   }
 }
@@ -411,15 +488,23 @@ class _FollowerRow extends StatelessWidget {
 }
 
 class _PeopleList extends StatelessWidget {
-  const _PeopleList({required this.items, required this.showRole});
+  const _PeopleList({
+    required this.items,
+    required this.showRole,
+    this.header,
+    this.trailingFor,
+  });
   final List<GroupMemberItem> items;
   final bool showRole;
+  final Widget? header;
+  final Widget? Function(GroupMemberItem m)? trailingFor;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
     if (items.isEmpty) {
       return ListView(children: [
+        if (header != null) Padding(padding: const EdgeInsets.all(16), child: header),
         const SizedBox(height: 100),
         Center(
           child: Text('Nobody here yet.',
@@ -427,18 +512,29 @@ class _PeopleList extends StatelessWidget {
         ),
       ]);
     }
+    final extra = header != null ? 1 : 0;
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (_, i) => _PersonRow(
-        person: items[i],
-        trailing: showRole ? _roleBadge(context, items[i].role) : null,
-      ),
+      itemCount: items.length + extra,
+      separatorBuilder: (_, i) =>
+          SizedBox(height: header != null && i == 0 ? 0 : 8),
+      itemBuilder: (_, i) {
+        if (header != null && i == 0) return header!;
+        final m = items[i - extra];
+        return _PersonRow(
+          person: m,
+          trailing: trailingFor != null
+              ? trailingFor!(m)
+              : (showRole ? _roleBadge(context, m.role) : null),
+        );
+      },
     );
   }
 
-  Widget _roleBadge(BuildContext context, String? role) {
+}
+
+/// Admin / Member pill (shared by the members list and its role menu).
+Widget _roleBadge(BuildContext context, String? role) {
     final p = context.palette;
     final admin = role == 'admin';
     return Container(
@@ -459,7 +555,6 @@ class _PeopleList extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class _PersonRow extends StatelessWidget {

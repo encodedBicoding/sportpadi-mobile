@@ -49,6 +49,8 @@ Future<void> bootstrap(Flavor flavor) async {
   await initEventTime();
 
   final config = AppConfig.of(flavor);
+  // The first thing to check when the app "can't connect": where it points.
+  if (kDebugMode) debugPrint('[env] ${config.appName} → ${config.apiBaseUrl}');
   runApp(
     ProviderScope(
       overrides: [appConfigProvider.overrideWithValue(config)],

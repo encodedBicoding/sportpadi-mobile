@@ -70,7 +70,7 @@ class PushService {
   /// before" and never re-registered. That device then got nothing.
   String? _sentToken;
   void Function()? _onMessage;
-  void Function(String url)? _onOpened;
+  void Function(String? url)? _onOpened;
   void Function(PushAlert alert)? _onForeground;
 
   /// This device's FCM token, once minted (for the diagnostics screen).
@@ -147,7 +147,7 @@ class PushService {
   /// previously belonged to someone else — on every launch and resume.
   Future<AuthorizationStatus?> init({
     void Function()? onMessage,
-    void Function(String url)? onOpened,
+    void Function(String? url)? onOpened,
     void Function(PushAlert alert)? onForeground,
   }) async {
     _onMessage = onMessage ?? _onMessage;
@@ -283,11 +283,15 @@ class PushService {
         settings,
         // Tapped a locally-posted foreground notification → same routing
         // as a tapped push.
-        onDidReceiveNotificationResponse: (r) {
-          final url = r.payload;
-          if (url != null && url.isNotEmpty) _onOpened?.call(url);
-        },
+        // Every tap opens something: the destination, or (no url) the inbox.
+        onDidReceiveNotificationResponse: (r) => _onOpened?.call(r.payload),
       );
+      // A locally-posted notification tapped after the app was killed
+      // relaunches it; the plugin reports that here, not via the callback.
+      final launch = await _local.getNotificationAppLaunchDetails();
+      if (launch?.didNotificationLaunchApp ?? false) {
+        _onOpened?.call(launch?.notificationResponse?.payload);
+      }
       if (Platform.isAndroid) {
         // Idempotent; MainActivity creates it too. Must match the id the
         // server sends and the manifest's default channel.
@@ -428,13 +432,13 @@ class PushService {
       FirebaseMessaging.onMessageOpenedApp.listen((m) {
         _onMessage?.call();
         final url = m.data['url'];
-        if (url is String && url.isNotEmpty) _onOpened?.call(url);
+        _onOpened?.call(url is String ? url : null);
       });
       // Tapped a push that launched the app from a cold start.
       final initial = await messaging.getInitialMessage();
-      final initialUrl = initial?.data['url'];
-      if (initialUrl is String && initialUrl.isNotEmpty) {
-        _onOpened?.call(initialUrl);
+      if (initial != null) {
+        final url = initial.data['url'];
+        _onOpened?.call(url is String ? url : null);
       }
     }
   }

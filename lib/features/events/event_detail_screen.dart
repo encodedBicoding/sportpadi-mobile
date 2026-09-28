@@ -1651,14 +1651,62 @@ class _GamesTab extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (list.isEmpty)
+        if (list.isEmpty && event.canManage)
+          // The step most organisers miss: teams are assigned and nothing
+          // says the match itself is something you start. Make it the
+          // obvious next action, with the reason.
           GlassCard(
-            child: Text(
-              event.canManage
-                  ? 'No games yet — create the first match below.'
-                  : 'No games yet.',
-              style: TextStyle(color: p.muted, fontSize: 13),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                        color: p.accent.withAlpha(30), shape: BoxShape.circle),
+                    child: Icon(Icons.auto_awesome_rounded,
+                        size: 16, color: p.accent),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            teams.length >= 2
+                                ? 'Teams are set — next, start the match'
+                                : 'Assign teams, then start the match',
+                            style: TextStyle(
+                                color: p.ink,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'A match runs the clock and score live, records every goal, assist and card, and feeds the leaderboard. Without one, today leaves no stats behind.',
+                            style: TextStyle(
+                                color: p.muted, fontSize: 12, height: 1.35),
+                          ),
+                        ]),
+                  ),
+                ]),
+                const SizedBox(height: 10),
+                const Row(children: [
+                  _NextStepChip(icon: Icons.timer_outlined, label: 'Live score'),
+                  SizedBox(width: 6),
+                  _NextStepChip(icon: Icons.bar_chart_rounded, label: 'Stats'),
+                  SizedBox(width: 6),
+                  _NextStepChip(
+                      icon: Icons.emoji_events_outlined, label: 'Leaderboard'),
+                ]),
+              ],
             ),
+          )
+        else if (list.isEmpty)
+          GlassCard(
+            child: Text('No games yet.',
+                style: TextStyle(color: p.muted, fontSize: 13)),
           )
         else
           for (final g in list)
@@ -1716,10 +1764,18 @@ class _GamesTab extends ConsumerWidget {
         if (event.canManage && teams.length >= 2) ...[
           const SizedBox(height: 4),
           SpButton(
-            label: 'New match',
+            label: list.isEmpty ? 'Start the first match' : 'New match',
             icon: Icons.add_rounded,
             expand: true,
             onTap: () => _createMatch(context, ref),
+          ),
+        ] else if (event.canManage) ...[
+          const SizedBox(height: 4),
+          const SpButton(
+            label: 'Assign teams first',
+            icon: Icons.groups_outlined,
+            expand: true,
+            onTap: null,
           ),
         ],
       ],
@@ -3659,6 +3715,39 @@ class _RefundRetryCardState extends ConsumerState<_RefundRetryCard> {
             child: Text(_busy ? 'Retrying…' : 'Retry refunds'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+
+/// One small "what you get" chip under the start-the-match card.
+class _NextStepChip extends StatelessWidget {
+  const _NextStepChip({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: p.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: p.line),
+        ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon, size: 13, color: p.muted),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: p.muted, fontSize: 11)),
+          ),
+        ]),
       ),
     );
   }

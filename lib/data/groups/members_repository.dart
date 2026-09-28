@@ -40,6 +40,16 @@ class MembersRepository {
   }
 
   /// Promote followers into members (admin only).
+  /// Admin: make a member an admin, or an admin a member again.
+  Future<void> setRole(String groupId, String userId, String role) async {
+    try {
+      await _dio.post('/api/mobile/groups/$groupId',
+          data: {'action': 'setRole', 'userId': userId, 'role': role});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not change the role.');
+    }
+  }
+
   Future<void> promoteFollowers(String groupId, List<String> userIds) async {
     try {
       await _dio.post('/api/mobile/groups/$groupId/followers',
