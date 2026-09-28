@@ -11,6 +11,8 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/features/progression/progression_screens.dart';
+import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 
 /// Group leaderboard — rankings from completed games (web /leaderboard page):
 /// per sport category (switcher chips, soccer default), points (3/1/0),
@@ -29,6 +31,10 @@ class _GroupLeaderboardScreenState
   String get groupId => widget.groupId;
   String? _categoryId;
   bool _picked = false;
+  // 'performance' = the per-sport stats table below; the rest are the
+  // cross-sport gamification boards.
+  String _board = 'performance';
+  String? _seasonId; // null = the current season (or all time)
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +82,39 @@ class _GroupLeaderboardScreenState
                 (groupId: groupId, categoryId: _categoryId))
             .future),
         child: Column(children: [
+          // Five boards, so the best athlete isn't the only one who can top one.
+          SizedBox(
+            height: 44,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 6, 8, 4),
+              children: [
+                for (final b in [(key: 'performance', label: 'Performance'), ...kXpBoards])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: ChoiceChip(
+                      label: Text(b.label),
+                      selected: _board == b.key,
+                      onSelected: (_) => setState(() => _board = b.key),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (_board != 'performance')
+            Expanded(
+              child: ListView(padding: const EdgeInsets.all(16), children: [
+                _seasonRow(context, p, group?.canManage ?? false),
+                const SizedBox(height: 10),
+                BoardList(
+                  board: _board,
+                  groupId: groupId,
+                  seasonId: _seasonId,
+                  myUserId: ref.watch(meProvider).valueOrNull?.userId,
+                ),
+              ]),
+            )
+          else ...[
           // Sport switcher — one board per category.
           if ((cats ?? const []).isNotEmpty)
             SizedBox(
@@ -156,9 +195,87 @@ class _GroupLeaderboardScreenState
           },
             ),
           ),
+          ],
         ]),
       ),
     );
+  }
+
+  /// Which season the XP boards show; admins can start a new one (the open
+  /// season closes; nobody loses XP).
+  Widget _seasonRow(BuildContext context, AppPalette p, bool canManage) {
+    final gp = ref.watch(groupProgressionProvider(groupId)).valueOrNull;
+    final seasons = gp?.seasons ?? const <Season>[];
+    final current = gp?.currentSeason;
+    Season? shown = current;
+    if (_seasonId != null) {
+      shown = null;
+      for (final s in seasons) {
+        if (s.id == _seasonId) shown = s;
+      }
+    }
+    String fmt(DateTime? d) => d == null ? '' : '${d.day}/${d.month}/${d.year}';
+    return Row(children: [
+      Icon(Icons.date_range_outlined, size: 16, color: p.muted),
+      const SizedBox(width: 6),
+      Expanded(
+        child: PopupMenuButton<String?>(
+          enabled: seasons.isNotEmpty,
+          onSelected: (v) => setState(() => _seasonId = v),
+          itemBuilder: (_) => [
+            PopupMenuItem<String?>(
+              value: null,
+              child: Text(current != null ? '${current.name} (current)' : 'All time'),
+            ),
+            for (final s in seasons.where((s) => s.id != current?.id))
+              PopupMenuItem<String?>(value: s.id, child: Text(s.name)),
+          ],
+          child: Text(
+            shown == null
+                ? 'All time'
+                : '${shown.name} · since ${fmt(shown.startsAt)}${shown.endsAt != null ? ' – ${fmt(shown.endsAt)}' : ''}',
+            style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ),
+      if (canManage)
+        TextButton(
+          onPressed: () => _newSeason(context, seasons.length + 1),
+          child: const Text('New season'),
+        ),
+    ]);
+  }
+
+  Future<void> _newSeason(BuildContext context, int n) async {
+    final ctrl = TextEditingController(text: 'Season $n');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Start a new season'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('The boards start fresh from now. The current season is kept; nobody loses XP or level.'),
+          const SizedBox(height: 12),
+          TextField(controller: ctrl, maxLength: 60, decoration: const InputDecoration(labelText: 'Name')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Start')),
+        ],
+      ),
+    );
+    final name = ctrl.text.trim();
+    ctrl.dispose();
+    if (ok != true || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(progressionRepositoryProvider).startSeason(groupId, name.isEmpty ? 'Season $n' : name);
+      setState(() => _seasonId = null);
+      ref.invalidate(groupProgressionProvider(groupId));
+      ref.invalidate(boardProvider);
+      messenger.showSnackBar(SnackBar(content: Text('${name.isEmpty ? 'Season $n' : name} has started')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    }
   }
 
   Widget _row(BuildContext context, LeaderboardRow r, int rank) {

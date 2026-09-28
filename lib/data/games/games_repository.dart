@@ -130,6 +130,52 @@ class GamesRepository {
   Future<void> takeover(String gameId) => _post(gameId, {'action': 'takeover'},
       fallback: 'Could not take over the scoresheet.');
 
+  // -- Flexible officiants ---------------------------------------------------
+
+  /// Call people in as officiants. Returns (added, requested) — tournament
+  /// call-ins are requests the invitee accepts first.
+  Future<({int added, int requested})> addOfficiants(
+      String gameId, List<String> userIds, String role) async {
+    try {
+      final res = await _dio.post('/api/mobile/games/$gameId', data: {
+        'action': 'addOfficiants',
+        'userIds': userIds,
+        'role': role,
+      });
+      final d = res.data is Map ? res.data as Map : const {};
+      return (
+        added: (d['added'] as num?)?.toInt() ?? 0,
+        requested: (d['requested'] as num?)?.toInt() ?? 0,
+      );
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not call them in.');
+    }
+  }
+
+  Future<void> setOfficiantRole(String gameId, String userId, String role) =>
+      _post(gameId, {'action': 'officiantRole', 'userId': userId, 'role': role},
+          fallback: 'Could not change their job.');
+
+  Future<void> removeOfficiant(String gameId, String userId) => _post(
+      gameId, {'action': 'removeOfficiant', 'userId': userId},
+      fallback: 'Could not update the officiants.');
+
+  Future<List<OfficiantCandidate>> officiantCandidates(String gameId,
+      {String? q}) async {
+    try {
+      final res = await _dio.get('/api/mobile/games/$gameId/officiants',
+          queryParameters: {if (q != null && q.isNotEmpty) 'q': q});
+      final list = res.data is List ? res.data as List : const [];
+      return [
+        for (final e in list)
+          if (e is Map)
+            OfficiantCandidate.fromJson(Map<String, dynamic>.from(e)),
+      ];
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load people.');
+    }
+  }
+
   /// Open the SSE ping stream for a game. Emits once per published update;
   /// the caller refetches [game] on each emission. Closes on error — the
   /// controller reconnects with backoff while the screen is open.
@@ -168,3 +214,31 @@ final gamesRepositoryProvider =
 final eventGamesProvider = FutureProvider.autoDispose
     .family<List<GameSummary>, String>(
         (ref, eventId) => ref.watch(gamesRepositoryProvider).forEvent(eventId));
+
+/// Someone who could be called in to officiate.
+class OfficiantCandidate {
+  const OfficiantCandidate({
+    required this.userId,
+    required this.displayName,
+    this.username,
+    this.avatarUrl,
+    this.groupAdmin = false,
+    this.status,
+  });
+  final String userId;
+  final String displayName;
+  final String? username;
+  final String? avatarUrl;
+  final bool groupAdmin;
+  final String? status; // officiating | pending | null
+
+  factory OfficiantCandidate.fromJson(Map<String, dynamic> j) =>
+      OfficiantCandidate(
+        userId: '${j['userId'] ?? ''}',
+        displayName: '${j['displayName'] ?? 'Player'}',
+        username: j['username'] as String?,
+        avatarUrl: j['avatarUrl'] as String?,
+        groupAdmin: j['groupAdmin'] == true,
+        status: j['status'] as String?,
+      );
+}

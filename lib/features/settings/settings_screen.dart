@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 import 'package:sportpadi_mobile/features/settings/push_notifications_card.dart';
+import 'package:sportpadi_mobile/features/progression/progression_screens.dart';
 
 /// Settings — mirrors the web settings page: editable profile (display name,
 /// username, read-only email), payment methods (cards on file), sign out.
@@ -173,6 +174,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Eyebrow('Notifications'),
           const SizedBox(height: 8),
           const PushNotificationsCard(),
+          const SizedBox(height: 18),
+
+          // ── Progress: XP / streak visibility ──
+          const Eyebrow('Progress'),
+          const SizedBox(height: 8),
+          const ProgressionVisibilityTile(),
           const SizedBox(height: 18),
 
           // ── Payment methods (cards on file) ──

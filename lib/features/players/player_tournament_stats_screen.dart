@@ -224,6 +224,7 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
                 // The tally.
                 ScopeBlock(
                   title: "$first's record in this $kind",
+                  collapseKey: 'tournament-record',
                   tally: record,
                   fields: fields,
                   accent: true,

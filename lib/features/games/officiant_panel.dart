@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
@@ -114,17 +115,22 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
     final showPlay = g.isLive && (lc == null || inTimedPhase);
     // The final whistle isn't a hard stop: admins / assigned officiants can
     // still record stats on a completed game (results re-finalize server-side).
-    final showAmend = g.status == 'completed';
+    final showAmend = g.status == 'completed' && g.canScore;
+    // Split jobs: the timekeeper runs the clock (officiant mode), the scorer
+    // records stats. Admins and "both" officiants see everything.
+    final canTime = g.canTime;
+    final canScore = g.canScore;
+    final prof = g.profile;
     final showStartNext =
         g.isLive && lc != null && !inTimedPhase && lc.nextTimed != null;
     // Nothing to offer (e.g. level at full time, decision pending): the draw
     // card is the actionable element — hide the panel entirely, like the web.
-    final hasControls = g.isScheduled ||
+    final hasControls = (g.isScheduled && canTime) ||
         inShootout ||
-        showPlay ||
+        (showPlay && (canTime || canScore)) ||
         showAmend ||
-        showStartNext ||
-        showComplete;
+        (showStartNext && canTime) ||
+        (showComplete && canTime);
     if (!hasControls) return const SizedBox.shrink();
 
     return GlassCard(
@@ -144,8 +150,21 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
           ),
           const SizedBox(height: 10),
 
+          // -- Officiant mode: the distraction-free clock screen ----------
+          if (canTime && (g.isScheduled || g.isLive)) ...[
+            _OfficiantModeTile(
+              subtitle: 'Full-screen clock: ${g.isScheduled ? 'kick-off, ' : ''}'
+                  '${prof.pauseLabel.toLowerCase()}'
+                  '${prof.addsTime ? ', stoppage' : ''}'
+                  '${prof.has('periods') ? ', ${prof.periodWord}s' : ''}'
+                  ' and full time — the app stays locked on screen.',
+              onTap: () => context.push('/games/${widget.gameId}/officiate'),
+            ),
+            const SizedBox(height: 10),
+          ],
+
           // -- Scheduled: kickoff ------------------------------------------
-          if (g.isScheduled)
+          if (g.isScheduled && canTime)
             SpButton(
               label: 'Kick off',
               icon: Icons.play_arrow_rounded,
@@ -165,9 +184,9 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  if (lc == null || inTimedPhase) ...[
+                  if (canTime && (lc == null || inTimedPhase)) ...[
                     _MiniAction(
-                      label: paused ? 'Resume' : 'Pause',
+                      label: paused ? prof.resumeLabel : prof.pauseLabel,
                       icon: paused
                           ? Icons.play_arrow_rounded
                           : Icons.pause_rounded,
@@ -176,16 +195,17 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                           : () => _run(() => repo.timer(widget.gameId,
                               paused ? 'resume' : 'pause')),
                     ),
-                    _MiniAction(
-                      label: "+1' stoppage",
-                      icon: Icons.more_time_rounded,
-                      onTap: _busy
-                          ? null
-                          : () => _run(() => repo.timer(widget.gameId,
-                              'stoppage', minutes: 1)),
-                    ),
+                    if (prof.addsTime)
+                      _MiniAction(
+                        label: "+1' stoppage",
+                        icon: Icons.more_time_rounded,
+                        onTap: _busy
+                            ? null
+                            : () => _run(() => repo.timer(widget.gameId,
+                                'stoppage', minutes: 1)),
+                      ),
                   ],
-                  if (lc != null && inTimedPhase)
+                  if (canTime && lc != null && inTimedPhase)
                     _MiniAction(
                       label: 'End ${phase.label}',
                       icon: Icons.flag_rounded,
@@ -194,7 +214,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                           : () => _run(
                               () => repo.phase(widget.gameId, 'endPhase')),
                     ),
-                  if (showStartNext)
+                  if (showStartNext && canTime)
                     _MiniAction(
                       label: 'Start ${lc.nextTimed!.label}',
                       icon: Icons.play_arrow_rounded,
@@ -205,7 +225,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                     ),
                 ],
               ),
-              if (showPlay) ...[
+              if (showPlay && canScore) ...[
                 const SizedBox(height: 12),
                 const Eyebrow('Record'),
                 const SizedBox(height: 8),
@@ -231,7 +251,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                 const SizedBox(height: 10),
               ],
             ],
-            if (showComplete) ...[
+            if (showComplete && canTime) ...[
               const SizedBox(height: 4),
               SpButton(
                 label: 'Complete match',
@@ -475,6 +495,51 @@ class _Pick {
 }
 
 /// Small outline action chip (safe hand-rolled button).
+class _OfficiantModeTile extends StatelessWidget {
+  const _OfficiantModeTile({required this.subtitle, required this.onTap});
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Material(
+      color: p.accent.withAlpha(22),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: p.accent.withAlpha(90)),
+          ),
+          child: Row(children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Enter officiant mode',
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 2),
+                  Text(subtitle,
+                      style: TextStyle(color: p.muted, fontSize: 11.5)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.fullscreen_rounded, color: p.accent),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
 class _MiniAction extends StatelessWidget {
   const _MiniAction({required this.label, this.icon, required this.onTap});
   final String label;

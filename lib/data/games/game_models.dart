@@ -329,6 +329,116 @@ class GameSummary {
       );
 }
 
+/// One officiant on a game. [role] is timekeeper | scorer | both; [pending]
+/// is a tournament call-in that hasn't been accepted yet.
+class GameOfficiant {
+  const GameOfficiant({
+    required this.userId,
+    required this.displayName,
+    this.avatarUrl,
+    this.role = 'both',
+    this.pending = false,
+  });
+  final String userId;
+  final String displayName;
+  final String? avatarUrl;
+  final String role;
+  final bool pending;
+
+  factory GameOfficiant.fromJson(Map<String, dynamic> j) => GameOfficiant(
+        userId: '${j['userId'] ?? ''}',
+        displayName: '${j['displayName'] ?? 'Officiant'}',
+        avatarUrl: parseStr(j['avatarUrl']),
+        role: parseStr(j['role']) ?? 'both',
+        pending: j['pending'] == true,
+      );
+}
+
+/// The viewer's officiating rights: the timekeeper runs the clock, the scorer
+/// records stats, group admins ("admin") and "both" officiants do everything.
+class OfficiatingRights {
+  const OfficiatingRights({
+    this.role,
+    this.canTime = false,
+    this.canScore = false,
+    this.canCallIn = false,
+    this.canAssign = false,
+  });
+  final String? role; // admin | timekeeper | scorer | both | null
+  final bool canTime;
+  final bool canScore;
+  final bool canCallIn;
+  final bool canAssign;
+
+  factory OfficiatingRights.fromJson(dynamic j, {required bool fallback}) {
+    if (j is! Map) {
+      // Older server: canManage meant "may do everything".
+      return OfficiatingRights(
+          canTime: fallback, canScore: fallback, role: fallback ? 'both' : null);
+    }
+    return OfficiatingRights(
+      role: parseStr(j['role']),
+      canTime: j['canTime'] == true,
+      canScore: j['canScore'] == true,
+      canCallIn: j['canCallIn'] == true,
+      canAssign: j['canAssign'] == true,
+    );
+  }
+}
+
+/// Category-aware officiating tools (from the server): what pausing is
+/// called, whether time is added on, the period word, what the scorer records.
+class OfficiatingProfile {
+  const OfficiatingProfile({
+    this.family = 'generic',
+    this.clock = 'match',
+    this.lengthMinutes,
+    this.pauseLabel = 'Pause',
+    this.resumeLabel = 'Resume',
+    this.stoppagePresets = const [1, 2, 3, 5],
+    this.periodWord = 'period',
+    this.tools = const ['pause', 'stoppage', 'complete'],
+    this.scorerRecords = const [],
+  });
+  final String family;
+  final String clock; // match | elapsed
+  final int? lengthMinutes;
+  final String pauseLabel;
+  final String resumeLabel;
+  final List<int> stoppagePresets;
+  final String periodWord;
+  final List<String> tools; // pause | stoppage | periods | complete
+  final List<String> scorerRecords;
+
+  bool has(String tool) => tools.contains(tool);
+  bool get addsTime => stoppagePresets.isNotEmpty;
+
+  factory OfficiatingProfile.fromJson(dynamic j) {
+    if (j is! Map) return const OfficiatingProfile();
+    return OfficiatingProfile(
+      family: parseStr(j['family']) ?? 'generic',
+      clock: parseStr(j['clock']) ?? 'match',
+      lengthMinutes: parseInt(j['lengthMinutes']),
+      pauseLabel: parseStr(j['pauseLabel']) ?? 'Pause',
+      resumeLabel: parseStr(j['resumeLabel']) ?? 'Resume',
+      stoppagePresets: j['stoppagePresets'] is List
+          ? [
+              for (final v in j['stoppagePresets'] as List)
+                if (parseInt(v) != null) parseInt(v)!
+            ]
+          : const [],
+      periodWord: parseStr(j['periodWord']) ?? 'period',
+      tools: j['tools'] is List
+          ? [
+              for (final t in j['tools'] as List)
+                if (t is Map && t['id'] != null) '${t['id']}'
+            ]
+          : const ['pause', 'complete'],
+      scorerRecords: parseStrList(j['scorerRecords']),
+    );
+  }
+}
+
 /// Full live game state — the mobile mirror of the web `games.get` payload.
 class GameDetail {
   const GameDetail({
@@ -356,6 +466,10 @@ class GameDetail {
     this.isTournament = false,
     this.scoresheetHolder,
     this.officiantNames = const [],
+    this.officiants = const [],
+    this.officiating = const OfficiatingRights(),
+    this.profile = const OfficiatingProfile(),
+    this.durationMinutes,
   });
 
   final String id;
@@ -391,6 +505,15 @@ class GameDetail {
   final bool isTournament;
   final String? scoresheetHolder;
   final List<String> officiantNames;
+  final List<GameOfficiant> officiants;
+  final OfficiatingRights officiating;
+  final OfficiatingProfile profile;
+
+  /// Scheduled length (non-phased games), null when not set.
+  final int? durationMinutes;
+
+  bool get canTime => officiating.canTime;
+  bool get canScore => officiating.canScore;
 
   bool get isLive => status == 'live';
   bool get isScheduled => status == 'scheduled';
@@ -418,7 +541,10 @@ class GameDetail {
     final attrs = j['attributes'];
     GameLifecycle? lifecycle;
     PhaseTimer timer = const PhaseTimer();
+    int? duration;
     if (attrs is Map) {
+      final d = parseInt(attrs['durationMinutes']);
+      if (d != null && d > 0) duration = d;
       final lc = attrs['lifecycle'];
       if (lc is Map) {
         lifecycle = GameLifecycle.fromJson(Map<String, dynamic>.from(lc));
@@ -469,6 +595,18 @@ class GameDetail {
                   '${o['displayName']}'
             ]
           : const [],
+      officiants: j['officiants'] is Map &&
+              (j['officiants'] as Map)['people'] is List
+          ? [
+              for (final o in (j['officiants'] as Map)['people'] as List)
+                if (o is Map)
+                  GameOfficiant.fromJson(Map<String, dynamic>.from(o))
+            ]
+          : const [],
+      officiating: OfficiatingRights.fromJson(j['officiating'],
+          fallback: j['canManage'] == true),
+      profile: OfficiatingProfile.fromJson(j['officiatingProfile']),
+      durationMinutes: duration,
     );
   }
 }

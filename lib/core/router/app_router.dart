@@ -16,6 +16,7 @@ import 'package:sportpadi_mobile/features/manage/create_team_screen.dart';
 import 'package:sportpadi_mobile/features/manage/create_tournament_screen.dart';
 import 'package:sportpadi_mobile/features/manage/formation_board_screen.dart';
 import 'package:sportpadi_mobile/features/games/game_screen.dart';
+import 'package:sportpadi_mobile/features/games/officiate_screen.dart';
 import 'package:sportpadi_mobile/features/payments/my_fines_screen.dart';
 import 'package:sportpadi_mobile/features/players/player_group_stats_screen.dart';
 import 'package:sportpadi_mobile/features/players/player_profile_screen.dart';
@@ -23,6 +24,7 @@ import 'package:sportpadi_mobile/features/players/player_event_stats_screen.dart
 import 'package:sportpadi_mobile/features/players/player_tournament_stats_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_events_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_leaderboard_screen.dart';
+import 'package:sportpadi_mobile/features/progression/progression_screens.dart';
 import 'package:sportpadi_mobile/features/groups/group_people_screen.dart';
 import 'package:sportpadi_mobile/features/payments/outstanding_tickets_screen.dart';
 import 'package:sportpadi_mobile/features/profile/my_qr_screen.dart';
@@ -41,6 +43,7 @@ import 'package:sportpadi_mobile/features/billing/group_plan_screen.dart';
 import 'package:sportpadi_mobile/features/splash/splash_screen.dart';
 import 'package:sportpadi_mobile/features/teams/team_detail_screen.dart';
 import 'package:sportpadi_mobile/features/tournaments/tournament_invitations_screen.dart';
+import 'package:sportpadi_mobile/features/tournaments/my_team_tournaments_screen.dart';
 import 'package:sportpadi_mobile/features/tournaments/tournament_detail_screen.dart';
 import 'package:sportpadi_mobile/features/tournaments/tournament_team_screen.dart';
 
@@ -149,6 +152,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           path: '/verify-email', builder: (_, __) => const VerifyEmailScreen()),
       GoRoute(path: '/home', builder: (_, __) => const _HomeGate()),
       GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
+      // Gamification (docs/gamification/phase-2.md).
+      GoRoute(path: '/progress', builder: (_, __) => const ProgressScreen()),
+      GoRoute(path: '/leaderboards', builder: (_, __) => const LeaderboardsScreen()),
+      GoRoute(
+        path: '/games/:id/summary',
+        builder: (_, st) => MatchSummaryScreen(gameId: st.pathParameters['id']!),
+      ),
+      // Officiant mode: the timekeeper's locked-in, full-screen clock.
+      GoRoute(
+        path: '/games/:id/officiate',
+        builder: (_, st) => OfficiateScreen(gameId: st.pathParameters['id']!),
+      ),
       GoRoute(
         path: '/tournaments/invitations',
         builder: (_, __) => const TournamentInvitationsScreen(),
@@ -270,6 +285,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/events/:slug',
         builder: (_, s) => EventDetailScreen(slug: s.pathParameters['slug']!),
+      ),
+      // A team's tournaments (from a team card on the Tournaments tab).
+      GoRoute(
+        path: '/tournaments/teams/:teamId',
+        builder: (_, s) =>
+            MyTeamTournamentsScreen(teamId: s.pathParameters['teamId']!),
       ),
       GoRoute(
         path: '/tournaments/:id',

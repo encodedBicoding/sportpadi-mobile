@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/data/games/game_models.dart';
 import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
 import 'package:sportpadi_mobile/features/games/officiant_panel.dart';
+import 'package:sportpadi_mobile/features/games/officiants_card.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
@@ -64,7 +65,7 @@ class GameScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
             children: [
               _Scoreboard(game: g),
-              if (g.canManage && _awaitingDraw(g)) ...[
+              if (g.canTime && _awaitingDraw(g)) ...[
                 const SizedBox(height: 12),
                 _DrawCard(gameId: gameId, game: g),
               ],
@@ -72,26 +73,10 @@ class GameScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 _ShootoutCard(gameId: gameId, game: g),
               ],
-              if (g.officiantNames.isNotEmpty) ...[
+              // Officiants — call people in, split jobs, step down.
+              if (g.officiants.isNotEmpty || g.officiating.canCallIn) ...[
                 const SizedBox(height: 12),
-                GlassCard(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
-                  child: Row(children: [
-                    Icon(Icons.verified_user_outlined,
-                        size: 14, color: p.accent),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        'Officiants: ${g.officiantNames.join(', ')}',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style:
-                            TextStyle(color: p.muted, fontSize: 12),
-                      ),
-                    ),
-                  ]),
-                ),
+                OfficiantsCard(gameId: gameId, game: g),
               ],
               if (g.canManage) ...[
                 const SizedBox(height: 12),
@@ -661,7 +646,7 @@ class _ShootoutCard extends ConsumerWidget {
                 const SizedBox(width: 4),
                 Text('of ${tally[t.teamId]?.taken ?? 0}',
                     style: TextStyle(color: p.muted, fontSize: 10.5)),
-                if (g.canManage) ...[
+                if (g.canScore) ...[
                   const SizedBox(width: 8),
                   mini(
                       'Scored',
@@ -811,7 +796,7 @@ class _TimelineCard extends ConsumerWidget {
                     ],
                   ),
           ),
-          if (g.canManage && (g.isLive || g.status == 'completed'))
+          if (g.canScore && (g.isLive || g.status == 'completed'))
             InkWell(
               onTap: () => _void(context, ref, a),
               child: Padding(

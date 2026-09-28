@@ -3,284 +3,311 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
-import 'package:sportpadi_mobile/data/manage/manage_models.dart';
-import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
+import 'package:sportpadi_mobile/data/tournaments/my_team_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/squad_models.dart';
-import 'package:sportpadi_mobile/data/tournaments/tournament_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
-import 'package:sportpadi_mobile/features/tournaments/invitation_rows.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
-/// Bottom-nav "Tournaments" tab: every tournament the user is part of through
-/// a team roster spot, grouped by team. Tapping an entry opens the tournament.
+/// Bottom-nav "Tournaments" tab, team first: one summary card per team the
+/// user plays for (or runs as a group admin). Tapping a card opens that team's
+/// tournaments — live, upcoming, invites and past (web: /tournaments).
 class MyTournamentsScreen extends ConsumerWidget {
   const MyTournamentsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
-    final data = ref.watch(myTournamentsProvider);
+    final data = ref.watch(myTeamCardsProvider);
+    Future<void> refresh() async {
+      ref.invalidate(myTeamCardsProvider);
+      ref.invalidate(myCallsProvider);
+      await ref.read(myTeamCardsProvider.future).catchError((_) => <MyTeamCard>[]);
+    }
+
     return Scaffold(
       appBar: const SpAppBar(),
       body: AsyncView(
         value: data,
-        onRetry: () {
-          ref.invalidate(myTournamentsProvider);
-          ref.invalidate(myTournamentInvitesProvider);
-        },
-        data: (entries) {
-          if (entries.isEmpty) {
-            return RefreshIndicator(
-              onRefresh: () async {
-              ref.invalidate(myTournamentsProvider);
-              ref.invalidate(myTournamentInvitesProvider);
-            },
-              child: ListView(
-                padding: const EdgeInsets.all(32),
-                children: [
-                  const _Invitations(),
-                  const _CallUps(),
-                  const SizedBox(height: 60),
-                  Icon(Icons.emoji_events_outlined, size: 44, color: p.muted),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: Text('No tournaments yet',
-                        style: TextStyle(
-                            color: p.ink,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800)),
-                  ),
-                  const SizedBox(height: 6),
-                  Center(
-                    child: Text(
-                      'When one of your teams joins a tournament,\nit shows up here.',
-                      textAlign: TextAlign.center,
-                      style:
-                          TextStyle(color: p.muted, fontSize: 13, height: 1.4),
-                    ),
-                  ),
-                ],
+        onRetry: () => ref.invalidate(myTeamCardsProvider),
+        data: (teams) => RefreshIndicator(
+          onRefresh: refresh,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+            children: [
+              Text('My tournaments',
+                  style: TextStyle(
+                      color: p.ink, fontSize: 22, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 2),
+              Text(
+                'Pick a team to see its tournaments — live, upcoming, invites and past.',
+                style: TextStyle(color: p.muted, fontSize: 13),
               ),
-            );
-          }
-          // Group by team, preserving server order.
-          final byTeam = <String, List<MyTournamentEntry>>{};
-          for (final e in entries) {
-            byTeam.putIfAbsent(e.teamId, () => []).add(e);
-          }
-          final sections = byTeam.values.toList();
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(myTournamentsProvider);
-              ref.invalidate(myTournamentInvitesProvider);
-            },
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-              itemCount: sections.length + 1,
-              itemBuilder: (_, i) => i == 0
-                  ? const Column(children: [_Invitations(), _CallUps()])
-                  : _TeamSection(entries: sections[i - 1]),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _TeamSection extends StatelessWidget {
-  const _TeamSection({required this.entries});
-  final List<MyTournamentEntry> entries;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    final t = entries.first;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            if (t.teamLogoUrl != null)
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: CircleAvatar(
-                  radius: 12,
-                  backgroundImage: NetworkImage(t.teamLogoUrl!),
-                ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Icon(Icons.shield_outlined, size: 20, color: p.accent),
-              ),
-            Expanded(
-              child: Text.rich(
-                TextSpan(children: [
-                  TextSpan(
-                      text: t.teamName,
+              const SizedBox(height: 14),
+              if (teams.isEmpty) ...[
+                const SizedBox(height: 50),
+                Icon(Icons.shield_outlined, size: 44, color: p.muted),
+                const SizedBox(height: 12),
+                Center(
+                  child: Text('No teams yet',
                       style: TextStyle(
                           color: p.ink,
-                          fontSize: 15,
+                          fontSize: 16,
                           fontWeight: FontWeight.w800)),
-                  if (t.teamGroupName != null)
-                    TextSpan(
-                        text: '  ·  ${t.teamGroupName}',
-                        style: TextStyle(color: p.muted, fontSize: 12)),
-                ]),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ]),
-          const SizedBox(height: 10),
-          for (final e in entries)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _TournamentEntryCard(e: e),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TournamentEntryCard extends StatelessWidget {
-  const _TournamentEntryCard({required this.e});
-  final MyTournamentEntry e;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    final done =
-        e.tournamentStatus == 'completed' || e.tournamentStatus == 'cancelled';
-    return GestureDetector(
-      onTap: () => context.push('/tournaments/${e.eventId}'),
-      child: GlassCard(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              Expanded(
-                child: Text(e.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: p.ink,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800)),
-              ),
-              const SizedBox(width: 8),
-              // No "invite pending" branch here any more: this list is
-              // accepted tournaments only, and unanswered invites live in the
-              // invitations section above.
-              SpBadge(
-                done
-                    ? e.tournamentStatus
-                    : e.tournamentStatus.replaceAll('_', ' '),
-                tone: done ? p.muted : p.accent,
-              ),
-            ]),
-            const SizedBox(height: 4),
-            Text(
-              [
-                if (e.category != null) e.category!,
-                if (e.hostGroupName != null) 'Hosted by ${e.hostGroupName}',
-                if (e.role == 'host') 'Your team hosts',
-              ].join(' · '),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: p.muted, fontSize: 12),
-            ),
-            if (e.games.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Container(height: 1, color: p.line),
-              const SizedBox(height: 8),
-              for (final g in e.games.take(4))
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(children: [
-                    Expanded(
-                      child: Text('vs ${g.opponentName}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: p.muted, fontSize: 12.5)),
-                    ),
-                    if (g.status == 'completed')
-                      Text('${g.myScore}–${g.oppScore}',
-                          style: TextStyle(
-                              color: g.result == 'win'
-                                  ? p.accent
-                                  : g.result == 'loss'
-                                      ? p.danger
-                                      : p.ink,
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w800))
-                    else
-                      Text(
-                        g.status == 'live'
-                            ? 'LIVE'
-                            : (g.scheduledDate ?? 'Not scheduled'),
-                        style: TextStyle(
-                            color: g.status == 'live' ? p.danger : p.muted,
-                            fontSize: 11.5,
-                            fontWeight: g.status == 'live'
-                                ? FontWeight.w800
-                                : FontWeight.w500),
-                      ),
-                  ]),
                 ),
-              if (e.games.length > 4)
-                Text('+${e.games.length - 4} more games',
-                    style: TextStyle(color: p.muted, fontSize: 11)),
-            ],
-            // The squad page — who's called and the formation for THIS
-            // tournament — was reachable only by knowing a team crest deep
-            // inside the tournament page was tappable.
-            if (e.hostGroupId != null) ...[
-              const SizedBox(height: 10),
-              Container(height: 1, color: p.line),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.push(
-                        '/groups/${e.hostGroupId}/tournaments/${e.eventId}/teams/${e.teamId}'),
-                    icon: const Icon(Icons.groups_2_outlined, size: 16),
-                    label: const Text('Squad'),
+                const SizedBox(height: 6),
+                Center(
+                  child: Text(
+                    'Join a team in one of your groups —\nits tournaments will show up here.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: p.muted, fontSize: 13, height: 1.4),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.push(
-                        '/groups/${e.hostGroupId}/tournaments/${e.eventId}/teams/${e.teamId}/formation'),
-                    icon: const Icon(Icons.grid_view_rounded, size: 16),
-                    label: const Text('Formation'),
+              ] else
+                for (final t in teams)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: TeamSummaryCard(team: t),
                   ),
-                ),
-              ]),
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Pending call-ups: a coach wants you for a specific tournament. Accept /
-/// decline right here; tap the card for the squad page.
-class _CallUps extends ConsumerStatefulWidget {
-  const _CallUps();
-  @override
-  ConsumerState<_CallUps> createState() => _CallUpsState();
+Color? hexColor(String? hex) {
+  if (hex == null || hex.isEmpty) return null;
+  var h = hex.replaceAll('#', '');
+  if (h.length == 6) h = 'FF$h';
+  final v = int.tryParse(h, radix: 16);
+  return v == null ? null : Color(v);
 }
 
-class _CallUpsState extends ConsumerState<_CallUps> {
+/// The team's crest: its logo, or initials on its kit colour.
+class TeamCrest extends StatelessWidget {
+  const TeamCrest({super.key, required this.team, this.size = 48});
+  final MyTeamCard team;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final kit = hexColor(team.kitPrimary) ?? p.accent;
+    final trim = hexColor(team.kitSecondary);
+    final words =
+        team.name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    final initials = words.isEmpty
+        ? '?'
+        : words.length == 1
+            ? (words[0].length < 2 ? words[0] : words[0].substring(0, 2)).toUpperCase()
+            : (words[0][0] + words[1][0]).toUpperCase();
+    final ink = kit.computeLuminance() > 0.55 ? Colors.black87 : Colors.white;
+    return Container(
+      width: size,
+      height: size,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: team.logoUrl != null ? p.surface2 : kit,
+        borderRadius: BorderRadius.circular(size * 0.28),
+        border: trim != null ? Border.all(color: trim, width: 2.5) : null,
+      ),
+      alignment: Alignment.center,
+      child: team.logoUrl != null
+          ? Image.network(team.logoUrl!,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Text(initials,
+                  style: TextStyle(color: p.ink, fontWeight: FontWeight.w900)))
+          : Text(initials,
+              style: TextStyle(
+                  color: ink,
+                  fontSize: size * 0.36,
+                  fontWeight: FontWeight.w900)),
+    );
+  }
+}
+
+String? _day(String? ymd) {
+  if (ymd == null) return null;
+  final d = DateTime.tryParse(ymd);
+  if (d == null) return ymd;
+  const wd = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return '${wd[d.weekday - 1]} ${d.day} ${mo[d.month - 1]}';
+}
+
+String? _hhmm12(String? hhmm) {
+  if (hhmm == null) return null;
+  final parts = hhmm.split(':');
+  if (parts.length < 2) return hhmm;
+  final h = int.tryParse(parts[0]) ?? 0;
+  final m = parts[1];
+  final h12 = h % 12 == 0 ? 12 : h % 12;
+  return '$h12:$m ${h < 12 ? 'AM' : 'PM'}';
+}
+
+class TeamSummaryCard extends StatelessWidget {
+  const TeamSummaryCard({super.key, required this.team});
+  final MyTeamCard team;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final t = team;
+    final n = t.nextUp;
+    final kit = hexColor(t.kitPrimary) ?? p.accent;
+    final trim = hexColor(t.kitSecondary);
+    final when = n == null
+        ? null
+        : [_day(n.scheduledDate), _hhmm12(n.scheduledTime)]
+            .whereType<String>()
+            .join(' · ');
+    return Material(
+      color: p.surface,
+      borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push('/tournaments/teams/${t.teamId}'),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: t.live > 0 ? p.danger.withAlpha(110) : p.line),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // kit stripe
+              Row(children: [
+                Expanded(flex: 3, child: Container(height: 4, color: kit)),
+                if (trim != null)
+                  Expanded(flex: 2, child: Container(height: 4, color: trim)),
+              ]),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      TeamCrest(team: t),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(t.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: p.ink,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800)),
+                            if (t.subtitle.isNotEmpty)
+                              Text(t.subtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: p.muted, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right_rounded, color: p.muted),
+                    ]),
+                    const SizedBox(height: 10),
+                    Wrap(spacing: 6, runSpacing: 6, children: [
+                      if (t.live > 0)
+                        _Chip('● ${t.live} live', color: p.danger),
+                      if (t.upcoming > 0)
+                        _Chip('${t.upcoming} upcoming', color: p.accent),
+                      if (t.invited > 0)
+                        _Chip('${t.invited} invite${t.invited == 1 ? '' : 's'}',
+                            color: p.amber),
+                      if (t.callUps > 0)
+                        _Chip('Call-up waiting', color: p.amber),
+                      if (t.past > 0) _Chip('${t.past} past', color: p.muted),
+                      if (t.total == 0)
+                        _Chip('No tournaments yet', color: p.muted),
+                    ]),
+                    if (n != null || t.played > 0) ...[
+                      const SizedBox(height: 10),
+                      Container(height: 1, color: p.line),
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        Expanded(
+                          child: n == null
+                              ? const SizedBox.shrink()
+                              : Text(
+                                  n.isLive
+                                      ? 'LIVE vs ${n.opponentName} · ${n.myScore}–${n.oppScore}'
+                                      : 'Next: vs ${n.opponentName}${when != null && when.isNotEmpty ? ' · $when' : ''}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      color: n.isLive ? p.danger : p.muted,
+                                      fontSize: 12,
+                                      fontWeight: n.isLive
+                                          ? FontWeight.w800
+                                          : FontWeight.w500),
+                                ),
+                        ),
+                        if (t.played > 0)
+                          Text.rich(TextSpan(children: [
+                            TextSpan(
+                                text: '${t.won}W ',
+                                style: TextStyle(color: p.accent)),
+                            TextSpan(
+                                text: '${t.drawn}D ',
+                                style: TextStyle(color: p.muted)),
+                            TextSpan(
+                                text: '${t.lost}L',
+                                style: TextStyle(color: p.danger)),
+                          ]),
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w800)),
+                      ]),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  const _Chip(this.label, {required this.color});
+  final String label;
+  final Color color;
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: color.withAlpha(30),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                color: color, fontSize: 11, fontWeight: FontWeight.w700)),
+      );
+}
+
+/// Pending call-ups: a coach wants you for a specific tournament. Accept /
+/// decline right here; tap the card for the squad page. [teamId] narrows it
+/// to one team (the team's tournaments screen).
+class SquadCallUps extends ConsumerStatefulWidget {
+  const SquadCallUps({super.key, this.teamId});
+  final String? teamId;
+  @override
+  ConsumerState<SquadCallUps> createState() => _SquadCallUpsState();
+}
+
+class _SquadCallUpsState extends ConsumerState<SquadCallUps> {
   String? _busyId;
 
   Future<void> _respond(SquadCall c, bool accept) async {
@@ -297,6 +324,10 @@ class _CallUpsState extends ConsumerState<_CallUps> {
       }
       ref.invalidate(myCallsProvider);
       ref.invalidate(myTournamentsProvider);
+      ref.invalidate(myTeamCardsProvider);
+      if (widget.teamId != null) {
+        ref.invalidate(myTeamTournamentsProvider(widget.teamId!));
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
@@ -309,7 +340,10 @@ class _CallUpsState extends ConsumerState<_CallUps> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final calls = ref.watch(myCallsProvider).valueOrNull?.pending ?? const <SquadCall>[];
+    final all = ref.watch(myCallsProvider).valueOrNull?.pending ?? const <SquadCall>[];
+    final calls = widget.teamId == null
+        ? all
+        : all.where((c) => c.teamId == widget.teamId).toList();
     if (calls.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -336,7 +370,10 @@ class _CallUpsState extends ConsumerState<_CallUps> {
                 InkWell(
                   onTap: c.route != null ? () => context.push(c.route!) : null,
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('${c.teamName ?? 'Your team'} · ${c.eventTitle ?? 'Tournament'}',
+                    Text(
+                        widget.teamId != null
+                            ? (c.eventTitle ?? 'Tournament')
+                            : '${c.teamName ?? 'Your team'} · ${c.eventTitle ?? 'Tournament'}',
                         style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 3),
                     // A call-up is a commitment — show enough to answer it.
@@ -416,81 +453,6 @@ class _CallUpsState extends ConsumerState<_CallUps> {
               ]),
             ),
           ),
-      ]),
-    );
-  }
-}
-
-/// The three soonest invitations, inline.
-///
-/// Anything beyond that lives on /tournaments/invitations — a club juggling a
-/// dozen invites shouldn't have to scroll past all of them to reach the
-/// tournaments it already committed to. They sit OUTSIDE the list below on
-/// purpose: a tournament nobody has agreed to play isn't a fixture.
-const _inlineInvites = 3;
-
-class _Invitations extends ConsumerWidget {
-  const _Invitations();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final p = context.palette;
-    final invites =
-        ref.watch(myTournamentInvitesProvider).valueOrNull ?? const <TournamentInvite>[];
-    if (invites.isEmpty) return const SizedBox.shrink();
-    final shown = invites.take(_inlineInvites).toList();
-    final rest = invites.length - shown.length;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Icon(Icons.mark_email_unread_outlined, size: 16, color: p.amber),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text('TOURNAMENT INVITATIONS (${invites.length})',
-                style: TextStyle(
-                    color: p.amber,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.1)),
-          ),
-          if (rest > 0)
-            InkWell(
-              onTap: () => context.push('/tournaments/invitations'),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                child: Text('See all ${invites.length}',
-                    style: TextStyle(
-                        color: p.muted,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700)),
-              ),
-            ),
-        ]),
-        const SizedBox(height: 8),
-        InvitationListBox(invites: shown),
-        if (rest > 0) ...[
-          const SizedBox(height: 6),
-          InkWell(
-            onTap: () => context.push('/tournaments/invitations'),
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 9),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: p.amber.withAlpha(80)),
-              ),
-              child: Text(
-                '$rest more invitation${rest == 1 ? '' : 's'}',
-                style: TextStyle(
-                    color: p.muted, fontSize: 11.5, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
-        ],
       ]),
     );
   }

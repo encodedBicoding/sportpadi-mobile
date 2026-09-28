@@ -262,7 +262,7 @@ class EventFeedCard extends StatelessWidget {
           style: TextStyle(
               color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700),
         ),
-        Text(' interested',
+        Text(' RSVPs',
             style: TextStyle(color: p.muted, fontSize: 12.5)),
         const Spacer(),
         Container(

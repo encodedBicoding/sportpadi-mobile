@@ -6,6 +6,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
+import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 import 'package:sportpadi_mobile/data/tickets/tickets_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 import 'package:sportpadi_mobile/core/ads/admob.dart';
@@ -111,10 +112,30 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         HapticFeedback.mediumImpact();
         // Refresh whatever event screens are behind the scanner.
         ref.invalidate(eventDetailProvider);
+        // What the check-in earned (gamification) — the reward moment for
+        // games that never open a scoreboard.
+        final reward = res['reward'] is Map
+            ? Map<String, dynamic>.from(res['reward'] as Map)
+            : null;
+        final lines = <String>['Checked in to $title.'];
+        final xp = (reward?['xp'] as num?)?.toInt() ?? 0;
+        if (reward != null && xp > 0) {
+          final streak = (reward['weeklyStreak'] as num?)?.toInt() ?? 0;
+          lines.add('');
+          lines.add('+$xp XP · Level ${reward['level']} ${reward['title']}'
+              '${streak > 0 ? ' · 🔥 $streak-week streak' : ''}');
+          for (final u in (reward['unlocked'] is List ? reward['unlocked'] as List : const [])) {
+            if (u is Map && u['title'] is String) {
+              lines.add('✨ Achievement unlocked: ${u['title']}');
+            }
+          }
+          ref.invalidate(yourWeekProvider);
+          ref.invalidate(myProgressionProvider);
+        }
         final done = await _showSheet(
           tone: _Tone.success,
           head: "You're in ✅",
-          body: 'Checked in to $title.',
+          body: lines.join('\n'),
           doneButton: true,
         );
         if (done && mounted) context.pop();

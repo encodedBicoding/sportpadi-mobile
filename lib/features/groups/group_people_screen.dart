@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 
 /// Members / followers of a group — mirrors the web pages: role-badged member
 /// rows; followers get the admin tip + "Make member" promotion.
@@ -119,7 +120,24 @@ class _MembersList extends ConsumerWidget {
                   )
                 : null,
             trailingFor: (m) {
-              final badge = _roleBadge(context, m.role);
+              final titles = ref.watch(groupProgressionProvider(groupId)).valueOrNull?.titles[m.userId] ?? const <String>[];
+              final role = _roleBadge(context, m.role);
+              // Community titles earned in this group (gamification).
+              final badge = titles.isEmpty
+                  ? role
+                  : Row(mainAxisSize: MainAxisSize.min, children: [
+                      for (final t in titles.take(1))
+                        Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
+                                color: p.amber.withAlpha(36), borderRadius: BorderRadius.circular(99)),
+                            child: Text(t, style: TextStyle(color: p.amber, fontSize: 9.5, fontWeight: FontWeight.w800)),
+                          ),
+                        ),
+                      role,
+                    ]);
               // Nobody edits their own row (the server also refuses to
               // change the creator's role).
               if (!canManage || m.userId == myUserId) return badge;

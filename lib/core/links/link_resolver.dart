@@ -144,6 +144,10 @@ LinkTarget resolveLink(String? url) {
   if (m != null) return _route('/events/${m[1]}');
   // The live scoresheet — the most shared screen in the app, and the one this
   // resolver used to miss entirely.
+  m = RegExp(r'^/games/([^/]+)/summary/?$').firstMatch(path);
+  if (m != null) return _route('/games/${m[1]}/summary');
+  m = RegExp(r'^/games/([^/]+)/officiate/?$').firstMatch(path);
+  if (m != null) return _route('/games/${m[1]}/officiate');
   m = RegExp(r'^/games/([^/]+)').firstMatch(path);
   if (m != null) return _route('/games/${m[1]}');
   m = RegExp(r'^/join/([^/]+)').firstMatch(path);
@@ -153,6 +157,8 @@ LinkTarget resolveLink(String? url) {
   if (RegExp(r'^/tournaments/invitations/?$').hasMatch(path)) {
     return _route('/tournaments/invitations');
   }
+  m = RegExp(r'^/tournaments/teams/([^/]+)/?$').firstMatch(path);
+  if (m != null) return _route('/tournaments/teams/${m[1]}');
   m = RegExp(r'^/tournaments/([^/]+)/?$').firstMatch(path);
   if (m != null) return _route('/tournaments/${m[1]}');
   if (RegExp(r'^/tournaments/?$').hasMatch(path)) {
@@ -166,6 +172,11 @@ LinkTarget resolveLink(String? url) {
   if (path.startsWith('/notifications')) return _route('/notifications');
   if (path.startsWith('/scan')) return _route('/scan');
   if (path.startsWith('/settings')) return _route('/settings');
+  if (path.startsWith('/leaderboards')) return _route('/leaderboards');
+  // Profile anchors that name the progress block open the full progress page.
+  if (path.startsWith('/profile') && (uri?.fragment ?? '') == 'achievements') {
+    return _route('/progress');
+  }
 
   // ── URLs whose home is a tab, not a page ──────────────────────────────────
   if (path.startsWith('/profile')) return _tab(HomeTab.profile);

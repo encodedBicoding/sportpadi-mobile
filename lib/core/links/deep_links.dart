@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:sportpadi_mobile/core/links/link_resolver.dart';
+import 'package:sportpadi_mobile/core/referral/referral.dart';
 
 /// Universal Links (iOS) and App Links (Android).
 ///
@@ -33,6 +34,10 @@ class DeepLinkService {
   /// delivered exactly once).
   void Function(Uri uri)? _handler;
 
+  /// Seen by every incoming link before it is routed (share-link attribution
+  /// captures ?ref= here, whoever — guest or signed-in — is handling links).
+  void Function(Uri uri)? onAnyLink;
+
   /// The link that launched the app, if any. Read once — a cold-start link is
   /// delivered exactly once and must not be replayed on a later resume.
   Uri? _pendingColdStart;
@@ -46,7 +51,10 @@ class DeepLinkService {
     _started = true;
 
     _sub = _appLinks.uriLinkStream.listen(
-      (uri) => _handler?.call(uri),
+      (uri) {
+        onAnyLink?.call(uri);
+        _handler?.call(uri);
+      },
       onError: (Object e) {
         if (kDebugMode) debugPrint('[deeplink] stream error: $e');
       },
@@ -58,6 +66,7 @@ class DeepLinkService {
       final initial = await _appLinks.getInitialLink();
       if (initial != null && !_coldStartRead) {
         _coldStartRead = true;
+        onAnyLink?.call(initial);
         onLink(initial);
       }
     } catch (e) {
@@ -88,6 +97,8 @@ class DeepLinkService {
 
 final deepLinkServiceProvider = Provider<DeepLinkService>((ref) {
   final s = DeepLinkService();
+  final referrals = ref.read(referralStoreProvider);
+  s.onAnyLink = (uri) => referrals.capture(uri);
   ref.onDispose(s.dispose);
   return s;
 });

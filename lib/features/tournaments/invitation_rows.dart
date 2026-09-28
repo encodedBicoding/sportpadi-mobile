@@ -84,6 +84,8 @@ class _InvitationRowState extends ConsumerState<InvitationRow> {
       }
       ref.invalidate(myTournamentInvitesProvider);
       ref.invalidate(myTournamentsProvider);
+      ref.invalidate(myTeamCardsProvider);
+      ref.invalidate(myTeamTournamentsProvider);
       if (iv.eventId != null) {
         ref.invalidate(tournamentDetailProvider(iv.eventId!));
       }
