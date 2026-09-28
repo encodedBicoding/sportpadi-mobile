@@ -4,5 +4,16 @@
 <dict>
 	<key>aps-environment</key>
 	<string>production</string>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<!-- Universal Links: taps on sportpadi.com links open the app instead
+		     of Safari, for the paths the AASA file lists. `applinks` needs the
+		     apex AND www, since either can be shared. -->
+		<string>applinks:sportpadi.com</string>
+		<string>applinks:www.sportpadi.com</string>
+		<!-- Lets iOS offer a password saved for sportpadi.com when signing in
+		     to the app. -->
+		<string>webcredentials:sportpadi.com</string>
+	</array>
 </dict>
 </plist>

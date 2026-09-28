@@ -11,6 +11,7 @@ class EventSummary {
     this.locationName,
     this.status,
     this.categoryEmoji,
+    this.categoryId,
     this.categoryName,
     this.groupName,
     this.groupImageUrl,
@@ -21,6 +22,8 @@ class EventSummary {
     this.description,
     this.distanceMiles,
     this.isLive = false,
+    this.groupId,
+    this.reasons = const [],
   });
 
   final String id;
@@ -32,6 +35,9 @@ class EventSummary {
   final String? locationName;
   final String? status;
   final String? categoryEmoji;
+
+  /// Sport category id — lets a screen re-query by sport, not just label it.
+  final String? categoryId;
   final String? categoryName;
   final String? groupName;
   final String? groupImageUrl;
@@ -44,6 +50,13 @@ class EventSummary {
 
   /// A game inside this event is live right now (browse feed flag).
   final bool isLive;
+
+  /// Host group id — needed to route a tournament to its own page.
+  final String? groupId;
+
+  /// Why this event was suggested ("You play Soccer", "4 miles away"). Only
+  /// populated by the suggestions feed; empty everywhere else.
+  final List<String> reasons;
 
   factory EventSummary.fromJson(Map<String, dynamic> j) {
     final cat = j['category'];
@@ -59,6 +72,7 @@ class EventSummary {
       status: parseStr(j['status']),
       categoryEmoji: cat is Map ? parseStr(cat['emoji']) : null,
       categoryName: cat is Map ? parseStr(cat['name']) : null,
+      categoryId: cat is Map ? parseStr(cat['id']) : null,
       groupName: grp is Map ? parseStr(grp['name']) : parseStr(j['groupName']),
       groupImageUrl: grp is Map ? parseStr(grp['imageUrl']) : null,
       isTournament: j['isTournament'] == true,
@@ -71,6 +85,12 @@ class EventSummary {
               : null),
       description: parseStr(j['description']),
       distanceMiles: parseDouble(j['distanceMiles']),
+      groupId: parseStr(j['groupId']) ??
+          (grp is Map ? parseStr(grp['id']) : null),
+      reasons: [
+        for (final r in (j['reasons'] is List ? j['reasons'] as List : const []))
+          if (parseStr(r) != null) parseStr(r)!
+      ],
     );
   }
 }

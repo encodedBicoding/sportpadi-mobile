@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 /// Members / followers of a group — mirrors the web pages: role-badged member
 /// rows; followers get the admin tip + "Make member" promotion.
@@ -26,6 +27,7 @@ class GroupPeopleScreen extends ConsumerWidget {
     final group = ref.watch(groupProvider(groupId)).valueOrNull;
     return Scaffold(
       appBar: AppBar(
+        leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
         title: Column(

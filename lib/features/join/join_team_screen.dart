@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 class JoinTeamScreen extends ConsumerStatefulWidget {
   const JoinTeamScreen({super.key, required this.teamId});
@@ -42,7 +43,7 @@ class _JoinTeamScreenState extends ConsumerState<JoinTeamScreen> {
           .joinTeam(widget.teamId, jerseyNumber: n);
       ref.invalidate(myGroupsProvider);
       ref.invalidate(teamDetailProvider(widget.teamId));
-      if (mounted) context.go('/teams/${widget.teamId}');
+      if (mounted) goWithHome(context, '/teams/${widget.teamId}');
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } finally {
@@ -57,7 +58,7 @@ class _JoinTeamScreenState extends ConsumerState<JoinTeamScreen> {
         ref.watch(authControllerProvider).value?.isAuthenticated ?? false;
     final p = context.palette;
     return Scaffold(
-      appBar: AppBar(title: const Text('Join team')),
+      appBar: AppBar(leading: const SpLeading(), title: const Text('Join team')),
       body: AsyncView(
         value: info,
         onRetry: () => ref.invalidate(teamJoinInfoProvider(widget.teamId)),
@@ -94,7 +95,7 @@ class _JoinTeamScreenState extends ConsumerState<JoinTeamScreen> {
               ],
               if (t.alreadyOnTeam)
                 FilledButton(
-                  onPressed: () => context.go('/teams/${t.id}'),
+                  onPressed: () => goWithHome(context, '/teams/${t.id}'),
                   child: const Text('Go to team'),
                 )
               else if (signedIn) ...[

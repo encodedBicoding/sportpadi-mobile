@@ -12,6 +12,7 @@ import 'package:sportpadi_mobile/data/payments/payments_repository.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 /// My purchases — paid tickets, each opening its gate QR.
 class MyTicketsScreen extends ConsumerWidget {
@@ -23,6 +24,7 @@ class MyTicketsScreen extends ConsumerWidget {
     final tickets = ref.watch(myTicketsProvider);
     return Scaffold(
       appBar: AppBar(
+        leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
         title: const Text('My purchases',

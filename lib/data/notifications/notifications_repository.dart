@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -57,5 +59,11 @@ final notificationsRepositoryProvider = Provider<NotificationsRepository>(
 final notificationsFeedProvider = FutureProvider.autoDispose<NotificationFeed>(
     (ref) => ref.watch(notificationsRepositoryProvider).feed());
 
-final unreadCountProvider = FutureProvider.autoDispose<int>(
-    (ref) => ref.watch(notificationsRepositoryProvider).unreadCount());
+/// Unread badge count. Polled while something watches it (the app bar bell),
+/// matching the web's 45s refetch; also invalidated on foreground push, app
+/// resume, tab switches and when the feed is read.
+final unreadCountProvider = FutureProvider.autoDispose<int>((ref) {
+  final timer = Timer(const Duration(seconds: 45), () => ref.invalidateSelf());
+  ref.onDispose(timer.cancel);
+  return ref.watch(notificationsRepositoryProvider).unreadCount();
+});

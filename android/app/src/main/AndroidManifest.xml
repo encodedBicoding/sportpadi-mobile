@@ -1,5 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Android 13+: runtime permission for push notifications. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <application
@@ -27,7 +29,66 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!-- Android App Links. autoVerify makes the OS fetch
+                 https://sportpadi.com/.well-known/assetlinks.json and check our
+                 signing certificate against it; only then does a link open the
+                 app with no "open with" chooser.
+
+                 The paths are listed explicitly rather than claiming the whole
+                 host, because hosted checkout (/t/...), auth callbacks and
+                 Stripe onboarding MUST finish in a real browser. Claiming them
+                 would hand the user a dead end and, for a payment, lose the
+                 transaction. Android has no "exclude" in an intent-filter, so
+                 an allow-list is the only way to say that. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="sportpadi.com"/>
+                <data android:scheme="https" android:host="www.sportpadi.com"/>
+
+                <data android:pathPrefix="/events/"/>
+                <data android:pathPrefix="/games/"/>
+                <data android:pathPrefix="/groups/"/>
+                <data android:pathPrefix="/players/"/>
+                <data android:pathPrefix="/teams/"/>
+                <data android:pathPrefix="/tournaments"/>
+                <data android:pathPrefix="/join/"/>
+                <data android:pathPrefix="/join-team/"/>
+                <data android:pathPrefix="/tickets"/>
+                <data android:pathPrefix="/fines"/>
+                <data android:pathPrefix="/notifications"/>
+                <data android:pathPrefix="/my-qr"/>
+                <data android:pathPrefix="/scan"/>
+                <data android:pathPrefix="/profile"/>
+                <data android:pathPrefix="/discover"/>
+            </intent-filter>
         </activity>
+        <!-- Push presentation. Without these three, FCM falls back to its own
+             channel (default importance: no heads-up banner, no sound) and to
+             the launcher icon, which Android masks into a white square.
+             The channel id must match the one MainActivity creates and the one
+             the server sends in android.notification.channel_id. -->
+        <!-- Unbundled ML Kit (see gradle.properties): ask Play Services to
+             download the barcode model at install time rather than on the
+             first scan, so the gate scanner works the first time it opens. -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="barcode" />
+        <!-- AdMob app id (the ~ one). The ad UNIT ids live in lib/core/ads/admob.dart. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-5037534828580049~4304696149" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="sportpadi_high" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_sportpadi" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/sp_notification" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

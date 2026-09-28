@@ -1,0 +1,153 @@
+{
+  "identifier": "E0D0A15D-A211-4B94-9BAB-1BAEF7A3A453",
+  "nonRenewingSubscriptions": [],
+  "products": [],
+  "settings": {
+    "_applicationInternalID": "",
+    "_developerTeamID": "R2MDSB8B8T",
+    "_failTransactionsEnabled": false,
+    "_lastSynced": 0,
+    "_locale": "en_US",
+    "_storefront": "USA",
+    "_storeKitErrors": []
+  },
+  "subscriptionGroups": [
+    {
+      "id": "21500001",
+      "localizations": [],
+      "name": "Group plans",
+      "subscriptions": [
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "7.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "6470000001",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "Pro plan for one group, billed every 1 week.",
+              "displayName": "Pro \u00b7 weekly",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "com.sportpadi.plan.pro.weekly",
+          "recurringSubscriptionPeriod": "P1W",
+          "referenceName": "Pro weekly",
+          "subscriptionGroupID": "22388528",
+          "type": "RecurringSubscription"
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "29.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "6470000002",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "Pro plan for one group, billed every 1 month.",
+              "displayName": "Pro \u00b7 monthly",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "com.sportpadi.plan.pro.monthly",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "Pro monthly",
+          "subscriptionGroupID": "22388528",
+          "type": "RecurringSubscription"
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "299.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "6470000003",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "Pro plan for one group, billed every 1 year.",
+              "displayName": "Pro \u00b7 yearly",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "com.sportpadi.plan.pro.yearly",
+          "recurringSubscriptionPeriod": "P1Y",
+          "referenceName": "Pro yearly",
+          "subscriptionGroupID": "22388528",
+          "type": "RecurringSubscription"
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "2.99",
+          "familyShareable": false,
+          "groupNumber": 2,
+          "internalID": "6470000004",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "Basic plan for one group, billed every 1 week.",
+              "displayName": "Basic \u00b7 weekly",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "com.sportpadi.plan.basic.weekly",
+          "recurringSubscriptionPeriod": "P1W",
+          "referenceName": "Basic weekly",
+          "subscriptionGroupID": "22388528",
+          "type": "RecurringSubscription"
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "9.99",
+          "familyShareable": false,
+          "groupNumber": 2,
+          "internalID": "6470000005",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "Basic plan for one group, billed every 1 month.",
+              "displayName": "Basic \u00b7 monthly",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "com.sportpadi.plan.basic.monthly",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "Basic monthly",
+          "subscriptionGroupID": "22388528",
+          "type": "RecurringSubscription"
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "99.99",
+          "familyShareable": false,
+          "groupNumber": 2,
+          "internalID": "6470000006",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "Basic plan for one group, billed every 1 year.",
+              "displayName": "Basic \u00b7 yearly",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "com.sportpadi.plan.basic.yearly",
+          "recurringSubscriptionPeriod": "P1Y",
+          "referenceName": "Basic yearly",
+          "subscriptionGroupID": "22388528",
+          "type": "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version": {
+    "major": 3,
+    "minor": 0
+  }
+}

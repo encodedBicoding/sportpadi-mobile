@@ -12,6 +12,11 @@ import 'package:sportpadi_mobile/data/groups/group_models.dart';
 import 'package:sportpadi_mobile/data/profile/profile_models.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
+import 'package:sportpadi_mobile/features/players/aka_card.dart';
+import 'package:sportpadi_mobile/features/players/player_profile_screen.dart'
+    show playerStatsProvider;
+import 'package:sportpadi_mobile/features/players/player_record.dart';
+import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_tile_square.dart';
@@ -38,7 +43,11 @@ PopupMenuItem<String> _menuItem(String value, IconData icon, String label) {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  int _tab = 0; // 0 events, 1 posts, 2 groups
+  int _tab = 0; // 0 groups, 1 tournaments, 2 events, 3 posts
+  // The sport is a screen-level setting: once chosen, the record and the
+  // groups / tournaments tabs all narrow to it. Same rule as the public
+  // profile, so what you see here is what a scout sees of you.
+  String? _catId;
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +55,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final p = context.palette;
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false, // bottom-nav tab, not a pushed page
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
         title: const Text('Profile',
@@ -86,21 +96,133 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           if (profile == null) {
             return const Center(child: Text('No profile found.'));
           }
+          final userId = profile.userId;
+          final stats = userId == null
+              ? null
+              : ref.watch(playerStatsProvider(userId)).valueOrNull;
+          final categories = listOf(stats?['categories']);
+          final tournaments = listOf(stats?['tournaments']);
+          final selected = _catId ?? defaultCategoryId(categories);
+          final cat = categories.isEmpty
+              ? null
+              : categories.firstWhere(
+                  (c) => parseStr(c['categoryId']) == selected,
+                  orElse: () => categories.first,
+                );
+          final catTournaments = cat == null
+              ? tournaments
+              : [
+                  for (final t in tournaments)
+                    if (parseStr(t['categoryId']) ==
+                        parseStr(cat['categoryId']))
+                      t
+                ];
+          final sportGroupIds = <String>{
+            for (final g in listOf(cat?['groups']))
+              if (parseStr(g['id']) != null) parseStr(g['id'])!
+          };
+          final allGroups = ref.watch(myGroupsProvider).valueOrNull ??
+              const <GroupSummary>[];
+          final groups = sportGroupIds.isEmpty
+              ? allGroups
+              : [
+                  for (final g in allGroups)
+                    if (sportGroupIds.contains(g.id)) g
+                ];
+          final akas = ref.watch(myGroupAkasProvider).valueOrNull ??
+              const <String, String>{};
+
           return RefreshIndicator(
-            onRefresh: () async => ref.refresh(meProvider.future),
+            onRefresh: () async {
+              if (userId != null) ref.invalidate(playerStatsProvider(userId));
+              ref.invalidate(myGroupAkasProvider);
+              return ref.refresh(meProvider.future);
+            },
             child: CustomScrollView(slivers: [
               SliverList(
                   delegate: SliverChildListDelegate([
                 _Hero(profile: profile),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Eyebrow('My sports'),
-                      SizedBox(height: 8),
-                      _SportsSection(),
-                      SizedBox(height: 18),
+                      const Eyebrow('My sports'),
+                      const SizedBox(height: 8),
+                      const _SportsSection(),
+                      const SizedBox(height: 18),
+                      Row(children: [
+                        const Eyebrow('My record'),
+                        const Spacer(),
+                        if (userId != null)
+                          InkWell(
+                            onTap: () => context.push('/players/$userId'),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              Text('View as others see it',
+                                  style: TextStyle(
+                                      color: p.accent,
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700)),
+                              Icon(Icons.north_east_rounded,
+                                  size: 12, color: p.accent),
+                            ]),
+                          ),
+                      ]),
+                      const SizedBox(height: 8),
+                      if (categories.isNotEmpty) ...[
+                        CategoryControl(
+                          categories: categories,
+                          selectedId: parseStr(cat?['categoryId']),
+                          onSelect: (id) => setState(() => _catId = id),
+                          playerName: profile.displayName,
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if (cat == null)
+                        GlassCard(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(children: [
+                            Icon(Icons.emoji_events_outlined,
+                                size: 30, color: p.muted),
+                            const SizedBox(height: 8),
+                            Text('No sports set up yet',
+                                style: TextStyle(
+                                    color: p.ink,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700)),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Add a sport above and your record for it appears here.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  color: p.muted, fontSize: 12, height: 1.35),
+                            ),
+                          ]),
+                        )
+                      else if (nothingOnRecord(cat))
+                        NothingOnRecord(
+                            sportName: parseStr(cat['name']) ?? 'this sport')
+                      else ...[
+                        SportSetup(category: cat),
+                        const SizedBox(height: 12),
+                        ScopeBlock(
+                          title:
+                              '${parseStr(cat['emoji']) ?? ''} ${parseStr(cat['name']) ?? 'Sport'} · local group games',
+                          tally: mapOf(cat['local']),
+                          fields: listOf(cat['fields']),
+                          empty: 'No completed local games in this sport yet.',
+                        ),
+                        const SizedBox(height: 12),
+                        ScopeBlock(
+                          title:
+                              '${parseStr(cat['emoji']) ?? ''} ${parseStr(cat['name']) ?? 'Sport'} · tournaments',
+                          tally: mapOf(cat['tournament']),
+                          fields: listOf(cat['fields']),
+                          accent: true,
+                          empty: 'No tournament games in this sport yet.',
+                        ),
+                      ],
+                      const SizedBox(height: 18),
                     ],
                   ),
                 ),
@@ -114,6 +236,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: _ProfileTabs(
                         tab: _tab,
+                        counts: [
+                          groups.length,
+                          catTournaments.length,
+                          0,
+                          0,
+                        ],
                         onChanged: (i) => setState(() => _tab = i)),
                   ),
                 ),
@@ -123,20 +251,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       if (_tab == 0)
-                        const _AttendedEventsGrid()
+                        _MyGroupsList(
+                          groups: groups,
+                          akas: akas,
+                          userId: userId,
+                          note: sportGroupIds.isNotEmpty && cat != null
+                              ? 'Groups you play ${parseStr(cat['name']) ?? 'this sport'} in.'
+                              : null,
+                        )
                       else if (_tab == 1)
+                        TournamentList(
+                          rows: catTournaments,
+                          playerId: userId,
+                          title: 'MY TOURNAMENTS',
+                        )
+                      else if (_tab == 2)
+                        _AttendedEventsGrid(userId: userId)
+                      else
                         GlassCard(
                           child: Center(
                             child: Text(
                               'Share photos from events — coming soon.',
                               style: TextStyle(
-                                  color: context.palette.muted,
-                                  fontSize: 13),
+                                  color: context.palette.muted, fontSize: 13),
                             ),
                           ),
-                        )
-                      else
-                        const _MyGroupsGrid(),
+                        ),
                     ])),
               ),
             ]),
@@ -835,15 +975,21 @@ class _SportEditSheetState extends ConsumerState<_SportEditSheet> {
 // ---------------------------------------------------------------------------
 
 class _ProfileTabs extends StatelessWidget {
-  const _ProfileTabs({required this.tab, required this.onChanged});
+  const _ProfileTabs({
+    required this.tab,
+    required this.onChanged,
+    this.counts = const [0, 0, 0, 0],
+  });
   final int tab;
   final ValueChanged<int> onChanged;
+  final List<int> counts;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
     Widget btn(int i, IconData icon, String label) {
       final active = tab == i;
+      final count = i < counts.length ? counts[i] : 0;
       return Expanded(
         child: InkWell(
           onTap: () => onChanged(i),
@@ -862,12 +1008,25 @@ class _ProfileTabs extends StatelessWidget {
               children: [
                 Icon(icon, size: 15, color: active ? p.accent : p.muted),
                 const SizedBox(width: 5),
-                Text(label,
-                    style: TextStyle(
-                      color: active ? p.accent : p.muted,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                    )),
+                Flexible(
+                  child: Text(label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: active ? p.accent : p.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      )),
+                ),
+                if (count > 0) ...[
+                  const SizedBox(width: 3),
+                  Text('$count',
+                      style: TextStyle(
+                          color: active
+                              ? p.accent.withAlpha(180)
+                              : p.muted.withAlpha(180),
+                          fontSize: 11)),
+                ],
               ],
             ),
           ),
@@ -880,9 +1039,10 @@ class _ProfileTabs extends StatelessWidget {
         border: Border(bottom: BorderSide(color: p.line)),
       ),
       child: Row(children: [
-        btn(0, Icons.calendar_month_outlined, 'Events'),
-        btn(1, Icons.image_outlined, 'Posts'),
-        btn(2, Icons.groups_outlined, 'Groups'),
+        btn(0, Icons.groups_outlined, 'Groups'),
+        btn(1, Icons.emoji_events_outlined, 'Tournaments'),
+        btn(2, Icons.calendar_month_outlined, 'Events'),
+        btn(3, Icons.image_outlined, 'Posts'),
       ]),
     );
   }
@@ -893,7 +1053,10 @@ class _ProfileTabs extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _AttendedEventsGrid extends ConsumerWidget {
-  const _AttendedEventsGrid();
+  const _AttendedEventsGrid({this.userId});
+
+  /// Whose record an event opens. Without it, tiles open the event itself.
+  final String? userId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -920,7 +1083,17 @@ class _AttendedEventsGrid extends ConsumerWidget {
       mainAxisSpacing: 8,
       crossAxisSpacing: 8,
       children: [
-        for (final e in list) EventTileSquare(event: e),
+        // Your record in that event — not the event's scoresheet. The event
+        // itself is one deliberate tap further, inside.
+        for (final e in list)
+          EventTileSquare(
+            event: e,
+            onTap: userId == null
+                ? null
+                : () => context.push(e.isTournament
+                    ? '/players/$userId/tournaments/${e.id}'
+                    : '/players/$userId/events/${e.id}'),
+          ),
       ],
     );
   }
@@ -930,20 +1103,26 @@ class _AttendedEventsGrid extends ConsumerWidget {
 // My groups grid — crest, name, member count, role badge.
 // ---------------------------------------------------------------------------
 
-class _MyGroupsGrid extends ConsumerWidget {
-  const _MyGroupsGrid();
+/// Your groups, each opening YOUR record in that group — where you also set
+/// the name that group knows you by. The group itself stays one tap away, as
+/// the chip on the right.
+class _MyGroupsList extends StatelessWidget {
+  const _MyGroupsList({
+    required this.groups,
+    required this.akas,
+    required this.userId,
+    this.note,
+  });
+
+  final List<GroupSummary> groups;
+  final Map<String, String> akas;
+  final String? userId;
+  final String? note;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final p = context.palette;
-    final groups = ref.watch(myGroupsProvider);
-    final list = groups.valueOrNull ?? const <GroupSummary>[];
-    if (groups.isLoading) {
-      return GlassCard(
-          child: Text('Loading…',
-              style: TextStyle(color: p.muted, fontSize: 13)));
-    }
-    if (list.isEmpty) {
+    if (groups.isEmpty) {
       return GlassCard(
         child: Center(
           child: Text("You're not in any groups yet.",
@@ -951,55 +1130,102 @@ class _MyGroupsGrid extends ConsumerWidget {
         ),
       );
     }
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
-      childAspectRatio: 0.95,
-      children: [
-        for (final g in list)
-          InkWell(
-            onTap: () => context.push('/groups/${g.id}'),
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: p.surface,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: p.line),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ClipOval(
-                    child:
-                        Crest(logoUrl: g.logoUrl, label: g.name, size: 52),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(g.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600)),
-                  Text('${g.memberCount ?? 0} members',
-                      style:
-                          TextStyle(color: p.muted, fontSize: 10.5)),
-                  const SizedBox(height: 4),
-                  SpBadge(
-                    g.role == 'admin' ? 'Admin' : 'Member',
-                    tone: g.role == 'admin' ? p.accent : p.muted,
-                  ),
-                ],
-              ),
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (note != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6, left: 2),
+          child: Text(note!, style: TextStyle(color: p.muted, fontSize: 11)),
+        ),
+      for (final g in groups)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: p.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: p.line),
             ),
+            child: Row(children: [
+              Expanded(
+                child: InkWell(
+                  onTap: userId == null
+                      ? null
+                      : () => context.push('/players/$userId/groups/${g.id}'),
+                  child: Row(children: [
+                    ClipOval(
+                      child:
+                          Crest(logoUrl: g.logoUrl, label: g.name, size: 32),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(children: [
+                              Flexible(
+                                child: Text(g.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        color: p.ink,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600)),
+                              ),
+                              if (g.role == 'admin')
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 4),
+                                  child: Icon(Icons.verified_user_outlined,
+                                      size: 13, color: p.accent),
+                                ),
+                            ]),
+                            Row(mainAxisSize: MainAxisSize.min, children: [
+                              Icon(Icons.bar_chart_rounded,
+                                  size: 12, color: p.muted),
+                              const SizedBox(width: 3),
+                              Flexible(
+                                child: Text(
+                                    akas[g.id] != null
+                                        ? 'Known here as ${akas[g.id]}'
+                                        : 'See your record here',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        color: p.muted, fontSize: 11)),
+                              ),
+                            ]),
+                          ]),
+                    ),
+                    Icon(Icons.chevron_right_rounded, size: 18, color: p.muted),
+                  ]),
+                ),
+              ),
+              const SizedBox(width: 6),
+              InkWell(
+                onTap: () => context.push('/groups/${g.id}'),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: p.line),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text('Group',
+                        style: TextStyle(
+                            color: p.muted,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700)),
+                    Icon(Icons.north_east_rounded, size: 11, color: p.muted),
+                  ]),
+                ),
+              ),
+            ]),
           ),
-      ],
-    );
+        ),
+    ]);
   }
 }
 

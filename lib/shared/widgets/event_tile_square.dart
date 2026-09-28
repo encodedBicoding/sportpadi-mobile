@@ -8,8 +8,13 @@ import 'package:sportpadi_mobile/shared/format/formatters.dart';
 /// Instagram-style square event tile (web EventTile): cover or emoji-gradient,
 /// dark wash, title + date, LIVE badge. Used on profile + group event grids.
 class EventTileSquare extends StatelessWidget {
-  const EventTileSquare({super.key, required this.event});
+  const EventTileSquare({super.key, required this.event, this.onTap});
   final EventSummary event;
+
+  /// Where the tile goes. Defaults to the event itself; a player's own grids
+  /// pass their per-event record instead, because for a finished event the
+  /// event page is a scoresheet — "what happened", not "how did I do".
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -18,9 +23,10 @@ class EventTileSquare extends StatelessWidget {
     final live = e.status == 'kicked_off' || e.isLive;
     final tournament = e.isTournament;
     return InkWell(
-      onTap: () => e.isTournament
-          ? context.push('/tournaments/${e.id}')
-          : context.push('/events/${e.slug.isNotEmpty ? e.slug : e.id}'),
+      onTap: onTap ??
+          () => e.isTournament
+              ? context.push('/tournaments/${e.id}')
+              : context.push('/events/${e.slug.isNotEmpty ? e.slug : e.id}'),
       borderRadius: BorderRadius.circular(14),
       child: Container(
         decoration: BoxDecoration(

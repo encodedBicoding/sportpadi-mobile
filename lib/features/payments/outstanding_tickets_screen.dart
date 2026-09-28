@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/data/payments/payments_repository.dart';
 import 'package:sportpadi_mobile/features/payments/checkout_flow.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 /// Tickets the viewer still owes one group — pay one or all (web
 /// /groups/[id]/tickets/outstanding).
@@ -57,6 +58,7 @@ class _OutstandingTicketsScreenState
     final sum = ref.watch(outstandingTicketsProvider(widget.groupId));
     return Scaffold(
       appBar: AppBar(
+        leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
         title: const Text('Outstanding tickets',

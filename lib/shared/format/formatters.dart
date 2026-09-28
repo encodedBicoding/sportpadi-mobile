@@ -62,5 +62,8 @@ String timeAgo(dynamic v) {
   if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
   if (diff.inHours < 24) return '${diff.inHours}h ago';
   if (diff.inDays < 7) return '${diff.inDays}d ago';
-  return formatDayYear(d);
+  // formatDayYear() coerces to UTC — right for the bare @db.Time values it was
+  // written for, wrong for a real instant like "accepted at", which should read
+  // in the viewer's own zone.
+  return _dayYear.format(d.toLocal());
 }

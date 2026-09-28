@@ -32,6 +32,35 @@ class AuthController extends AsyncNotifier<SessionState> {
     state = AsyncData(SessionState(user: user));
   }
 
+  /// Re-read the session from the server (after verifying an email, etc.).
+  Future<void> refresh() async {
+    try {
+      final user = await ref.read(authRepositoryProvider).currentUser();
+      state = AsyncData(SessionState(user: user));
+    } catch (_) {
+      /* keep the current session on a transient failure */
+    }
+  }
+
+  Future<void> sendVerificationCode() async {
+    final email = state.value?.user?.email;
+    if (email == null || email.isEmpty) return;
+    await ref.read(authRepositoryProvider).sendVerificationCode(email);
+  }
+
+  /// Confirm the emailed code; on success the session flips to verified and
+  /// the router releases the user into the app.
+  Future<void> verifyEmail(String otp) async {
+    final email = state.value?.user?.email;
+    if (email == null || email.isEmpty) {
+      throw StateError('No signed-in email to verify.');
+    }
+    final user = await ref
+        .read(authRepositoryProvider)
+        .verifyEmail(email: email, otp: otp);
+    if (user != null) state = AsyncData(SessionState(user: user));
+  }
+
   Future<void> signOut() async {
     // Forget this device's push token before the session dies (best-effort).
     await ref.read(pushServiceProvider).unregister();

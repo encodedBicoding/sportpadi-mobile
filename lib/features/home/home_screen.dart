@@ -9,11 +9,13 @@ import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/features/home/suggested_events_section.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_tile_square.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart';
 import 'package:sportpadi_mobile/features/shell/home_shell.dart'
     show homeTabIndexProvider;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/ads/admob.dart';
 import 'package:sportpadi_mobile/features/ads/ad_display.dart';
 
 /// Home — the user's personal dashboard: their upcoming events across every
@@ -95,6 +97,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             for (final e in bySport(f.past))
               if (e.eventDate == null || e.eventDate!.isAfter(cutoff)) e
           ];
+          // The sport chips filter by name; suggestions are queried by
+          // category id, so resolve one to the other off the same feed.
+          final sportCategoryId = _sport == null
+              ? null
+              : [...f.upcoming, ...f.past]
+                  .firstWhere((e) => e.categoryName == _sport,
+                      orElse: () => const EventSummary(
+                          id: '', title: '', slug: ''))
+                  .categoryId;
           final panelList = _range == 'live'
               ? liveList
               : _range == 'today'
@@ -196,6 +207,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     _calendarPanel(context, p, panelList, liveList, todayList,
                         upcomingList, all),
 
+                  // AdMob native (Android). Takes no space until it fills.
+                  const AdMobNativeCard(padding: EdgeInsets.only(top: 14)),
+
+                  // Discovery. Below the player's own calendar and above the
+                  // ads — it's the answer to "nothing on this week", which is
+                  // exactly when someone opens Home and leaves. Rendered on
+                  // the empty path too: a brand-new account needs it most.
+                  const SizedBox(height: 18),
+                  SuggestedEventsSection(categoryId: sportCategoryId),
+
                   const SizedBox(height: 10),
                   const AdDisplay(slots: ['home_ads'], carousel: true),
                   // Past events (hidden when the whole feed is empty —
@@ -219,7 +240,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         mainAxisSpacing: 10,
                         crossAxisSpacing: 10,
                         children: [
-                          for (final e in past) EventTileSquare(event: e),
+                          // Your record there, not the event's scoresheet;
+                          // the event is one deliberate tap further in.
+                          for (final e in past)
+                            EventTileSquare(
+                              event: e,
+                              onTap: me?.userId == null
+                                  ? null
+                                  : () => context.push(e.isTournament
+                                      ? '/players/${me!.userId}/tournaments/${e.id}'
+                                      : '/players/${me!.userId}/events/${e.id}'),
+                            ),
                         ],
                       ),
                   ],

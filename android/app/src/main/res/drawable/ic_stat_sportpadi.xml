@@ -1,0 +1,19 @@
+<!-- Status-bar notification icon. Android masks this to a flat silhouette, so
+     it must be a single-colour shape on transparency: any colour or gradient
+     here would come out as a white blob. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFFFF">
+    <!-- Ring -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M12,2C6.477,2 2,6.477 2,12s4.477,10 10,10 10,-4.477 10,-10S17.523,2 12,2zM12,4.2c4.308,0 7.8,3.492 7.8,7.8s-3.492,7.8 -7.8,7.8S4.2,16.308 4.2,12 7.692,4.2 12,4.2z" />
+    <!-- Centre panel -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,7.4l3.4,2.47 -1.3,4h-4.2l-1.3,-4z" />
+</vector>

@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAikqwogXopWTzig35yJ8SMwedzciYxPCI',
-    appId: '1:912400814442:android:668c38f4a2da069e67d513',
+    appId: '1:912400814442:android:27917f3ee3b738c867d513',
     messagingSenderId: '912400814442',
     projectId: 'sportpadi',
     storageBucket: 'sportpadi.firebasestorage.app',
@@ -59,10 +59,10 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAoYvAApIW9815CPIa2Zx56oJkKtPL7_q4',
-    appId: '1:912400814442:ios:0f6192fcb72be2e067d513',
+    appId: '1:912400814442:ios:a6488fed9b14246567d513',
     messagingSenderId: '912400814442',
     projectId: 'sportpadi',
     storageBucket: 'sportpadi.firebasestorage.app',
-    iosBundleId: 'com.sportpadi.sportpadiMobile',
+    iosBundleId: 'com.sportpadi.app',
   );
 }

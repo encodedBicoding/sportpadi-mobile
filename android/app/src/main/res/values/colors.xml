@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#EBF0ED</color>
+    <!-- Tint Android applies to the status-bar notification icon. -->
+    <color name="sp_notification">#FF6B2C</color>
 </resources>

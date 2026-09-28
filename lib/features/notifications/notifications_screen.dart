@@ -2,38 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:sportpadi_mobile/core/links/link_resolver.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/notifications/notification_models.dart';
 import 'package:sportpadi_mobile/data/notifications/notifications_repository.dart';
+import 'package:sportpadi_mobile/features/notifications/notification_permission_sheet.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
-  /// Notification `url`s are web paths — translate to the closest mobile
-  /// route. Null = nowhere sensible to go (the tap still marks it read).
-  static String? resolveUrl(String? url) {
-    if (url == null || url.isEmpty) return null;
-    final path = url.startsWith('http') ? Uri.tryParse(url)?.path ?? url : url;
-    RegExpMatch? m;
-    // Group money pages → the native wallet/tickets screens.
-    m = RegExp(r'^/groups/([^/]+)/wallet(/approvals)?').firstMatch(path);
-    if (m != null) return '/groups/${m.group(1)}/wallet';
-    m = RegExp(r'^/groups/([^/]+)/tickets').firstMatch(path);
-    if (m != null) return '/groups/${m.group(1)}/tickets';
-    // Anything else group-scoped → the group page.
-    m = RegExp(r'^/groups/([^/]+)').firstMatch(path);
-    if (m != null) return '/groups/${m.group(1)}';
-    // A single receipt → My purchases (the QR sheet lives there).
-    if (path.startsWith('/tickets')) return '/tickets';
-    if (path.startsWith('/fines')) return '/fines';
-    m = RegExp(r'^/events/([^/]+)').firstMatch(path);
-    if (m != null) return '/events/${m.group(1)}';
-    if (path.startsWith('/my-qr')) return '/my-qr';
-    return null;
-  }
+  /// Where a notification's web URL lands in the app. Null = nowhere sensible
+  /// to go (the tap still marks it read).
+  ///
+  /// Thin wrapper over the shared resolver in core/links: deep links opened
+  /// from outside the app go through the same function, and when these were
+  /// two separate copies one of them always ended up a few routes behind.
+  static String? resolveUrl(String? url) => resolveLinkRoute(url);
 
   Future<void> _open(
       BuildContext context, WidgetRef ref, AppNotification n) async {
@@ -45,77 +33,13 @@ class NotificationsScreen extends ConsumerWidget {
         ref.invalidate(unreadCountProvider);
       });
     }
-    final dest = resolveUrl(n.url);
-    if (dest != null) {
-      if (context.mounted) context.push(dest);
-    } else if (n.body != null && n.body!.isNotEmpty) {
-      // No destination — show the FULL message in a scrollable sheet, so
-      // long announcements are never cut off.
-      if (!context.mounted) return;
-      final p = context.palette;
-      await showModalBottomSheet<void>(
-        context: context,
-        backgroundColor: p.bg,
-        isScrollControlled: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-        ),
-        builder: (ctx) => SafeArea(
-          child: Container(
-            constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(ctx).size.height * 0.85),
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 14),
-                    decoration: BoxDecoration(
-                      color: p.line,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                Text(n.title,
-                    style: TextStyle(
-                        color: p.ink,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800)),
-                const SizedBox(height: 4),
-                Text(timeAgo(n.createdAt),
-                    style: TextStyle(color: p.muted, fontSize: 12)),
-                const SizedBox(height: 12),
-                Flexible(
-                  child: SingleChildScrollView(
-                    child: Text(n.body!,
-                        style: TextStyle(
-                            color: p.ink,
-                            fontSize: 14.5,
-                            height: 1.55)),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: p.accent,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text('Close'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
+    // Always open the full, scrollable message first; its "Open" button
+    // takes the user to the destination when there is one. (Jumping
+    // straight to the destination meant long messages could never be read.)
+    if (!context.mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => NotificationDetailScreen(notification: n),
+    ));
   }
 
   @override
@@ -124,6 +48,7 @@ class NotificationsScreen extends ConsumerWidget {
     final p = context.palette;
     return Scaffold(
       appBar: AppBar(
+        leading: const SpLeading(),
         title: const Text('Notifications'),
         actions: [
           TextButton(
@@ -136,7 +61,10 @@ class NotificationsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: RefreshIndicator(
+      body: Column(children: [
+        const NotificationsOffBanner(),
+        Expanded(
+          child: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(unreadCountProvider);
           return ref.refresh(notificationsFeedProvider.future);
@@ -179,10 +107,11 @@ class NotificationsScreen extends ConsumerWidget {
                             Text(n.title,
                                 style: const TextStyle(
                                     fontWeight: FontWeight.w600, fontSize: 14)),
-                            if (n.body != null && n.body!.isNotEmpty)
+                            if ((n.fullBody ?? n.body) != null &&
+                                (n.fullBody ?? n.body)!.isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.only(top: 2),
-                                child: Text(n.body!,
+                                child: Text((n.fullBody ?? n.body)!,
                                     maxLines: 3,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
@@ -194,9 +123,8 @@ class NotificationsScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      if (resolveUrl(n.url) != null)
-                        Icon(Icons.chevron_right_rounded,
-                            size: 18, color: p.muted),
+                      Icon(Icons.chevron_right_rounded,
+                          size: 18, color: p.muted),
                     ],
                   ),
                 );
@@ -204,6 +132,83 @@ class NotificationsScreen extends ConsumerWidget {
             );
           },
         ),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+/// Full notification: title, time, the complete message (scrollable), and an
+/// "Open" action when the notification points somewhere.
+class NotificationDetailScreen extends StatelessWidget {
+  const NotificationDetailScreen({super.key, required this.notification});
+  final AppNotification notification;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final n = notification;
+    final dest = NotificationsScreen.resolveUrl(n.url);
+    final text = n.fullBody ?? n.body ?? '';
+    return Scaffold(
+      appBar: AppBar(
+        leading: const SpLeading(),
+        backgroundColor: p.bg,
+        surfaceTintColor: p.bg,
+        title: const Text('Notification',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+      ),
+      body: SafeArea(
+        child: Column(children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(n.title,
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          height: 1.3)),
+                  const SizedBox(height: 4),
+                  Text(
+                    n.createdAt != null
+                        ? '${timeAgo(n.createdAt)} · ${formatDayYear(n.createdAt)}'
+                        : '',
+                    style: TextStyle(color: p.muted, fontSize: 12),
+                  ),
+                  const SizedBox(height: 16),
+                  if (text.isNotEmpty)
+                    SelectableText(text,
+                        style: TextStyle(
+                            color: p.ink, fontSize: 15, height: 1.55))
+                  else
+                    Text('No further details.',
+                        style: TextStyle(color: p.muted, fontSize: 13)),
+                ],
+              ),
+            ),
+          ),
+          if (dest != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => context.push(dest),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: p.accent,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                  ),
+                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                  label: const Text('Open'),
+                ),
+              ),
+            ),
+        ]),
       ),
     );
   }

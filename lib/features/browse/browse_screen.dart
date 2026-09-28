@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:sportpadi_mobile/core/ads/admob.dart';
 import 'package:sportpadi_mobile/core/location/location_provider.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/event_models.dart';
@@ -230,18 +231,24 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
     final showResults = _search.text.trim().length >= 2;
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false, // bottom-nav tab, not a pushed page
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
         title: const Text('Browse',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
       ),
       body: Column(children: [
+        // Sponsored (zero-height when no ads). Must live in the Column, not
+        // the search Row: a Row gives it unbounded width and the frame
+        // can't lay out.
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 4, 16, 0),
+          child: AdDisplay(slots: ['home_ads'], carousel: true),
+        ),
         // Search bar + find-your-event
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
           child: Row(children: [
-            const AdDisplay(slots: ['home_ads'], carousel: true),
-            const SizedBox(height: 10),
             Expanded(
               child: TextField(
                 controller: _search,
@@ -554,39 +561,77 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
         ),
       );
     }
+    // The grid is cut into runs of [_adEvery] tiles with a full-width AdMob
+    // native card between runs (Android only; on iOS the card is empty and
+    // the runs simply abut). Slivers rather than one GridView.builder because
+    // a fixed-column grid can't host a cell that spans both columns.
+    const gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 2,
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      childAspectRatio: 0.88,
+    );
+    Widget tile(EventSummary e) => Column(children: [
+          Expanded(child: EventTileSquare(event: e)),
+          if (e.distanceMiles != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text('${e.distanceMiles} mi away',
+                  style: TextStyle(color: p.muted, fontSize: 9.5)),
+            ),
+        ]);
+
+    final slivers = <Widget>[];
+    for (var start = 0; start < _items.length; start += _adEvery) {
+      final run = _items.sublist(
+          start, (start + _adEvery).clamp(0, _items.length));
+      if (start > 0) {
+        slivers.add(SliverToBoxAdapter(
+          child: AdMobNativeCard(
+            // Keyed by position so a longer list doesn't hand a recycled
+            // (disposed) ad to a new slot.
+            key: ValueKey('browse-ad-$start'),
+            padding: const EdgeInsets.symmetric(vertical: 10),
+          ),
+        ));
+      }
+      slivers.add(SliverGrid(
+        gridDelegate: gridDelegate,
+        delegate: SliverChildBuilderDelegate(
+          (context, i) => tile(run[i]),
+          childCount: run.length,
+        ),
+      ));
+    }
+    if (_nextCursor != null) {
+      slivers.add(const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 18),
+          child: Center(
+            child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2)),
+          ),
+        ),
+      ));
+    }
+
     return RefreshIndicator(
       onRefresh: () => _loadMore(reset: true),
-      child: GridView.builder(
+      child: CustomScrollView(
         controller: _scroll,
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: 0.88,
-        ),
-        itemCount: _items.length + (_nextCursor != null ? 1 : 0),
-        itemBuilder: (context, i) {
-          if (i >= _items.length) {
-            return const Center(
-              child: SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2)),
-            );
-          }
-          final e = _items[i];
-          return Column(children: [
-            Expanded(child: EventTileSquare(event: e)),
-            if (e.distanceMiles != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text('${e.distanceMiles} mi away',
-                    style: TextStyle(color: p.muted, fontSize: 9.5)),
-              ),
-          ]);
-        },
+        slivers: [
+          const SliverPadding(padding: EdgeInsets.only(top: 4)),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            sliver: SliverMainAxisGroup(slivers: slivers),
+          ),
+        ],
       ),
     );
   }
+
+  /// Tiles between native ads in the Browse grid.
+  static const _adEvery = 8;
 }

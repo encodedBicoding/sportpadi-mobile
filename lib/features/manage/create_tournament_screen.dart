@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/category_dropdown.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 class CreateTournamentScreen extends ConsumerStatefulWidget {
   const CreateTournamentScreen({super.key, required this.groupId});
@@ -129,7 +130,7 @@ class _CreateTournamentScreenState extends ConsumerState<CreateTournamentScreen>
       orElse: () => const <TeamSummary>[],
     );
     return Scaffold(
-      appBar: AppBar(title: const Text('New tournament')),
+      appBar: AppBar(leading: const SpLeading(), title: const Text('New tournament')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

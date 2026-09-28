@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
 import 'package:sportpadi_mobile/data/games/games_repository.dart';
@@ -11,6 +12,7 @@ import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
 import 'package:sportpadi_mobile/features/games/officiant_panel.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 /// Live game screen — a faithful port of the web GameClient layout:
 /// scoreboard card with the clock strip, draw-resolution + shootout cards,
@@ -25,6 +27,7 @@ class GameScreen extends ConsumerWidget {
     final game = ref.watch(liveGameProvider(gameId));
     return Scaffold(
       appBar: AppBar(
+        leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
         title: Text(
@@ -913,7 +916,7 @@ class _Lineups extends StatelessWidget {
   }
 }
 
-class _LineupCard extends StatelessWidget {
+class _LineupCard extends ConsumerStatefulWidget {
   const _LineupCard({
     required this.game,
     required this.team,
@@ -928,10 +931,50 @@ class _LineupCard extends StatelessWidget {
   final Set<String> subbedOff;
 
   @override
+  ConsumerState<_LineupCard> createState() => _LineupCardState();
+}
+
+class _LineupCardState extends ConsumerState<_LineupCard> {
+  bool _busy = false;
+
+  /// Move a player between the starting line-up and the bench BEFORE kick-off.
+  /// Nothing is written to the match timeline — a scheduled game has no
+  /// participants yet, so this edits the team sheet the kick-off seeds from.
+  Future<void> _move(String teamId, GamePlayer x) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(gamesRepositoryProvider).setLineup(
+            widget.game.id,
+            teamId: teamId,
+            playerOffId: x.onField ? x.playerId : null,
+            playerOnId: x.onField ? null : x.playerId,
+          );
+      await ref.read(liveGameProvider(widget.game.id).notifier).refresh();
+    } on ApiException catch (e) {
+      if (mounted) _snack(e.message);
+    } catch (e) {
+      if (mounted) _snack('$e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _snack(String msg) => ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(msg)));
+
+  @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final g = game;
-    final t = team;
+    final g = widget.game;
+    final t = widget.team;
+    final started = widget.started;
+    final subbedIn = widget.subbedIn;
+    final subbedOff = widget.subbedOff;
+    // Before kick-off a group admin picks the side player by player. Once the
+    // whistle goes, changes are match substitutions and go through the
+    // officiant panel (which records the minute).
+    final canPick = !started && g.canManageLineup;
     final lineup = started
         ? g.participants.where((x) => x.teamId == t.teamId).toList()
         : [
@@ -990,8 +1033,26 @@ class _LineupCard extends StatelessWidget {
             badge('SENT OFF', p.danger)
           else if (!x.onField && subbedOff.contains(x.playerId))
             badge('▼ OFF', p.muted)
-          else if (!x.onField)
+          else if (!x.onField && !canPick)
             badge('SUB', p.muted),
+          if (canPick) ...[
+            const SizedBox(width: 2),
+            InkWell(
+              onTap: _busy ? null : () => _move(t.teamId, x),
+              borderRadius: BorderRadius.circular(999),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                child: Text(
+                  x.onField ? '▼ BENCH' : '▲ START',
+                  style: TextStyle(
+                      color: _busy ? p.muted : p.accent,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ],
         ]),
       );
     }
@@ -1031,7 +1092,10 @@ class _LineupCard extends StatelessWidget {
             ]),
           ),
           const SizedBox(height: 8),
-          Text('ON THE PITCH (${onPitch.length})',
+          Text(
+              started
+                  ? 'ON THE PITCH (${onPitch.length})'
+                  : 'STARTING LINE-UP (${onPitch.length}/${g.maxPlayersPerTeam})',
               style: TextStyle(
                   color: p.muted,
                   fontSize: 9,
@@ -1045,7 +1109,7 @@ class _LineupCard extends StatelessWidget {
             for (final x in onPitch) row(x),
           if (offPitch.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text('BENCH & OUT (${offPitch.length})',
+            Text(started ? 'BENCH & OUT (${offPitch.length})' : 'BENCH (${offPitch.length})',
                 style: TextStyle(
                     color: p.muted,
                     fontSize: 9,
@@ -1053,6 +1117,14 @@ class _LineupCard extends StatelessWidget {
                     letterSpacing: 0.6)),
             const SizedBox(height: 3),
             for (final x in offPitch) row(x),
+          ],
+          if (canPick) ...[
+            const SizedBox(height: 8),
+            Text(
+                'Set the side before kick-off — after that, changes are logged '
+                'as substitutions.',
+                style:
+                    TextStyle(color: p.muted, fontSize: 10, height: 1.35)),
           ],
         ],
       ),

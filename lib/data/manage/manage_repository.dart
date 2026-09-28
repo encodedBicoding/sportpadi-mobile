@@ -5,6 +5,7 @@ import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/data/manage/manage_models.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
+import 'package:sportpadi_mobile/shared/format/parse.dart';
 
 class ManageRepository {
   ManageRepository(this._dio);
@@ -170,17 +171,61 @@ class ManageRepository {
     }
   }
 
-  Future<void> respondInvite(String ttId, String action) async {
+  /// Every unanswered tournament invite waiting on this user, across every
+  /// group they administer.
+  Future<List<TournamentInvite>> myInvites() async {
     try {
-      await _dio.post('/api/mobile/tournament-invites/$ttId/respond', data: {'action': action});
+      final res = await _dio.get('/api/mobile/tournament-invites');
+      final list = res.data is List ? res.data as List : const [];
+      return [
+        for (final e in list)
+          TournamentInvite.fromJson(Map<String, dynamic>.from(e as Map)),
+      ];
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load invitations.');
+    }
+  }
+
+  /// Returns the resulting status: `approved`, `rejected`, or
+  /// `payment_required` when the tournament charges an entry fee that hasn't
+  /// been paid — in which case call [payInvite] and send the user to checkout.
+  Future<String> respondInvite(String ttId, String action) async {
+    try {
+      final res = await _dio.post(
+        '/api/mobile/tournament-invites/$ttId/respond',
+        data: {'action': action},
+      );
+      final d = res.data;
+      return d is Map ? '${d['status'] ?? 'approved'}' : 'approved';
     } catch (e) {
       throw apiError(e, fallback: 'Could not respond to the invite.');
+    }
+  }
+
+  /// Hosted-checkout URL for a paid tournament's entry fee.
+  Future<String> payInvite(String ttId) async {
+    try {
+      final res = await _dio.post('/api/mobile/tournament-invites/$ttId/pay');
+      final d = res.data;
+      final url = d is Map ? parseStr(d['url']) : null;
+      if (url == null || url.isEmpty) {
+        throw ApiException('Could not start the payment.');
+      }
+      return url;
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not start the payment.');
     }
   }
 }
 
 final manageRepositoryProvider =
     Provider<ManageRepository>((ref) => ManageRepository(ref.watch(dioProvider)));
+
+/// Tournament invitations waiting on the signed-in user.
+final myTournamentInvitesProvider =
+    FutureProvider<List<TournamentInvite>>((ref) async {
+  return ref.watch(manageRepositoryProvider).myInvites();
+});
 
 final categoriesProvider =
     FutureProvider<List<Category>>((ref) => ref.watch(manageRepositoryProvider).categories());

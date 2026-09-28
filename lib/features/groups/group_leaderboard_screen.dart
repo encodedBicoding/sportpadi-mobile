@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 /// Group leaderboard — rankings from completed games (web /leaderboard page):
 /// per sport category (switcher chips, soccer default), points (3/1/0),
@@ -56,6 +57,7 @@ class _GroupLeaderboardScreenState
     final group = ref.watch(groupProvider(groupId)).valueOrNull;
     return Scaffold(
       appBar: AppBar(
+        leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
         title: Column(

@@ -63,6 +63,32 @@ class AuthRepository {
     }
   }
 
+  /// Email verification (Better Auth email-otp plugin). Sends the 4-digit
+  /// code to the address on the account.
+  Future<void> sendVerificationCode(String email) async {
+    try {
+      await _dio.post('/api/auth/email-otp/send-verification-otp',
+          data: {'email': email, 'type': 'email-verification'});
+    } on DioException catch (e) {
+      throw _err(e);
+    }
+  }
+
+  /// Confirms the code. Returns the refreshed user (emailVerified = true).
+  Future<AuthUser?> verifyEmail({
+    required String email,
+    required String otp,
+  }) async {
+    try {
+      await _dio.post('/api/auth/email-otp/verify-email',
+          data: {'email': email, 'otp': otp});
+    } on DioException catch (e) {
+      throw _err(e);
+    }
+    // Re-read the session so `emailVerified` is authoritative, not assumed.
+    return currentUser();
+  }
+
   Future<void> signOut() async {
     try {
       await _dio.post('/api/auth/sign-out');

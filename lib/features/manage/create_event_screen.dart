@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/category_dropdown.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 class CreateEventScreen extends ConsumerStatefulWidget {
   const CreateEventScreen({super.key, required this.groupId});
@@ -94,7 +95,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   Widget build(BuildContext context) {
     final p = context.palette;
     return Scaffold(
-      appBar: AppBar(title: const Text('New event')),
+      appBar: AppBar(leading: const SpLeading(), title: const Text('New event')),
       body: Form(
         key: _form,
         child: ListView(

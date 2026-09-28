@@ -1,20 +1,26 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:sportpadi_mobile/core/env/app_config.dart';
+import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
-import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
-import 'package:sportpadi_mobile/data/groups/member_models.dart';
+import 'package:sportpadi_mobile/data/events/events_repository.dart' show myFeedProvider;
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
+import 'package:sportpadi_mobile/features/payments/checkout_flow.dart';
+import 'package:sportpadi_mobile/features/tournaments/live_scores_sync.dart';
+import 'package:sportpadi_mobile/features/tournaments/officiant_picker.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 /// Tournament page — a card-by-card port of the web page:
 /// header (badges + title + date/time/location + description), then for a
@@ -31,10 +37,32 @@ class TournamentDetailScreen extends ConsumerWidget {
     final p = context.palette;
     return Scaffold(
       appBar: AppBar(
+        leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
         title: const Text('Tournament',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        actions: [
+          // Anyone viewing can share — the web URL carries its own social
+          // card (title, date, venue, host, teams).
+          IconButton(
+            tooltip: 'Share',
+            icon: const Icon(Icons.share_outlined, size: 20),
+            onPressed: () {
+              final m = t.valueOrNull;
+              final event = m?['event'] is Map
+                  ? Map<String, dynamic>.from(m!['event'] as Map)
+                  : const <String, dynamic>{};
+              final groupId = event['groupId']?.toString();
+              if (groupId == null || groupId.isEmpty) return;
+              final base = ref.read(appConfigProvider).apiBaseUrl;
+              Clipboard.setData(ClipboardData(
+                  text: '$base/groups/$groupId/tournaments/$eventId'));
+              ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Link copied')));
+            },
+          ),
+        ],
       ),
       body: AsyncView(
         value: t,
@@ -52,6 +80,18 @@ class TournamentDetailScreen extends ConsumerWidget {
           final mode = parseStr(m['mode']) ?? 'friendly';
           final isFriendly = mode == 'friendly';
           final canManage = m['canManage'] == true;
+          // An invite this viewer can answer from right here — set by the
+          // server only when they administer the invited team's group.
+          final myInvite = m['myInvite'] is Map
+              ? Map<String, dynamic>.from(m['myInvite'] as Map)
+              : null;
+          // Teams in this tournament whose squad this viewer runs.
+          final myTeams = [
+            for (final raw in (m['myTeams'] is List ? m['myTeams'] as List : const []))
+              if (raw is Map && parseStr(raw['status']) == 'approved')
+                Map<String, dynamic>.from(raw)
+          ];
+          final hostGroupId = parseStr(event['groupId']) ?? '';
           final maxTeams = parseInt(m['maxTeams']) ?? 2;
           final feeLabel = _fmtMoney(
               m['feeMinor'], m['feeCurrency'], m['feeCurrencyExponent']);
@@ -95,6 +135,19 @@ class TournamentDetailScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
               children: [
+                // Invisible: keeps every live score on this page up to date.
+                LiveScoresSync(eventId: eventId),
+                if (myInvite != null) ...[
+                  _InviteBanner(
+                      eventId: eventId,
+                      groupId: hostGroupId,
+                      invite: myInvite),
+                  const SizedBox(height: 14),
+                ] else if (myTeams.isNotEmpty) ...[
+                  _MySquads(
+                      eventId: eventId, groupId: hostGroupId, teams: myTeams),
+                  const SizedBox(height: 14),
+                ],
                 _HeaderCard(event: event, mode: mode, status: status),
                 if (isFriendly) ...[
                   const SizedBox(height: 14),
@@ -137,6 +190,10 @@ class TournamentDetailScreen extends ConsumerWidget {
                   _AwardsCard(eventId: eventId),
                 ],
                 if (canManage) ...[
+                  if (!ended) ...[
+                    const SizedBox(height: 14),
+                    _EndTournamentCard(eventId: eventId, isFriendly: isFriendly),
+                  ],
                   const SizedBox(height: 14),
                   _ManageRow(
                       eventId: eventId,
@@ -182,6 +239,208 @@ int _pow10(int e) {
 
 /// Hand-rolled outline button (the *Button.icon constructors crash this
 /// Flutter build's semantics compiler).
+/// "Your team has been invited" — the accept/decline decision, shown on the
+/// tournament's own page. It used to live only on the guest group's
+/// Tournaments tab, so the one screen you'd go to in order to size a
+/// tournament up was the one screen where you couldn't answer it.
+class _InviteBanner extends ConsumerStatefulWidget {
+  const _InviteBanner(
+      {required this.eventId, required this.groupId, required this.invite});
+  final String eventId;
+
+  /// The HOST group — the first segment of the tournament's own address.
+  final String groupId;
+  final Map<String, dynamic> invite;
+
+  @override
+  ConsumerState<_InviteBanner> createState() => _InviteBannerState();
+}
+
+class _InviteBannerState extends ConsumerState<_InviteBanner> {
+  bool _busy = false;
+
+  void _snack(String msg) => ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(msg)));
+
+  Future<void> _respond(bool accept) async {
+    if (_busy) return;
+    if (!accept) {
+      // Irreversible: the host would have to invite the team again.
+      final sure = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Decline this invitation?'),
+          content: const Text(
+              "The host will be told your team isn't playing. They'd have to "
+              'invite you again to reverse it.'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Keep it')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Decline')),
+          ],
+        ),
+      );
+      if (sure != true) return;
+      if (!mounted) return;
+    }
+    setState(() => _busy = true);
+    try {
+      final id = parseStr(widget.invite['id']) ?? '';
+      final repo = ref.read(manageRepositoryProvider);
+      final status = await repo.respondInvite(id, accept ? 'approve' : 'reject');
+      if (status == 'payment_required') {
+        final url = await repo.payInvite(id);
+        if (!mounted) return;
+        final paid = await runHostedCheckout(context, url);
+        if (!paid) return;
+      } else if (mounted) {
+        _snack(status == 'approved'
+            ? 'Invitation accepted'
+            : 'Invitation declined');
+      }
+      ref.invalidate(tournamentDetailProvider(widget.eventId));
+      ref.invalidate(myTournamentInvitesProvider);
+      ref.invalidate(myTournamentsProvider);
+      // Accepting is the start of the work: go straight to calling the squad.
+      final teamId = parseStr(widget.invite['teamId']);
+      if (accept && teamId != null && mounted) {
+        context.push(
+            '/groups/${widget.groupId}/tournaments/${widget.eventId}/teams/$teamId');
+      }
+    } on ApiException catch (e) {
+      if (mounted) _snack(e.message);
+    } catch (e) {
+      if (mounted) _snack('$e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final teamName = parseStr(widget.invite['teamName']) ?? 'Your team';
+    final fee = _fmtMoney(widget.invite['feeMinor'],
+        widget.invite['feeCurrency'], widget.invite['feeCurrencyExponent']);
+    final owes = fee != null && parseStr(widget.invite['feeStatus']) != 'paid';
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: p.amber.withAlpha(16),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: p.amber.withAlpha(110)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('$teamName has been invited to this tournament',
+            style: TextStyle(
+                color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 4),
+        Text(
+          owes
+              ? "It won't appear on anyone's schedule until you accept. Accepting takes you to checkout for the $fee entry fee."
+              : "It won't appear on anyone's schedule until you accept.",
+          style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.35),
+        ),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(
+            child: SpButton(
+              label: _busy
+                  ? 'Sending…'
+                  : owes
+                      ? 'Pay $fee & accept'
+                      : 'Accept',
+              icon: Icons.check_rounded,
+              expand: true,
+              onTap: _busy ? null : () => _respond(true),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _busy ? null : () => _respond(false),
+              icon: const Icon(Icons.close_rounded, size: 16),
+              label: const Text('Decline'),
+            ),
+          ),
+        ]),
+      ]),
+    );
+  }
+}
+
+/// "Your squad" — the way into the tournament-scoped team page.
+///
+/// That page is where players get called and the formation for THIS event gets
+/// set, but the only route to it used to be knowing that a team crest
+/// elsewhere on the page was tappable. Anyone who runs a team here (group
+/// admin or coach) now gets it as an explicit card.
+class _MySquads extends StatelessWidget {
+  const _MySquads(
+      {required this.eventId, required this.groupId, required this.teams});
+  final String eventId;
+  final String groupId;
+  final List<Map<String, dynamic>> teams;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Column(children: [
+      for (final t in teams)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: p.accent.withAlpha(16),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: p.accent.withAlpha(90)),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Icon(Icons.shield_outlined, size: 18, color: p.accent),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${parseStr(t['name']) ?? 'Your team'} · your squad here',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 10),
+              Row(children: [
+                Expanded(
+                  child: SpButton(
+                    label: 'Call players',
+                    icon: Icons.campaign_rounded,
+                    expand: true,
+                    onTap: () => context.push(
+                        '/groups/$groupId/tournaments/$eventId/teams/${parseStr(t['teamId']) ?? ''}'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push(
+                        '/groups/$groupId/tournaments/$eventId/teams/${parseStr(t['teamId']) ?? ''}/formation'),
+                    icon: const Icon(Icons.grid_view_rounded, size: 16),
+                    label: const Text('Formation'),
+                  ),
+                ),
+              ]),
+            ]),
+          ),
+        ),
+    ]);
+  }
+}
+
 class _OutlineBtn extends StatelessWidget {
   const _OutlineBtn({
     required this.label,
@@ -338,7 +597,7 @@ class _MatchupCard extends ConsumerWidget {
     return GlassCard(
       child: Column(children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: _TeamCol(label: 'Host', row: hostRow)),
+          Expanded(child: _TeamCol(label: 'Host', row: hostRow, eventId: eventId)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Column(children: [
@@ -351,7 +610,7 @@ class _MatchupCard extends ConsumerWidget {
                       fontWeight: FontWeight.w800)),
             ]),
           ),
-          Expanded(child: _TeamCol(label: 'Guest', row: guestRow)),
+          Expanded(child: _TeamCol(label: 'Guest', row: guestRow, eventId: eventId)),
         ]),
         const SizedBox(height: 12),
         Container(
@@ -407,9 +666,10 @@ class _MatchupCard extends ConsumerWidget {
 }
 
 class _TeamCol extends StatelessWidget {
-  const _TeamCol({required this.label, required this.row});
+  const _TeamCol({required this.label, required this.row, required this.eventId});
   final String label;
   final Map<String, dynamic>? row;
+  final String eventId;
 
   @override
   Widget build(BuildContext context) {
@@ -473,9 +733,13 @@ class _TeamCol extends StatelessWidget {
     ]);
 
     if (teamId == null) return col;
+    // Open the team AS IT IS IN THIS TOURNAMENT (squad, event formation,
+    // games) — not its general profile.
+    final groupId = team != null ? parseStr(team['groupId']) : null;
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () => context.push('/teams/$teamId'),
+      onTap: () => context.push(
+          '/groups/${groupId ?? '-'}/tournaments/$eventId/teams/$teamId'),
       child: Padding(padding: const EdgeInsets.all(4), child: col),
     );
   }
@@ -559,8 +823,23 @@ class _MatchSection extends ConsumerWidget {
     final officiant = m['officiant'] is Map
         ? Map<String, dynamic>.from(m['officiant'] as Map)
         : null;
+    final officiants = m['officiants'] is List
+        ? [
+            for (final o in m['officiants'] as List)
+              if (o is Map) Map<String, dynamic>.from(o)
+          ]
+        : const <Map<String, dynamic>>[];
+    final confirmed =
+        officiants.where((o) => parseStr(o['status']) == 'approved').length;
+    final matchTeams = m['teams'] is List
+        ? [
+            for (final t in m['teams'] as List)
+              if (t is Map) Map<String, dynamic>.from(t)
+          ]
+        : const <Map<String, dynamic>>[];
     final canRespond = m['viewerCanRespond'] == true;
     final canOfficiate = m['viewerCanOfficiate'] == true;
+    final canAddOfficiants = m['canAddOfficiants'] == true;
     final isHostAdmin = m['isHostAdmin'] == true;
     final schedule = [
       if (parseStr(m['scheduledDate']) != null)
@@ -587,12 +866,21 @@ class _MatchSection extends ConsumerWidget {
       }
     }
 
-    final offStatus = officiant != null ? parseStr(officiant['status']) : null;
-
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Score first — on a live match it's the only thing most people
+          // open this page for.
+          if (matchTeams.isNotEmpty) ...[
+            _Scoreboard(
+              teams: matchTeams,
+              status: status,
+              clock: m['clock'],
+              scheduled: schedule.isEmpty ? 'TBD' : schedule,
+            ),
+            const SizedBox(height: 10),
+          ],
           Row(children: [
             SpBadge(
               status == 'live' ? '⚡ Live' : status,
@@ -646,33 +934,90 @@ class _MatchSection extends ConsumerWidget {
             Icon(Icons.flag_outlined, size: 15, color: p.muted),
             const SizedBox(width: 6),
             Expanded(
-              child: officiant != null
-                  ? Row(children: [
-                      Flexible(
-                        child: Text(
-                          'Officiant: ${parseStr(officiant['label']) ?? '—'}',
+              child: Text(
+                officiants.isEmpty
+                    ? 'Officiants'
+                    : 'Officiants ($confirmed/${officiants.length} confirmed)',
+                style: TextStyle(
+                    color: p.ink, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ),
+            if (canAddOfficiants && gameId != null)
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () async {
+                  final sent = await AddOfficiantsSheet.show(context,
+                      eventId: eventId,
+                      gameId: gameId,
+                      exclude: [
+                        for (final o in officiants)
+                          if (parseStr(o['userId']) != null)
+                            parseStr(o['userId'])!
+                      ]);
+                  if (sent) ref.invalidate(tournamentMatchProvider(eventId));
+                },
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.add_rounded, size: 16, color: p.accent),
+                    const SizedBox(width: 2),
+                    Text('Add',
+                        style: TextStyle(
+                            color: p.accent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+              ),
+          ]),
+          const SizedBox(height: 6),
+          if (officiants.isEmpty)
+            Text(
+              officiant != null
+                  ? parseStr(officiant['label']) ?? '—'
+                  : canAddOfficiants
+                      ? 'No one asked yet — anyone on SportPadi can officiate.'
+                      : 'No officiant assigned',
+              style: TextStyle(color: p.muted, fontSize: 12.5),
+            )
+          else
+            Column(children: [
+              for (final o in officiants)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 4),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: p.line),
+                  ),
+                  child: Row(children: [
+                    Expanded(
+                      child: Text(parseStr(o['label']) ?? 'Officiant',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               color: p.ink,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      SpBadge(
-                        offStatus ?? 'pending',
-                        tone: offStatus == 'approved'
-                            ? p.accent
-                            : offStatus == 'rejected'
-                                ? p.danger
-                                : p.amber,
-                      ),
-                    ])
-                  : Text('No officiant assigned',
-                      style: TextStyle(color: p.muted, fontSize: 13)),
-            ),
-          ]),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500)),
+                    ),
+                    const SizedBox(width: 6),
+                    SpBadge(
+                      parseStr(o['status']) == 'approved'
+                          ? 'confirmed'
+                          : parseStr(o['status']) == 'rejected'
+                              ? 'declined'
+                              : 'pending',
+                      tone: parseStr(o['status']) == 'approved'
+                          ? p.accent
+                          : parseStr(o['status']) == 'rejected'
+                              ? p.danger
+                              : p.amber,
+                    ),
+                  ]),
+                ),
+            ]),
           if (canRespond && gameId != null) ...[
             const SizedBox(height: 12),
             Row(children: [
@@ -762,6 +1107,119 @@ class _MatchSection extends ConsumerWidget {
 
 /// The web line-up clash block: a starter on both teams must be benched (or
 /// substituted) on one side before kickoff.
+/// Big centred scoreboard for one match — crest, name, score, state.
+/// Used at the top of the friendly match card; a live game shows the pulsing
+/// pip and the board clock instead of the kickoff time.
+class _Scoreboard extends StatelessWidget {
+  const _Scoreboard({
+    required this.teams,
+    required this.status,
+    required this.clock,
+    required this.scheduled,
+  });
+
+  final List<Map<String, dynamic>> teams;
+  final String status;
+  final dynamic clock;
+  final String scheduled;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    Map<String, dynamic>? home;
+    Map<String, dynamic>? away;
+    for (final t in teams) {
+      if (t['isHome'] == true && home == null) {
+        home = t;
+      } else {
+        away ??= t;
+      }
+    }
+    home ??= teams.isNotEmpty ? teams[0] : null;
+    away ??= teams.length > 1 ? teams[1] : null;
+    final live = status == 'live';
+    final showScore = live || status == 'completed';
+
+    Map<String, dynamic>? teamOf(Map<String, dynamic>? row) =>
+        row?['team'] is Map
+            ? Map<String, dynamic>.from(row!['team'] as Map)
+            : null;
+
+    Widget side(Map<String, dynamic>? row) {
+      final t = teamOf(row);
+      final name = t != null ? (parseStr(t['name']) ?? 'TBD') : 'TBD';
+      return Expanded(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Crest(
+            logoUrl: t != null ? parseStr(t['logoUrl']) : null,
+            kitPrimary: t != null ? parseStr(t['kitPrimary']) : null,
+            kitSecondary: t != null ? parseStr(t['kitSecondary']) : null,
+            label: name,
+            size: 44,
+          ),
+          const SizedBox(height: 6),
+          Text(name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: p.ink, fontSize: 12, fontWeight: FontWeight.w700)),
+        ]),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: live ? p.danger.withAlpha(13) : null,
+        border: Border.all(color: live ? p.danger.withAlpha(77) : p.line),
+      ),
+      child: Row(children: [
+        side(home),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(
+              showScore
+                  ? '${parseInt(home?['score']) ?? 0}–${parseInt(away?['score']) ?? 0}'
+                  : 'vs',
+              style: TextStyle(
+                  color: showScore ? p.ink : p.muted,
+                  fontSize: showScore ? 26 : 14,
+                  height: 1.1,
+                  fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 3),
+            if (live)
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                LivePip(color: p.danger),
+                const SizedBox(width: 4),
+                Text(matchClockText(clock) ?? 'LIVE',
+                    style: TextStyle(
+                        color: p.danger,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800)),
+              ])
+            else
+              Text(
+                status == 'completed'
+                    ? 'FULL TIME'
+                    : status == 'abandoned'
+                        ? 'ABANDONED'
+                        : scheduled,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: p.muted, fontSize: 10, fontWeight: FontWeight.w700),
+              ),
+          ]),
+        ),
+        side(away),
+      ]),
+    );
+  }
+}
+
 class _ConflictsBlock extends ConsumerWidget {
   const _ConflictsBlock({
     required this.eventId,
@@ -1027,8 +1485,10 @@ class _TeamsCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap:
-              teamId != null ? () => context.push('/teams/$teamId') : null,
+          onTap: teamId != null
+              ? () => context.push(
+                  '/groups/${parseStr(team?['groupId']) ?? hostGroupId ?? '-'}/tournaments/$eventId/teams/$teamId')
+              : null,
           child: Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -1273,18 +1733,31 @@ class _MatchesCard extends ConsumerWidget {
                         ? '${parseInt(home?['score']) ?? 0}–${parseInt(away?['score']) ?? 0}'
                         : 'vs',
                     style: TextStyle(
-                        color: showScore ? p.ink : p.muted,
-                        fontSize: showScore ? 14 : 11,
+                        color: status == 'live'
+                            ? p.danger
+                            : showScore
+                                ? p.ink
+                                : p.muted,
+                        fontSize: showScore ? 15 : 11,
                         fontWeight: FontWeight.w800),
                   ),
-                  Text(
-                    status == 'live'
-                        ? '⚡ LIVE'
-                        : status == 'completed'
-                            ? 'FT'
-                            : (schedule.isEmpty ? 'TBD' : schedule),
-                    style: TextStyle(color: p.muted, fontSize: 9),
-                  ),
+                  if (status == 'live')
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      LivePip(color: p.danger),
+                      const SizedBox(width: 3),
+                      Text(matchClockText(g['clock']) ?? 'LIVE',
+                          style: TextStyle(
+                              color: p.danger,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800)),
+                    ])
+                  else
+                    Text(
+                      status == 'completed'
+                          ? 'FT'
+                          : (schedule.isEmpty ? 'TBD' : schedule),
+                      style: TextStyle(color: p.muted, fontSize: 9),
+                    ),
                 ]),
               ),
               Expanded(
@@ -1492,6 +1965,107 @@ class _ManageRow extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
+// End the tournament — the TOURNAMENT entity, not a match. A live tournament
+// never closes on the clock (by design), so once the games are played the host
+// has to end it; otherwise it sits on everyone's calendar as "live"
+// indefinitely. Distinct from Cancel: results stand, nothing is refunded.
+// ---------------------------------------------------------------------------
+
+class _EndTournamentCard extends ConsumerWidget {
+  const _EndTournamentCard({required this.eventId, required this.isFriendly});
+  final String eventId;
+  final bool isFriendly;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = context.palette;
+    final kind = isFriendly ? 'friendly' : 'tournament';
+    final games = ref.watch(tournamentGamesProvider(eventId)).valueOrNull ??
+        const <Map<String, dynamic>>[];
+    final open = [
+      for (final g in games)
+        if (parseStr(g['status']) != 'completed' &&
+            parseStr(g['status']) != 'abandoned')
+          g
+    ];
+    final allDone = games.isNotEmpty && open.isEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: allDone ? p.amber.withAlpha(18) : p.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: allDone ? p.amber.withAlpha(120) : p.line),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(
+          allDone
+              ? 'All ${games.length} game${games.length == 1 ? '' : 's'} are done — end the $kind'
+              : 'This $kind is still open',
+          style: TextStyle(
+              color: p.ink, fontSize: 14, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          allDone
+              ? "Until you do, it stays on everyone's calendar as live."
+              : open.isNotEmpty
+                  ? '${open.length} game${open.length == 1 ? '' : 's'} still to play. Ending now finalises live games and abandons unplayed ones.'
+                  : "Ending it marks it finished and takes it off everyone's calendar.",
+          style: TextStyle(color: p.muted, fontSize: 12, height: 1.35),
+        ),
+        const SizedBox(height: 10),
+        SpButton(
+          label: 'End $kind',
+          icon: Icons.flag_outlined,
+          expand: true,
+          onTap: () => _confirmEnd(context, ref),
+        ),
+      ]),
+    );
+  }
+
+  Future<void> _confirmEnd(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('End this tournament?'),
+        content: const Text(
+            "It will be marked as finished and come off everyone's calendar and active list. "
+            'Results and stats stand as they are — nothing is refunded.\n\n'
+            '• A game that is live right now is finalised at its current score.\n'
+            '• A game that never kicked off is abandoned, so it can\'t become a '
+            'phantom 0–0 on the leaderboard.\n\n'
+            "This can't be undone."),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Keep it open')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('End it')),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(tournamentsRepositoryProvider).completeTournament(eventId);
+      messenger.showSnackBar(const SnackBar(content: Text('Tournament ended')));
+      ref.invalidate(tournamentDetailProvider(eventId));
+      ref.invalidate(tournamentMatchProvider(eventId));
+      ref.invalidate(tournamentGamesProvider(eventId));
+      ref.invalidate(myTournamentsProvider);
+      // The Home calendar is fed by myFeed — refresh it so the tournament
+      // leaves the "live" list right away rather than on the next open.
+      ref.invalidate(myFeedProvider);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Create match game sheet — the web dialog: (multi) home/away pick, optional
 // date/time, soccer match format, optional officiant search.
 // ---------------------------------------------------------------------------
@@ -1535,12 +2109,7 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
   bool _allowExtraTime = true;
   final _extraHalf = TextEditingController(text: '15');
   bool _allowPenalties = true;
-  String? _officiantId;
-  String _officiantLabel = '';
-  final _search = TextEditingController();
-  Timer? _debounce;
-  List<GroupMemberItem> _results = const [];
-  bool _searching = false;
+  List<PickedOfficiant> _officiants = const [];
   bool _saving = false;
 
   bool get _isSoccer {
@@ -1554,31 +2123,9 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _halfMinutes.dispose();
     _extraHalf.dispose();
-    _search.dispose();
     super.dispose();
-  }
-
-  void _onSearch(String q) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 350), () async {
-      if (q.trim().length < 2) {
-        if (mounted) setState(() => _results = const []);
-        return;
-      }
-      setState(() => _searching = true);
-      try {
-        final r =
-            await ref.read(groupsRepositoryProvider).searchUsers(q.trim());
-        if (mounted) setState(() => _results = r);
-      } catch (_) {
-        if (mounted) setState(() => _results = const []);
-      } finally {
-        if (mounted) setState(() => _searching = false);
-      }
-    });
   }
 
   Future<void> _pickDate() async {
@@ -1623,7 +2170,7 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
     final body = <String, dynamic>{
       if (isMulti) 'homeTournamentTeamId': _homeId,
       if (isMulti) 'awayTournamentTeamId': _awayId,
-      if (_officiantId != null) 'officiantUserId': _officiantId,
+      'officiantUserIds': [for (final o in _officiants) o.userId],
       'scheduledDate': _date,
       'scheduledTime': _time,
       if (_isSoccer)
@@ -1852,113 +2399,22 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
               ),
             ],
             const SizedBox(height: 12),
-            Text('Officiant (optional)',
+            Text('Officiants (optional, as many as you like)',
                 style: TextStyle(
                     color: p.muted,
                     fontSize: 12,
                     fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
-            if (_officiantId != null)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: p.line),
-                ),
-                child: Row(children: [
-                  Expanded(
-                    child: Text(_officiantLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: p.ink, fontSize: 13.5)),
-                  ),
-                  InkWell(
-                    onTap: () => setState(() {
-                      _officiantId = null;
-                      _officiantLabel = '';
-                    }),
-                    child: Text('Change',
-                        style: TextStyle(color: p.muted, fontSize: 12)),
-                  ),
-                ]),
-              )
-            else ...[
-              TextField(
-                controller: _search,
-                onChanged: _onSearch,
-                style: TextStyle(color: p.ink, fontSize: 13.5),
-                decoration: InputDecoration(
-                  isDense: true,
-                  hintText: 'Search anyone by name or @handle',
-                  hintStyle: TextStyle(color: p.muted, fontSize: 13),
-                  prefixIcon: Icon(Icons.search, size: 18, color: p.muted),
-                  suffixIcon: _searching
-                      ? const Padding(
-                          padding: EdgeInsets.all(10),
-                          child: SizedBox(
-                              width: 14,
-                              height: 14,
-                              child:
-                                  CircularProgressIndicator(strokeWidth: 2)),
-                        )
-                      : null,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 10),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: p.line)),
-                ),
-              ),
-              if (_search.text.trim().length >= 2) ...[
-                const SizedBox(height: 6),
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 170),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: p.line),
-                  ),
-                  child: _results.isEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Text('No one found.',
-                              style: TextStyle(
-                                  color: p.muted, fontSize: 12)),
-                        )
-                      : ListView(
-                          shrinkWrap: true,
-                          children: [
-                            for (final u in _results)
-                              ListTile(
-                                dense: true,
-                                title: Text(u.displayName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        color: p.ink, fontSize: 13.5)),
-                                subtitle: u.username != null
-                                    ? Text('@${u.username}',
-                                        style: TextStyle(
-                                            color: p.muted,
-                                            fontSize: 11))
-                                    : null,
-                                onTap: () => setState(() {
-                                  _officiantId = u.userId;
-                                  _officiantLabel = u.username != null
-                                      ? '${u.displayName} (@${u.username})'
-                                      : u.displayName;
-                                  _search.clear();
-                                  _results = const [];
-                                }),
-                              ),
-                          ],
-                        ),
-                ),
-              ],
-              const SizedBox(height: 4),
-              Text("They'll get a request to approve before they can run the game.",
-                  style: TextStyle(color: p.muted, fontSize: 11)),
-            ],
+            OfficiantPicker(
+              eventId: widget.eventId,
+              selected: _officiants,
+              onChanged: (v) => setState(() => _officiants = v),
+            ),
+            const SizedBox(height: 4),
+            Text(
+                'Anyone on SportPadi. Each person gets a request to approve '
+                'before they can run the game — you can add more later too.',
+                style: TextStyle(color: p.muted, fontSize: 11)),
             const SizedBox(height: 16),
             SpButton(
               label: _saving ? 'Creating…' : 'Create',

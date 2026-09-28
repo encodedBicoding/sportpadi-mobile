@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/features/payments/checkout_flow.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 /// My fines — active ones can be settled via hosted checkout.
 class MyFinesScreen extends ConsumerWidget {
@@ -19,6 +20,7 @@ class MyFinesScreen extends ConsumerWidget {
     final fines = ref.watch(myFinesProvider);
     return Scaffold(
       appBar: AppBar(
+        leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
         title: const Text('My fines',
