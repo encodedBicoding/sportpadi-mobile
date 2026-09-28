@@ -5,9 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
-import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
+import 'package:sportpadi_mobile/data/tournaments/squad_models.dart';
+import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 class _Pos {
   _Pos(this.x, this.y, this.starter);
@@ -140,9 +142,16 @@ class _StripesPainter extends CustomPainter {
 /// FormationPitch: category-driven surface markings, kit-coloured draggable
 /// tokens with captain badge and × bench control, position-aware bench chips,
 /// formation switcher and debounced auto-save.
+/// The pitch/court board. Two data sources:
+///   • a TOURNAMENT SQUAD ([eventId] set): the accepted players for that
+///     event; placements save to the squad — the only place formations live
+///     now (there is no general team formation any more);
+///   • legacy team mode ([eventId] null): read-only view of the old roster
+///     placements, kept so nothing crashes on old links.
 class FormationBoardScreen extends ConsumerStatefulWidget {
-  const FormationBoardScreen({super.key, required this.teamId});
+  const FormationBoardScreen({super.key, required this.teamId, this.eventId});
   final String teamId;
+  final String? eventId;
   @override
   ConsumerState<FormationBoardScreen> createState() =>
       _FormationBoardScreenState();
@@ -150,6 +159,7 @@ class FormationBoardScreen extends ConsumerStatefulWidget {
 
 class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
   TeamDetail? _team;
+  String? _tournamentTeamId; // squad mode only
   final Map<String, _Pos> _pos = {};
   String? _formationName;
   bool _loading = true;
@@ -170,9 +180,64 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
     super.dispose();
   }
 
+  /// Squad → the TeamDetail shape the board renders (memberId = squad row id).
+  TeamDetail _fromSquad(TournamentSquad sq) {
+    final cfg = Map<String, dynamic>.from(sq.formationConfig);
+    return TeamDetail(
+      id: sq.teamId,
+      name: sq.teamName,
+      username: sq.teamUsername,
+      logoUrl: sq.teamLogoUrl,
+      kitPrimary: sq.kitPrimary,
+      kitSecondary: sq.kitSecondary,
+      groupId: sq.teamGroupId,
+      formationName: sq.formationName,
+      canManage: sq.canManage && !sq.isOver,
+      formation: FormationConfig.fromJson(cfg),
+      members: [
+        for (final m in sq.accepted)
+          TeamMember(
+            memberId: m.id,
+            playerId: m.playerId,
+            displayName: m.name,
+            username: m.profile?.username,
+            avatarUrl: m.profile?.avatarUrl,
+            jerseyNumber: m.jerseyNumber,
+            positions: m.positions,
+            isStarter: m.isStarter,
+            isCaptain: m.isCaptain,
+            posX: m.posX,
+            posY: m.posY,
+          ),
+      ],
+    );
+  }
+
   Future<void> _load() async {
     try {
-      final t = await ref.read(teamDetailProvider(widget.teamId).future);
+      final TeamDetail t;
+      if (widget.eventId != null) {
+        final sq = await ref.read(
+            tournamentSquadProvider('${widget.eventId}|${widget.teamId}').future);
+        _tournamentTeamId = sq.tournamentTeamId;
+        t = _fromSquad(sq);
+      } else {
+        // Legacy: view-only (formations are per tournament now).
+        final base = await ref.read(teamDetailProvider(widget.teamId).future);
+        t = TeamDetail(
+          id: base.id,
+          name: base.name,
+          username: base.username,
+          logoUrl: base.logoUrl,
+          kitPrimary: base.kitPrimary,
+          kitSecondary: base.kitSecondary,
+          groupId: base.groupId,
+          formationName: base.formationName,
+          members: base.members,
+          formation: base.formation,
+          canManage: false,
+        );
+      }
       _pos.clear();
       for (final m in t.members) {
         // Unplaced starters default to centre so they appear on the pitch
@@ -229,12 +294,24 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
           },
     ];
     try {
-      await ref.read(manageRepositoryProvider).setFormation(
-            widget.teamId,
+      final eventId = widget.eventId;
+      final ttId = _tournamentTeamId;
+      if (eventId == null || ttId == null) return; // legacy view is read-only
+      await ref.read(tournamentsRepositoryProvider).setSquadFormation(
+            eventId,
+            ttId,
             formationName: _formationName,
-            placements: placements,
+            placements: [
+              for (final pl in placements)
+                {
+                  'squadId': pl['memberId'],
+                  'isStarter': pl['isStarter'],
+                  'posX': pl['posX'],
+                  'posY': pl['posY'],
+                },
+            ],
           );
-      ref.invalidate(teamDetailProvider(widget.teamId));
+      ref.invalidate(tournamentSquadProvider('$eventId|${widget.teamId}'));
       if (mounted) {
         setState(() {
           _dirty = false;
@@ -516,13 +593,13 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
     final team = _team;
     if (team == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Formation')),
+        appBar: AppBar(leading: const SpLeading(), title: const Text('Formation')),
         body: Center(child: Text(_error ?? 'Could not load the team.')),
       );
     }
     if (!team.formation.needsFormation) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Formation')),
+        appBar: AppBar(leading: const SpLeading(), title: const Text('Formation')),
         body: const Center(child: Text('This sport has no formation board.')),
       );
     }
@@ -536,6 +613,7 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
         title: const Text('Formation',

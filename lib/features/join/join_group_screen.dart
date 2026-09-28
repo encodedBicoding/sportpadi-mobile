@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 class JoinGroupScreen extends ConsumerStatefulWidget {
   const JoinGroupScreen({super.key, required this.groupId});
@@ -30,7 +31,7 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
     try {
       await ref.read(joinRepositoryProvider).joinGroup(widget.groupId);
       ref.invalidate(myGroupsProvider);
-      if (mounted) context.go('/groups/${widget.groupId}');
+      if (mounted) goWithHome(context, '/groups/${widget.groupId}');
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } finally {
@@ -45,7 +46,7 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
         ref.watch(authControllerProvider).value?.isAuthenticated ?? false;
     final p = context.palette;
     return Scaffold(
-      appBar: AppBar(title: const Text('Join group')),
+      appBar: AppBar(leading: const SpLeading(), title: const Text('Join group')),
       body: AsyncView(
         value: info,
         onRetry: () => ref.invalidate(groupJoinInfoProvider(widget.groupId)),
@@ -74,7 +75,7 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
               ],
               if (g.alreadyMember)
                 FilledButton(
-                  onPressed: () => context.go('/groups/${g.id}'),
+                  onPressed: () => goWithHome(context, '/groups/${g.id}'),
                   child: const Text('Go to group'),
                 )
               else if (signedIn)

@@ -72,6 +72,7 @@ class GroupDetail {
     this.eventsCount,
     this.canManage = false,
     this.isMember = false,
+    this.isOwner = false,
   });
 
   final String id;
@@ -86,6 +87,9 @@ class GroupDetail {
   final int? eventsCount;
   final bool canManage;
   final bool isMember;
+
+  /// The creator flag — what unlocks "transfer ownership".
+  final bool isOwner;
 
   bool get isVerified =>
       verificationBadge != null &&
@@ -105,6 +109,7 @@ class GroupDetail {
         eventsCount: (j['eventsCount'] as num?)?.toInt(),
         canManage: j['canManage'] == true,
         isMember: j['isMember'] == true,
+        isOwner: j['isOwner'] == true,
       );
 }
 

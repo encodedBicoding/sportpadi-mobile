@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -28,23 +29,42 @@ class AdDisplay extends ConsumerStatefulWidget {
   ConsumerState<AdDisplay> createState() => _AdDisplayState();
 }
 
-bool _personalizedThisRun = false;
+class _AdImage extends StatelessWidget {
+  const _AdImage({required this.ad});
+  final ServedAd ad;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final ratio = ad.aspectRatio;
+    final img = CachedNetworkImage(
+      imageUrl: ad.imageUrl,
+      width: double.infinity,
+      fit: ratio != null ? BoxFit.cover : BoxFit.fitWidth,
+      placeholder: (_, __) => AspectRatio(
+        aspectRatio: ratio ?? 3.2,
+        child: Container(color: p.surface2),
+      ),
+      errorWidget: (_, __, ___) => AspectRatio(
+        aspectRatio: ratio ?? 3.2,
+        child: Container(
+          color: p.surface2,
+          alignment: Alignment.center,
+          child: Text(ad.advertiserName ?? ad.altText ?? 'Sponsored',
+              style: TextStyle(color: p.muted, fontSize: 12)),
+        ),
+      ),
+    );
+    return ratio != null ? AspectRatio(aspectRatio: ratio, child: img) : img;
+  }
+}
 
 class _AdDisplayState extends ConsumerState<AdDisplay> {
   Timer? _spin;
   int _idx = 0;
   final _seen = <String>{};
-
-  @override
-  void initState() {
-    super.initState();
-    if (!_personalizedThisRun) {
-      _personalizedThisRun = true;
-      // Fire and forget; never blocks or prompts.
-      // ignore: unawaited_futures
-      ref.read(adsRepositoryProvider).personalizeIfPermitted();
-    }
-  }
+  // Personalisation happens inside servedAdsProvider (before the serve call),
+  // so location-targeted ads can match on the first render.
 
   @override
   void dispose() {
@@ -81,15 +101,11 @@ class _AdDisplayState extends ConsumerState<AdDisplay> {
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(children: [
-          AspectRatio(
-            aspectRatio: 3.2, // banner-ish; image covers
-            child: Image.network(
-              ad.imageUrl,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-            ),
-          ),
+          // Like the web unit (w-full h-auto): full width at the creative's
+          // own aspect ratio — never cropped. A "WxH" size pre-reserves the
+          // height so the layout doesn't jump; otherwise the image sizes
+          // itself once decoded.
+          _AdImage(ad: ad),
           Positioned(
             right: 6,
             top: 6,
@@ -117,6 +133,16 @@ class _AdDisplayState extends ConsumerState<AdDisplay> {
     final ads =
         ref.watch(servedAdsProvider(widget.slots.join(','))).valueOrNull;
     if (ads == null || ads.isEmpty) return const SizedBox.shrink();
+    // Safety net: an ad must never take a screen down. If a parent hands us
+    // unbounded width (a Row, a horizontal list) the frame can't lay out, so
+    // render nothing instead of throwing.
+    return LayoutBuilder(builder: (context, constraints) {
+      if (!constraints.hasBoundedWidth) return const SizedBox.shrink();
+      return _content(context, ads);
+    });
+  }
+
+  Widget _content(BuildContext context, List<ServedAd> ads) {
 
     if (!widget.carousel) {
       return Column(children: [
@@ -127,9 +153,11 @@ class _AdDisplayState extends ConsumerState<AdDisplay> {
       ]);
     }
 
-    _spin ??= Timer.periodic(widget.interval, (_) {
-      if (mounted) setState(() => _idx++);
-    });
+    if (ads.length > 1) {
+      _spin ??= Timer.periodic(widget.interval, (_) {
+        if (mounted) setState(() => _idx++);
+      });
+    }
     final p = context.palette;
     final current = ads[_idx % ads.length];
     return Column(children: [

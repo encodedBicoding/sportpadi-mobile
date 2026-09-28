@@ -2,12 +2,20 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Debug/Profile builds are signed with a DEVELOPMENT provisioning
-	     profile, which only authorises the development APNs environment.
-	     Declaring "production" here makes the profile and entitlement
-	     disagree, iOS refuses to register, and getAPNSToken() stays null.
-	     Release/TestFlight/App Store use Runner.entitlements (production). -->
 	<key>aps-environment</key>
 	<string>development</string>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<!-- Universal Links: taps on sportpadi.com links open the app instead
+		     of Safari, for the paths the AASA file lists. `applinks` needs the
+		     apex AND www, since either can be shared. -->
+		<string>applinks:sportpadi.com</string>
+		<string>applinks:www.sportpadi.com</string>
+		<!-- The debug build points at staging, so it claims that host too. -->
+		<string>applinks:test.sportpadi.com</string>
+		<!-- Lets iOS offer a password saved for sportpadi.com when signing in
+		     to the app. -->
+		<string>webcredentials:sportpadi.com</string>
+	</array>
 </dict>
 </plist>

@@ -99,6 +99,7 @@ class MyTournamentEntry {
     required this.title,
     this.eventDate,
     required this.tournamentStatus,
+    this.hostGroupId,
     this.hostGroupName,
     required this.teamId,
     required this.teamName,
@@ -113,6 +114,10 @@ class MyTournamentEntry {
   final String title;
   final DateTime? eventDate;
   final String tournamentStatus;
+
+  /// With [eventId] and [teamId], the address of this team's tournament-scoped
+  /// squad page: /groups/:hostGroupId/tournaments/:eventId/teams/:teamId
+  final String? hostGroupId;
   final String? hostGroupName;
   final String teamId;
   final String teamName;
@@ -129,6 +134,7 @@ class MyTournamentEntry {
         title: (j['title'] ?? 'Tournament') as String,
         eventDate: parseDate(j['eventDate']),
         tournamentStatus: (j['tournamentStatus'] ?? '') as String,
+        hostGroupId: parseStr(j['hostGroupId']),
         hostGroupName: parseStr(j['hostGroupName']),
         teamId: (j['teamId'] ?? '') as String,
         teamName: (j['teamName'] ?? 'Team') as String,

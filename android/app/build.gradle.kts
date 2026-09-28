@@ -20,6 +20,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // flutter_local_notifications uses java.time; older Android needs it
+        // desugared in.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
@@ -68,6 +71,14 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
+            // Flutter shrinks release builds with R8. The rules file keeps the
+            // handful of classes libraries reach by reflection (Room's
+            // generated WorkDatabase_Impl, pulled in by the Ads SDK, was the
+            // first casualty: release crashed on launch, debug was fine).
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
@@ -87,4 +98,8 @@ flutter {
 // builds and runs before Firebase is configured (push simply stays off).
 if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

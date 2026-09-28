@@ -341,6 +341,7 @@ class GameDetail {
     required this.activities,
     required this.schema,
     this.canManage = false,
+    this.canManageLineup = false,
     this.startedAt,
     this.endedAt,
     this.lifecycle,
@@ -348,6 +349,7 @@ class GameDetail {
     this.serverNow,
     this.fetchedAt,
     this.maxTeamsPerGame = 2,
+    this.maxPlayersPerTeam = 11,
     this.categoryName,
     this.categoryEmoji,
     this.eventSlug,
@@ -365,6 +367,11 @@ class GameDetail {
   final List<GameActivity> activities;
   final List<ActivityDef> schema;
   final bool canManage;
+
+  /// Group admin: may name the side before kick-off. Narrower than [canManage],
+  /// which also covers assigned officiants — picking the team is a manager's
+  /// call, running the scoresheet isn't.
+  final bool canManageLineup;
   final DateTime? startedAt;
   final DateTime? endedAt;
   final GameLifecycle? lifecycle;
@@ -375,6 +382,9 @@ class GameDetail {
   /// the serverNow offset so the match clock ticks between refetches.
   final DateTime? fetchedAt;
   final int maxTeamsPerGame;
+
+  /// How many players a side may field — caps the starting line-up.
+  final int maxPlayersPerTeam;
   final String? categoryName;
   final String? categoryEmoji;
   final String? eventSlug;
@@ -437,6 +447,7 @@ class GameDetail {
             ]
           : listOf(j['schema'], ActivityDef.fromJson),
       canManage: j['canManage'] == true,
+      canManageLineup: j['canManageLineup'] == true,
       startedAt: parseDate(j['startedAt']),
       endedAt: parseDate(j['endedAt']),
       lifecycle: lifecycle,
@@ -444,6 +455,7 @@ class GameDetail {
       serverNow: parseDate(j['serverNow']),
       fetchedAt: DateTime.now(),
       maxTeamsPerGame: parseInt(j['maxTeamsPerGame']) ?? 2,
+      maxPlayersPerTeam: parseInt(j['maxPlayersPerTeam']) ?? 11,
       categoryName: parseStr(j['categoryName']),
       categoryEmoji: parseStr(j['categoryEmoji']),
       eventSlug: parseStr(j['eventSlug']),

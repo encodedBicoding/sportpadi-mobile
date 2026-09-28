@@ -9,12 +9,15 @@ import 'package:sportpadi_mobile/data/manage/manage_models.dart';
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
+import 'package:sportpadi_mobile/data/tournaments/squad_models.dart';
+import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
 import 'package:sportpadi_mobile/data/groups/members_repository.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 /// Team page — mirrors the web team page: header + record, then scrollable
 /// tabs: Players (starters/subs, invite, add), Formation, Coaches, Games.
@@ -27,7 +30,7 @@ class TeamDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
-  int _tab = 0; // 0 players, 1 formation, 2 coaches, 3 games
+  int _tab = 0; // 0 players, 1 tournaments, 2 coaches, 3 games
 
   String get teamId => widget.teamId;
 
@@ -42,6 +45,7 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
     final team = ref.watch(teamDetailProvider(teamId));
     return Scaffold(
       appBar: AppBar(
+        leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
         title: Text(team.valueOrNull?.name ?? 'Team',
@@ -54,9 +58,11 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
         value: team,
         onRetry: _refetch,
         data: (t) {
+          // No general formation any more — formations live per tournament
+          // on the squad, which is what the Tournaments tab opens.
           final tabs = <(String, int)>[
             ('Players', 0),
-            if (t.formation.needsFormation) ('Formation', 1),
+            ('Tournaments', 1),
             ('Coaches', 2),
             ('Games', 3),
           ];
@@ -129,7 +135,7 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
                   if (_tab == 0)
                     _PlayersTab(team: t, onChanged: _refetch)
                   else if (_tab == 1)
-                    _FormationTab(team: t)
+                    _TournamentsTab(team: t)
                   else if (_tab == 2)
                     _CoachesTab(team: t)
                   else
@@ -243,8 +249,8 @@ class _PlayersTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
-    final starters = team.members.where((m) => m.isStarter).toList();
-    final subs = team.members.where((m) => !m.isStarter).toList();
+    // One roster pool: starters/subs are decided per tournament on the squad.
+    final roster = team.members;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -273,19 +279,9 @@ class _PlayersTab extends ConsumerWidget {
             ),
           )
         else ...[
-          const Eyebrow('Starters'),
+          Eyebrow('Roster (${roster.length})'),
           const SizedBox(height: 6),
-          if (starters.isEmpty)
-            Text('No starters set.',
-                style: TextStyle(color: p.muted, fontSize: 12.5))
-          else
-            for (final m in starters) _memberRow(context, ref, m),
-          if (subs.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            const Eyebrow('Substitutes'),
-            const SizedBox(height: 6),
-            for (final m in subs) _memberRow(context, ref, m),
-          ],
+          for (final m in roster) _memberRow(context, ref, m),
         ],
       ],
     );
@@ -483,7 +479,6 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
   late final TextEditingController _jersey = TextEditingController(
       text: widget.member.jerseyNumber?.toString() ?? '');
   late final List<String> _positions = List.of(widget.member.positions);
-  late bool _starter = widget.member.isStarter;
   bool _busy = false;
 
   @override
@@ -549,7 +544,6 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
                   Text(
                     [
                       if (m.username != null) '@${m.username}',
-                      m.isStarter ? 'Starter' : 'Substitute',
                       if (m.isCaptain) 'Captain',
                     ].join(' · '),
                     style: TextStyle(color: p.muted, fontSize: 12),
@@ -701,18 +695,9 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
                   ),
               ]),
             ],
+            // (No "Starter" switch: starters are picked per tournament on
+            // the squad's formation, not on the general roster.)
             const SizedBox(height: 12),
-            Row(children: [
-              Expanded(
-                child: Text('Starter',
-                    style: TextStyle(color: p.ink, fontSize: 13.5)),
-              ),
-              Switch(
-                value: _starter,
-                onChanged: (v) => setState(() => _starter = v),
-              ),
-            ]),
-            const SizedBox(height: 8),
             SpButton(
               label: _busy ? 'Saving…' : 'Save changes',
               expand: true,
@@ -726,7 +711,6 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
                               jerseyNumber:
                                   int.tryParse(_jersey.text.trim()),
                               positions: _positions,
-                              isStarter: _starter,
                             );
                       }, close: true),
             ),
@@ -802,49 +786,88 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
 // Formation tab — preview + open the interactive board.
 // ---------------------------------------------------------------------------
 
-class _FormationTab extends StatelessWidget {
-  const _FormationTab({required this.team});
+class _TournamentsTab extends ConsumerWidget {
+  const _TournamentsTab({required this.team});
   final TeamDetail team;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
-    final placed =
-        team.members.where((m) => m.posX != null && m.posY != null).length;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GlassCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(children: [
-                Icon(Icons.grid_view_rounded, size: 16, color: p.accent),
-                const SizedBox(width: 6),
-                Text(
-                  team.formationName ?? 'No formation set',
-                  style: TextStyle(
-                      color: p.ink,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700),
-                ),
-              ]),
+    final rows = ref.watch(teamTournamentsProvider(team.id));
+    return rows.when(
+      loading: () => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Center(child: Text('Loading…', style: TextStyle(color: p.muted, fontSize: 13))),
+      ),
+      error: (e, _) => Center(child: Text('$e', style: TextStyle(color: p.muted, fontSize: 13))),
+      data: (list) {
+        if (list.isEmpty) {
+          return GlassCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(children: [
+              Icon(Icons.emoji_events_outlined, size: 32, color: p.muted),
+              const SizedBox(height: 8),
+              Text('No tournaments yet',
+                  style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
               const SizedBox(height: 4),
               Text(
-                '$placed of ${team.formation.maxStarters} placed on the pitch.',
-                style: TextStyle(color: p.muted, fontSize: 12.5),
+                'When this team is invited to a friendly, league or tournament, its squad and formation for that event live here.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.4),
               ),
-            ],
+            ]),
+          );
+        }
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(
+            'Squads and formations are set per tournament — open one to call players, see who accepted, and set the line-up for that event.',
+            style: TextStyle(color: p.muted, fontSize: 12, height: 1.4),
           ),
-        ),
-        const SizedBox(height: 12),
-        SpButton(
-          label: team.canManage ? 'Open formation board' : 'View formation',
-          icon: Icons.sports_soccer_rounded,
-          expand: true,
-          onTap: () => context.push('/teams/${team.id}/formation'),
-        ),
-      ],
+          const SizedBox(height: 10),
+          for (final TeamTournamentEntry r in list)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: GlassCard(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                onTap: () => context.push(
+                    '/groups/${r.hostGroupId ?? team.groupId ?? '-'}/tournaments/${r.eventId}/teams/${team.id}'),
+                child: Row(children: [
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(r.eventTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
+                      Text(
+                        [
+                          r.kind,
+                          if (r.eventDate != null) formatDayYear(r.eventDate),
+                          if (r.categoryName != null) '${r.categoryEmoji ?? ''} ${r.categoryName}'.trim(),
+                          r.eventStatus,
+                        ].join(' · '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: p.muted, fontSize: 11.5),
+                      ),
+                      Text(
+                        '${r.accepted} in squad'
+                        '${r.pending > 0 ? ' · ${r.pending} awaiting reply' : ''}'
+                        '${r.starters > 0 ? ' · ${r.starters} starters' : ''}'
+                        '${r.formationName != null ? ' · ${r.formationName}' : ''}',
+                        style: TextStyle(color: p.muted, fontSize: 11.5),
+                      ),
+                    ]),
+                  ),
+                  if (r.status != 'approved' && r.role != 'host') ...[
+                    const SizedBox(width: 6),
+                    SpBadge(r.status, tone: p.amber),
+                  ],
+                  Icon(Icons.chevron_right_rounded, color: p.muted, size: 20),
+                ]),
+              ),
+            ),
+        ]);
+      },
     );
   }
 }

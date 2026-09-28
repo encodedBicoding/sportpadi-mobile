@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 class _MemberEdit {
   const _MemberEdit(this.positions, this.jersey, this.starter);
@@ -117,7 +118,7 @@ class ManageRosterScreen extends ConsumerWidget {
     final team = ref.watch(teamDetailProvider(teamId));
     final p = context.palette;
     return Scaffold(
-      appBar: AppBar(title: const Text('Manage squad')),
+      appBar: AppBar(leading: const SpLeading(), title: const Text('Manage squad')),
       floatingActionButton: team.maybeWhen(
         data: (t) => FloatingActionButton.extended(
           onPressed: () => _add(context, ref, t),

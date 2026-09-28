@@ -5,6 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 /// The player's personal QR — organizers scan it at the gate.
 class MyQrScreen extends ConsumerWidget {
@@ -16,6 +17,7 @@ class MyQrScreen extends ConsumerWidget {
     final me = ref.watch(meProvider);
     return Scaffold(
       appBar: AppBar(
+        leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
         title: const Text('My QR code',

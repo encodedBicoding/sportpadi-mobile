@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_tile_square.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 /// Per-group events page — upcoming / past toggle over a square-tile grid
 /// with paging (the web /groups/[id]/events page).
@@ -72,6 +73,7 @@ class _GroupEventsScreenState extends ConsumerState<GroupEventsScreen> {
     final group = ref.watch(groupProvider(widget.groupId)).valueOrNull;
     return Scaffold(
       appBar: AppBar(
+        leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
         title: Column(

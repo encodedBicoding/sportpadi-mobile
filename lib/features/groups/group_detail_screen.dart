@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
@@ -16,16 +15,21 @@ import 'package:sportpadi_mobile/data/groups/member_models.dart';
 import 'package:sportpadi_mobile/data/payments/payment_models.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
+import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournament_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
+import 'package:sportpadi_mobile/data/billing/iap_repository.dart';
 import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
+import 'package:sportpadi_mobile/features/groups/group_admin_sheets.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/emoji_badge.dart';
 import 'package:sportpadi_mobile/shared/widgets/entity_row.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 /// Group header geometry: cover banner height and how far the avatar/stats
 /// row hangs below it.
@@ -42,6 +46,7 @@ class GroupDetailScreen extends ConsumerWidget {
     final p = context.palette;
     return Scaffold(
       appBar: AppBar(
+        leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
       ),
@@ -384,11 +389,14 @@ class _HeaderState extends ConsumerState<_Header> {
   }
 }
 
-/// "+ New tournament" for every tier. Entitled groups go straight to the
-/// creation flow (same behaviour as web); gated groups get a neutral explainer
-/// while the server quietly emails the admin the upgrade info — out-of-app
-/// comms only, the app itself shows no upgrade CTA (app-store rules, uniform
-/// across platforms). Server-side enforcement still guards actual creation.
+/// "+ New tournament" for every group. Entitled groups go straight to the
+/// creation flow (same behaviour as web).
+///
+/// A gated group gets an explainer. On iOS that explainer offers the plan,
+/// because the plan is now an in-app purchase and pointing at it is exactly
+/// what Apple wants. On other platforms there is nothing to sell in-app, so it
+/// stays neutral and the server emails the admin out of band. Server-side
+/// enforcement still guards actual creation either way.
 void _handleNewTournament(BuildContext context, WidgetRef ref, String groupId) {
   final ov = ref.read(groupOverviewProvider(groupId)).valueOrNull;
   // Fail open when the overview hasn't resolved — the server still enforces.
@@ -397,23 +405,33 @@ void _handleNewTournament(BuildContext context, WidgetRef ref, String groupId) {
     context.push('/groups/$groupId/new-tournament');
     return;
   }
-  // Quiet nudge (server-throttled alongside the wallet one), then the modal.
-  ref
-      .read(walletRepositoryProvider)
-      .requestPlanEmail(groupId, topic: 'tournaments');
+  final canBuyInApp = IapRepository.supportedPlatform;
+  if (!canBuyInApp) {
+    // Quiet nudge (server-throttled alongside the wallet one), then the modal.
+    ref
+        .read(walletRepositoryProvider)
+        .requestPlanEmail(groupId, topic: 'tournaments');
+  }
   showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text("Tournaments aren't in this plan"),
+      title: const Text("Tournaments aren't enabled for this group"),
       content: const Text(
-          "This group's current plan doesn't include tournament events — "
-          'creating brackets or friendlies and inviting teams from other '
-          'groups.'),
+          'Tournament events — brackets, friendlies and inviting teams from '
+          "other groups — aren't switched on for this group yet."),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: const Text('OK'),
+          child: Text(canBuyInApp ? 'Not now' : 'OK'),
         ),
+        if (canBuyInApp)
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              context.push('/groups/$groupId/plan');
+            },
+            child: const Text('See plans'),
+          ),
       ],
     ),
   );
@@ -422,13 +440,6 @@ void _handleNewTournament(BuildContext context, WidgetRef ref, String groupId) {
 class _ManageMenu extends ConsumerWidget {
   const _ManageMenu({required this.groupId});
   final String groupId;
-
-  /// Plan upgrades stay on the web: they're a digital subscription, which
-  /// app-store rules would otherwise route through in-app billing.
-  Future<void> _openWeb(WidgetRef ref, String path) async {
-    final base = ref.read(appConfigProvider).apiBaseUrl;
-    await launchUrl(Uri.parse('$base$path'), mode: LaunchMode.externalApplication);
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -458,14 +469,11 @@ class _ManageMenu extends ConsumerWidget {
                 builder: (_) => _EditGroupSheet(groupId: groupId),
               );
               break;
-            case 'billing':
-              _openWeb(ref, '/groups/$groupId/billing');
-              break;
             case 'wallet':
               context.push('/groups/$groupId/wallet');
               break;
-            case 'fines':
-              _openWeb(ref, '/groups/$groupId/fines');
+            case 'plan':
+              context.push('/groups/$groupId/plan');
               break;
             case 'team':
               context.push('/groups/$groupId/new-team');
@@ -476,31 +484,59 @@ class _ManageMenu extends ConsumerWidget {
             case 'invites':
               context.push('/groups/$groupId/invites');
               break;
+            case 'fines':
+              context.push('/groups/$groupId/fines');
+              break;
+            case 'upgrade':
+              // Android: the plan is bought on the web (Stripe). Opened in a
+              // Custom Tab so the return trip lands back in the app.
+              final base = ref.read(appConfigProvider).apiBaseUrl;
+              launchUrl(Uri.parse('$base/groups/$groupId/upgrade'),
+                  mode: LaunchMode.inAppBrowserView);
+              break;
             case 'promo':
-              showModalBottomSheet<void>(
-                context: context,
-                backgroundColor: Colors.transparent,
-                isScrollControlled: true,
-                builder: (_) => _PromoSheet(groupId: groupId),
-              );
+              showPromoCodesSheet(context, groupId);
+              break;
+            case 'transfer':
+              showTransferOwnershipSheet(context, groupId);
               break;
           }
         },
-        itemBuilder: (_) => [
-          _menuItem('link', Icons.link_rounded, 'Copy membership link'),
-          _menuItem('edit', Icons.edit_outlined, 'Edit group'),
-          _menuItem('billing', Icons.credit_card_rounded, 'Payment methods'),
-          _menuItem('wallet', Icons.account_balance_wallet_outlined, 'Wallet'),
-          _menuItem('fines', Icons.gavel_rounded, 'Fines'),
-          // No upgrade entry point in the app — plan changes are discovered via
-          // the web / email, never linked from here (app-store rules; uniform
-          // across platforms).
-          _menuItem('promo', Icons.redeem_rounded, 'Promo codes'),
-          const PopupMenuDivider(),
-          _menuItem('team', Icons.shield_outlined, 'New team'),
-          _menuItem('tournament', Icons.emoji_events_outlined, 'New tournament'),
-          _menuItem('invites', Icons.mail_outline_rounded, 'Tournament invites'),
-        ],
+        itemBuilder: (_) {
+          final ov = ref.read(groupOverviewProvider(groupId)).valueOrNull;
+          final isOwner = ref.read(groupProvider(groupId)).valueOrNull?.isOwner ?? false;
+          // Fail open while the overview loads — the server still enforces.
+          final canTournaments = ov?.canCreateTournaments ?? true;
+          final ios = IapRepository.supportedPlatform;
+          // The web menu, with two App Store exceptions: "Payment methods" is
+          // the Stripe card for the plan (Apple bills the plan on iOS) and a
+          // promo code that unlocks paid features is a 3.1.1 problem, so
+          // both are Android-only; the plan itself is the in-app purchase.
+          return [
+            _menuItem('link', Icons.link_rounded, 'Copy membership link'),
+            _menuItem('edit', Icons.edit_outlined, 'Edit group'),
+            _menuItem('wallet', Icons.account_balance_wallet_outlined, 'Wallet'),
+            _menuItem('fines', Icons.gavel_rounded, 'Fines'),
+            if (ios)
+              _menuItem('plan', Icons.workspace_premium_outlined, 'Group plan')
+            else
+              _menuItem('upgrade', Icons.workspace_premium_outlined, 'Upgrade plan'),
+            if (!ios)
+              _menuItem('promo', Icons.confirmation_number_outlined, 'Promo codes'),
+            if (isOwner)
+              _menuItem('transfer', Icons.swap_horiz_rounded, 'Transfer ownership'),
+            const PopupMenuDivider(),
+            _menuItem('team', Icons.shield_outlined, 'New team'),
+            // Tournaments are a plan feature. On a tier without them the
+            // item is offered only where tapping it can lead somewhere — the
+            // in-app plans screen on iOS. Elsewhere it's hidden, same as the
+            // web tab hides its button.
+            if (canTournaments || IapRepository.supportedPlatform)
+              _menuItem('tournament', Icons.emoji_events_outlined,
+                  canTournaments ? 'New tournament' : 'New tournament · plan'),
+            _menuItem('invites', Icons.mail_outline_rounded, 'Tournament invites'),
+          ];
+        },
       ),
     );
   }
@@ -513,199 +549,6 @@ class _ManageMenu extends ConsumerWidget {
         const SizedBox(width: 10),
         Text(label),
       ]),
-    );
-  }
-}
-
-/// Redeem + view promo codes — native version of the web GroupPromoDialog.
-class _PromoSheet extends ConsumerStatefulWidget {
-  const _PromoSheet({required this.groupId});
-  final String groupId;
-
-  @override
-  ConsumerState<_PromoSheet> createState() => _PromoSheetState();
-}
-
-class _PromoSheetState extends ConsumerState<_PromoSheet> {
-  final _code = TextEditingController();
-  bool _busy = false;
-  List<Map<String, dynamic>>? _promos;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  @override
-  void dispose() {
-    _code.dispose();
-    super.dispose();
-  }
-
-  Future<void> _load() async {
-    try {
-      final rows =
-          await ref.read(groupsRepositoryProvider).groupPromos(widget.groupId);
-      if (mounted) setState(() => _promos = rows);
-    } catch (_) {
-      if (mounted) setState(() => _promos = const []);
-    }
-  }
-
-  Future<void> _redeem() async {
-    final code = _code.text.trim();
-    if (code.isEmpty || _busy) return;
-    setState(() => _busy = true);
-    try {
-      await ref
-          .read(groupsRepositoryProvider)
-          .redeemPromo(widget.groupId, code);
-      _code.clear();
-      await _load();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Promo activated 🎉 Its features are live now.')));
-        ref.invalidate(groupProvider(widget.groupId));
-        ref.invalidate(groupOverviewProvider(widget.groupId));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e'.replaceFirst('Exception: ', ''))));
-      }
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    final promos = _promos;
-    return Container(
-      constraints:
-          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
-      decoration: BoxDecoration(
-        color: p.bg,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-          20, 18, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Icon(Icons.redeem_rounded, size: 20, color: p.accent),
-            const SizedBox(width: 8),
-            Text('Promo codes',
-                style: TextStyle(
-                    color: p.ink, fontSize: 17, fontWeight: FontWeight.w800)),
-          ]),
-          const SizedBox(height: 6),
-          Text(
-            'Redeem a code to unlock features or a plan for this group — no card needed.',
-            style: TextStyle(color: p.muted, fontSize: 12.5),
-          ),
-          const SizedBox(height: 14),
-          Row(children: [
-            Expanded(
-              child: TextField(
-                controller: _code,
-                textCapitalization: TextCapitalization.characters,
-                decoration: InputDecoration(
-                  hintText: 'Enter code…',
-                  isDense: true,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-                onSubmitted: (_) => _redeem(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            FilledButton(
-              onPressed: _busy ? null : _redeem,
-              style: FilledButton.styleFrom(
-                backgroundColor: p.accent,
-                // The app theme makes filled buttons full-width
-                // (minimumSize: Size.fromHeight(50)) — inside a Row that
-                // forces infinite width. Size to content here instead.
-                minimumSize: const Size(0, 48),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-              ),
-              child: _busy
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
-                  : const Text('Redeem'),
-            ),
-          ]),
-          const SizedBox(height: 16),
-          if (promos == null)
-            const Center(
-                child: Padding(
-              padding: EdgeInsets.all(12),
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ))
-          else if (promos.isEmpty)
-            Text('No promo codes redeemed yet.',
-                style: TextStyle(color: p.muted, fontSize: 12.5))
-          else
-            Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: promos.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (_, i) {
-                  final r = promos[i];
-                  final active = r['active'] == true;
-                  final code = (r['code'] ?? '') as String;
-                  final desc = r['description'] as String?;
-                  final ends = DateTime.tryParse('${r['endsAt'] ?? r['ends_at'] ?? ''}');
-                  return Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: p.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: active ? p.accent.withAlpha(102) : p.line),
-                    ),
-                    child: Row(children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(code,
-                                style: TextStyle(
-                                    color: p.ink,
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w800,
-                                    fontFamily: 'monospace')),
-                            if (desc != null && desc.isNotEmpty)
-                              Text(desc,
-                                  style: TextStyle(
-                                      color: p.muted, fontSize: 12)),
-                            if (ends != null)
-                              Text(
-                                  '${active ? 'Ends' : 'Ended'} ${ends.toLocal().toString().split(' ').first}',
-                                  style: TextStyle(
-                                      color: p.muted, fontSize: 11)),
-                          ],
-                        ),
-                      ),
-                      SpBadge(active ? 'Active' : 'Expired',
-                          tone: active ? p.accent : p.muted),
-                    ]),
-                  );
-                },
-              ),
-            ),
-        ],
-      ),
     );
   }
 }
@@ -906,9 +749,20 @@ class _TournamentsTab extends ConsumerWidget {
             ),
     );
     if (!canManage) return body;
+    // Web shows pending invites inline on this tab; on mobile they live on
+    // their own screen, so at least say how many are waiting — otherwise the
+    // only way to find them is a popup menu item with no badge on it.
+    final pending =
+        ref.watch(groupInvitesProvider(groupId)).valueOrNull ?? const [];
     // Every tier sees the button; _handleNewTournament decides what a tap
     // does (create flow vs neutral gated modal + quiet email nudge).
     return Column(children: [
+      if (pending.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: _PendingInvitesStrip(
+              groupId: groupId, count: pending.length),
+        ),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
         child: Align(
@@ -926,6 +780,46 @@ class _TournamentsTab extends ConsumerWidget {
       ),
       Expanded(child: body),
     ]);
+  }
+}
+
+/// "3 invitations waiting · Review" — the group Tournaments tab's pointer to
+/// the invites screen.
+class _PendingInvitesStrip extends StatelessWidget {
+  const _PendingInvitesStrip({required this.groupId, required this.count});
+  final String groupId;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return InkWell(
+      onTap: () => context.push('/groups/$groupId/invites'),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: p.amber.withAlpha(20),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: p.amber.withAlpha(100)),
+        ),
+        child: Row(children: [
+          Icon(Icons.mark_email_unread_outlined, size: 18, color: p.amber),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '$count tournament invitation${count == 1 ? '' : 's'} waiting',
+              style: TextStyle(
+                  color: p.ink, fontSize: 13, fontWeight: FontWeight.w700),
+            ),
+          ),
+          Text('Review',
+              style: TextStyle(
+                  color: p.muted, fontSize: 12, fontWeight: FontWeight.w700)),
+          Icon(Icons.chevron_right_rounded, size: 18, color: p.muted),
+        ]),
+      ),
+    );
   }
 }
 
@@ -1094,10 +988,9 @@ class _OverviewSection extends ConsumerWidget {
         if (canManage && ov != null) ...[
           const SizedBox(height: 8),
           Row(children: [
-            // Always visible to admins: locked groups get a neutral "not on
-            // your current plan" state so they know the wallet exists. Tapping
-            // opens the native wallet screen (its locked state quietly emails
-            // the admin the web plans link).
+            // Always visible to admins: locked groups get a neutral "not
+            // enabled" state so they know the wallet exists. Tapping opens the
+            // native wallet screen (its locked state quietly emails the admin).
             Expanded(
               child: _quickCard(
                 context,
@@ -1109,7 +1002,7 @@ class _OverviewSection extends ConsumerWidget {
                         : p.accent,
                 title: 'Wallet',
                 subtitle: ov.showUnlockBanner
-                    ? 'Not on your current plan'
+                    ? 'Not enabled for this group'
                     : ov.walletFrozen
                         ? 'Paused — view records'
                         : ov.walletActionNeeded

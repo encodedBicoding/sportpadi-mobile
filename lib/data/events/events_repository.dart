@@ -527,6 +527,36 @@ class EventsRepository {
     }
   }
 
+  /// "Events for you": upcoming public events in groups the user ISN'T in and
+  /// hasn't followed, ranked server-side, each carrying the reason it was
+  /// picked. Coordinates are optional — without them the ranking falls back to
+  /// sport and recency, so a declined location permission costs a signal, not
+  /// the section.
+  Future<List<EventSummary>> suggested({
+    double? lat,
+    double? lng,
+    String? categoryId,
+    int limit = 8,
+  }) async {
+    try {
+      final res = await _dio.get('/api/mobile/events/suggested',
+          queryParameters: {
+            'limit': limit,
+            if (lat != null) 'lat': lat,
+            if (lng != null) 'lng': lng,
+            if (categoryId != null) 'categoryId': categoryId,
+          });
+      final list = res.data is List ? res.data as List : const [];
+      return [
+        for (final e in list)
+          if (e is Map) EventSummary.fromJson(Map<String, dynamic>.from(e))
+      ];
+    } catch (_) {
+      // A suggestion shelf is a bonus, never a reason for Home to fail.
+      return const [];
+    }
+  }
+
   /// Sports that currently have events (Browse filter chips).
   Future<List<Map<String, dynamic>>> browseCategories() async {
     try {
@@ -604,6 +634,20 @@ final discoverProvider = FutureProvider.autoDispose<List<EventSummary>>(
 final myFeedProvider = FutureProvider.autoDispose<
         ({List<EventSummary> upcoming, List<EventSummary> past})>(
     (ref) => ref.watch(eventsRepositoryProvider).myFeed());
+
+/// Suggestions for the Home shelf. Keyed by the optional coordinates + sport
+/// so a location fix (or a sport chip) re-ranks rather than re-using a
+/// location-blind list.
+typedef SuggestedKey = ({double? lat, double? lng, String? categoryId});
+
+final suggestedEventsProvider = FutureProvider.autoDispose
+    .family<List<EventSummary>, SuggestedKey>((ref, key) =>
+        ref.watch(eventsRepositoryProvider).suggested(
+              lat: key.lat,
+              lng: key.lng,
+              categoryId: key.categoryId,
+              limit: 8,
+            ));
 
 final browseCategoriesProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>(

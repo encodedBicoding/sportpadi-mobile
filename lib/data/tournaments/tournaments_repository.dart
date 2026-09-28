@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournament_models.dart';
+import 'package:sportpadi_mobile/data/groups/member_models.dart';
+import 'package:sportpadi_mobile/data/tournaments/squad_models.dart';
 
 class TournamentsRepository {
   TournamentsRepository(this._dio);
@@ -74,6 +76,24 @@ class TournamentsRepository {
     }
   }
 
+  /// Ask more people (anyone on SportPadi) to officiate an existing match.
+  /// Returns how many new requests went out — people already asked are
+  /// skipped server-side.
+  Future<int> addMatchOfficiants(
+      String eventId, String gameId, List<String> userIds) async {
+    try {
+      final res = await _dio.post('/api/mobile/tournaments/$eventId', data: {
+        'action': 'addOfficiants',
+        'gameId': gameId,
+        'userIds': userIds,
+      });
+      final m = res.data is Map ? res.data as Map : const {};
+      return (m['added'] as num?)?.toInt() ?? userIds.length;
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not add officiants.');
+    }
+  }
+
   Future<void> resetMatch(String eventId) async {
     try {
       await _dio.post('/api/mobile/tournaments/$eventId/match',
@@ -122,6 +142,12 @@ class TournamentsRepository {
       eventId, {'action': 'cancel'},
       fallback: 'Could not cancel the tournament.');
 
+  /// End the tournament: results stand, a live game is finalised at its
+  /// current score, an unplayed one is abandoned. Nothing is refunded.
+  Future<void> completeTournament(String eventId) => _act(
+      eventId, {'action': 'complete'},
+      fallback: 'Could not end the tournament.');
+
   Future<void> refundFee(String eventId, String tournamentTeamId) => _act(
       eventId, {'action': 'refundFee', 'tournamentTeamId': tournamentTeamId},
       fallback: 'Could not refund the fee.');
@@ -155,6 +181,122 @@ class TournamentsRepository {
         'playerId': playerId,
         if (swapInPlayerId != null) 'swapInPlayerId': swapInPlayerId,
       }, fallback: 'Could not update the line-up.');
+
+  /// People who can be asked to officiate a tournament match. Hits the SAME
+  /// procedure as the web dialog (groups.searchUsers) so both clients offer
+  /// the same candidates for every category — the generic user search is for
+  /// ticket recipients and ranks/limits differently.
+  Future<List<GroupMemberItem>> searchOfficiants(
+      String eventId, String query) async {
+    try {
+      final res = await _dio.get(
+          '/api/mobile/tournaments/$eventId/officiant-search',
+          queryParameters: {'q': query});
+      final list = res.data is List ? res.data as List : const [];
+      return [
+        for (final e in list)
+          GroupMemberItem.fromJson(Map<String, dynamic>.from(e as Map)),
+      ];
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not search people.');
+    }
+  }
+
+  // ── Squads (a team's binding profile for one tournament) ──────────────
+
+  Future<TournamentSquad> squad(String eventId, String teamId) async {
+    try {
+      final res = await _dio.get('/api/mobile/tournaments/$eventId/squad',
+          queryParameters: {'teamId': teamId});
+      if (res.data is! Map) throw ApiException('Squad not found.', statusCode: 404);
+      return TournamentSquad.fromJson(Map<String, dynamic>.from(res.data as Map));
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load the squad.');
+    }
+  }
+
+  Future<Map<String, dynamic>> squadStats(String eventId, String teamId) async {
+    try {
+      final res = await _dio.get('/api/mobile/tournaments/$eventId/squad',
+          queryParameters: {'teamId': teamId, 'view': 'stats'});
+      return res.data is Map ? Map<String, dynamic>.from(res.data as Map) : const {};
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load stats.');
+    }
+  }
+
+  Future<Map<String, dynamic>> _squadAct(String eventId, Map<String, dynamic> body,
+      {required String fallback}) async {
+    try {
+      final res = await _dio.post('/api/mobile/tournaments/$eventId/squad', data: body);
+      return res.data is Map ? Map<String, dynamic>.from(res.data as Map) : const {};
+    } catch (e) {
+      throw apiError(e, fallback: fallback);
+    }
+  }
+
+  /// Coach/admin: call roster players up. Returns how many were (re)called.
+  ///
+  /// Pass [all] to call the whole roster instead of a selection; [note] is the
+  /// coach's optional remark, shown to every player with the call-up.
+  Future<int> callPlayers(
+    String eventId,
+    String tournamentTeamId, {
+    List<String>? playerIds,
+    bool all = false,
+    String? note,
+  }) async {
+    final r = await _squadAct(eventId, {
+      'action': 'call',
+      'tournamentTeamId': tournamentTeamId,
+      if (!all && playerIds != null) 'playerIds': playerIds,
+      if (all) 'all': true,
+      if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+    }, fallback: 'Could not call players.');
+    return (r['called'] as num?)?.toInt() ?? playerIds?.length ?? 0;
+  }
+
+  /// Player: accept / decline (or withdraw) a call-up.
+  Future<void> respondCall(String eventId, String squadId, {required bool accept}) =>
+      _squadAct(eventId, {'action': 'respond', 'squadId': squadId, 'accept': accept},
+          fallback: 'Could not send your response.');
+
+  Future<void> addSquadPlayer(String eventId, String tournamentTeamId, String playerId) =>
+      _squadAct(eventId,
+          {'action': 'add', 'tournamentTeamId': tournamentTeamId, 'playerId': playerId},
+          fallback: 'Could not add the player.');
+
+  Future<void> removeSquadPlayer(String eventId, String squadId) =>
+      _squadAct(eventId, {'action': 'remove', 'squadId': squadId},
+          fallback: 'Could not remove the player.');
+
+  Future<void> setSquadFormation(String eventId, String tournamentTeamId,
+          {String? formationName, required List<Map<String, dynamic>> placements}) =>
+      _squadAct(eventId, {
+        'action': 'formation',
+        'tournamentTeamId': tournamentTeamId,
+        'formationName': formationName,
+        'placements': placements,
+      }, fallback: 'Could not save the formation.');
+
+  Future<MyCalls> myCalls() async {
+    try {
+      final res = await _dio.get('/api/mobile/squad-calls');
+      return MyCalls.fromJson(res.data is Map ? Map<String, dynamic>.from(res.data as Map) : const {});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load your call-ups.');
+    }
+  }
+
+  Future<List<TeamTournamentEntry>> forTeam(String teamId) async {
+    try {
+      final res = await _dio.get('/api/mobile/teams/$teamId/tournaments');
+      final list = res.data is List ? res.data as List : const [];
+      return [for (final e in list) TeamTournamentEntry.fromJson(Map<String, dynamic>.from(e as Map))];
+    } catch (e) {
+      throw apiError(e, fallback: "Could not load the team's tournaments.");
+    }
+  }
 
   Future<Map<String, dynamic>> get(String eventId) async {
     try {
@@ -199,3 +341,27 @@ final myTournamentsProvider =
 /// Drives the dot on the Tournaments bottom-nav item (a dot, never a count).
 final myTournamentsActiveProvider = FutureProvider.autoDispose<bool>(
     (ref) => ref.watch(tournamentsRepositoryProvider).mineHasActive());
+
+/// Key = "$eventId|$teamId".
+final tournamentSquadProvider = FutureProvider.autoDispose
+    .family<TournamentSquad, String>((ref, key) {
+  final i = key.indexOf('|');
+  return ref
+      .watch(tournamentsRepositoryProvider)
+      .squad(key.substring(0, i), key.substring(i + 1));
+});
+
+final squadStatsProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>, String>((ref, key) {
+  final i = key.indexOf('|');
+  return ref
+      .watch(tournamentsRepositoryProvider)
+      .squadStats(key.substring(0, i), key.substring(i + 1));
+});
+
+final myCallsProvider = FutureProvider.autoDispose<MyCalls>(
+    (ref) => ref.watch(tournamentsRepositoryProvider).myCalls());
+
+final teamTournamentsProvider = FutureProvider.autoDispose
+    .family<List<TeamTournamentEntry>, String>(
+        (ref, teamId) => ref.watch(tournamentsRepositoryProvider).forTeam(teamId));

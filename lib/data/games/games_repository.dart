@@ -110,6 +110,23 @@ class GamesRepository {
         if (minute != null) 'minute': minute,
       }, fallback: 'Substitution failed.');
 
+  /// Pre-kick-off team selection (group admins only). Before a game starts the
+  /// line-up IS the team roster, so this moves a player between starters and
+  /// bench rather than logging a match substitution. Pass [playerOffId] alone
+  /// to bench a starter, [playerOnId] alone to promote a sub, or both to swap.
+  Future<void> setLineup(
+    String gameId, {
+    required String teamId,
+    String? playerOffId,
+    String? playerOnId,
+  }) =>
+      _post(gameId, {
+        'action': 'lineup',
+        'teamId': teamId,
+        if (playerOffId != null) 'playerOffId': playerOffId,
+        if (playerOnId != null) 'playerOnId': playerOnId,
+      }, fallback: 'Could not change the line-up.');
+
   Future<void> takeover(String gameId) => _post(gameId, {'action': 'takeover'},
       fallback: 'Could not take over the scoresheet.');
 

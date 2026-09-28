@@ -23,6 +23,7 @@ import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 /// Event detail — a faithful mobile port of the web /events/[slug] page:
 /// photos, info, hosted-by (follow), stats, interest/check-in, organizer QR,
@@ -352,6 +353,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     final detail = ref.watch(eventDetailProvider(slug));
     return Scaffold(
       appBar: AppBar(
+        leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
         titleSpacing: 0,
@@ -1773,15 +1775,33 @@ class _GamesTab extends ConsumerWidget {
       '#22C55E', '#3B82F6', '#EAB308', '#EF4444',
       '#8B5CF6', '#EC4899', '#F97316', '#14B8A6',
     ];
+    // Officiant candidates — same rule as web and as the server's own
+    // validation: a group event offers the group's FULL roster (any admin or
+    // member, checked in or not); a non-group event falls back to the
+    // people who checked in. Using the paginated members page here used to
+    // hide everyone past the first 18, and non-group events offered nobody.
     List<GroupMemberItem> candidates = const [];
     if (event.groupId != null) {
       try {
         candidates =
-            (await ref.read(groupMembersProvider(event.groupId!).future)).items;
+            await ref.read(groupAllMembersProvider(event.groupId!).future);
       } catch (_) {
         candidates = const [];
       }
+    } else {
+      candidates = [
+        for (final a in event.attendees)
+          GroupMemberItem(
+            userId: a.userId,
+            displayName: a.displayName,
+            username: a.username,
+            avatarUrl: a.avatarUrl,
+          ),
+      ];
     }
+    candidates = [...candidates]
+      ..sort((a, b) =>
+          a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()));
     if (!context.mounted) return;
 
     Color hexColor(String? hex) {
@@ -2023,7 +2043,7 @@ class _GamesTab extends ConsumerWidget {
                         'A reference length — the live match clock counts up and stoppage time is added during the game.',
                         style: TextStyle(color: p.muted, fontSize: 10.5)),
                   ),
-                  if (candidates.isNotEmpty) ...[
+                  ...[
                     CheckboxListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
@@ -2036,8 +2056,17 @@ class _GamesTab extends ConsumerWidget {
                           'Group admins can always score. Pick who else may update stats.',
                           style: TextStyle(color: p.muted, fontSize: 11)),
                     ),
-                    if (useOfficiants) ...[
-                      if (candidates.length > 6)
+                    if (useOfficiants && candidates.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 6),
+                        child: Text(
+                            event.groupId == null
+                                ? 'Nobody has checked in yet — officiants are picked from the people at the event.'
+                                : 'No group members to choose from yet.',
+                            style: TextStyle(color: p.muted, fontSize: 11.5)),
+                      ),
+                    if (useOfficiants && candidates.isNotEmpty) ...[
+                      if (candidates.length > 4)
                         TextField(
                           onChanged: (v) =>
                               setSheet(() => officiantQuery = v),
@@ -2045,7 +2074,7 @@ class _GamesTab extends ConsumerWidget {
                           style: TextStyle(color: p.ink, fontSize: 13),
                           decoration: InputDecoration(
                             isDense: true,
-                            hintText: 'Search members',
+                            hintText: 'Search by name or @handle',
                             prefixIcon: const Icon(Icons.search_rounded,
                                 size: 18),
                             contentPadding: const EdgeInsets.symmetric(
@@ -2062,7 +2091,12 @@ class _GamesTab extends ConsumerWidget {
                             for (final m in candidates)
                               if (officiantQuery.trim().isEmpty ||
                                   m.displayName.toLowerCase().contains(
-                                      officiantQuery.trim().toLowerCase()))
+                                      officiantQuery.trim().toLowerCase()) ||
+                                  (m.username ?? '').toLowerCase().contains(
+                                      officiantQuery
+                                          .trim()
+                                          .replaceFirst('@', '')
+                                          .toLowerCase()))
                                 CheckboxListTile(
                                   dense: true,
                                   contentPadding: EdgeInsets.zero,
@@ -2922,9 +2956,9 @@ class _PoolSection extends ConsumerWidget {
         if (event.canManage && !event.hasLatePool) ...[
           const SizedBox(height: 6),
           Text(
-            // No upgrade prompts in the app (app-store rules) — facts only.
+            // No upgrade prompts or plan names in the app (app-store rules).
             'These players checked in after teams were set. Slotting late '
-            'arrivals into teams is not available on this group plan.',
+            "arrivals into teams isn't enabled for this group.",
             style: TextStyle(color: p.amber, fontSize: 11.5),
           ),
         ],

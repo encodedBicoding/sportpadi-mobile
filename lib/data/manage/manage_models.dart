@@ -37,19 +37,43 @@ class TournamentInvite {
   const TournamentInvite({
     required this.id,
     required this.eventTitle,
+    this.eventId,
+    this.hostGroupId,
+    this.eventDate,
+    this.categoryLabel,
     this.hostGroupName,
     this.hostTeamName,
+    this.guestTeamId,
     this.guestTeamName,
     this.feeLabel,
     this.feeStatus,
   });
   final String id;
   final String eventTitle;
+
+  /// The tournament this invite is for — with [hostGroupId], the address of
+  /// its page (/groups/:hostGroupId/tournaments/:eventId).
+  final String? eventId;
+  final String? hostGroupId;
+  final DateTime? eventDate;
+  final String? categoryLabel;
   final String? hostGroupName;
   final String? hostTeamName;
+
+  /// The invited team. With [hostGroupId] and [eventId] this addresses the
+  /// squad page accepting should drop the admin on.
+  final String? guestTeamId;
   final String? guestTeamName;
   final String? feeLabel;
   final String? feeStatus;
+
+  bool get owesFee => feeLabel != null && feeStatus != 'paid';
+
+  /// This team's tournament-scoped squad page, when we know where it lives.
+  String? get squadRoute =>
+      (hostGroupId != null && eventId != null && guestTeamId != null)
+          ? '/groups/$hostGroupId/tournaments/$eventId/teams/$guestTeamId'
+          : null;
 
   factory TournamentInvite.fromJson(Map<String, dynamic> j) {
     final host = j['hostTeam'];
@@ -66,11 +90,19 @@ class TournamentInvite {
       final major = minor / div;
       fee = '$currency ${major.toStringAsFixed(exp)}';
     }
+    final cat = j['category'];
     return TournamentInvite(
       id: (j['id'] ?? '') as String,
       eventTitle: (j['eventTitle'] ?? 'Tournament') as String,
+      eventId: parseStr(j['eventId']),
+      hostGroupId: parseStr(j['hostGroupId']),
+      eventDate: parseDate(j['eventDate']),
+      categoryLabel: cat is Map
+          ? '${cat['emoji'] ?? ''} ${cat['name'] ?? ''}'.trim()
+          : null,
       hostGroupName: parseStr(j['hostGroupName']),
       hostTeamName: host is Map ? parseStr(host['name']) : null,
+      guestTeamId: guest is Map ? parseStr(guest['id']) : null,
       guestTeamName: guest is Map ? parseStr(guest['name']) : null,
       feeLabel: fee,
       feeStatus: parseStr(j['feeStatus']),

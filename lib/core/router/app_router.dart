@@ -1,9 +1,11 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/analytics/analytics_service.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/auth/sign_in_screen.dart';
+import 'package:sportpadi_mobile/features/auth/verify_email_screen.dart';
 import 'package:sportpadi_mobile/features/events/event_detail_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_detail_screen.dart';
 import 'package:sportpadi_mobile/features/join/join_group_screen.dart';
@@ -15,7 +17,10 @@ import 'package:sportpadi_mobile/features/manage/create_tournament_screen.dart';
 import 'package:sportpadi_mobile/features/manage/formation_board_screen.dart';
 import 'package:sportpadi_mobile/features/games/game_screen.dart';
 import 'package:sportpadi_mobile/features/payments/my_fines_screen.dart';
+import 'package:sportpadi_mobile/features/players/player_group_stats_screen.dart';
 import 'package:sportpadi_mobile/features/players/player_profile_screen.dart';
+import 'package:sportpadi_mobile/features/players/player_event_stats_screen.dart';
+import 'package:sportpadi_mobile/features/players/player_tournament_stats_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_events_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_leaderboard_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_people_screen.dart';
@@ -26,18 +31,61 @@ import 'package:sportpadi_mobile/features/payments/my_tickets_screen.dart';
 import 'package:sportpadi_mobile/features/scan/scan_screen.dart';
 import 'package:sportpadi_mobile/features/manage/manage_roster_screen.dart';
 import 'package:sportpadi_mobile/features/manage/tournament_invites_screen.dart';
+import 'package:sportpadi_mobile/features/manage/group_fines_screen.dart';
 import 'package:sportpadi_mobile/features/manage/group_tickets_screen.dart';
 import 'package:sportpadi_mobile/features/wallet/group_wallet_screen.dart';
+import 'package:sportpadi_mobile/features/wallet/wallet_withdrawals_screen.dart';
+import 'package:sportpadi_mobile/features/shell/guest_shell.dart';
 import 'package:sportpadi_mobile/features/shell/home_shell.dart';
+import 'package:sportpadi_mobile/features/billing/group_plan_screen.dart';
 import 'package:sportpadi_mobile/features/splash/splash_screen.dart';
 import 'package:sportpadi_mobile/features/teams/team_detail_screen.dart';
+import 'package:sportpadi_mobile/features/tournaments/tournament_invitations_screen.dart';
 import 'package:sportpadi_mobile/features/tournaments/tournament_detail_screen.dart';
+import 'package:sportpadi_mobile/features/tournaments/tournament_team_screen.dart';
 
 /// Declarative routes with an auth-aware redirect. Join links stay reachable
 /// while signed out (the join screen prompts sign-in itself), matching the web
 /// share flow.
+/// Bridges Riverpod auth state into GoRouter's refreshListenable so the router
+/// is created ONCE and re-evaluates its redirect when auth changes — instead
+/// of being rebuilt (which wipes the navigation stack and every back button's
+/// history) every time the auth provider emits.
+class _AuthRefresh extends ChangeNotifier {
+  _AuthRefresh(Ref ref) {
+    ref.listen(authControllerProvider, (_, __) => notifyListeners());
+  }
+}
+
+/// Where sign-in should drop the user afterwards, if the `redirect` query
+/// parameter names somewhere sane: an in-app path, never an absolute URL
+/// (open-redirect hygiene, even inside an app) and never sign-in itself.
+String? safeRedirectTarget(String? raw) {
+  if (raw == null || raw.isEmpty) return null;
+  final v = Uri.decodeComponent(raw);
+  if (!v.startsWith('/') || v.startsWith('//')) return null;
+  final path = Uri.tryParse(v)?.path ?? v;
+  if (path == '/' || path == '/sign-in' || path == '/verify-email') return null;
+  return v;
+}
+
+/// `/home` is the same address whether or not you're signed in; which shell
+/// renders there is decided here, live, so signing in (or out) swaps the
+/// shell in place without a route change.
+class _HomeGate extends ConsumerWidget {
+  const _HomeGate();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final signedIn =
+        ref.watch(authControllerProvider).valueOrNull?.isAuthenticated ?? false;
+    return signedIn ? const HomeShell() : const GuestShell();
+  }
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final auth = ref.watch(authControllerProvider);
+  final refresh = _AuthRefresh(ref);
+  ref.onDispose(refresh.dispose);
 
   // Google Analytics: fire-and-forget init, then log every navigation as a
   // screen view (quiet no-op until Firebase is configured).
@@ -47,23 +95,71 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   final router = GoRouter(
     initialLocation: '/',
+    refreshListenable: refresh,
     redirect: (context, state) {
+      final auth = ref.read(authControllerProvider);
       final loc = state.matchedLocation;
       if (auth.isLoading || !auth.hasValue) return loc == '/' ? null : '/';
-      final signedIn = auth.value?.isAuthenticated ?? false;
-      final isJoin = loc.startsWith('/join');
+      final session = auth.value;
+      final signedIn = session?.isAuthenticated ?? false;
       if (!signedIn) {
-        if (loc == '/sign-in' || isJoin) return null;
-        return '/sign-in';
+        // Signed out is not a wall any more. Home (the guest dashboard),
+        // Browse (a tab inside it) and join links are open; the app lands
+        // there so a newcomer sees what's on before they're asked for
+        // anything. Everything else — an event, a group, a profile — needs
+        // an account, and we remember where they were headed so sign-in
+        // drops them there rather than back on Home.
+        if (loc == '/sign-in' || loc == '/home' || loc.startsWith('/join')) {
+          return null;
+        }
+        if (loc == '/') return '/home';
+        return '/sign-in?redirect=${Uri.encodeComponent(state.uri.toString())}';
       }
-      if (loc == '/sign-in' || loc == '/') return '/home';
+      // Every account confirms its email before it can use the app (the same
+      // rule the web enforces, and the server now refuses create/join/buy
+      // calls until it's done).
+      if (session?.needsEmailVerification ?? false) {
+        return loc == '/verify-email' ? null : '/verify-email';
+      }
+      if (loc == '/sign-in' || loc == '/' || loc == '/verify-email') {
+        return safeRedirectTarget(state.uri.queryParameters['redirect']) ??
+            '/home';
+      }
       return null;
     },
     routes: [
       GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/sign-in', builder: (_, __) => const SignInScreen()),
-      GoRoute(path: '/home', builder: (_, __) => const HomeShell()),
+      GoRoute(
+          path: '/verify-email', builder: (_, __) => const VerifyEmailScreen()),
+      GoRoute(path: '/home', builder: (_, __) => const _HomeGate()),
       GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
+      GoRoute(
+        path: '/tournaments/invitations',
+        builder: (_, __) => const TournamentInvitationsScreen(),
+      ),
+      // Declared before /players/:id's own route so the literal segment wins.
+      GoRoute(
+        path: '/players/:id/tournaments/:eventId',
+        builder: (_, st) => PlayerTournamentStatsScreen(
+          userId: st.pathParameters['id']!,
+          eventId: st.pathParameters['eventId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/players/:id/events/:eventId',
+        builder: (_, st) => PlayerEventStatsScreen(
+          userId: st.pathParameters['id']!,
+          eventId: st.pathParameters['eventId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/players/:id/groups/:groupId',
+        builder: (_, st) => PlayerGroupStatsScreen(
+          userId: st.pathParameters['id']!,
+          groupId: st.pathParameters['groupId']!,
+        ),
+      ),
       GoRoute(
         path: '/players/:id',
         builder: (_, st) =>
@@ -112,6 +208,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             GroupEventsScreen(groupId: st.pathParameters['id']!),
       ),
       GoRoute(
+        path: '/groups/:id/plan',
+        builder: (_, st) => GroupPlanScreen(groupId: st.pathParameters['id']!),
+      ),
+      GoRoute(
         path: '/groups/:id/leaderboard',
         builder: (_, st) =>
             GroupLeaderboardScreen(groupId: st.pathParameters['id']!),
@@ -121,8 +221,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, st) => GroupWalletScreen(groupId: st.pathParameters['id']!),
       ),
       GoRoute(
+        path: '/groups/:id/wallet/withdrawals',
+        builder: (_, st) =>
+            WalletWithdrawalsScreen(groupId: st.pathParameters['id']!),
+      ),
+      GoRoute(
         path: '/groups/:id/tickets',
         builder: (_, st) => GroupTicketsScreen(groupId: st.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/groups/:id/fines',
+        builder: (_, st) => GroupFinesScreen(groupId: st.pathParameters['id']!),
       ),
       GoRoute(
         path: '/groups/:id/outstanding',
@@ -151,6 +260,29 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/tournaments/:id',
         builder: (_, s) =>
             TournamentDetailScreen(eventId: s.pathParameters['id']!),
+      ),
+      // Web-shaped tournament URLs (notification deep links + shares).
+      GoRoute(
+        path: '/groups/:id/tournaments/:eventId',
+        builder: (_, s) =>
+            TournamentDetailScreen(eventId: s.pathParameters['eventId']!),
+      ),
+      // The team AS IT IS in one tournament: squad, event formation, games.
+      GoRoute(
+        path: '/groups/:id/tournaments/:eventId/teams/:teamId',
+        builder: (_, s) => TournamentTeamScreen(
+          groupId: s.pathParameters['id']!,
+          eventId: s.pathParameters['eventId']!,
+          teamId: s.pathParameters['teamId']!,
+          respond: s.uri.queryParameters['respond'] != null,
+        ),
+      ),
+      GoRoute(
+        path: '/groups/:id/tournaments/:eventId/teams/:teamId/formation',
+        builder: (_, s) => FormationBoardScreen(
+          teamId: s.pathParameters['teamId']!,
+          eventId: s.pathParameters['eventId'],
+        ),
       ),
       // Deep-link share targets (match the web URLs).
       GoRoute(

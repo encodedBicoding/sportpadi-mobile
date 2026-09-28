@@ -75,32 +75,6 @@ class GroupsRepository {
     }
   }
 
-  /// Admin: invite a user into the group.
-  /// Redeemed promo codes for a group (admin-only server-side).
-  Future<List<Map<String, dynamic>>> groupPromos(String groupId) async {
-    try {
-      final res = await _dio.get('/api/mobile/groups/$groupId/promo');
-      return res.data is List
-          ? [
-              for (final e in res.data as List)
-                Map<String, dynamic>.from(e as Map),
-            ]
-          : <Map<String, dynamic>>[];
-    } catch (e) {
-      throw apiError(e, fallback: 'Could not load promo codes.');
-    }
-  }
-
-  /// Activate a promo code for the group.
-  Future<void> redeemPromo(String groupId, String code) async {
-    try {
-      await _dio.post('/api/mobile/groups/$groupId/promo',
-          data: {'action': 'redeem', 'code': code});
-    } catch (e) {
-      throw apiError(e, fallback: 'Could not redeem that code.');
-    }
-  }
-
   Future<void> inviteUser(String groupId, String userId) async {
     try {
       await _dio.post('/api/mobile/groups/$groupId',

@@ -1,13 +1,20 @@
+import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/analytics/analytics_service.dart';
+import 'package:sportpadi_mobile/core/push/push_alert.dart';
 import 'package:sportpadi_mobile/core/push/push_service.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart'
     show myTournamentsActiveProvider;
 import 'package:sportpadi_mobile/data/notifications/notifications_repository.dart'
     show notificationsFeedProvider, unreadCountProvider;
+import 'package:sportpadi_mobile/core/links/deep_links.dart';
+import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/home/home_screen.dart';
+import 'package:sportpadi_mobile/features/notifications/notification_permission_sheet.dart';
+import 'package:sportpadi_mobile/features/notifications/notifications_screen.dart';
 import 'package:sportpadi_mobile/features/browse/browse_screen.dart';
 import 'package:sportpadi_mobile/features/groups/groups_list_screen.dart';
 import 'package:sportpadi_mobile/features/profile/profile_screen.dart';
@@ -21,19 +28,106 @@ class HomeShell extends ConsumerStatefulWidget {
 
 final homeTabIndexProvider = StateProvider<int>((_) => 0);
 
-class _HomeShellState extends ConsumerState<HomeShell> {
-
+class _HomeShellState extends ConsumerState<HomeShell>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    // Register this device for push (quietly does nothing until Firebase is
-    // configured). Foreground pushes refresh the notification feed/badge.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(pushServiceProvider).init(onMessage: () {
+    WidgetsBinding.instance.addObserver(this);
+    // Register this device for push if the OS already allows it (quietly does
+    // nothing until Firebase is configured). Foreground pushes refresh the
+    // notification feed/badge. The OS permission dialog is never fired cold:
+    // once the shell has settled we show the in-app explainer first, and only
+    // ask the OS if the user says yes.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initPush());
+    // Deep links, started after the first frame so there's a router to push
+    // onto when the link is the one that launched the app.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initDeepLinks());
+  }
+
+  /// Universal Links / App Links. Same resolver as push notifications, so a
+  /// shared URL and a tapped notification land on the same screen.
+  Future<void> _initDeepLinks() async {
+    await ref.read(deepLinkServiceProvider).start((uri) {
+      if (!mounted) return;
+      // ignore: discarded_futures
+      handleDeepLink(
+        uri,
+        push: (route) {
+          if (mounted) context.push(route);
+        },
+        switchTab: (tab) {
+          if (mounted) ref.read(homeTabIndexProvider.notifier).state = tab;
+        },
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Back from Settings (or anywhere): pick up a permission change and
+    // register the device if notifications were just turned on.
+    if (state == AppLifecycleState.resumed) {
+      // A push that arrived while backgrounded doesn't hit onMessage — refresh
+      // the bell and feed the moment the app is back in front.
+      ref.invalidate(unreadCountProvider);
+      ref.invalidate(notificationsFeedProvider);
+      ref.read(pushServiceProvider).onAppResumed().then((s) {
+        if (mounted) ref.read(pushStatusProvider.notifier).state = s;
+      });
+    }
+  }
+
+  /// On every mount of the signed-in shell — first launch, and again the
+  /// moment someone signs in — this settles three questions in order:
+  ///   1. can this device receive pushes? (`init` reads the OS status)
+  ///   2. if yes: is the server's row for THIS user on THIS device right?
+  ///      (`init` re-registers the token; the server upserts it)
+  ///   3. if no: ask — the explainer then the OS dialog when never asked, or
+  ///      the explainer then Settings when refused — and, once allowed,
+  ///      register (the resume hook handles the Settings round trip).
+  Future<void> _initPush() async {
+    final push = ref.read(pushServiceProvider);
+    // A new account on this device gets a fresh soft-ask budget.
+    final userId = ref.read(authControllerProvider).valueOrNull?.user?.id;
+    if (userId != null) await push.noteSignedInUser(userId);
+    final status = await push.init(
+      onMessage: () {
         ref.invalidate(notificationsFeedProvider);
         ref.invalidate(unreadCountProvider);
-      });
-    });
+      },
+      onOpened: (url) {
+        // A push whose destination we can't place still has somewhere to go:
+        // the inbox, where the notification itself is readable.
+        final dest = NotificationsScreen.resolveUrl(url) ?? '/notifications';
+        if (mounted) context.push(dest);
+      },
+      // Arrived while the app is open: the OS shows nothing, so hand it to
+      // the in-app banner (PushBannerHost, wrapped around the whole app).
+      onForeground: (alert) =>
+          ref.read(foregroundPushProvider.notifier).state = alert,
+    );
+    if (!mounted) return;
+    ref.read(pushStatusProvider.notifier).state = status;
+    if (kDebugMode) {
+      // One line that answers "why isn't this phone getting pushes":
+      // registered / ask / denied / unavailable.
+      debugPrint('[push] device readiness: ${await push.readiness()}');
+    }
+    // Let the first screen land before the soft ask, per the platform
+    // guidelines (explain in context, don't ambush on launch).
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    if (!mounted) return;
+    final after = await NotificationPermissionSheet.maybeShow(context, ref);
+    if (after != null && mounted) {
+      ref.read(pushStatusProvider.notifier).state = after;
+    }
   }
 
   Widget _tab(int i) {
@@ -55,6 +149,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   Widget build(BuildContext context) {
     // Bottom-tab switches don't touch the router — log them as screens too.
     ref.listen<int>(homeTabIndexProvider, (prev, next) {
+      // Cheap and keeps the bell honest between polls.
+      if (prev != next) ref.invalidate(unreadCountProvider);
       const names = ['/tab/home', '/tab/browse', '/tab/groups', '/tab/tournaments', '/tab/profile'];
       if (next >= 0 && next < names.length) {
         ref.read(analyticsServiceProvider).logScreen(names[next]);

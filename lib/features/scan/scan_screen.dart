@@ -7,6 +7,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/tickets/tickets_repository.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 /// One scanner for both QR kinds:
 ///  - event check-in QRs (a player checks themselves in), and
@@ -317,6 +318,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     return Scaffold(
       backgroundColor: p.bg,
       appBar: AppBar(
+        leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
         title: const Text('Scan QR code',
