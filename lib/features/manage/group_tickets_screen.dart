@@ -741,7 +741,13 @@ class _TicketDetailSheet extends ConsumerWidget {
               else
                 SpListCard(children: [
                   for (final r in rows)
-                    Padding(
+                    // Tap → check this payment with the payment provider
+                    // (and reconcile it if SportPadi is out of step).
+                    InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () => _openPaymentCheck(
+                          context, ref, r, t.currency, s.currencyExponent),
+                      child: Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 10),
                       child: Row(children: [
@@ -800,9 +806,10 @@ class _TicketDetailSheet extends ConsumerWidget {
                                       fontWeight: FontWeight.w800)),
                               const SizedBox(height: 2),
                               Text(
-                                r.redeemedAt != null
-                                    ? 'USED'
-                                    : r.status.toUpperCase(),
+                                (r.redeemedAt != null
+                                        ? 'USED'
+                                        : r.status.toUpperCase()) +
+                                    (r.reconciled ? ' · RECONCILED' : ''),
                                 style: TextStyle(
                                   color: r.redeemedAt != null ||
                                           r.status == 'paid'
@@ -818,11 +825,222 @@ class _TicketDetailSheet extends ConsumerWidget {
                                 ),
                               ),
                             ]),
+                        const SizedBox(width: 4),
+                        Icon(Icons.chevron_right_rounded, size: 18, color: p.muted),
                       ]),
                     ),
+                    ),
                 ]),
+              if (rows.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text('Tap a payment to check it with the payment provider.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: p.muted, fontSize: 12)),
+              ],
             ]);
           },
+        ),
+      ],
+    );
+  }
+}
+
+/// Opens the provider check for one payment.
+void _openPaymentCheck(BuildContext context, WidgetRef ref, TicketSale sale,
+    String currency, int exponent) {
+  showSpSheet<void>(
+    context,
+    builder: (_) => _PaymentCheckSheet(sale: sale, currency: currency, exponent: exponent),
+  );
+}
+
+final _paymentCheckProvider = FutureProvider.autoDispose
+    .family<PaymentCheck, String>(
+        (ref, id) => ref.watch(ticketsRepositoryProvider).checkPayment(id));
+
+/// One payment, checked against the payment provider: what it says in plain
+/// words and — when SportPadi is out of step (e.g. refunded in the Stripe
+/// Dashboard but still counted as paid here) — a Reconcile button that puts
+/// the ticket, the wallet and the payouts right. Web: PaymentCheckDialog.
+class _PaymentCheckSheet extends ConsumerStatefulWidget {
+  const _PaymentCheckSheet({required this.sale, required this.currency, required this.exponent});
+  final TicketSale sale;
+  final String currency;
+  final int exponent;
+
+  @override
+  ConsumerState<_PaymentCheckSheet> createState() => _PaymentCheckSheetState();
+}
+
+class _PaymentCheckSheetState extends ConsumerState<_PaymentCheckSheet> {
+  PaymentCheck? _fresh;
+  bool _confirming = false;
+  bool _busy = false;
+
+  Future<void> _reconcile(PaymentCheck c) async {
+    final action = c.action;
+    if (action == null) return;
+    setState(() => _busy = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final res = await ref
+          .read(ticketsRepositoryProvider)
+          .reconcilePayment(widget.sale.id, action);
+      if (!mounted) return;
+      setState(() {
+        _fresh = res.check ?? _fresh;
+        _confirming = false;
+      });
+      if (res.applied != null) {
+        messenger.showSnackBar(SnackBar(
+            content: Text(res.applied == 'mark_refunded'
+                ? 'Reconciled — marked refunded.'
+                : res.applied == 'mark_paid'
+                    ? 'Reconciled — marked paid.'
+                    : 'Reconciled — marked unpaid.')));
+        for (final w in res.warnings) {
+          messenger.showSnackBar(SnackBar(content: Text(w)));
+        }
+      } else {
+        messenger.showSnackBar(const SnackBar(
+            content: Text('Nothing applied — the payment changed. Showing the latest.')));
+      }
+      ref.invalidate(ticketSalesProvider);
+      ref.invalidate(managedTicketsProvider);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final sale = widget.sale;
+    final async = ref.watch(_paymentCheckProvider(sale.id));
+    final check = _fresh ?? async.valueOrNull;
+    final loading = _fresh == null && async.isLoading;
+    final provider = check?.providerLabel ?? 'the payment provider';
+    final status = check?.ourStatus ?? sale.status;
+
+    final (Color tileBg, Color tileFg, IconData icon) = switch (check?.verdict) {
+      'in_sync' => (p.accentTint, p.greenText, Icons.check_circle_outline_rounded),
+      'out_of_sync' => (p.orangeTint, p.orangeInk, Icons.error_outline_rounded),
+      'error' => (p.liveTint, p.danger, Icons.error_outline_rounded),
+      _ => (p.surface2, p.muted, Icons.info_outline_rounded),
+    };
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SpSheetHeader(
+          icon: Icons.receipt_long_outlined,
+          title: sale.buyerName,
+          subtitle: '${formatMoney(sale.amount, sale.currency.isNotEmpty ? sale.currency : widget.currency, widget.exponent)} · ${sale.code}',
+          trailing: SpBadge(status.toUpperCase(),
+              tone: status == 'paid'
+                  ? p.greenText
+                  : status == 'refunded'
+                      ? p.orangeInk
+                      : p.muted),
+        ),
+        Eyebrow('With $provider'),
+        const SizedBox(height: 8),
+        if (loading)
+          GlassCard(
+            padding: const EdgeInsets.all(16),
+            child: Row(children: [
+              const SizedBox(
+                  width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Checking with $provider…',
+                    style: TextStyle(color: p.muted, fontSize: 13)),
+              ),
+            ]),
+          )
+        else if (check == null)
+          GlassCard(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+                async.hasError ? '${async.error}' : 'Couldn\'t check this payment.',
+                style: TextStyle(color: p.danger, fontSize: 13)),
+          )
+        else
+          GlassCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                SpIconTile(icon, bg: tileBg, fg: tileFg, size: 40, iconSize: 19),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(check.headline,
+                        style: TextStyle(
+                            color: p.ink, fontSize: 15, fontWeight: FontWeight.w700, height: 1.3)),
+                    for (final d in check.details) ...[
+                      const SizedBox(height: 6),
+                      Text(d, style: TextStyle(color: p.muted, fontSize: 13, height: 1.4)),
+                    ],
+                    if (check.providerStatus != null) ...[
+                      const SizedBox(height: 8),
+                      Text('$provider status: ${check.providerStatus}',
+                          style: TextStyle(color: p.muted, fontSize: 11)),
+                    ],
+                  ]),
+                ),
+              ]),
+              if (check.action != null) ...[
+                const SizedBox(height: 16),
+                if (!_confirming)
+                  SpButton(
+                    expand: true,
+                    icon: Icons.sync_rounded,
+                    label: check.actionLabel ?? 'Reconcile',
+                    onTap: () => setState(() => _confirming = true),
+                  )
+                else
+                  Row(children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _busy ? null : () => setState(() => _confirming = false),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 3,
+                      child: SpButton(
+                        expand: true,
+                        tone: SpButtonTone.brand,
+                        icon: Icons.check_rounded,
+                        label: _busy ? 'Reconciling…' : 'Yes, reconcile',
+                        onTap: _busy ? null : () => _reconcile(check),
+                      ),
+                    ),
+                  ]),
+                if (check.actionHint != null) ...[
+                  const SizedBox(height: 8),
+                  Text(check.actionHint!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: p.muted, fontSize: 12, height: 1.4)),
+                ],
+              ],
+            ]),
+          ),
+        const SizedBox(height: 8),
+        Center(
+          child: TextButton(
+            onPressed: loading || _busy
+                ? null
+                : () {
+                    setState(() => _fresh = null);
+                    ref.invalidate(_paymentCheckProvider(sale.id));
+                  },
+            child: const Text('Check again'),
+          ),
         ),
       ],
     );

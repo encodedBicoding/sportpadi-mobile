@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
 import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
+import 'package:sportpadi_mobile/features/games/stoppage_pad.dart';
 
 /// Officiant mode — one job, one screen.
 ///
@@ -197,6 +198,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
       },
       child: Scaffold(
         backgroundColor: _bg,
+        // The officials' own space: no dock, no ad strip — just the clock.
         body: SafeArea(
           child: game.when(
             loading: () => const Center(
@@ -417,7 +419,11 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                       letterSpacing: 2.4),
                 ),
                 const SizedBox(height: 6),
-                FittedBox(
+                // Flexible: the big clock shrinks to whatever height is left
+                // (short phones, the nav + ad strip below, the Paused pill)
+                // instead of overflowing the column.
+                Flexible(
+                  child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
                     _fmt(clockMs),
@@ -433,6 +439,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                       fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
+                ),
                 ),
                 const SizedBox(height: 8),
                 Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -488,32 +495,15 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
             const SizedBox(height: 12),
           ],
           if (clockRunning && prof.has('stoppage') && prof.addsTime) ...[
-            const Text('ADD STOPPAGE',
-                style: TextStyle(
-                    color: _dim,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1)),
-            const SizedBox(height: 6),
-            Row(children: [
-              for (final m in prof.stoppagePresets) ...[
-                if (m != prof.stoppagePresets.first) const SizedBox(width: 8),
-                Expanded(
-                  child: _BigButton(
-                    label: "+$m'",
-                    color: const Color(0x26FBBF24),
-                    textColor: _amber,
-                    height: 56,
-                    fontSize: 18,
-                    onTap: _busy
-                        ? null
-                        : () => _run(() => _repo.timer(
-                            widget.gameId, 'stoppage',
-                            minutes: m)),
-                  ),
-                ),
-              ],
-            ]),
+            // Any amount: presets, "More" (stepper / type it, up to 120'),
+            // and "Correct" to set the period's total exactly.
+            StoppagePad(
+              current: stoppage,
+              presets: prof.stoppagePresets,
+              busy: _busy,
+              onAdd: (m) => _run(() => _repo.timer(widget.gameId, 'stoppage', minutes: m)),
+              onSet: (m) => _run(() => _repo.timer(widget.gameId, 'setStoppage', minutes: m)),
+            ),
             const SizedBox(height: 12),
           ],
           if (lc != null && g.isLive) ...[

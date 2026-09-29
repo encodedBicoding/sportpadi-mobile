@@ -35,6 +35,39 @@ class TicketsRepository {
     }
   }
 
+  /// Check one payment with its payment provider (group admins).
+  Future<PaymentCheck> checkPayment(String paymentId) async {
+    try {
+      final res = await _dio.get('/api/mobile/ticket-payments',
+          queryParameters: {'paymentId': paymentId});
+      return PaymentCheck.fromJson(Map<String, dynamic>.from(res.data as Map));
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not check this payment.');
+    }
+  }
+
+  /// Apply what [checkPayment] found. The server re-checks first and only
+  /// applies [action] if it's still the right one.
+  Future<({String? applied, List<String> warnings, PaymentCheck? check})> reconcilePayment(
+      String paymentId, String action) async {
+    try {
+      final res = await _dio.post('/api/mobile/ticket-payments',
+          data: {'paymentId': paymentId, 'action': action});
+      final m = Map<String, dynamic>.from(res.data as Map);
+      return (
+        applied: m['applied'] as String?,
+        warnings: m['warnings'] is List
+            ? [for (final w in m['warnings'] as List) if (w is String) w]
+            : const <String>[],
+        check: m['check'] is Map
+            ? PaymentCheck.fromJson(Map<String, dynamic>.from(m['check'] as Map))
+            : null,
+      );
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not reconcile this payment.');
+    }
+  }
+
   /// `body` uses the API's field names (title, price in minor units, kind,
   /// eventId, description, blocksCheckin, requiresValidation, recurrence,
   /// salesStartAt/salesEndAt as ISO strings, capacity).
