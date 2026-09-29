@@ -32,8 +32,12 @@ const _kitPalette = <String>[
 ];
 
 class CreateTeamScreen extends ConsumerStatefulWidget {
-  const CreateTeamScreen({super.key, required this.groupId});
+  const CreateTeamScreen({super.key, required this.groupId, this.categoryId});
   final String groupId;
+
+  /// Pre-selects the sport — the group Teams tab passes it when you add a
+  /// team from under a sport's heading.
+  final String? categoryId;
   @override
   ConsumerState<CreateTeamScreen> createState() => _CreateTeamScreenState();
 }
@@ -43,7 +47,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
   final _name = TextEditingController();
   final _venue = TextEditingController();
   final _description = TextEditingController();
-  String? _categoryId;
+  late String? _categoryId = widget.categoryId;
   // Same defaults as the web form: green shirt, white trim.
   String _kitPrimary = '#16a34a';
   String _kitSecondary = '#ffffff';
@@ -64,6 +68,15 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
       setState(() => _error = 'Pick a sport');
       return;
     }
+    // Same rule as the server (plan OR promo code): no second team in a
+    // sport on a one-team-per-sport plan.
+    final allow = ref.read(teamAllowanceProvider(widget.groupId)).valueOrNull;
+    if (allow != null && !allow.canAddTo(_categoryId!)) {
+      setState(() => _error = allow.canBuild
+          ? 'Your plan allows one team per sport. Upgrade, or redeem a promo code with Build Multiple Teams, to add more.'
+          : "Your group's plan doesn't include building teams. Upgrade to unlock it.");
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -79,6 +92,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
             _description.text.trim().isEmpty ? null : _description.text.trim(),
       });
       ref.invalidate(groupTeamsProvider(widget.groupId));
+      ref.invalidate(teamAllowanceProvider(widget.groupId));
       final id = res['id'];
       if (!mounted) return;
       if (id is String && id.isNotEmpty) {
@@ -110,7 +124,31 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
               validator: (v) => (v == null || v.trim().isEmpty) ? 'Add a name' : null,
             ),
             const SizedBox(height: 14),
-            CategoryDropdown(value: _categoryId, onChanged: (v) => setState(() => _categoryId = v)),
+            Builder(builder: (context) {
+              final allow =
+                  ref.watch(teamAllowanceProvider(widget.groupId)).valueOrNull;
+              // One-team-per-sport plans: sports with a team are off the menu.
+              final taken = allow == null || allow.canBuildMultiple
+                  ? const <String>{}
+                  : allow.takenCategoryIds;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CategoryDropdown(
+                    value: _categoryId,
+                    disabledIds: taken,
+                    onChanged: (v) => setState(() => _categoryId = v),
+                  ),
+                  if (taken.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'Your plan allows one team per sport, so sports that already have a team are greyed out. Upgrade, or redeem a promo code with Build Multiple Teams, to add more.',
+                      style: TextStyle(color: p.muted, fontSize: 12, height: 1.4),
+                    ),
+                  ],
+                ],
+              );
+            }),
             const SizedBox(height: 18),
             // Kit — what the crest will look like everywhere the team appears.
             Row(children: [

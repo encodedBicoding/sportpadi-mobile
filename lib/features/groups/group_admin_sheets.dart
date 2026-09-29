@@ -8,7 +8,9 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/groups/group_admin_repository.dart';
 import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
+import 'package:sportpadi_mobile/data/teams/teams_repository.dart' show teamAllowanceProvider;
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
 /// Transfer group ownership — the web dialog.
@@ -16,10 +18,8 @@ import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 /// The owner searches the platform for a person, picks them, then confirms,
 /// handing over the creator flag. The current owner stays on as an admin.
 Future<void> showTransferOwnershipSheet(BuildContext context, String groupId) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
+  return showSpSheet<void>(
+    context,
     builder: (_) => _TransferOwnershipSheet(groupId: groupId),
   );
 }
@@ -114,20 +114,12 @@ class _TransferOwnershipSheetState extends ConsumerState<_TransferOwnershipSheet
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + bottom + MediaQuery.of(context).padding.bottom),
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Icon(Icons.swap_horiz_rounded, size: 18, color: p.accent),
-          const SizedBox(width: 8),
-          Text('Transfer ownership',
-              style: TextStyle(color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
-        ]),
-        const SizedBox(height: 4),
-        Text('Hand this group to someone else. You stay on as an admin.',
-            style: TextStyle(color: p.muted, fontSize: 12.5)),
-        const SizedBox(height: 14),
+    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const SpSheetHeader(
+          icon: Icons.swap_horiz_rounded,
+          title: 'Transfer ownership',
+          subtitle: 'Hand this group to someone else. You stay on as an admin.',
+        ),
         if (_selected != null)
           GlassCard(
             padding: const EdgeInsets.all(10),
@@ -206,20 +198,17 @@ class _TransferOwnershipSheetState extends ConsumerState<_TransferOwnershipSheet
           const SizedBox(height: 8),
           Text(_error!, style: TextStyle(color: p.danger, fontSize: 13)),
         ],
-        const SizedBox(height: 14),
-        FilledButton(
-          onPressed: _selected == null || _busy ? null : _confirm,
-          child: _busy
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : Text(_selected == null
+        const SizedBox(height: 16),
+        SpButton(
+          expand: true,
+          label: _busy
+              ? 'Transferring…'
+              : _selected == null
                   ? 'Pick the new owner'
-                  : 'Transfer to ${_selected!.displayName.split(' ').first}'),
+                  : 'Transfer to ${_selected!.displayName.split(' ').first}',
+          onTap: _selected == null || _busy ? null : _confirm,
         ),
-      ]),
-    );
+      ]);
   }
 }
 
@@ -229,10 +218,8 @@ class _TransferOwnershipSheetState extends ConsumerState<_TransferOwnershipSheet
 /// Android only. A code that unlocks paid features outside the App Store is
 /// exactly what Apple's 3.1.1 forbids, so the iOS menu doesn't offer it.
 Future<void> showPromoCodesSheet(BuildContext context, String groupId) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
+  return showSpSheet<void>(
+    context,
     builder: (_) => _PromoCodesSheet(groupId: groupId),
   );
 }
@@ -269,6 +256,8 @@ class _PromoCodesSheetState extends ConsumerState<_PromoCodesSheet> {
       _code.clear();
       ref.invalidate(groupPromosProvider(widget.groupId));
       ref.invalidate(groupOverviewProvider(widget.groupId));
+      // A code can unlock team building — refresh what the Teams tab offers.
+      ref.invalidate(teamAllowanceProvider(widget.groupId));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(promo.active
@@ -287,95 +276,96 @@ class _PromoCodesSheetState extends ConsumerState<_PromoCodesSheet> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final promos = ref.watch(groupPromosProvider(widget.groupId));
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + bottom + MediaQuery.of(context).padding.bottom),
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Icon(Icons.confirmation_number_outlined, size: 18, color: p.accent),
-          const SizedBox(width: 8),
-          Text('Promo codes',
-              style: TextStyle(color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
-        ]),
-        const SizedBox(height: 4),
-        Text('Got a code from SportPadi? Apply it to this group.',
-            style: TextStyle(color: p.muted, fontSize: 12.5)),
-        const SizedBox(height: 14),
-        Row(children: [
-          Expanded(
-            child: TextField(
-              controller: _code,
-              textCapitalization: TextCapitalization.characters,
-              autocorrect: false,
-              onSubmitted: (_) => _redeem(),
-              decoration: const InputDecoration(hintText: 'Enter code'),
-            ),
-          ),
-          const SizedBox(width: 10),
-          FilledButton(
-            onPressed: _busy ? null : _redeem,
-            style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
-            child: _busy
-                ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Apply'),
-          ),
-        ]),
-        if (_error != null) ...[
-          const SizedBox(height: 8),
-          Text(_error!, style: TextStyle(color: p.danger, fontSize: 13)),
-        ],
-        const SizedBox(height: 16),
-        Text('APPLIED TO THIS GROUP',
-            style: TextStyle(
-                color: p.muted, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const SpSheetHeader(
+        icon: Icons.confirmation_number_outlined,
+        title: 'Promo codes',
+        subtitle: 'Got a code from SportPadi? Apply it to this group.',
+      ),
+      TextField(
+        controller: _code,
+        textCapitalization: TextCapitalization.characters,
+        autocorrect: false,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _redeem(),
+        style: TextStyle(color: p.ink, fontWeight: FontWeight.w700, letterSpacing: 1),
+        decoration: const InputDecoration(
+          hintText: 'Enter code',
+          prefixIcon: Icon(Icons.local_offer_outlined, size: 20),
+        ),
+      ),
+      if (_error != null) ...[
         const SizedBox(height: 8),
-        promos.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(
-                child: SizedBox(
-                    width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))),
-          ),
-          error: (e, _) => Text('$e', style: TextStyle(color: p.muted, fontSize: 12.5)),
-          data: (list) => list.isEmpty
-              ? Text('No codes applied yet.', style: TextStyle(color: p.muted, fontSize: 13))
-              : Column(children: [
-                  for (final pr in list)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: GlassCard(
-                        padding: const EdgeInsets.all(10),
-                        child: Row(children: [
-                          Expanded(
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(pr.code,
-                                      style: TextStyle(
-                                          color: p.ink,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 0.5)),
-                                  if (pr.description != null)
-                                    Text(pr.description!,
-                                        style: TextStyle(color: p.muted, fontSize: 12)),
-                                  Text(
-                                    '${_day(pr.startsAt)} – ${_day(pr.endsAt)}',
-                                    style: TextStyle(color: p.muted, fontSize: 11),
-                                  ),
-                                ]),
-                          ),
-                          SpBadge(pr.active ? 'Active' : 'Ended',
-                              tone: pr.active ? p.accent : p.muted),
+        Text(_error!, style: TextStyle(color: p.danger, fontSize: 13)),
+      ],
+      const SizedBox(height: 12),
+      SpButton(
+        expand: true,
+        tone: SpButtonTone.brand,
+        icon: Icons.check_rounded,
+        label: _busy ? 'Applying…' : 'Apply code',
+        onTap: _busy ? null : _redeem,
+      ),
+      const SizedBox(height: 22),
+      const Eyebrow('Applied to this group'),
+      const SizedBox(height: 8),
+      promos.when(
+        loading: () => const Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          child: Center(
+              child: SizedBox(
+                  width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))),
+        ),
+        error: (e, _) => Text('$e', style: TextStyle(color: p.muted, fontSize: 12.5)),
+        data: (list) => list.isEmpty
+            ? Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                decoration: BoxDecoration(
+                  color: p.surface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: p.line),
+                ),
+                child: Row(children: [
+                  const SpIconTile(Icons.confirmation_number_outlined, size: 36, iconSize: 18),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('No codes applied yet.',
+                        style: TextStyle(color: p.muted, fontSize: 13)),
+                  ),
+                ]),
+              )
+            : SpListCard(children: [
+                for (final pr in list)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                    child: Row(children: [
+                      SpIconTile(Icons.confirmation_number_outlined,
+                          size: 36,
+                          iconSize: 18,
+                          bg: pr.active ? p.accentTint : p.surface2,
+                          fg: pr.active ? p.greenText : p.muted),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(pr.code,
+                              style: TextStyle(
+                                  color: p.ink,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5)),
+                          if (pr.description != null)
+                            Text(pr.description!,
+                                style: TextStyle(color: p.muted, fontSize: 12)),
+                          Text('${_day(pr.startsAt)} – ${_day(pr.endsAt)}',
+                              style: TextStyle(color: p.muted, fontSize: 11)),
                         ]),
                       ),
-                    ),
-                ]),
-        ),
-      ]),
-    );
+                      SpBadge(pr.active ? 'Active' : 'Ended',
+                          tone: pr.active ? p.greenText : p.muted),
+                    ]),
+                  ),
+              ]),
+      ),
+    ]);
   }
 }

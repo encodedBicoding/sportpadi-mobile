@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/push/push_service.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// Pre-permission explainer (the "soft ask"). Shown before the one-shot OS
 /// dialog so the user knows what they'd get; "Not now" is respected and the
@@ -31,10 +32,8 @@ class NotificationPermissionSheet extends ConsumerWidget {
     await push.markPrompted();
     if (!context.mounted) return null;
     final denied = push.status == AuthorizationStatus.denied;
-    final allow = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
+    final allow = await showSpSheet<bool>(
+      context,
       builder: (_) => NotificationPermissionSheet(settings: denied),
     );
     if (allow != true) return push.status;
@@ -79,10 +78,7 @@ class NotificationPermissionSheet extends ConsumerWidget {
           ]),
         );
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-          20, 4, 20, 20 + MediaQuery.of(context).padding.bottom),
-      child: Column(
+    return Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -125,8 +121,7 @@ class NotificationPermissionSheet extends ConsumerWidget {
               onPressed: () => Navigator.pop(context, false),
               child: Text('Not now', style: TextStyle(color: p.muted)),
             ),
-          ]),
-    );
+          ]);
   }
 }
 
@@ -145,13 +140,23 @@ class NotificationsOffBanner extends ConsumerWidget {
       return const SizedBox.shrink();
     }
     final notAsked = status == AuthorizationStatus.notDetermined;
+    Future<void> act() async {
+      if (notAsked) {
+        final s = await ref.read(pushServiceProvider).requestPermission();
+        ref.read(pushStatusProvider.notifier).state = s;
+      } else {
+        await AppSettings.openAppSettings(type: AppSettingsType.notification);
+      }
+    }
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
       child: GlassCard(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         child: Row(children: [
-          Icon(Icons.notifications_off_rounded, color: p.amber, size: 22),
-          const SizedBox(width: 10),
+          SpIconTile(Icons.notifications_off_outlined,
+              bg: p.orangeTint, fg: p.orangeInk),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,30 +164,33 @@ class NotificationsOffBanner extends ConsumerWidget {
                   Text('Push notifications are off',
                       style: TextStyle(
                           color: p.ink,
-                          fontSize: 13,
+                          fontSize: 13.5,
                           fontWeight: FontWeight.w700)),
                   Text(
                     notAsked
-                        ? 'Turn them on to get game reminders and updates.'
-                        : 'Allow SportPadi in your device settings to get game reminders and updates.',
-                    style: TextStyle(color: p.muted, fontSize: 11.5),
+                        ? 'Turn them on for game reminders and updates.'
+                        : 'Allow SportPadi in your device settings for game reminders and updates.',
+                    style: TextStyle(color: p.muted, fontSize: 12, height: 1.35),
                   ),
                 ]),
           ),
           const SizedBox(width: 8),
-          TextButton(
-            onPressed: () async {
-              if (notAsked) {
-                final s =
-                    await ref.read(pushServiceProvider).requestPermission();
-                ref.read(pushStatusProvider.notifier).state = s;
-              } else {
-                await AppSettings.openAppSettings(
-                    type: AppSettingsType.notification);
-              }
-            },
-            child: Text(notAsked ? 'Turn on' : 'Open settings',
-                style: const TextStyle(fontWeight: FontWeight.w700)),
+          Material(
+            color: p.hero,
+            shape: const StadiumBorder(),
+            child: InkWell(
+              customBorder: const StadiumBorder(),
+              onTap: act,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                child: Text(notAsked ? 'Turn on' : 'Settings',
+                    style: TextStyle(
+                        color: p.onHero,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700)),
+              ),
+            ),
           ),
         ]),
       ),

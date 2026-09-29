@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 
-/// The web `.glass` card: soft surface, hairline border, gentle shadow.
+/// The 2026 card: white surface, large radius, soft layered shadow and no
+/// hard border (a hairline only in dark mode, where shadows don't read).
 class GlassCard extends StatelessWidget {
   const GlassCard({
     super.key,
@@ -17,27 +18,22 @@ class GlassCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final card = Container(
       padding: padding,
       decoration: BoxDecoration(
         color: p.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: p.line),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(15, 30, 22, 0.06),
-            blurRadius: 18,
-            offset: Offset(0, 8),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(24),
+        border: dark ? Border.all(color: p.line) : null,
+        boxShadow: cardShadow(context),
       ),
       child: child,
     );
     if (onTap == null) return card;
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(borderRadius: BorderRadius.circular(18), onTap: onTap, child: card),
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(borderRadius: BorderRadius.circular(24), onTap: onTap, child: card),
     );
   }
 }
@@ -52,13 +48,13 @@ class Eyebrow extends StatelessWidget {
         style: TextStyle(
           color: context.palette.muted,
           fontSize: 11,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.6,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.3,
         ),
       );
 }
 
-/// Outline pill badge with an optional semantic tint.
+/// Soft tinted pill badge with an optional semantic tone.
 class SpBadge extends StatelessWidget {
   const SpBadge(this.label, {super.key, this.icon, this.tone});
   final String label;
@@ -69,21 +65,20 @@ class SpBadge extends StatelessWidget {
     final p = context.palette;
     final c = tone ?? p.muted;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: c),
-        color: p.surface,
+        color: tone == null ? p.surface2 : c.withAlpha(34),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         if (icon != null) ...[Icon(icon, size: 12, color: c), const SizedBox(width: 4)],
-        Text(label, style: TextStyle(color: c, fontSize: 11.5, fontWeight: FontWeight.w600)),
+        Text(label, style: TextStyle(color: c, fontSize: 11.5, fontWeight: FontWeight.w700)),
       ]),
     );
   }
 }
 
-/// Icon + text info row (web: primary-tinted icon beside a line of detail).
+/// Icon + text info row (2026): the icon sits in a quiet rounded tile.
 class InfoRow extends StatelessWidget {
   const InfoRow(this.icon, this.text, {super.key, this.trailing});
   final IconData icon;
@@ -95,10 +90,19 @@ class InfoRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(children: [
-        Icon(icon, size: 17, color: p.accent),
-        const SizedBox(width: 10),
-        Expanded(child: Text(text, style: TextStyle(color: p.ink, fontSize: 14))),
-        if (trailing != null) trailing!,
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+              color: p.surface2, borderRadius: BorderRadius.circular(12)),
+          child: Icon(icon, size: 17, color: p.greenText),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+            child: Text(text,
+                style: TextStyle(
+                    color: p.ink, fontSize: 14, fontWeight: FontWeight.w500))),
+        if (trailing != null) ...[const SizedBox(width: 8), trailing!],
       ]),
     );
   }
@@ -133,7 +137,8 @@ class GradientHero extends StatelessWidget {
   }
 }
 
-/// Filled pill button built from Material + InkWell.
+/// Filled pill button built from Material + InkWell. Ink by default (the
+/// 2026 primary); `tone: SpButtonTone.brand` for the green one.
 ///
 /// Deliberately NOT a Material `FilledButton.icon` — that widget's internals
 /// trip this Flutter build's semantics compiler with a
@@ -146,46 +151,225 @@ class SpButton extends StatelessWidget {
     required this.onTap,
     this.icon,
     this.expand = false,
+    this.tone = SpButtonTone.ink,
   });
 
   final String label;
   final VoidCallback? onTap;
   final IconData? icon;
   final bool expand;
+  final SpButtonTone tone;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
     final enabled = onTap != null;
+    final bg = tone == SpButtonTone.brand ? p.accentDeep : p.hero;
+    final fg = tone == SpButtonTone.brand ? Colors.white : p.onHero;
     return Material(
-      color: enabled ? p.accent : p.surface2,
-      borderRadius: BorderRadius.circular(12),
+      color: enabled ? bg : p.surface2,
+      shape: const StadiumBorder(),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        customBorder: const StadiumBorder(),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          // Tighter sides when stretched: an expanded button often shares a
+          // row with others, and its label must never push past its edge.
+          padding: EdgeInsets.symmetric(
+              horizontal: expand ? 12 : 20, vertical: 13),
           child: Row(
             mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 18,
-                    color: enabled ? Colors.white : p.muted),
-                const SizedBox(width: 5),
+                Icon(icon, size: 18, color: enabled ? fg : p.muted),
+                const SizedBox(width: 7),
               ],
-              Text(
-                label,
-                style: TextStyle(
-                  color: enabled ? Colors.white : p.muted,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: enabled ? fg : p.muted,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+enum SpButtonTone { ink, brand }
+
+/// One white card of rows separated by hairlines (lists of people, games,
+/// notifications, menu items…).
+class SpListCard extends StatelessWidget {
+  const SpListCard({super.key, required this.children, this.padding});
+  final List<Widget> children;
+  final EdgeInsets? padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return GlassCard(
+      padding:
+          padding ?? const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      child: Column(children: [
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0)
+            Divider(
+                height: 1,
+                thickness: 1,
+                indent: 12,
+                endIndent: 12,
+                color: p.surface2),
+          children[i],
+        ],
+      ]),
+    );
+  }
+}
+
+/// Pill segmented control: a quiet track with the active option on a white
+/// thumb.
+class SpSegmented extends StatelessWidget {
+  const SpSegmented({
+    super.key,
+    required this.options,
+    required this.index,
+    required this.onChanged,
+    this.icons,
+  });
+  final List<String> options;
+  final List<IconData>? icons;
+  final int index;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: dark ? p.surface2 : const Color(0xFFE6EBE8),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(children: [
+        for (var i = 0; i < options.length; i++)
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onChanged(i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                height: 38,
+                decoration: BoxDecoration(
+                  color: i == index ? p.surface : Colors.transparent,
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: i == index && !dark
+                      ? const [
+                          BoxShadow(
+                              color: Color(0x140E1411),
+                              blurRadius: 2,
+                              offset: Offset(0, 1))
+                        ]
+                      : null,
+                ),
+                child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (icons != null && i < icons!.length) ...[
+                        Icon(icons![i],
+                            size: 15,
+                            color: i == index ? p.ink : p.muted),
+                        const SizedBox(width: 5),
+                      ],
+                      Flexible(
+                        child: Text(options[i],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: i == index ? p.ink : p.muted,
+                                fontSize: 13,
+                                fontWeight: i == index
+                                    ? FontWeight.w700
+                                    : FontWeight.w600)),
+                      ),
+                    ]),
+              ),
+            ),
+          ),
+      ]),
+    );
+  }
+}
+
+/// A section title ("Who's in") with an optional count chip and a trailing
+/// link or action.
+class SpSectionTitle extends StatelessWidget {
+  const SpSectionTitle(this.title, {super.key, this.count, this.trailing});
+  final String title;
+  final int? count;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Row(children: [
+      Flexible(
+        child: Text(title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
+      ),
+      if (count != null) ...[
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+              color: p.surface2, borderRadius: BorderRadius.circular(999)),
+          child: Text('$count',
+              style: TextStyle(
+                  color: p.muted,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700)),
+        ),
+      ],
+      const Spacer(),
+      if (trailing != null) trailing!,
+    ]);
+  }
+}
+
+/// A rounded icon tile (list leads, info rows, menu items).
+class SpIconTile extends StatelessWidget {
+  const SpIconTile(this.icon,
+      {super.key, this.bg, this.fg, this.size = 42, this.iconSize = 20});
+  final IconData icon;
+  final Color? bg;
+  final Color? fg;
+  final double size;
+  final double iconSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: bg ?? p.surface2,
+        borderRadius: BorderRadius.circular(size / 3),
+      ),
+      child: Icon(icon, size: iconSize, color: fg ?? p.muted),
     );
   }
 }

@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// One person picked to officiate.
 typedef PickedOfficiant = ({String userId, String label});
@@ -234,12 +235,8 @@ class AddOfficiantsSheet extends ConsumerStatefulWidget {
       {required String eventId,
       required String gameId,
       List<String> exclude = const []}) async {
-    final r = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: context.palette.surface,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    final r = await showSpSheet<bool>(
+      context,
       builder: (_) => AddOfficiantsSheet(
           eventId: eventId, gameId: gameId, exclude: exclude),
     );
@@ -278,31 +275,17 @@ class _AddOfficiantsSheetState extends ConsumerState<AddOfficiantsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.palette;
     final n = _picked.length;
-    return Padding(
-      padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-          child: Column(
+    return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Add officiants',
-                  style: TextStyle(
-                      color: p.ink,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              Text(
-                'Ask anyone on SportPadi. Each person gets a request and can '
-                'run the match once they accept — have as many as you need.',
-                style: TextStyle(color: p.muted, fontSize: 12, height: 1.35),
+              const SpSheetHeader(
+                icon: Icons.sports_rounded,
+                title: 'Add officiants',
+                subtitle: 'Ask anyone on SportPadi. Each person gets a request and can '
+                    'run the match once they accept — have as many as you need.',
               ),
-              const SizedBox(height: 12),
               OfficiantPicker(
                 eventId: widget.eventId,
                 selected: _picked,
@@ -320,9 +303,6 @@ class _AddOfficiantsSheetState extends ConsumerState<AddOfficiantsSheet> {
                 onTap: _saving || n == 0 ? null : _submit,
               ),
             ],
-          ),
-        ),
-      ),
-    );
+          );
   }
 }

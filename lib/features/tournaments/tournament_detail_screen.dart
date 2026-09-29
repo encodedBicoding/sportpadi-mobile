@@ -20,7 +20,8 @@ import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// Tournament page — a card-by-card port of the web page:
 /// header (badges + title + date/time/location + description), then for a
@@ -35,36 +36,28 @@ class TournamentDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(tournamentDetailProvider(eventId));
     final p = context.palette;
+    void share() {
+      // Anyone viewing can share — the web URL carries its own social card
+      // (title, date, venue, host, teams).
+      final m = t.valueOrNull;
+      final event = m?['event'] is Map
+          ? Map<String, dynamic>.from(m!['event'] as Map)
+          : const <String, dynamic>{};
+      final groupId = event['groupId']?.toString();
+      if (groupId == null || groupId.isEmpty) return;
+      final base = ref.read(appConfigProvider).apiBaseUrl;
+      Clipboard.setData(ClipboardData(
+          text: '$base/groups/$groupId/tournaments/$eventId'));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Link copied')));
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        leading: const SpLeading(),
-        backgroundColor: p.bg,
-        surfaceTintColor: p.bg,
-        title: const Text('Tournament',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-        actions: [
-          // Anyone viewing can share — the web URL carries its own social
-          // card (title, date, venue, host, teams).
-          IconButton(
-            tooltip: 'Share',
-            icon: const Icon(Icons.share_outlined, size: 20),
-            onPressed: () {
-              final m = t.valueOrNull;
-              final event = m?['event'] is Map
-                  ? Map<String, dynamic>.from(m!['event'] as Map)
-                  : const <String, dynamic>{};
-              final groupId = event['groupId']?.toString();
-              if (groupId == null || groupId.isEmpty) return;
-              final base = ref.read(appConfigProvider).apiBaseUrl;
-              Clipboard.setData(ClipboardData(
-                  text: '$base/groups/$groupId/tournaments/$eventId'));
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Link copied')));
-            },
-          ),
-        ],
-      ),
-      body: AsyncView(
+      backgroundColor: p.bg,
+      body: SafeArea(
+        bottom: false,
+        child: Stack(children: [
+          AsyncView(
         value: t,
         onRetry: () {
           ref.invalidate(tournamentDetailProvider(eventId));
@@ -133,22 +126,28 @@ class TournamentDetailScreen extends ConsumerWidget {
               return ref.refresh(tournamentDetailProvider(eventId).future);
             },
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              padding: const EdgeInsets.only(bottom: 36),
               children: [
                 // Invisible: keeps every live score on this page up to date.
                 LiveScoresSync(eventId: eventId),
+                _HeaderCard(
+                    event: event, mode: mode, status: status, onShare: share),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                 if (myInvite != null) ...[
+                  const SizedBox(height: 14),
                   _InviteBanner(
                       eventId: eventId,
                       groupId: hostGroupId,
                       invite: myInvite),
-                  const SizedBox(height: 14),
                 ] else if (myTeams.isNotEmpty) ...[
+                  const SizedBox(height: 14),
                   _MySquads(
                       eventId: eventId, groupId: hostGroupId, teams: myTeams),
-                  const SizedBox(height: 14),
                 ],
-                _HeaderCard(event: event, mode: mode, status: status),
                 if (isFriendly) ...[
                   const SizedBox(height: 14),
                   _MatchupCard(
@@ -200,10 +199,29 @@ class TournamentDetailScreen extends ConsumerWidget {
                       ended: ended,
                       hostGroupId: parseStr(event['groupId'])),
                 ],
+                    ],
+                  ),
+                ),
               ],
             ),
           );
         },
+          ),
+          // While loading (or on error) there's no cover to carry the back
+          // button — keep one on screen regardless.
+          if (t.valueOrNull == null)
+            Positioned(
+              left: 16,
+              top: 12,
+              child: SpRoundButton(
+                icon: Icons.arrow_back_ios_new_rounded,
+                iconSize: 18,
+                tooltip: 'Back',
+                onTap: () =>
+                    context.canPop() ? context.pop() : context.go('/home'),
+              ),
+            ),
+        ]),
       ),
     );
   }
@@ -328,43 +346,81 @@ class _InviteBannerState extends ConsumerState<_InviteBanner> {
         widget.invite['feeCurrency'], widget.invite['feeCurrencyExponent']);
     final owes = fee != null && parseStr(widget.invite['feeStatus']) != 'paid';
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: p.amber.withAlpha(16),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: p.amber.withAlpha(110)),
+        color: p.hero,
+        borderRadius: BorderRadius.circular(26),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('$teamName has been invited to this tournament',
-            style: TextStyle(
-                color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 4),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          const SpIconTile(Icons.mail_outline_rounded,
+              bg: Color(0x29FFB57D), fg: Color(0xFFFFB57D), size: 40, iconSize: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text('$teamName is invited',
+                style: TextStyle(
+                    color: p.onHero,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800)),
+          ),
+        ]),
+        const SizedBox(height: 8),
         Text(
           owes
               ? "It won't appear on anyone's schedule until you accept. Accepting takes you to checkout for the $fee entry fee."
               : "It won't appear on anyone's schedule until you accept.",
-          style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.35),
+          style: TextStyle(color: p.heroMuted, fontSize: 12.5, height: 1.4),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         Row(children: [
           Expanded(
-            child: SpButton(
-              label: _busy
-                  ? 'Sending…'
-                  : owes
-                      ? 'Pay $fee & accept'
-                      : 'Accept',
-              icon: Icons.check_rounded,
-              expand: true,
-              onTap: _busy ? null : () => _respond(true),
+            child: Material(
+              color: _busy ? p.onHero.withAlpha(30) : Colors.white,
+              shape: const StadiumBorder(),
+              child: InkWell(
+                customBorder: const StadiumBorder(),
+                onTap: _busy ? null : () => _respond(true),
+                child: SizedBox(
+                  height: 48,
+                  child: Center(
+                    child: Text(
+                        _busy
+                            ? 'Sending…'
+                            : owes
+                                ? 'Pay $fee & accept'
+                                : 'Accept',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: _busy
+                                ? p.heroMuted
+                                : const Color(0xFF0E1411),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: OutlinedButton.icon(
-              onPressed: _busy ? null : () => _respond(false),
-              icon: const Icon(Icons.close_rounded, size: 16),
-              label: const Text('Decline'),
+            child: Material(
+              color: p.onHero.withAlpha(24),
+              shape: const StadiumBorder(),
+              child: InkWell(
+                customBorder: const StadiumBorder(),
+                onTap: _busy ? null : () => _respond(false),
+                child: SizedBox(
+                  height: 48,
+                  child: Center(
+                    child: Text('Decline',
+                        style: TextStyle(
+                            color: p.onHero,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ),
             ),
           ),
         ]),
@@ -392,29 +448,36 @@ class _MySquads extends StatelessWidget {
     return Column(children: [
       for (final t in teams)
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: 10),
           child: Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: p.accent.withAlpha(16),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: p.accent.withAlpha(90)),
+              color: p.accentTint,
+              borderRadius: BorderRadius.circular(22),
             ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Row(children: [
-                Icon(Icons.shield_outlined, size: 18, color: p.accent),
-                const SizedBox(width: 8),
+                SpIconTile(Icons.shield_outlined,
+                    bg: p.surface, fg: p.greenText, size: 40, iconSize: 20),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    '${parseStr(t['name']) ?? 'Your team'} · your squad here',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w700),
-                  ),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(parseStr(t['name']) ?? 'Your team',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: p.ink,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700)),
+                        Text('Your squad in this tournament',
+                            style: TextStyle(
+                                color: p.greenText, fontSize: 12)),
+                      ]),
                 ),
               ]),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Row(children: [
                 Expanded(
                   child: SpButton(
@@ -427,11 +490,12 @@ class _MySquads extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.push(
+                  child: _OutlineBtn(
+                    label: 'Formation',
+                    icon: Icons.grid_view_rounded,
+                    expand: true,
+                    onTap: () => context.push(
                         '/groups/$groupId/tournaments/$eventId/teams/${parseStr(t['teamId']) ?? ''}/formation'),
-                    icon: const Icon(Icons.grid_view_rounded, size: 16),
-                    label: const Text('Formation'),
                   ),
                 ),
               ]),
@@ -463,18 +527,17 @@ class _OutlineBtn extends StatelessWidget {
     final p = context.palette;
     final c = tone ?? p.ink;
     return Material(
-      color: p.surface,
-      borderRadius: BorderRadius.circular(12),
+      color: tone != null && tone == p.danger ? p.liveTint : p.surface,
+      shape: StadiumBorder(
+          side: tone != null && tone == p.danger
+              ? BorderSide.none
+              : BorderSide(color: p.line)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        customBorder: const StadiumBorder(),
         onTap: onTap,
         child: Container(
           padding: EdgeInsets.symmetric(
-              horizontal: small ? 10 : 14, vertical: small ? 7 : 11),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: p.line),
-          ),
+              horizontal: small ? 12 : 16, vertical: small ? 8 : 13),
           child: Row(
             mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -483,11 +546,15 @@ class _OutlineBtn extends StatelessWidget {
                 Icon(icon, size: small ? 14 : 16, color: c),
                 const SizedBox(width: 5),
               ],
-              Text(label,
-                  style: TextStyle(
-                      color: c,
-                      fontSize: small ? 12 : 13.5,
-                      fontWeight: FontWeight.w600)),
+              Flexible(
+                child: Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: c,
+                        fontSize: small ? 12.5 : 14,
+                        fontWeight: FontWeight.w700)),
+              ),
             ],
           ),
         ),
@@ -501,11 +568,19 @@ class _OutlineBtn extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _HeaderCard extends StatelessWidget {
-  const _HeaderCard(
-      {required this.event, required this.mode, required this.status});
+  const _HeaderCard({
+    required this.event,
+    required this.mode,
+    required this.status,
+    required this.onShare,
+  });
   final Map<String, dynamic> event;
   final String mode;
   final String status;
+  final VoidCallback onShare;
+
+  static const double _coverH = 190;
+  static const double _overlap = 50;
 
   @override
   Widget build(BuildContext context) {
@@ -522,42 +597,121 @@ class _HeaderCard extends StatelessWidget {
     final end = formatClock(event['endTime']);
     final location = parseStr(event['locationName']);
     final description = parseStr(event['description']);
+    final canPop = context.canPop() || Navigator.of(context).canPop();
 
-    Widget meta(IconData icon, String text) =>
-        Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 13, color: p.muted),
-          const SizedBox(width: 4),
-          Text(text, style: TextStyle(color: p.muted, fontSize: 12)),
-        ]);
+    Widget pill(String label, Color bg, Color fg, {bool dot = false}) =>
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+              color: bg, borderRadius: BorderRadius.circular(999)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            if (dot) ...[
+              Container(
+                  width: 6,
+                  height: 6,
+                  decoration:
+                      BoxDecoration(color: fg, shape: BoxShape.circle)),
+              const SizedBox(width: 5),
+            ],
+            Text(label,
+                style: TextStyle(
+                    color: fg, fontSize: 11.5, fontWeight: FontWeight.w700)),
+          ]),
+        );
 
-    return GlassCard(
+    final statusPill = switch (status) {
+      'live' || 'kicked_off' => pill('Live', p.liveTint, p.danger, dot: true),
+      'completed' => pill('Finished', p.surface2, p.muted),
+      'cancelled' => pill('Cancelled', p.liveTint, p.danger),
+      _ => pill(
+          status.isEmpty
+              ? 'Upcoming'
+              : '${status[0].toUpperCase()}${status.substring(1)}',
+          p.accentTint,
+          p.greenText,
+          dot: true),
+    };
+
+    final card = GlassCard(
+      padding: const EdgeInsets.all(18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Wrap(spacing: 6, runSpacing: 6, children: [
-          SpBadge('🏆 $modeLabel'),
+          pill(modeLabel, p.orangeTint, p.orangeInk),
           if (category != null)
-            SpBadge(
+            pill(
                 '${parseStr(category['emoji']) ?? ''} ${parseStr(category['name']) ?? ''}'
-                    .trim()),
-          SpBadge(status),
+                    .trim(),
+                p.accentTint,
+                p.greenText),
+          statusPill,
         ]),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Text(parseStr(event['title']) ?? 'Tournament',
             style: TextStyle(
-                color: p.ink, fontSize: 20, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 6),
-        Wrap(spacing: 12, runSpacing: 4, children: [
-          meta(Icons.calendar_today_outlined, formatDayYear(event['eventDate'])),
-          if (start != null)
-            meta(Icons.schedule, end != null ? '$start – $end' : start),
-          if (location != null) meta(Icons.place_outlined, location),
-        ]),
+                color: p.ink,
+                fontSize: 22,
+                height: 1.25,
+                letterSpacing: -0.3,
+                fontWeight: FontWeight.w800)),
+        const SizedBox(height: 10),
+        InfoRow(Icons.calendar_today_rounded, formatDayYear(event['eventDate'])),
+        if (start != null)
+          InfoRow(Icons.schedule_rounded, end != null ? '$start – $end' : start),
+        if (location != null) InfoRow(Icons.place_outlined, location),
         if (description != null) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(description,
-              style: TextStyle(color: p.muted, fontSize: 13.5, height: 1.4)),
+              style: TextStyle(color: p.muted, fontSize: 13.5, height: 1.5)),
         ],
       ]),
     );
+
+    return Stack(children: [
+      Positioned(
+        left: 0,
+        right: 0,
+        top: 0,
+        child: ClipRRect(
+          borderRadius:
+              const BorderRadius.vertical(bottom: Radius.circular(32)),
+          child: Container(
+            height: _coverH,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF0E1411), Color(0xFF7A3E12)],
+              ),
+            ),
+            child: const Align(
+              alignment: Alignment(0.85, -0.2),
+              child: Icon(Icons.emoji_events_rounded,
+                  size: 120, color: Color(0x1FFFFFFF)),
+            ),
+          ),
+        ),
+      ),
+      Positioned(
+        left: 16,
+        top: 12,
+        child: SpRoundButton(
+          icon: canPop ? Icons.arrow_back_ios_new_rounded : Icons.home_outlined,
+          iconSize: canPop ? 18 : 21,
+          tooltip: canPop ? 'Back' : 'Home',
+          onTap: () => context.canPop() ? context.pop() : context.go('/home'),
+        ),
+      ),
+      Positioned(
+        right: 16,
+        top: 12,
+        child: SpRoundButton(
+            icon: Icons.ios_share_rounded, tooltip: 'Share', onTap: onShare),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, _coverH - _overlap, 16, 0),
+        child: card,
+      ),
+    ]);
   }
 }
 
@@ -602,13 +756,19 @@ class _MatchupCard extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Column(children: [
-              const SizedBox(height: 22),
-              const Text('⚔️', style: TextStyle(fontSize: 20)),
-              Text('VS',
-                  style: TextStyle(
-                      color: p.muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800)),
+              const SizedBox(height: 40),
+              Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                    color: p.hero, shape: BoxShape.circle),
+                child: Text('VS',
+                    style: TextStyle(
+                        color: p.onHero,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800)),
+              ),
             ]),
           ),
           Expanded(child: _TeamCol(label: 'Guest', row: guestRow, eventId: eventId)),
@@ -616,9 +776,9 @@ class _MatchupCard extends ConsumerWidget {
         const SizedBox(height: 12),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.only(top: 10),
+          padding: const EdgeInsets.only(top: 12),
           decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: p.line)),
+            border: Border(top: BorderSide(color: p.surface2)),
           ),
           child: Wrap(
             alignment: WrapAlignment.center,
@@ -636,7 +796,8 @@ class _MatchupCard extends ConsumerWidget {
                           : p.amber,
                 ),
               if (feeLabel != null)
-                SpBadge('🎟 Entry fee $feeLabel$feeSuffix'),
+                SpBadge('Entry fee $feeLabel$feeSuffix',
+                    icon: Icons.confirmation_num_outlined),
               if (canManage && guestFeeStatus == 'paid' && guestRowId != null)
                 _OutlineBtn(
                   label: 'Refund fee',
@@ -685,13 +846,19 @@ class _TeamCol extends StatelessWidget {
     final teamId = team != null ? parseStr(team['id']) : null;
 
     final col = Column(children: [
-      Text(label.toUpperCase(),
-          style: TextStyle(
-              color: p.muted,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.8)),
-      const SizedBox(height: 6),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+        decoration: BoxDecoration(
+          color: label == 'Host' ? p.orangeTint : p.surface2,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                color: label == 'Host' ? p.orangeInk : p.muted,
+                fontSize: 11,
+                fontWeight: FontWeight.w700)),
+      ),
+      const SizedBox(height: 10),
       Crest(
         logoUrl: team != null ? parseStr(team['logoUrl']) : null,
         kitPrimary: team != null ? parseStr(team['kitPrimary']) : null,
@@ -703,10 +870,10 @@ class _TeamCol extends StatelessWidget {
       Text(
         team != null ? (parseStr(team['name']) ?? 'TBD') : 'TBD',
         textAlign: TextAlign.center,
-        maxLines: 1,
+        maxLines: 2,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-            color: p.ink, fontSize: 13, fontWeight: FontWeight.w700),
+            color: p.ink, fontSize: 14, height: 1.25, fontWeight: FontWeight.w700),
       ),
       if (team != null && parseStr(team['username']) != null)
         Text('@${parseStr(team['username'])}',
@@ -773,42 +940,39 @@ class _MatchSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(children: [
-          const Eyebrow('Match'),
-          const Spacer(),
-          if (match == null &&
-              !matchAsync.isLoading &&
-              canCreate &&
-              guestApproved)
-            SpButton(
-              label: 'Create match game',
-              icon: Icons.flag_outlined,
-              onTap: () => _CreateMatchSheet.show(context,
-                  eventId: eventId, category: category),
-            ),
-        ]),
-        const SizedBox(height: 8),
+        const SpSectionTitle('Match'),
+        const SizedBox(height: 10),
         if (matchAsync.isLoading && match == null)
-          GlassCard(
-            child: Center(
-              child: Text('Loading…',
-                  style: TextStyle(color: p.muted, fontSize: 13)),
-            ),
+          const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: CircularProgressIndicator()),
           )
         else if (match == null)
           GlassCard(
             padding: const EdgeInsets.all(22),
-            child: Center(
-              child: Text(
+            child: Column(children: [
+              const SpIconTile(Icons.sports_soccer_rounded,
+                  size: 52, iconSize: 24),
+              const SizedBox(height: 10),
+              Text(
                 guestApproved
                     ? canCreate
                         ? 'No match game yet — create one to set the officiant and kickoff time.'
                         : "The match game hasn't been set up yet."
                     : 'The match game unlocks once the invited team accepts.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: p.muted, fontSize: 13),
+                style: TextStyle(color: p.muted, fontSize: 13, height: 1.4),
               ),
-            ),
+              if (canCreate && guestApproved) ...[
+                const SizedBox(height: 14),
+                SpButton(
+                  label: 'Create match game',
+                  icon: Icons.flag_outlined,
+                  onTap: () => _CreateMatchSheet.show(context,
+                      eventId: eventId, category: category),
+                ),
+              ],
+            ]),
           )
         else
           _matchCard(context, ref, match),
@@ -883,18 +1047,17 @@ class _MatchSection extends ConsumerWidget {
             const SizedBox(height: 10),
           ],
           Row(children: [
-            SpBadge(
-              status == 'live' ? '⚡ Live' : status,
-              tone: status == 'live' ? p.amber : p.muted,
-            ),
-            const SizedBox(width: 8),
-            Icon(Icons.calendar_today_outlined, size: 13, color: p.muted),
-            const SizedBox(width: 4),
+            SpIconTile(Icons.calendar_today_rounded,
+                size: 34, iconSize: 16, fg: p.greenText),
+            const SizedBox(width: 10),
             Expanded(
-              child: Text(schedule.isEmpty ? 'TBD' : schedule,
+              child: Text(schedule.isEmpty ? 'Time to be set' : schedule,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: p.muted, fontSize: 12)),
+                  style: TextStyle(
+                      color: p.ink,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600)),
             ),
             if (isHostAdmin && status == 'scheduled' && gameId != null)
               InkWell(
@@ -906,15 +1069,11 @@ class _MatchSection extends ConsumerWidget {
                     initialTime: parseStr(m['scheduledTime'])),
                 child: Padding(
                   padding: const EdgeInsets.all(4),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.schedule, size: 13, color: p.muted),
-                    const SizedBox(width: 3),
-                    Text('Edit time',
-                        style: TextStyle(
-                            color: p.muted,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600)),
-                  ]),
+                  child: Text('Edit time',
+                      style: TextStyle(
+                          color: p.greenText,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700)),
                 ),
               ),
           ]),
@@ -930,17 +1089,15 @@ class _MatchSection extends ConsumerWidget {
               canResolve: m['viewerCanResolveLineup'] == true,
             ),
           ],
-          const SizedBox(height: 10),
+          Divider(height: 26, color: p.surface2),
           Row(children: [
-            Icon(Icons.flag_outlined, size: 15, color: p.muted),
-            const SizedBox(width: 6),
             Expanded(
               child: Text(
                 officiants.isEmpty
                     ? 'Officiants'
-                    : 'Officiants ($confirmed/${officiants.length} confirmed)',
+                    : 'Officiants · $confirmed/${officiants.length} confirmed',
                 style: TextStyle(
-                    color: p.ink, fontSize: 13, fontWeight: FontWeight.w600),
+                    color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700),
               ),
             ),
             if (canAddOfficiants && gameId != null)
@@ -961,12 +1118,12 @@ class _MatchSection extends ConsumerWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.add_rounded, size: 16, color: p.accent),
+                    Icon(Icons.add_rounded, size: 16, color: p.greenText),
                     const SizedBox(width: 2),
                     Text('Add',
                         style: TextStyle(
-                            color: p.accent,
-                            fontSize: 12,
+                            color: p.greenText,
+                            fontSize: 13,
                             fontWeight: FontWeight.w700)),
                   ]),
                 ),
@@ -986,22 +1143,24 @@ class _MatchSection extends ConsumerWidget {
             Column(children: [
               for (final o in officiants)
                 Container(
-                  margin: const EdgeInsets.only(bottom: 4),
+                  margin: const EdgeInsets.only(bottom: 6),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 7),
+                      horizontal: 12, vertical: 9),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: p.line),
+                    borderRadius: BorderRadius.circular(14),
+                    color: p.surface2,
                   ),
                   child: Row(children: [
+                    Icon(Icons.sports_rounded, size: 16, color: p.muted),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(parseStr(o['label']) ?? 'Officiant',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               color: p.ink,
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w500)),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(width: 6),
                     SpBadge(
@@ -1046,9 +1205,9 @@ class _MatchSection extends ConsumerWidget {
           ],
           if (gameId != null) ...[
             const SizedBox(height: 12),
-            _OutlineBtn(
+            SpButton(
               label: canOfficiate ? 'Open & manage match' : 'View match',
-              icon: Icons.flag_outlined,
+              icon: Icons.north_east_rounded,
               expand: true,
               onTap: () => context.push('/games/$gameId'),
             ),
@@ -1156,25 +1315,27 @@ class _Scoreboard extends StatelessWidget {
             kitPrimary: t != null ? parseStr(t['kitPrimary']) : null,
             kitSecondary: t != null ? parseStr(t['kitSecondary']) : null,
             label: name,
-            size: 44,
+            size: 52,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(name,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
               style: TextStyle(
-                  color: p.ink, fontSize: 12, fontWeight: FontWeight.w700)),
+                  color: p.onHero,
+                  fontSize: 13,
+                  height: 1.25,
+                  fontWeight: FontWeight.w700)),
         ]),
       );
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: live ? p.danger.withAlpha(13) : null,
-        border: Border.all(color: live ? p.danger.withAlpha(77) : p.line),
+        borderRadius: BorderRadius.circular(22),
+        color: p.hero,
       ),
       child: Row(children: [
         side(home),
@@ -1186,20 +1347,21 @@ class _Scoreboard extends StatelessWidget {
                   ? '${parseInt(home?['score']) ?? 0}–${parseInt(away?['score']) ?? 0}'
                   : 'vs',
               style: TextStyle(
-                  color: showScore ? p.ink : p.muted,
-                  fontSize: showScore ? 26 : 14,
+                  color: showScore ? p.onHero : p.heroMuted,
+                  fontSize: showScore ? 38 : 16,
                   height: 1.1,
-                  fontWeight: FontWeight.w900),
+                  letterSpacing: showScore ? -1 : 0,
+                  fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 3),
             if (live)
               Row(mainAxisSize: MainAxisSize.min, children: [
-                LivePip(color: p.danger),
+                const LivePip(color: Color(0xFFFF8A84)),
                 const SizedBox(width: 4),
                 Text(matchClockText(clock) ?? 'LIVE',
-                    style: TextStyle(
-                        color: p.danger,
-                        fontSize: 10,
+                    style: const TextStyle(
+                        color: Color(0xFFFF8A84),
+                        fontSize: 11,
                         fontWeight: FontWeight.w800)),
               ])
             else
@@ -1210,8 +1372,11 @@ class _Scoreboard extends StatelessWidget {
                         ? 'ABANDONED'
                         : scheduled,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: p.muted, fontSize: 10, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                    color: Color(0xFF6EDC9E),
+                    fontSize: 11,
+                    letterSpacing: 0.6,
+                    fontWeight: FontWeight.w700),
               ),
           ]),
         ),
@@ -1258,15 +1423,11 @@ class _ConflictsBlock extends ConsumerWidget {
 
     Future<void> pickSub(String teamId, String playerId,
         List<Map<String, dynamic>> bench) async {
-      final chosen = await showModalBottomSheet<String>(
-        context: context,
-        backgroundColor: p.surface,
-        shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-        builder: (ctx) => SafeArea(
-          child: ListView(
-            shrinkWrap: true,
-            padding: const EdgeInsets.all(16),
+      final chosen = await showSpSheet<String>(
+      context,
+      builder: (ctx) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text('Sub on…',
                   style: TextStyle(
@@ -1283,8 +1444,7 @@ class _ConflictsBlock extends ConsumerWidget {
                 ),
             ],
           ),
-        ),
-      );
+    );
       if (chosen != null && context.mounted) {
         await subOff(teamId, playerId, swapInPlayerId: chosen);
       }
@@ -1435,17 +1595,22 @@ class _TeamsCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
-    return GlassCard(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
-          Icon(Icons.group_outlined, size: 16, color: p.muted),
-          const SizedBox(width: 6),
           Text('Teams',
               style: TextStyle(
-                  color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
-          const SizedBox(width: 4),
-          Text('${rows.length}/$maxTeams',
-              style: TextStyle(color: p.muted, fontSize: 13)),
+                  color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+                color: p.surface2, borderRadius: BorderRadius.circular(999)),
+            child: Text('${rows.length}/$maxTeams',
+                style: TextStyle(
+                    color: p.muted,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700)),
+          ),
           const Spacer(),
           if (canManage && !ended && rows.length < maxTeams)
             _OutlineBtn(
@@ -1464,9 +1629,19 @@ class _TeamsCard extends ConsumerWidget {
             ),
         ]),
         const SizedBox(height: 10),
-        for (final r in rows) _teamRow(context, r),
-      ]),
-    );
+        if (rows.isEmpty)
+          GlassCard(
+            padding: const EdgeInsets.all(20),
+            child: Center(
+              child: Text('No teams yet.',
+                  style: TextStyle(color: p.muted, fontSize: 13)),
+            ),
+          )
+        else
+          SpListCard(children: [
+            for (final r in rows) _teamRow(context, r),
+          ]),
+      ]);
   }
 
   Widget _teamRow(BuildContext context, Map<String, dynamic> r) {
@@ -1479,24 +1654,17 @@ class _TeamsCard extends ConsumerWidget {
     final feeStatus = parseStr(r['feeStatus']);
     final teamId = team != null ? parseStr(team['id']) : null;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: p.surface,
-        borderRadius: BorderRadius.circular(12),
+    return Material(
+        color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(18),
           onTap: teamId != null
               ? () => context.push(
                   '/groups/${parseStr(team?['groupId']) ?? hostGroupId ?? '-'}/tournaments/$eventId/teams/$teamId')
               : null,
-          child: Container(
+          child: Padding(
             padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: p.line),
-            ),
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
             child: Row(children: [
               Crest(
                 logoUrl: team != null ? parseStr(team['logoUrl']) : null,
@@ -1507,9 +1675,9 @@ class _TeamsCard extends ConsumerWidget {
                 label: team != null
                     ? (parseStr(team['name']) ?? 'Team')
                     : 'Team',
-                size: 40,
+                size: 44,
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1522,7 +1690,7 @@ class _TeamsCard extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                             color: p.ink,
-                            fontSize: 13.5,
+                            fontSize: 14.5,
                             fontWeight: FontWeight.w700),
                       ),
                       Text(
@@ -1536,13 +1704,13 @@ class _TeamsCard extends ConsumerWidget {
                         ].join(' · '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: p.muted, fontSize: 11),
+                        style: TextStyle(color: p.muted, fontSize: 12),
                       ),
                     ]),
               ),
               const SizedBox(width: 6),
               role == 'host'
-                  ? const SpBadge('Host')
+                  ? SpBadge('Host', tone: p.orange)
                   : SpBadge(
                       status,
                       tone: status == 'approved'
@@ -1561,14 +1729,13 @@ class _TeamsCard extends ConsumerWidget {
                           : feeStatus == 'pending'
                               ? 'unpaid'
                               : '',
-                  style: TextStyle(color: p.muted, fontSize: 10),
+                  style: TextStyle(color: p.muted, fontSize: 10.5),
                 ),
               ],
-              Icon(Icons.chevron_right, size: 18, color: p.muted),
+              Icon(Icons.chevron_right_rounded, size: 20, color: p.muted),
             ]),
           ),
         ),
-      ),
     );
   }
 }
@@ -1597,14 +1764,11 @@ class _MatchesCard extends ConsumerWidget {
     final gamesAsync = ref.watch(tournamentGamesProvider(eventId));
     final games = gamesAsync.valueOrNull ?? const <Map<String, dynamic>>[];
 
-    return GlassCard(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
-          const Text('⚔️', style: TextStyle(fontSize: 14)),
-          const SizedBox(width: 6),
           Text('Matches',
               style: TextStyle(
-                  color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
+                  color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
           const Spacer(),
           if (canManage && !ended && approvedPick.length >= 2)
             _OutlineBtn(
@@ -1619,30 +1783,28 @@ class _MatchesCard extends ConsumerWidget {
         ]),
         const SizedBox(height: 10),
         if (gamesAsync.isLoading && games.isEmpty)
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Text('Loading matches…',
-                  style: TextStyle(color: p.muted, fontSize: 12)),
-            ),
+          const Padding(
+            padding: EdgeInsets.all(20),
+            child: Center(child: CircularProgressIndicator()),
           )
         else if (games.isEmpty)
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(14),
+          GlassCard(
+            padding: const EdgeInsets.all(20),
+            child: Center(
               child: Text(
                 approvedPick.length >= 2
                     ? 'No matches yet. Create one to get started.'
                     : 'Once at least two teams have accepted, you can create matches.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: p.muted, fontSize: 12),
+                style: TextStyle(color: p.muted, fontSize: 13, height: 1.4),
               ),
             ),
           )
         else
-          for (final g in games) _gameRow(context, g),
-      ]),
-    );
+          SpListCard(children: [
+            for (final g in games) _gameRow(context, g),
+          ]),
+      ]);
   }
 
   Widget _gameRow(BuildContext context, Map<String, dynamic> g) {
@@ -1689,21 +1851,14 @@ class _MatchesCard extends ConsumerWidget {
           size: 32,
         );
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: p.surface,
-        borderRadius: BorderRadius.circular(12),
+    return Material(
+        color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(18),
           onTap: gameId != null ? () => context.push('/games/$gameId') : null,
-          child: Container(
+          child: Padding(
             padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: p.line),
-            ),
+                const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
             child: Row(children: [
               Expanded(
                 child: Row(
@@ -1739,7 +1894,7 @@ class _MatchesCard extends ConsumerWidget {
                             : showScore
                                 ? p.ink
                                 : p.muted,
-                        fontSize: showScore ? 15 : 11,
+                        fontSize: showScore ? 17 : 12,
                         fontWeight: FontWeight.w800),
                   ),
                   if (status == 'live')
@@ -1772,7 +1927,7 @@ class _MatchesCard extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                           color: p.ink,
-                          fontSize: 12,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -1781,7 +1936,6 @@ class _MatchesCard extends ConsumerWidget {
             ]),
           ),
         ),
-      ),
     );
   }
 }
@@ -1808,36 +1962,51 @@ class _AwardsCard extends ConsumerWidget {
           ]
         : const <Map<String, dynamic>>[];
 
-    return GlassCard(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
-          Icon(Icons.emoji_events_outlined, size: 16, color: p.amber),
-          const SizedBox(width: 6),
           Text('Awards',
               style: TextStyle(
-                  color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
+                  color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
           const Spacer(),
-          SpBadge(isFinal ? 'Final' : 'Provisional'),
+          SpBadge(isFinal ? 'Final' : 'Provisional',
+              tone: isFinal ? p.accent : p.orange),
         ]),
         if (gamesCounted == 0) ...[
           const SizedBox(height: 10),
-          Text('Awards appear here as match games are completed.',
-              style: TextStyle(color: p.muted, fontSize: 12)),
+          GlassCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(children: [
+              SpIconTile(Icons.emoji_events_outlined,
+                  bg: p.orangeTint, fg: p.orangeInk, size: 50, iconSize: 24),
+              const SizedBox(height: 10),
+              Text('Awards appear here as match games are completed.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: p.muted, fontSize: 13)),
+            ]),
+          ),
         ] else ...[
           const SizedBox(height: 10),
-          for (final a in awards) _awardTile(context, a),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 1.15,
+            children: [for (final a in awards) _awardTile(context, a)],
+          ),
           if (!isFinal)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 'These update as matches finish and are locked in when the '
                 'tournament ends.',
-                style: TextStyle(color: p.muted, fontSize: 11),
+                style: TextStyle(color: p.muted, fontSize: 12, height: 1.4),
               ),
             ),
         ],
-      ]),
-    );
+      ]);
   }
 
   Widget _awardTile(BuildContext context, Map<String, dynamic> a) {
@@ -1845,29 +2014,27 @@ class _AwardsCard extends ConsumerWidget {
     final winner = a['winner'] is Map
         ? Map<String, dynamic>.from(a['winner'] as Map)
         : null;
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: p.line),
-        color: p.surface,
-      ),
+    return GlassCard(
+      padding: const EdgeInsets.all(14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Text(parseStr(a['icon']) ?? '🏅',
-              style: const TextStyle(fontSize: 15)),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(parseStr(a['label']) ?? 'Award',
-                style: TextStyle(
-                    color: p.ink,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700)),
+        Container(
+          width: 38,
+          height: 38,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: p.orangeTint,
+            borderRadius: BorderRadius.circular(13),
           ),
-        ]),
-        const SizedBox(height: 6),
+          child: Text(parseStr(a['icon']) ?? '🏅',
+              style: const TextStyle(fontSize: 18)),
+        ),
+        const SizedBox(height: 8),
+        Text(parseStr(a['label']) ?? 'Award',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                color: p.muted, fontSize: 11.5, fontWeight: FontWeight.w600)),
+        const Spacer(),
         if (winner != null) ...[
           Text(parseStr(winner['name']) ?? '—',
               maxLines: 1,
@@ -1992,11 +2159,11 @@ class _EndTournamentCard extends ConsumerWidget {
     final allDone = games.isNotEmpty && open.isEmpty;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: allDone ? p.amber.withAlpha(18) : p.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: allDone ? p.amber.withAlpha(120) : p.line),
+        color: allDone ? p.orangeTint : p.surface,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: allDone ? null : cardShadow(context),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(
@@ -2004,18 +2171,21 @@ class _EndTournamentCard extends ConsumerWidget {
               ? 'All ${games.length} game${games.length == 1 ? '' : 's'} are done — end the $kind'
               : 'This $kind is still open',
           style: TextStyle(
-              color: p.ink, fontSize: 14, fontWeight: FontWeight.w800),
+              color: p.ink, fontSize: 15, fontWeight: FontWeight.w800),
         ),
-        const SizedBox(height: 3),
+        const SizedBox(height: 4),
         Text(
           allDone
               ? "Until you do, it stays on everyone's calendar as live."
               : open.isNotEmpty
                   ? '${open.length} game${open.length == 1 ? '' : 's'} still to play. Ending now finalises live games and abandons unplayed ones.'
                   : "Ending it marks it finished and takes it off everyone's calendar.",
-          style: TextStyle(color: p.muted, fontSize: 12, height: 1.35),
+          style: TextStyle(
+              color: allDone ? p.orangeInk : p.muted,
+              fontSize: 12.5,
+              height: 1.4),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         SpButton(
           label: 'End $kind',
           icon: Icons.flag_outlined,
@@ -2086,12 +2256,8 @@ class _CreateMatchSheet extends ConsumerStatefulWidget {
       {required String eventId,
       required Map<String, dynamic>? category,
       List<({String id, String name})>? teams}) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: context.palette.surface,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    showSpSheet<void>(
+      context,
       builder: (_) => _CreateMatchSheet(
           eventId: eventId, category: category, teams: teams),
     );
@@ -2301,18 +2467,11 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final isMulti = widget.teams != null;
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Create match game',
-                style: TextStyle(
-                    color: p.ink, fontSize: 17, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 14),
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const SpSheetHeader(
+              icon: Icons.sports_soccer_rounded,
+              title: 'Create match game',
+            ),
             if (isMulti) ...[
               _teamPicker('Home team', _homeId,
                   (v) => setState(() => _homeId = v), _awayId),
@@ -2423,10 +2582,7 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
               expand: true,
               onTap: _saving ? null : _submit,
             ),
-          ]),
-        ),
-      ),
-    );
+          ]);
   }
 }
 
@@ -2451,12 +2607,8 @@ class _ScheduleSheet extends ConsumerStatefulWidget {
       required String gameId,
       String? initialDate,
       String? initialTime}) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: context.palette.surface,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    showSpSheet<void>(
+      context,
       builder: (_) => _ScheduleSheet(
           eventId: eventId,
           gameId: gameId,
@@ -2500,19 +2652,11 @@ class _ScheduleSheetState extends ConsumerState<_ScheduleSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.palette;
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-          child:
-              Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Kickoff time',
-                style: TextStyle(
-                    color: p.ink, fontSize: 17, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 14),
+    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const SpSheetHeader(
+              icon: Icons.schedule_rounded,
+              title: 'Kickoff time',
+            ),
             Row(children: [
               Expanded(
                 child: _OutlineBtn(
@@ -2559,10 +2703,7 @@ class _ScheduleSheetState extends ConsumerState<_ScheduleSheet> {
               expand: true,
               onTap: _saving ? null : _save,
             ),
-          ]),
-        ),
-      ),
-    );
+          ]);
   }
 }
 
@@ -2587,12 +2728,8 @@ class _InviteTeamSheet extends ConsumerStatefulWidget {
       required String? categoryId,
       required String? hostGroupId,
       required List<String> existingTeamIds}) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: context.palette.surface,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    showSpSheet<void>(
+      context,
       builder: (_) => _InviteTeamSheet(
           eventId: eventId,
           categoryId: categoryId,
@@ -2665,22 +2802,14 @@ class _InviteTeamSheetState extends ConsumerState<_InviteTeamSheet> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-          child: Column(
+    return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Invite a team',
-                    style: TextStyle(
-                        color: p.ink,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800)),
-                const SizedBox(height: 12),
+                const SpSheetHeader(
+                  icon: Icons.group_add_outlined,
+                  title: 'Invite a team',
+                ),
                 TextField(
                   controller: _search,
                   onChanged: _onSearch,
@@ -2756,9 +2885,6 @@ class _InviteTeamSheetState extends ConsumerState<_InviteTeamSheet> {
                           ),
                   ),
                 ],
-              ]),
-        ),
-      ),
-    );
+              ]);
   }
 }

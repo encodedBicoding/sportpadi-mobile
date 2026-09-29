@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/payments/payment_models.dart';
 import 'package:sportpadi_mobile/data/payments/payments_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// "Who is this ticket for?" — pick the people one purchase covers. The buyer
 /// can include or exclude themselves; every other ticket is attached to a
@@ -22,9 +23,8 @@ Future<List<String>?> showRecipientSheet(
   int? maxTotal,
   bool selfPaid = false,
 }) {
-  return showModalBottomSheet<List<String>>(
-    context: context,
-    isScrollControlled: true,
+  return showSpSheet<List<String>>(
+    context,
     builder: (_) => _RecipientSheet(
       priceMinor: priceMinor,
       feeMinor: feeMinor,
@@ -108,24 +108,16 @@ class _RecipientSheetState extends ConsumerState<_RecipientSheet> {
     final priceSum = _count * widget.priceMinor;
     final feeSum = _count * widget.feeMinor;
     final total = priceSum + feeSum;
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-          child: Column(
+    return Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Who is this for?',
-                  style: TextStyle(
-                      color: p.ink, fontSize: 17, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 2),
-              Text(
-                'One purchase can cover several people — each gets their own ticket and receipt.',
-                style: TextStyle(color: p.muted, fontSize: 12),
+              const SpSheetHeader(
+                icon: Icons.group_add_outlined,
+                title: 'Who is this for?',
+                subtitle:
+                    'One purchase can cover several people — each gets their own ticket and receipt.',
               ),
-              const SizedBox(height: 8),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 value: _includeSelf,
@@ -238,10 +230,7 @@ class _RecipientSheetState extends ConsumerState<_RecipientSheet> {
                         ]),
               ),
             ],
-          ),
-        ),
-      ),
-    );
+          );
   }
 
   Widget _priceRow(String k, String v, {bool bold = false}) {

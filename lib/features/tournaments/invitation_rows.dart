@@ -119,24 +119,25 @@ class _InvitationRowState extends ConsumerState<InvitationRow> {
         : '🏆';
 
     return InkWell(
+      borderRadius: BorderRadius.circular(18),
       onTap: iv.eventId != null && iv.hostGroupId != null
           ? () =>
               context.push('/groups/${iv.hostGroupId}/tournaments/${iv.eventId}')
           : null,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+        padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
         child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           Container(
-            width: 32,
-            height: 32,
+            width: 44,
+            height: 44,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: p.amber.withAlpha(38),
-              borderRadius: BorderRadius.circular(9),
+              color: p.orangeTint,
+              borderRadius: BorderRadius.circular(15),
             ),
-            child: Text(emoji, style: const TextStyle(fontSize: 15)),
+            child: Text(emoji, style: const TextStyle(fontSize: 19)),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,9 +148,9 @@ class _InvitationRowState extends ConsumerState<InvitationRow> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         color: p.ink,
-                        fontSize: 13.5,
+                        fontSize: 14.5,
                         fontWeight: FontWeight.w700)),
-                const SizedBox(height: 2),
+                const SizedBox(height: 1),
                 Text(
                   [
                     iv.eventDate != null ? formatDay(iv.eventDate) : 'Date TBC',
@@ -157,49 +158,73 @@ class _InvitationRowState extends ConsumerState<InvitationRow> {
                   ].join(' · '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: p.muted, fontSize: 11.5),
+                  style: TextStyle(color: p.muted, fontSize: 12),
                 ),
                 if (iv.feeLabel != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    owes ? '${iv.feeLabel} entry fee' : '${iv.feeLabel} · paid',
-                    style: TextStyle(
-                        color: p.amber,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700),
+                  const SizedBox(height: 5),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: owes ? p.orangeTint : p.accentTint,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      owes ? '${iv.feeLabel} entry' : '${iv.feeLabel} · paid',
+                      style: TextStyle(
+                          color: owes ? p.orangeInk : p.greenText,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ],
               ],
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           if (_busy)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 14),
               child: SizedBox(
-                  width: 16,
-                  height: 16,
+                  width: 18,
+                  height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2)),
             )
           else ...[
-            // 40x40 keeps both targets comfortably tappable at row density.
-            IconButton(
-              onPressed: _accept,
-              tooltip: owes ? 'Pay & accept' : 'Accept',
-              visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints.tightFor(width: 40, height: 40),
-              icon: Icon(
-                owes ? Icons.payments_outlined : Icons.check_circle_rounded,
-                size: 22,
-                color: const Color(0xFF16A34A),
+            // Decline: a quiet round button; accept: the ink pill.
+            Tooltip(
+              message: 'Decline',
+              child: Material(
+                color: p.surface2,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: _decline,
+                  child: SizedBox(
+                    width: 38,
+                    height: 38,
+                    child: Icon(Icons.close_rounded, size: 18, color: p.muted),
+                  ),
+                ),
               ),
             ),
-            IconButton(
-              onPressed: _decline,
-              tooltip: 'Decline',
-              visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints.tightFor(width: 40, height: 40),
-              icon: Icon(Icons.close_rounded, size: 20, color: p.muted),
+            const SizedBox(width: 6),
+            Material(
+              color: p.hero,
+              shape: const StadiumBorder(),
+              child: InkWell(
+                customBorder: const StadiumBorder(),
+                onTap: _accept,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  child: Text(owes ? 'Pay' : 'Accept',
+                      style: TextStyle(
+                          color: p.onHero,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700)),
+                ),
+              ),
             ),
           ],
         ]),
@@ -208,7 +233,7 @@ class _InvitationRowState extends ConsumerState<InvitationRow> {
   }
 }
 
-/// The rows, boxed and divided.
+/// The rows in one white card, divided.
 class InvitationListBox extends StatelessWidget {
   const InvitationListBox({super.key, required this.invites, this.onDone});
   final List<TournamentInvite> invites;
@@ -219,14 +244,24 @@ class InvitationListBox extends StatelessWidget {
     final p = context.palette;
     if (invites.isEmpty) return const SizedBox.shrink();
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       decoration: BoxDecoration(
-        color: p.amber.withAlpha(12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: p.amber.withAlpha(90)),
+        color: p.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Theme.of(context).brightness == Brightness.dark
+            ? Border.all(color: p.line)
+            : null,
+        boxShadow: cardShadow(context),
       ),
       child: Column(children: [
         for (var i = 0; i < invites.length; i++) ...[
-          if (i > 0) Divider(height: 1, thickness: 1, color: p.line),
+          if (i > 0)
+            Divider(
+                height: 1,
+                thickness: 1,
+                indent: 12,
+                endIndent: 12,
+                color: p.surface2),
           InvitationRow(
               key: ValueKey(invites[i].id),
               invite: invites[i],

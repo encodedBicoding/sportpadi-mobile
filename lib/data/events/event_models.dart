@@ -149,6 +149,7 @@ class EventDetail {
     this.typicalAttendance,
     this.groupName,
     this.groupImageUrl,
+    this.groupVerified = false,
     this.locationLat,
     this.locationLng,
     this.flowType = 'team_match',
@@ -189,6 +190,8 @@ class EventDetail {
   final int? typicalAttendance;
   final String? groupName;
   final String? groupImageUrl;
+  /// The hosting group carries the gold verification badge.
+  final bool groupVerified;
   final double? locationLat;
   final double? locationLng;
   final String flowType; // team_match | attendance
@@ -244,6 +247,10 @@ class EventDetail {
       typicalAttendance: parseInt(j['typicalAttendance']),
       groupName: grp is Map ? parseStr(grp['name']) : null,
       groupImageUrl: grp is Map ? parseStr(grp['imageUrl']) : null,
+      groupVerified: grp is Map &&
+          grp['verificationBadge'] is String &&
+          (grp['verificationBadge'] as String).isNotEmpty &&
+          grp['verificationBadge'] != 'none',
       locationLat: parseDouble(j['locationLat']),
       locationLng: parseDouble(j['locationLng']),
       flowType: (cat is Map ? parseStr(cat['flowType']) : null) ?? 'team_match',

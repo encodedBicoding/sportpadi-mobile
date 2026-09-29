@@ -10,14 +10,19 @@ import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/features/home/suggested_events_section.dart';
-import 'package:sportpadi_mobile/shared/widgets/event_tile_square.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart';
+import 'package:sportpadi_mobile/features/home/past_events_section.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart' show showSideMenu;
+import 'package:sportpadi_mobile/data/notifications/notifications_repository.dart'
+    show unreadCountProvider;
+import 'package:sportpadi_mobile/data/progression/progression_repository.dart'
+    show yourWeekProvider;
 import 'package:sportpadi_mobile/features/shell/home_shell.dart'
     show homeTabIndexProvider;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/core/ads/admob.dart';
 import 'package:sportpadi_mobile/features/ads/ad_display.dart';
 import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// Home — the user's personal dashboard: their upcoming events across every
 /// group they belong to (live events beep on the tab), a Kids tab (future),
@@ -31,6 +36,11 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   String _range = 'today'; // live | today | upcoming | kids | all
   String? _sport; // category name filter, null = All
+  // A day picked on the calendar's week strip ("yyyy-mm-dd"); overrides
+  // [_range] until a range chip is tapped again.
+  String? _day;
+  // The agenda shows a handful of rows, then expands in place.
+  bool _agendaOpen = false;
 
   static bool _live(EventSummary e) => e.isLive || e.status == 'kicked_off';
 
@@ -69,8 +79,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final me = ref.watch(meProvider).valueOrNull;
 
     return Scaffold(
-      appBar: const SpAppBar(),
-      body: AsyncView(
+      body: SafeArea(
+        bottom: false,
+        child: AsyncView(
         value: feed,
         onRetry: () => ref.invalidate(myFeedProvider),
         data: (f) {
@@ -107,7 +118,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       orElse: () => const EventSummary(
                           id: '', title: '', slug: ''))
                   .categoryId;
-          final panelList = _range == 'live'
+          final panelList = _day != null
+              ? [
+                  for (final e in all)
+                    if (_eventKey(e) == _day) e
+                ]
+              : _range == 'live'
               ? liveList
               : _range == 'today'
                   ? todayList
@@ -118,20 +134,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           return RefreshIndicator(
             onRefresh: () => ref.refresh(myFeedProvider.future),
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
               children: [
-                // Greeting
-                Text(
-                  me != null
-                      ? 'Hi, ${me.displayName.split(' ').first} 👋'
-                      : 'Home',
-                  style: TextStyle(
-                      color: p.ink, fontSize: 22, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                    "Here's what's on across the groups you belong to and follow.",
-                    style: TextStyle(color: p.muted, fontSize: 13)),
+                const _HomeHeader(),
 
                 // Local ads — invisible until the owner activates mobile
                 // slots with this key; location-targeted server-side.
@@ -139,21 +144,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const AdDisplay(slots: ['mobile_home'], carousel: true),
 
                 // Quick actions
-                const SizedBox(height: 14),
+                const SizedBox(height: 6),
                 Row(children: [
                   Expanded(
                     child: _quickAction(p, Icons.group_add_outlined,
-                        'New group', () => _newGroupSheet(context)),
+                        'Create group', () => _newGroupSheet(context)),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: _quickAction(p, Icons.qr_code_scanner_rounded,
-                        'Scan QR', () => context.push('/scan')),
+                        'Scan QR', () => context.push('/scan'),
+                        dark: true),
                   ),
                 ]),
 
                 // Gamification: streak, this week's challenges, next unlock.
                 const YourWeekCard(),
+
+                // The one thing to look at next: live now, else the soonest.
+                if (_nextUp(f.upcoming) case final EventSummary n) ...[
+                  const SizedBox(height: 14),
+                  _NextUpCard(event: n, live: _live(n)),
+                ],
 
                 // Sport filter — All or exactly one sport
                 if (cats.isNotEmpty) ...[
@@ -218,7 +230,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   // ads — it's the answer to "nothing on this week", which is
                   // exactly when someone opens Home and leaves. Rendered on
                   // the empty path too: a brand-new account needs it most.
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 22),
                   SuggestedEventsSection(categoryId: sportCategoryId),
 
                   const SizedBox(height: 10),
@@ -226,71 +238,66 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   // Past events (hidden when the whole feed is empty —
                   // the Browse CTA covers it).
                   if (!(f.upcoming.isEmpty && f.past.isEmpty)) ...[
-                    const SizedBox(height: 18),
-                    const Eyebrow('Past events'),
-                    const SizedBox(height: 10),
-                    if (past.isEmpty)
-                      GlassCard(
-                        child: Center(
-                          child: Text('No past events in the last two months.',
-                              style: TextStyle(color: p.muted, fontSize: 13)),
-                        ),
-                      )
-                    else
-                      GridView.count(
-                        crossAxisCount: 2,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        mainAxisSpacing: 10,
-                        crossAxisSpacing: 10,
-                        children: [
-                          // Your record there, not the event's scoresheet;
-                          // the event is one deliberate tap further in.
-                          for (final e in past)
-                            EventTileSquare(
-                              event: e,
-                              onTap: me?.userId == null
-                                  ? null
-                                  : () => context.push(e.isTournament
-                                      ? '/players/${me!.userId}/tournaments/${e.id}'
-                                      : '/players/${me!.userId}/events/${e.id}'),
-                            ),
-                        ],
-                      ),
+                    const SizedBox(height: 22),
+                    PastEventsSection(events: past, userId: me?.userId),
                   ],
                 ],
               ],
             ),
           );
         },
+        ),
       ),
     );
+  }
+
+  /// Live now, else the soonest upcoming event (the feed is soonest-first).
+  static EventSummary? _nextUp(List<EventSummary> upcoming) {
+    for (final e in upcoming) {
+      if (_live(e)) return e;
+    }
+    return upcoming.isEmpty ? null : upcoming.first;
   }
 
   // ── Pieces ────────────────────────────────────────────────────────────────
 
   Widget _quickAction(
-          AppPalette p, IconData icon, String label, VoidCallback onTap) =>
+          AppPalette p, IconData icon, String label, VoidCallback onTap,
+          {bool dark = false}) =>
       Material(
-        color: p.surface,
-        borderRadius: BorderRadius.circular(14),
+        color: dark ? p.hero : p.surface,
+        borderRadius: BorderRadius.circular(20),
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(20),
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            height: 64,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: p.line),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: dark ? null : cardShadow(context),
             ),
-            child: Column(children: [
-              Icon(icon, size: 20, color: p.accent),
-              const SizedBox(height: 5),
-              Text(label,
-                  style: TextStyle(
-                      color: p.ink,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700)),
+            child: Row(children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: dark ? p.onHero.withAlpha(26) : p.accentTint,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(icon,
+                    size: 20, color: dark ? p.accent : p.accentDeep),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: dark ? p.onHero : p.ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700)),
+              ),
             ]),
           ),
         ),
@@ -300,30 +307,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       Padding(
         padding: const EdgeInsets.only(right: 8),
         child: Material(
-          color: active ? p.accent : p.surface,
-          borderRadius: BorderRadius.circular(999),
+          color: active ? p.hero : p.surface,
+          shape: StadiumBorder(
+              side: BorderSide(color: active ? p.hero : p.line)),
           child: InkWell(
-            borderRadius: BorderRadius.circular(999),
+            customBorder: const StadiumBorder(),
             onTap: onTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: active ? p.accent : p.line),
-              ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               child: Text(label,
                   style: TextStyle(
-                      color: active ? Colors.white : p.muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700)),
+                      color: active ? p.onHero : p.ink.withAlpha(200),
+                      fontSize: 12.5,
+                      fontWeight: active ? FontWeight.w700 : FontWeight.w600)),
             ),
           ),
         ),
       );
 
-  /// Folder-tab calendar panel: Live / Upcoming / Kids (wards only) /
-  /// View All tabs sitting on a connected card of event rows — tabs with
-  /// content pulse.
+  static const _wd1 = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  static const _wd3 = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  static const _mo = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  static String _key(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  /// "Today" / "Tomorrow" / "Sat 4 Oct" for an agenda day heading.
+  static String _dayLabel(String key) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final parts = key.split('-').map(int.parse).toList();
+    final d = DateTime(parts[0], parts[1], parts[2]);
+    final diff = d.difference(today).inDays;
+    if (diff == 0) return 'Today';
+    if (diff == 1) return 'Tomorrow';
+    return '${_wd3[d.weekday - 1]} ${d.day} ${_mo[d.month - 1].substring(0, 3)}';
+  }
+
+  /// The dashboard calendar (2026): one card with a two-week day strip
+  /// (dots mark days with events, red when something's live), range chips
+  /// (Live / Today / Upcoming / All — Kids when wards exist), and an agenda
+  /// grouped by day on a timeline.
   Widget _calendarPanel(
       BuildContext context,
       AppPalette p,
@@ -332,8 +359,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       List<EventSummary> todayList,
       List<EventSummary> upcomingList,
       List<EventSummary> all) {
-    final tabs = <({String key, String label, int count, bool live})>[
-      (key: 'live', label: 'Live', count: liveList.length, live: true),
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final days = [for (var i = 0; i < 14; i++) today.add(Duration(days: i))];
+    // Which strip days have something on (and whether any of it is live).
+    final onDay = <String, bool>{};
+    for (final e in all) {
+      final k = _eventKey(e);
+      if (k == null) continue;
+      onDay[k] = (onDay[k] ?? false) || _live(e);
+    }
+    final selectedDay = _day;
+    final monthLabel = selectedDay != null
+        ? _mo[int.parse(selectedDay.split('-')[1]) - 1]
+        : _mo[today.month - 1];
+
+    final ranges = <({String key, String label, int count, bool live})>[
+      if (liveList.isNotEmpty)
+        (key: 'live', label: 'Live', count: liveList.length, live: true),
       (key: 'today', label: 'Today', count: todayList.length, live: false),
       (
         key: 'upcoming',
@@ -342,198 +386,419 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         live: false
       ),
       if (_hasWards) (key: 'kids', label: 'Kids', count: 0, live: false),
-      (key: 'all', label: 'View All', count: all.length, live: false),
+      (key: 'all', label: 'All', count: all.length, live: false),
     ];
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      // Tabs
-      SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(left: 4),
-        child: Row(children: [
-          for (final t in tabs)
-            Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: InkWell(
-                onTap: () => setState(() => _range = t.key),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(12)),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                  decoration: BoxDecoration(
-                    color: _range == t.key
-                        ? p.surface
-                        : t.key == 'all'
-                            ? p.accent
-                            : p.accent.withAlpha(46),
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(12)),
-                    border: _range == t.key
-                        ? Border(
-                            top: BorderSide(color: p.line),
-                            left: BorderSide(color: p.line),
-                            right: BorderSide(color: p.line),
-                          )
-                        : null,
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Text(
-                      t.label,
-                      style: TextStyle(
-                        color: _range == t.key
-                            ? p.ink
-                            : t.key == 'all'
-                                ? Colors.white
-                                : p.ink.withAlpha(210),
+    Widget rangeChip(({String key, String label, int count, bool live}) r) {
+      final active = _day == null && _range == r.key;
+      return Padding(
+        padding: const EdgeInsets.only(right: 6),
+        child: Material(
+          color: active ? p.hero : p.surface2,
+          shape: const StadiumBorder(),
+          child: InkWell(
+            customBorder: const StadiumBorder(),
+            onTap: () => setState(() {
+              _range = r.key;
+              _day = null;
+              _agendaOpen = false;
+            }),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                if (r.live) ...[
+                  const _PulseDot(),
+                  const SizedBox(width: 6),
+                ],
+                Text(r.label,
+                    style: TextStyle(
+                        color: active ? p.onHero : p.ink,
                         fontSize: 12.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    if (t.count > 0) ...[
-                      const SizedBox(width: 6),
-                      _PulseDot(
-                          color: t.live
-                              ? const Color(0xFFDC2626)
-                              : const Color(0xFF10B981)),
-                    ],
-                  ]),
-                ),
-              ),
+                        fontWeight: active ? FontWeight.w700 : FontWeight.w600)),
+                if (r.count > 0) ...[
+                  const SizedBox(width: 6),
+                  Text('${r.count}',
+                      style: TextStyle(
+                          color: active ? p.heroMuted : p.muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700)),
+                ],
+              ]),
             ),
-        ]),
-      ),
-      // Panel
-      Container(
-        constraints: const BoxConstraints(minHeight: 210),
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: p.surface,
-          border: Border.all(color: p.line),
-          borderRadius: const BorderRadius.only(
-            topRight: Radius.circular(16),
-            bottomLeft: Radius.circular(16),
-            bottomRight: Radius.circular(16),
           ),
         ),
-        child: _range == 'kids'
-            ? SizedBox(
-                height: 190,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('🧒', style: TextStyle(fontSize: 28)),
-                    const SizedBox(height: 8),
-                    Text('Kids & wards are coming soon',
-                        style: TextStyle(
-                            color: p.ink,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 4),
-                    Text(
-                      "You'll be able to follow your kids' events across "
-                      'their groups right here.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: p.muted, fontSize: 12),
-                    ),
-                  ],
-                ),
-              )
-            : panelList.isEmpty
-                ? SizedBox(
-                    height: 190,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          _range == 'live'
-                              ? 'Nothing live right now.'
-                              : _range == 'today'
-                                  ? 'Nothing happening today.'
-                                  : _sport != null
-                                      ? 'No upcoming $_sport events.'
-                                      : 'No upcoming events across the groups you belong to or follow.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: p.muted, fontSize: 13),
-                        ),
-                        const SizedBox(height: 12),
-                        SpButton(
-                          label: 'Browse events',
-                          icon: Icons.explore_outlined,
-                          onTap: () =>
-                              ref.read(homeTabIndexProvider.notifier).state = 1,
-                        ),
-                      ],
-                    ),
-                  )
-                : Column(children: [
-                    for (final e in panelList) _eventRow(context, p, e),
-                  ]),
-      ),
-    ]);
-  }
+      );
+    }
 
-  /// Reference-style row: date block, title + group, time / LIVE.
-  Widget _eventRow(BuildContext context, AppPalette p, EventSummary e) {
-    final d = e.eventDate?.toUtc();
-    const wd = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-    return InkWell(
-      onTap: () => e.isTournament
-          ? context.push('/tournaments/${e.id}')
-          : context.push('/events/${e.slug.isNotEmpty ? e.slug : e.id}'),
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
-        child: Row(children: [
-          Column(children: [
-            Text(d != null ? wd[d.weekday - 1] : '—',
+    Widget dayCell(DateTime d) {
+      final k = _key(d);
+      final isToday = k == _key(today);
+      final selected = _day == k || (_day == null && _range == 'today' && isToday);
+      final has = onDay.containsKey(k);
+      final live = onDay[k] == true;
+      return Padding(
+        padding: const EdgeInsets.only(right: 6),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => setState(() {
+            _day = _day == k ? null : k;
+            _agendaOpen = false;
+          }),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            width: 44,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: selected
+                  ? p.hero
+                  : isToday
+                      ? p.accentTint
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(_wd1[d.weekday - 1],
+                  style: TextStyle(
+                      color: selected ? p.heroMuted : p.muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600)),
+              const SizedBox(height: 3),
+              Text('${d.day}',
+                  style: TextStyle(
+                      color: selected
+                          ? p.onHero
+                          : isToday
+                              ? p.greenText
+                              : p.ink,
+                      fontSize: 16,
+                      height: 1.1,
+                      fontWeight: FontWeight.w800)),
+              const SizedBox(height: 5),
+              Container(
+                width: 5,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: !has
+                      ? Colors.transparent
+                      : live
+                          ? const Color(0xFFE02424)
+                          : selected
+                              ? const Color(0xFF6EDC9E)
+                              : p.accent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ]),
+          ),
+        ),
+      );
+    }
+
+    // Agenda: grouped by day, capped until expanded.
+    const cap = 5;
+    final shown = _agendaOpen || panelList.length <= cap
+        ? panelList
+        : panelList.sublist(0, cap);
+    final groups = <String, List<EventSummary>>{};
+    for (final e in shown) {
+      groups.putIfAbsent(_eventKey(e) ?? '', () => []).add(e);
+    }
+
+    final Widget agenda;
+    if (_range == 'kids' && _day == null) {
+      agenda = _calendarEmpty(p, Icons.child_care_rounded,
+          'Kids & wards are coming soon',
+          "You'll be able to follow your kids' events across their groups right here.");
+    } else if (panelList.isEmpty) {
+      agenda = _calendarEmpty(
+        p,
+        Icons.event_available_outlined,
+        _day != null
+            ? 'Nothing on ${_dayLabel(_day!).toLowerCase().startsWith('to') ? _dayLabel(_day!).toLowerCase() : _dayLabel(_day!)}'
+            : _range == 'live'
+                ? 'Nothing live right now'
+                : _range == 'today'
+                    ? 'Nothing happening today'
+                    : 'Nothing coming up',
+        _sport != null
+            ? 'No $_sport events here — try another sport or day.'
+            : 'Across the groups you belong to or follow.',
+        action: _day == null && _range != 'today'
+            ? SpButton(
+                label: 'Browse events',
+                icon: Icons.explore_outlined,
+                onTap: () => ref.read(homeTabIndexProvider.notifier).state = 1,
+              )
+            : null,
+      );
+    } else {
+      agenda = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        for (final g in groups.entries) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 12, 4, 4),
+            child: Text(g.key.isEmpty ? 'Date to be set' : _dayLabel(g.key),
                 style: TextStyle(
                     color: p.muted,
-                    fontSize: 10.5,
+                    fontSize: 11.5,
+                    letterSpacing: 0.6,
                     fontWeight: FontWeight.w700)),
-            Text(d != null ? '${d.day}' : '—',
-                style: TextStyle(
-                    color: p.ink,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w900,
-                    height: 1.1)),
+          ),
+          for (var i = 0; i < g.value.length; i++)
+            _eventRow(context, p, g.value[i],
+                last: i == g.value.length - 1),
+        ],
+        if (panelList.length > cap)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () => setState(() => _agendaOpen = !_agendaOpen),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                          _agendaOpen
+                              ? 'Show less'
+                              : 'Show all ${panelList.length}',
+                          style: TextStyle(
+                              color: p.greenText,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700)),
+                      const SizedBox(width: 4),
+                      Icon(
+                          _agendaOpen
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          size: 18,
+                          color: p.greenText),
+                    ]),
+              ),
+            ),
+          ),
+      ]);
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 16, 14, 12),
+      decoration: BoxDecoration(
+        color: p.surface,
+        borderRadius: BorderRadius.circular(28),
+        border: dark ? Border.all(color: p.line) : null,
+        boxShadow: cardShadow(context),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        // Header: what this is, and the month you're looking at.
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(children: [
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Your calendar',
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700)),
+                    Text(
+                        '$monthLabel · ${all.length} upcoming across your groups',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: p.muted, fontSize: 12)),
+                  ]),
+            ),
+            if (_day != null)
+              TextButton(
+                onPressed: () => setState(() {
+                  _day = null;
+                  _agendaOpen = false;
+                }),
+                style: TextButton.styleFrom(
+                    foregroundColor: p.greenText,
+                    textStyle: const TextStyle(
+                        fontSize: 12.5, fontWeight: FontWeight.w700)),
+                child: const Text('Clear day'),
+              ),
           ]),
-          const SizedBox(width: 14),
-          Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              if (e.groupName != null)
-                Text(e.groupName!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: p.muted, fontSize: 11)),
-              Text(
-                  '${e.categoryEmoji != null ? '${e.categoryEmoji} ' : ''}${e.title}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: p.ink,
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w800)),
+        ),
+        const SizedBox(height: 12),
+        // Two-week strip.
+        SizedBox(
+          height: 70,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [for (final d in days) dayCell(d)],
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 34,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [for (final r in ranges) rangeChip(r)],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Divider(height: 16, thickness: 1, color: p.surface2),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          alignment: Alignment.topCenter,
+          child: agenda,
+        ),
+      ]),
+    );
+  }
+
+  Widget _calendarEmpty(AppPalette p, IconData icon, String title, String body,
+          {Widget? action}) =>
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 18, 12, 18),
+        child: Column(children: [
+          SpIconTile(icon, size: 52, iconSize: 24),
+          const SizedBox(height: 10),
+          Text(title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 3),
+          Text(body,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.4)),
+          if (action != null) ...[const SizedBox(height: 14), action],
+        ]),
+      );
+
+  /// One agenda row on the timeline: start (and end) time, a dot on the
+  /// rail, then title, group and venue. Live rows go red; tournaments orange.
+  Widget _eventRow(BuildContext context, AppPalette p, EventSummary e,
+      {bool last = false}) {
+    final live = _live(e);
+    final t = e.isTournament;
+    final start = formatClock(e.startTime);
+    final end = formatClock(e.endTime);
+    final railColor = live
+        ? p.danger
+        : t
+            ? p.orange
+            : p.accent;
+    final sub = [
+      if (e.groupName != null) e.groupName!,
+      if (e.locationName != null) e.locationName!,
+    ].join(' · ');
+
+    return InkWell(
+      onTap: () => t
+          ? context.push('/tournaments/${e.id}')
+          : context.push('/events/${e.slug.isNotEmpty ? e.slug : e.id}'),
+      borderRadius: BorderRadius.circular(18),
+      child: IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          // Time column.
+          SizedBox(
+            width: 58,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 12, left: 4),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(live ? 'Now' : (start ?? 'TBC'),
+                        style: TextStyle(
+                            color: live ? p.danger : p.ink,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700)),
+                    if (!live && end != null)
+                      Text(end,
+                          style: TextStyle(color: p.muted, fontSize: 11)),
+                  ]),
+            ),
+          ),
+          // Rail.
+          SizedBox(
+            width: 18,
+            child: Column(children: [
+              const SizedBox(height: 15),
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: railColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: p.surface, width: 2),
+                  boxShadow: [
+                    BoxShadow(color: railColor.withAlpha(60), spreadRadius: 3)
+                  ],
+                ),
+              ),
+              if (!last)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    margin: const EdgeInsets.only(top: 4),
+                    color: p.surface2,
+                  ),
+                ),
             ]),
           ),
           const SizedBox(width: 8),
-          if (e.isLive || e.status == 'kicked_off')
-            Row(mainAxisSize: MainAxisSize.min, children: [
-              const _PulseDot(),
-              const SizedBox(width: 5),
-              Text('LIVE',
-                  style: TextStyle(
-                      color: p.danger,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w900)),
-            ])
-          else
-            Text(formatClock(e.startTime) ?? formatDay(e.eventDate),
-                style: TextStyle(
-                    color: p.muted,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600)),
+          // Content.
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+              decoration: BoxDecoration(
+                color: live
+                    ? p.liveTint
+                    : t
+                        ? p.orangeTint
+                        : p.surface2,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(children: [
+                Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                            '${e.categoryEmoji != null ? '${e.categoryEmoji} ' : ''}${e.title}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: p.ink,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700)),
+                        if (sub.isNotEmpty)
+                          Text(sub,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style:
+                                  TextStyle(color: p.muted, fontSize: 12)),
+                      ]),
+                ),
+                if (live) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                        color: p.danger,
+                        borderRadius: BorderRadius.circular(999)),
+                    child: const Text('LIVE',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800)),
+                  ),
+                ] else if (t) ...[
+                  const SizedBox(width: 8),
+                  Icon(Icons.emoji_events_outlined,
+                      size: 18, color: p.orangeInk),
+                ] else
+                  Icon(Icons.chevron_right_rounded, size: 18, color: p.muted),
+              ]),
+            ),
+          ),
         ]),
       ),
     );
@@ -543,27 +808,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final p = context.palette;
     final name = TextEditingController();
     final desc = TextEditingController();
-    final created = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: p.surface,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-            child: Column(
+    final created = await showSpSheet<String>(
+      context,
+      builder: (ctx) => Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Create a group',
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 12),
+                  const SpSheetHeader(
+                    icon: Icons.group_add_outlined,
+                    title: 'Create a group',
+                    subtitle: 'Name it now — you can add a crest, sports and more later.',
+                  ),
                   TextField(
                     controller: name,
                     style: TextStyle(color: p.ink, fontSize: 14),
@@ -616,9 +871,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     },
                   ),
                 ]),
-          ),
-        ),
-      ),
     );
     if (created != null && created.isNotEmpty && context.mounted) {
       context.push('/groups/$created');
@@ -628,8 +880,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
 /// The "beeping" live indicator — a small red dot that pulses forever.
 class _PulseDot extends StatefulWidget {
-  const _PulseDot({this.color = const Color(0xFFDC2626)});
-  final Color color;
+  const _PulseDot();
   @override
   State<_PulseDot> createState() => _PulseDotState();
 }
@@ -655,11 +906,292 @@ class _PulseDotState extends State<_PulseDot>
       child: Container(
         width: 8,
         height: 8,
-        decoration: BoxDecoration(
-          color: widget.color,
+        decoration: const BoxDecoration(
+          color: Color(0xFFDC2626),
           shape: BoxShape.circle,
         ),
       ),
     );
   }
+}
+
+/// Home header: greeting + first name, the notifications bell (orange dot
+/// when unread) and the avatar wearing the level ring — tapping it opens the
+/// side menu (what the old app bar's hamburger did).
+class _HomeHeader extends ConsumerWidget {
+  const _HomeHeader();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = context.palette;
+    final me = ref.watch(meProvider).valueOrNull;
+    final week = ref.watch(yourWeekProvider).valueOrNull;
+    final unread = ref.watch(unreadCountProvider).valueOrNull ?? 0;
+    final h = DateTime.now().hour;
+    final greeting = h < 12
+        ? 'Good morning'
+        : h < 17
+            ? 'Good afternoon'
+            : 'Good evening';
+    final first = (me?.displayName.trim().split(RegExp(r'\s+')).first ?? '');
+    final initial = first.isNotEmpty ? first[0].toUpperCase() : '?';
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(children: [
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(greeting,
+                style: TextStyle(color: p.muted, fontSize: 13, fontWeight: FontWeight.w500)),
+            Text(first.isEmpty ? 'Welcome' : first,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: p.ink,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                    height: 1.15)),
+          ]),
+        ),
+        Semantics(
+          button: true,
+          label: unread > 0 ? 'Notifications, $unread unread' : 'Notifications',
+          child: Material(
+            color: p.surface,
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () => context.push('/notifications'),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: cardShadow(context)),
+                child: Stack(alignment: Alignment.center, children: [
+                  Icon(Icons.notifications_none_rounded, size: 23, color: p.ink),
+                  if (unread > 0)
+                    Positioned(
+                      top: 10,
+                      right: 11,
+                      child: Container(
+                        width: 9,
+                        height: 9,
+                        decoration: BoxDecoration(
+                          color: p.orange,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: p.surface, width: 2),
+                        ),
+                      ),
+                    ),
+                ]),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Semantics(
+          button: true,
+          label: 'Menu',
+          child: GestureDetector(
+            onTap: () => showSideMenu(context),
+            child: SizedBox(
+              width: 52,
+              height: 52,
+              child: Stack(clipBehavior: Clip.none, alignment: Alignment.center, children: [
+                ProgressRing(
+                  value: week?.progress ?? 0,
+                  size: 48,
+                  stroke: 3.5,
+                  child: CircleAvatar(
+                    radius: 19,
+                    backgroundColor: p.hero,
+                    backgroundImage:
+                        me?.avatarUrl != null ? NetworkImage(me!.avatarUrl!) : null,
+                    child: me?.avatarUrl == null
+                        ? Text(initial,
+                            style: TextStyle(
+                                color: p.onHero, fontWeight: FontWeight.w700, fontSize: 15))
+                        : null,
+                  ),
+                ),
+                if (week != null)
+                  Positioned(
+                    right: -4,
+                    bottom: -2,
+                    child: Container(
+                      constraints: const BoxConstraints(minWidth: 22),
+                      height: 18,
+                      padding: const EdgeInsets.symmetric(horizontal: 5),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: p.orange,
+                        borderRadius: BorderRadius.circular(9),
+                        border: Border.all(color: p.bg, width: 2),
+                      ),
+                      child: Text('${week.level}',
+                          style: const TextStyle(
+                              color: Color(0xFF1A0E04),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              height: 1)),
+                    ),
+                  ),
+              ]),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+/// "Next up": the live event, or the soonest one, as the dark hero card with
+/// a faint pitch drawn behind it. Live → Check in (scanner); else → the event.
+class _NextUpCard extends StatelessWidget {
+  const _NextUpCard({required this.event, required this.live});
+  final EventSummary event;
+  final bool live;
+
+  String _eyebrow() {
+    if (live) return 'LIVE NOW';
+    final d = event.eventDate?.toUtc();
+    if (d == null) return 'NEXT UP';
+    final now = DateTime.now();
+    final today = DateTime.utc(now.year, now.month, now.day);
+    final day = DateTime.utc(d.year, d.month, d.day);
+    final n = day.difference(today).inDays;
+    if (n <= 0) return 'NEXT UP · TODAY';
+    if (n == 1) return 'NEXT UP · TOMORROW';
+    return 'NEXT UP · IN $n DAYS';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final e = event;
+    final clock = formatClock(e.startTime);
+    final when = '${formatDay(e.eventDate)}${clock != null ? ' · $clock' : ''}';
+    void open() => e.isTournament
+        ? context.push('/tournaments/${e.id}')
+        : context.push('/events/${e.slug.isNotEmpty ? e.slug : e.id}');
+    return Material(
+      color: p.hero,
+      borderRadius: BorderRadius.circular(28),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: open,
+        child: Stack(children: [
+          Positioned(
+            right: -60,
+            top: -20,
+            child: CustomPaint(
+              size: const Size(260, 200),
+              painter: _PitchPainter(p.onHero.withAlpha(20)),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                if (live) ...[
+                  const _PulseDot(),
+                  const SizedBox(width: 6),
+                ],
+                Text(_eyebrow(),
+                    style: TextStyle(
+                        color: live
+                            ? const Color(0xFFFF8A8A)
+                            : const Color(0xFF6EDC9E),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.3)),
+              ]),
+              const SizedBox(height: 10),
+              Text(
+                  '${e.categoryEmoji != null ? '${e.categoryEmoji} ' : ''}${e.title}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: p.onHero,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                      height: 1.2)),
+              const SizedBox(height: 10),
+              _line(p, Icons.calendar_today_rounded, when),
+              if (e.locationName != null && e.locationName!.trim().isNotEmpty)
+                _line(p, Icons.place_outlined, e.locationName!),
+              if (e.groupName != null) _line(p, Icons.groups_outlined, e.groupName!),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(
+                  child: Text(
+                    (e.interestCount ?? 0) > 0
+                        ? '${e.interestCount} RSVP${e.interestCount == 1 ? '' : 's'}'
+                        : '',
+                    style: TextStyle(color: p.heroMuted, fontSize: 12.5),
+                  ),
+                ),
+                Material(
+                  color: p.onHero,
+                  shape: const StadiumBorder(),
+                  child: InkWell(
+                    customBorder: const StadiumBorder(),
+                    onTap: live ? () => context.push('/scan') : open,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(live ? Icons.qr_code_scanner_rounded : Icons.arrow_forward_rounded,
+                            size: 17, color: p.hero),
+                        const SizedBox(width: 6),
+                        Text(live ? 'Check in' : 'View',
+                            style: TextStyle(
+                                color: p.hero, fontSize: 14, fontWeight: FontWeight.w700)),
+                      ]),
+                    ),
+                  ),
+                ),
+              ]),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _line(AppPalette p, IconData icon, String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 5),
+        child: Row(children: [
+          Icon(icon, size: 15, color: p.heroMuted),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: p.heroMuted, fontSize: 13)),
+          ),
+        ]),
+      );
+}
+
+/// Faint pitch markings behind the Next up card.
+class _PitchPainter extends CustomPainter {
+  _PitchPainter(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    canvas.drawRRect(
+        RRect.fromLTRBR(10, 10, size.width - 10, size.height - 10, const Radius.circular(6)), paint);
+    canvas.drawLine(Offset(size.width / 2, 10), Offset(size.width / 2, size.height - 10), paint);
+    canvas.drawCircle(Offset(size.width / 2, size.height / 2), 34, paint);
+    canvas.drawRect(Rect.fromLTWH(10, size.height / 2 - 40, 44, 80), paint);
+    canvas.drawRect(Rect.fromLTWH(size.width - 54, size.height / 2 - 40, 44, 80), paint);
+  }
+
+  @override
+  bool shouldRepaint(_PitchPainter old) => old.color != color;
 }

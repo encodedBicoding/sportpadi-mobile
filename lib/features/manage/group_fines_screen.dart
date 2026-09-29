@@ -12,8 +12,10 @@ import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/data/payments/payment_models.dart' show formatMoney;
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/features/groups/groups_providers.dart' show groupProvider;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// Fines, for group admins — the web page (`/groups/:id/fines`).
 ///
@@ -33,6 +35,7 @@ class GroupFinesScreen extends ConsumerStatefulWidget {
 
 class _GroupFinesScreenState extends ConsumerState<GroupFinesScreen> {
   String? _pardoning;
+  String _filter = 'active'; // active | paid | pardoned
 
   void _refetch() => ref.invalidate(groupFinesProvider(widget.groupId));
 
@@ -56,10 +59,10 @@ class _GroupFinesScreenState extends ConsumerState<GroupFinesScreen> {
 
   Future<void> _issue() async {
     final wallet = ref.read(groupWalletProvider(widget.groupId)).valueOrNull;
-    final issued = await showModalBottomSheet<int>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
+    final issued = await showSpSheet<int>(
+      context,
+      scrollable: false,
+      padding: EdgeInsets.zero,
       builder: (_) => _IssueFineSheet(
         groupId: widget.groupId,
         currency: wallet?.currency ?? '',
@@ -75,84 +78,239 @@ class _GroupFinesScreenState extends ConsumerState<GroupFinesScreen> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final data = ref.watch(groupFinesProvider(widget.groupId));
-    final canUse = data.valueOrNull?.canUse ?? false;
+    final groupName =
+        ref.watch(groupProvider(widget.groupId)).valueOrNull?.name;
 
     return Scaffold(
       backgroundColor: p.bg,
-      appBar: AppBar(
-        leading: const SpLeading(),
-        backgroundColor: p.bg,
-        surfaceTintColor: p.bg,
-        title: const Text('Fines'),
-      ),
-      floatingActionButton: canUse
-          ? FloatingActionButton.extended(
-              onPressed: _issue,
-              icon: const Icon(Icons.gavel_rounded),
-              label: const Text('Issue a fine'),
-            )
-          : null,
-      body: AsyncView<GroupFines>(
-        value: data,
-        onRetry: _refetch,
-        data: (d) => RefreshIndicator(
-          onRefresh: () async => _refetch(),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-            children: [
-              if (!d.canUse)
-                GlassCard(
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Icon(Icons.lock_outline_rounded, color: p.amber, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('Fines need the wallet feature.',
-                            style: TextStyle(
-                                color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 2),
-                        Text(
-                            'Fines are collected into the group wallet, so they come '
-                            'with the plans that include it.',
-                            style: TextStyle(color: p.muted, fontSize: 12)),
-                      ]),
-                    ),
-                  ]),
-                )
-              else ...[
-                Text('ALL FINES',
-                    style: TextStyle(
-                        color: p.muted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.2)),
-                const SizedBox(height: 8),
-                if (d.fines.isEmpty)
-                  GlassCard(
-                    padding: const EdgeInsets.all(24),
-                    child: Center(
-                      child: Text('No fines issued yet. Tap “Issue a fine” to add one.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: p.muted, fontSize: 13)),
-                    ),
-                  )
-                else
-                  for (final f in d.fines) ...[
-                    _FineRow(
-                      fine: f,
-                      busy: _pardoning == f.id,
-                      onPardon: () => _pardon(f),
-                      onTap: () => context.push('/players/${f.userId}'),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-              ],
-            ],
+      body: SafeArea(
+        bottom: false,
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: SpHeader(title: 'Fines', subtitle: groupName),
           ),
-        ),
+          Expanded(
+            child: AsyncView<GroupFines>(
+              value: data,
+              onRetry: _refetch,
+              data: (d) {
+                final all = d.fines;
+                int count(String s) => all.where((f) => f.status == s).length;
+                final open = all.where((f) => f.status == 'active').toList();
+                final currencies = open.map((f) => f.currency).toSet();
+                final owed = open.isEmpty
+                    ? null
+                    : currencies.length == 1
+                        ? formatMoney(
+                            open.fold<int>(0, (a, f) => a + f.amountMinor),
+                            open.first.currency,
+                            open.first.currencyExponent)
+                        : '${open.length} unpaid';
+                final shown = all.where((f) => f.status == _filter).toList();
+
+                Widget chip(String key, String label, int n) {
+                  final active = _filter == key;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: Material(
+                      color: active ? p.hero : p.surface,
+                      shape: StadiumBorder(
+                          side: active
+                              ? BorderSide.none
+                              : BorderSide(color: p.line)),
+                      child: InkWell(
+                        customBorder: const StadiumBorder(),
+                        onTap: () => setState(() => _filter = key),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                          child: Text(n > 0 ? '$label · $n' : label,
+                              style: TextStyle(
+                                  color: active ? p.onHero : p.ink,
+                                  fontSize: 12.5,
+                                  fontWeight: active
+                                      ? FontWeight.w700
+                                      : FontWeight.w600)),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: () async => _refetch(),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+                    children: [
+                      if (!d.canUse)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: p.orangeTint,
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                          child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SpIconTile(Icons.lock_outline_rounded,
+                                    bg: p.surface, fg: p.orangeInk, size: 40),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Fines need the wallet feature',
+                                            style: TextStyle(
+                                                color: p.ink,
+                                                fontSize: 14.5,
+                                                fontWeight: FontWeight.w700)),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                            'Fines are collected into the group wallet, so they come '
+                                            'with the plans that include it.',
+                                            style: TextStyle(
+                                                color: p.orangeInk,
+                                                fontSize: 12.5,
+                                                height: 1.4)),
+                                      ]),
+                                ),
+                              ]),
+                        )
+                      else ...[
+                        // Summary + the main action.
+                        Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: p.hero,
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Outstanding',
+                                    style: TextStyle(
+                                        color: p.heroMuted, fontSize: 12.5)),
+                                const SizedBox(height: 2),
+                                Text(owed ?? 'Nothing owed',
+                                    style: TextStyle(
+                                        color: p.onHero,
+                                        fontSize: 28,
+                                        letterSpacing: -0.5,
+                                        fontWeight: FontWeight.w800)),
+                                const SizedBox(height: 12),
+                                Row(children: [
+                                  _heroStat(p, '${count('active')}', 'Unpaid',
+                                      warm: count('active') > 0),
+                                  const SizedBox(width: 8),
+                                  _heroStat(p, '${count('paid')}', 'Paid'),
+                                  const SizedBox(width: 8),
+                                  _heroStat(
+                                      p, '${count('pardoned')}', 'Pardoned'),
+                                ]),
+                                const SizedBox(height: 14),
+                                Material(
+                                  color: Colors.white,
+                                  shape: const StadiumBorder(),
+                                  child: InkWell(
+                                    customBorder: const StadiumBorder(),
+                                    onTap: _issue,
+                                    child: const SizedBox(
+                                      height: 50,
+                                      child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.gavel_rounded,
+                                                size: 18,
+                                                color: Color(0xFF0E1411)),
+                                            SizedBox(width: 7),
+                                            Text('Issue a fine',
+                                                style: TextStyle(
+                                                    color: Color(0xFF0E1411),
+                                                    fontSize: 14,
+                                                    fontWeight:
+                                                        FontWeight.w700)),
+                                          ]),
+                                    ),
+                                  ),
+                                ),
+                              ]),
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          height: 38,
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            children: [
+                              chip('active', 'Unpaid', count('active')),
+                              chip('paid', 'Paid', count('paid')),
+                              chip('pardoned', 'Pardoned', count('pardoned')),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        if (shown.isEmpty)
+                          GlassCard(
+                            padding: const EdgeInsets.all(22),
+                            child: Column(children: [
+                              const SpIconTile(Icons.inbox_outlined,
+                                  size: 50, iconSize: 24),
+                              const SizedBox(height: 10),
+                              Text(
+                                  all.isEmpty
+                                      ? 'No fines issued yet.'
+                                      : _filter == 'active'
+                                          ? 'Nobody owes anything.'
+                                          : 'None here.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      color: p.muted, fontSize: 13)),
+                            ]),
+                          )
+                        else
+                          SpListCard(children: [
+                            for (final f in shown)
+                              _FineRow(
+                                fine: f,
+                                busy: _pardoning == f.id,
+                                onPardon: () => _pardon(f),
+                                onTap: () =>
+                                    context.push('/players/${f.userId}'),
+                              ),
+                          ]),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ]),
       ),
     );
   }
+
+  Widget _heroStat(AppPalette p, String value, String label,
+          {bool warm = false}) =>
+      Expanded(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: p.onHero.withAlpha(18),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(children: [
+            Text(value,
+                style: TextStyle(
+                    color: warm ? const Color(0xFFFFB57D) : p.onHero,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800)),
+            Text(label, style: TextStyle(color: p.heroMuted, fontSize: 11)),
+          ]),
+        ),
+      );
 }
 
 class _FineRow extends StatelessWidget {
@@ -172,57 +330,78 @@ class _FineRow extends StatelessWidget {
     final p = context.palette;
     final f = fine;
     final name = f.userName ?? 'User';
-    return GlassCard(
-      padding: const EdgeInsets.all(10),
-      child: Row(children: [
-        CircleAvatar(
-          radius: 18,
-          backgroundColor: p.surface2,
-          backgroundImage: f.userAvatarUrl != null ? NetworkImage(f.userAvatarUrl!) : null,
-          child: f.userAvatarUrl == null
-              ? Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
-                  style: TextStyle(color: p.muted, fontSize: 13))
-              : null,
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: InkWell(
-            onTap: onTap,
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
+        child: Row(children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: p.surface2,
+            backgroundImage:
+                f.userAvatarUrl != null ? NetworkImage(f.userAvatarUrl!) : null,
+            child: f.userAvatarUrl == null
+                ? Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
+                    style: TextStyle(
+                        color: p.muted,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700))
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style:
-                      TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w600)),
+                  style: TextStyle(
+                      color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
               Text(
-                '${f.title} · ${formatMoney(f.amountMinor, f.currency, f.currencyExponent)}'
-                '${f.createdAt != null ? ' · ${timeAgo(f.createdAt)}' : ''}',
+                '${f.title}${f.createdAt != null ? ' · ${timeAgo(f.createdAt)}' : ''}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: p.muted, fontSize: 11.5),
+                style: TextStyle(color: p.muted, fontSize: 12),
               ),
             ]),
           ),
-        ),
-        const SizedBox(width: 8),
-        if (f.status == 'paid')
-          SpBadge('Paid', tone: p.accent)
-        else if (f.status == 'pardoned')
-          SpBadge('Pardoned', tone: p.muted)
-        else
-          OutlinedButton.icon(
-            onPressed: busy ? null : onPardon,
-            style: OutlinedButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                minimumSize: const Size(0, 32)),
-            icon: busy
-                ? const SizedBox(
-                    width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.verified_user_outlined, size: 14),
-            label: const Text('Pardon', style: TextStyle(fontSize: 12)),
-          ),
-      ]),
+          const SizedBox(width: 8),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Text(formatMoney(f.amountMinor, f.currency, f.currencyExponent),
+                style: TextStyle(
+                    color: p.ink, fontSize: 14, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 3),
+            if (f.status == 'paid')
+              Text('PAID',
+                  style: TextStyle(
+                      color: p.greenText,
+                      fontSize: 10.5,
+                      letterSpacing: 0.5,
+                      fontWeight: FontWeight.w800))
+            else if (f.status == 'pardoned')
+              Text('PARDONED',
+                  style: TextStyle(
+                      color: p.muted,
+                      fontSize: 10.5,
+                      letterSpacing: 0.5,
+                      fontWeight: FontWeight.w800))
+            else
+              GestureDetector(
+                onTap: busy ? null : onPardon,
+                child: busy
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : Text('Pardon',
+                        style: TextStyle(
+                            color: p.greenText,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700)),
+              ),
+          ]),
+        ]),
+      ),
     );
   }
 }
@@ -318,20 +497,16 @@ class _IssueFineSheetState extends ConsumerState<_IssueFineSheet> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottom),
-      child: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.85 - bottom,
-        child: Column(children: [
+    return Column(children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
             child: Row(children: [
-              Icon(Icons.gavel_rounded, size: 18, color: p.accent),
-              const SizedBox(width: 8),
+              SpIconTile(Icons.gavel_rounded,
+                  bg: p.orangeTint, fg: p.orangeInk, size: 40, iconSize: 19),
+              const SizedBox(width: 12),
               Text('Issue a fine',
                   style:
-                      TextStyle(color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
+                      TextStyle(color: p.ink, fontSize: 18, fontWeight: FontWeight.w800)),
             ]),
           ),
           const Divider(height: 1),
@@ -439,34 +614,43 @@ class _IssueFineSheetState extends ConsumerState<_IssueFineSheet> {
           ),
           const Divider(height: 1),
           Padding(
-            padding: EdgeInsets.fromLTRB(
-                20, 12, 20, 12 + MediaQuery.of(context).padding.bottom),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
             child: Row(children: [
               Expanded(
-                child: OutlinedButton(
-                  onPressed: _busy ? null : () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                child: Material(
+                  color: p.surface,
+                  shape: StadiumBorder(side: BorderSide(color: p.line)),
+                  child: InkWell(
+                    customBorder: const StadiumBorder(),
+                    onTap: _busy ? null : () => Navigator.pop(context),
+                    child: SizedBox(
+                      height: 48,
+                      child: Center(
+                        child: Text('Cancel',
+                            style: TextStyle(
+                                color: p.ink,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 flex: 2,
-                child: FilledButton(
-                  onPressed: _busy ? null : _submit,
-                  child: _busy
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text(_picked.length > 1
+                child: SpButton(
+                  label: _busy
+                      ? 'Issuing…'
+                      : _picked.length > 1
                           ? 'Issue ${_picked.length} fines'
-                          : 'Issue fine'),
+                          : 'Issue fine',
+                  expand: true,
+                  onTap: _busy ? null : _submit,
                 ),
               ),
             ]),
           ),
-        ]),
-      ),
-    );
+        ]);
   }
 }

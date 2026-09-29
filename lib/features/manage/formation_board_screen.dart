@@ -10,6 +10,8 @@ import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
 import 'package:sportpadi_mobile/data/tournaments/squad_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 class _Pos {
   _Pos(this.x, this.y, this.starter);
@@ -340,15 +342,9 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
   /// The token's × — offer Bench or Substitute (web parity).
   Future<void> _tokenMenu(TeamMember m) async {
     final p = context.palette;
-    final choice = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: p.surface,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-          child: Column(
+    final choice = await showSpSheet<String>(
+      context,
+      builder: (ctx) => Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -388,8 +384,6 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
               ),
             ],
           ),
-        ),
-      ),
     );
     if (!mounted) return;
     if (choice == 'bench') {
@@ -442,16 +436,9 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
                   letterSpacing: 0.6)),
         );
 
-    final targetId = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: p.surface,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-          child: Column(
+    final targetId = await showSpSheet<String>(
+      context,
+      builder: (ctx) => Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -477,8 +464,6 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
                 for (final x in candidates) row(ctx, x),
             ],
           ),
-        ),
-      ),
     );
     if (targetId == null || !mounted) return;
     final src = _pos[source.memberId];
@@ -612,37 +597,40 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
     final tokenText = _hex(team.kitSecondary, Colors.white);
 
     return Scaffold(
-      appBar: AppBar(
-        leading: const SpLeading(),
-        backgroundColor: p.bg,
-        surfaceTintColor: p.bg,
-        title: const Text('Formation',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      backgroundColor: p.bg,
+      body: SafeArea(
+        bottom: false,
+        child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
         children: [
-          // Header row — web: "Formation (n/max on field)" + switcher + saved.
+          SpHeader(title: 'Formation', subtitle: team.name),
+          const SizedBox(height: 16),
+          // Header row — how full the pitch is, the shape switcher, saved.
           Row(children: [
             Expanded(
-              child: Row(children: [
-                Text('Formation',
-                    style: TextStyle(
-                        color: p.ink,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700)),
-                const SizedBox(width: 5),
-                Flexible(
-                  child: Text(
-                      '($_starterCount/${team.formation.maxStarters} on field)',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: p.muted, fontSize: 12)),
-                ),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        '$_starterCount/${team.formation.maxStarters}',
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 22,
+                            height: 1.1,
+                            fontWeight: FontWeight.w800)),
+                    Text('on the pitch',
+                        style: TextStyle(color: p.muted, fontSize: 12)),
+                  ]),
             ),
             if (!_readOnly && forms.isNotEmpty) ...[
-              DropdownButtonHideUnderline(
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: p.surface,
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: cardShadow(context),
+                ),
+                child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: _formationName,
                   hint: Text('Formation…',
@@ -660,7 +648,8 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
                   },
                 ),
               ),
-              const SizedBox(width: 8),
+              ),
+              const SizedBox(width: 10),
             ],
             if (!_readOnly)
               Row(children: [
@@ -690,9 +679,7 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
                   return Container(
                     clipBehavior: Clip.antiAlias,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                          color: const Color.fromRGBO(6, 78, 59, 0.4)),
+                      borderRadius: BorderRadius.circular(26),
                     ),
                     child: Stack(children: [
                       const Positioned.fill(
@@ -742,6 +729,7 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
             ),
           ],
         ],
+      ),
       ),
     );
   }

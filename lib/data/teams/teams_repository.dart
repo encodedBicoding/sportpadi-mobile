@@ -22,6 +22,18 @@ class TeamsRepository {
     }
   }
 
+  /// What the group may build right now (plan OR promo code) — the same rule
+  /// the server enforces on create. See [TeamAllowance].
+  Future<TeamAllowance> allowance(String groupId) async {
+    try {
+      final res = await _dio.get('/api/mobile/groups/$groupId/teams/allowance');
+      return TeamAllowance.fromJson(
+          res.data is Map ? Map<String, dynamic>.from(res.data as Map) : const {});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not check your team allowance.');
+    }
+  }
+
   Future<TeamDetail> get(String teamId) async {
     try {
       final res = await _dio.get('/api/mobile/teams/$teamId');
@@ -103,6 +115,10 @@ final groupTeamsProvider = FutureProvider.autoDispose
     .family<List<TeamSummary>, String>(
         (ref, groupId) => ref.watch(teamsRepositoryProvider).forGroup(groupId));
 
+final teamAllowanceProvider = FutureProvider.autoDispose
+    .family<TeamAllowance, String>(
+        (ref, groupId) => ref.watch(teamsRepositoryProvider).allowance(groupId));
+
 final teamDetailProvider = FutureProvider.autoDispose
     .family<TeamDetail, String>(
         (ref, teamId) => ref.watch(teamsRepositoryProvider).get(teamId));
@@ -122,3 +138,34 @@ final playerCardProvider = FutureProvider.autoDispose
     .family<PlayerCard, ({String teamId, String playerId})>((ref, key) => ref
         .watch(teamsRepositoryProvider)
         .playerCard(key.teamId, key.playerId));
+
+/// Team building for a group: a plan (tier) OR an active promo code grants
+///  - BUILD_ONE_TEAM: one team per sport ([canBuild] true, [canBuildMultiple] false)
+///  - BUILD_MULTIPLE_TEAMS: any number per sport ([canBuildMultiple] true).
+/// [takenCategoryIds] are the sports that already have a team — off the menu
+/// on one-per-sport plans. Web reads the same thing (groupTeams.createAllowance).
+class TeamAllowance {
+  const TeamAllowance({
+    this.canBuild = false,
+    this.canBuildMultiple = false,
+    this.takenCategoryIds = const {},
+  });
+  final bool canBuild;
+  final bool canBuildMultiple;
+  final Set<String> takenCategoryIds;
+
+  /// Can this sport take another team?
+  bool canAddTo(String categoryId) =>
+      canBuild && (canBuildMultiple || !takenCategoryIds.contains(categoryId));
+
+  factory TeamAllowance.fromJson(Map<String, dynamic> j) => TeamAllowance(
+        canBuild: j['canBuild'] == true,
+        canBuildMultiple: j['canBuildMultiple'] == true,
+        takenCategoryIds: {
+          for (final x in (j['takenCategoryIds'] is List
+              ? j['takenCategoryIds'] as List
+              : const []))
+            if (x is String) x,
+        },
+      );
+}

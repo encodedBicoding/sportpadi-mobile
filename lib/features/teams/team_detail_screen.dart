@@ -17,7 +17,9 @@ import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/shared/widgets/team_tile.dart' show kitGradient;
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// Team page — mirrors the web team page: header + record, then scrollable
 /// tabs: Players (starters/subs, invite, add), Formation, Coaches, Games.
@@ -44,196 +46,347 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
     final p = context.palette;
     final team = ref.watch(teamDetailProvider(teamId));
     return Scaffold(
-      appBar: AppBar(
-        leading: const SpLeading(),
-        backgroundColor: p.bg,
-        surfaceTintColor: p.bg,
-        title: Text(team.valueOrNull?.name ?? 'Team',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style:
-                const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-      ),
-      body: AsyncView(
-        value: team,
-        onRetry: _refetch,
-        data: (t) {
-          // No general formation any more — formations live per tournament
-          // on the squad, which is what the Tournaments tab opens.
-          final tabs = <(String, int)>[
-            ('Players', 0),
-            ('Tournaments', 1),
-            ('Coaches', 2),
-            ('Games', 3),
-          ];
-          return RefreshIndicator(
-            onRefresh: () async =>
-                ref.refresh(teamDetailProvider(teamId).future),
-            child: CustomScrollView(slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                  _Header(team: t),
-                  const SizedBox(height: 10),
-                  _RecordStrip(teamId: teamId),
-                  const SizedBox(height: 12),
-                ])),
-              ),
-              // Tab bar pins while the header scrolls away.
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _PinnedTeamTabs(
-                  child: Container(
-                    color: p.bg,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    // Scrollable tab bar.
-                    child: Container(
-                  decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: p.line)),
-                  ),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(children: [
-                      for (final (label, i) in tabs)
-                        InkWell(
-                          onTap: () => setState(() => _tab = i),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 11),
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  color: _tab == i
-                                      ? p.accent
-                                      : Colors.transparent,
-                                  width: 2,
+      backgroundColor: p.bg,
+      body: SafeArea(
+        bottom: false,
+        child: Stack(children: [
+          AsyncView(
+            value: team,
+            onRetry: _refetch,
+            data: (t) {
+              // No general formation any more — formations live per
+              // tournament on the squad, which is what the Tournaments tab
+              // opens.
+              const tabs = ['Players', 'Tournaments', 'Coaches', 'Games'];
+              return RefreshIndicator(
+                onRefresh: () async =>
+                    ref.refresh(teamDetailProvider(teamId).future),
+                child: CustomScrollView(slivers: [
+                  SliverToBoxAdapter(
+                      child: _Header(team: t, teamId: teamId)),
+                  // Tab chips pin while the header scrolls away.
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _PinnedTeamTabs(
+                      child: Container(
+                        color: p.bg,
+                        padding: const EdgeInsets.fromLTRB(20, 8, 0, 8),
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            for (var i = 0; i < tabs.length; i++)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: Material(
+                                  color: _tab == i ? p.hero : p.surface,
+                                  shape: StadiumBorder(
+                                      side: _tab == i
+                                          ? BorderSide.none
+                                          : BorderSide(color: p.line)),
+                                  child: InkWell(
+                                    customBorder: const StadiumBorder(),
+                                    onTap: () => setState(() => _tab = i),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 9),
+                                      child: Text(tabs[i],
+                                          style: TextStyle(
+                                              color: _tab == i
+                                                  ? p.onHero
+                                                  : p.ink,
+                                              fontSize: 13,
+                                              fontWeight: _tab == i
+                                                  ? FontWeight.w700
+                                                  : FontWeight.w600)),
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                            child: Text(
-                              label.toUpperCase(),
-                              style: TextStyle(
-                                color: _tab == i ? p.accent : p.muted,
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.8,
-                              ),
-                            ),
-                          ),
+                          ],
                         ),
-                    ]),
+                      ),
+                    ),
                   ),
-                ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 36),
+                    sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                      if (_tab == 0)
+                        _PlayersTab(team: t, onChanged: _refetch)
+                      else if (_tab == 1)
+                        _TournamentsTab(team: t)
+                      else if (_tab == 2)
+                        _CoachesTab(team: t)
+                      else
+                        _GamesTab(teamId: teamId),
+                    ])),
                   ),
-                ),
+                ]),
+              );
+            },
+          ),
+          if (team.valueOrNull == null)
+            Positioned(
+              left: 16,
+              top: 12,
+              child: SpRoundButton(
+                icon: Icons.arrow_back_ios_new_rounded,
+                iconSize: 18,
+                tooltip: 'Back',
+                onTap: () =>
+                    context.canPop() ? context.pop() : context.go('/home'),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
-                sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                  if (_tab == 0)
-                    _PlayersTab(team: t, onChanged: _refetch)
-                  else if (_tab == 1)
-                    _TournamentsTab(team: t)
-                  else if (_tab == 2)
-                    _CoachesTab(team: t)
-                  else
-                    _GamesTab(teamId: teamId),
-                ])),
-              ),
-            ]),
-          );
-        },
+            ),
+        ]),
       ),
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// Header + record strip
+// Header (2026) — the kit as an edge-to-edge banner with round back / share,
+// and the identity card overlapping it: crest, name, handle, sport, venue,
+// the record, and the admin actions.
 // ---------------------------------------------------------------------------
 
-class _Header extends StatelessWidget {
-  const _Header({required this.team});
+class _Header extends ConsumerWidget {
+  const _Header({required this.team, required this.teamId});
   final TeamDetail team;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    final t = team;
-    return GlassCard(
-      child: Row(children: [
-        Crest(
-            logoUrl: t.logoUrl,
-            kitPrimary: t.kitPrimary,
-            kitSecondary: t.kitSecondary,
-            label: t.name,
-            size: 60),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(t.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: p.ink,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700)),
-              if (t.username != null)
-                Text('@${t.username}',
-                    style: TextStyle(color: p.muted, fontSize: 12)),
-              const SizedBox(height: 5),
-              Wrap(spacing: 6, runSpacing: 4, children: [
-                if (t.categoryName != null) SpBadge(t.categoryName!),
-                SpBadge('${t.members.length} players'),
-                if (t.homeVenue != null)
-                  SpBadge(t.homeVenue!, icon: Icons.place_outlined),
-              ]),
-            ],
-          ),
-        ),
-      ]),
-    );
-  }
-}
-
-class _RecordStrip extends ConsumerWidget {
-  const _RecordStrip({required this.teamId});
   final String teamId;
+
+  static const double _bannerH = 170;
+  static const double _overlap = 50;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
+    final t = team;
     final stats = ref.watch(teamStatsProvider(teamId)).valueOrNull;
-    if (stats == null || stats.played == 0) return const SizedBox.shrink();
-    Widget cell(String label, String value, [Color? tone]) => Expanded(
-          child: Column(children: [
-            Text(value,
-                style: TextStyle(
-                    color: tone ?? p.ink,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800)),
-            Text(label,
-                style: TextStyle(color: p.muted, fontSize: 10)),
-          ]),
+    final canPop = context.canPop() || Navigator.of(context).canPop();
+
+    void copyJoin() {
+      final base = ref.read(appConfigProvider).apiBaseUrl;
+      Clipboard.setData(ClipboardData(text: '$base/join-team/${t.id}'));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Join link copied — share it to invite players')));
+    }
+
+    Widget stat(String value, String label, [Color? tone]) => Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 11),
+            decoration: BoxDecoration(
+              color: p.surface2,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(children: [
+              Text(value,
+                  style: TextStyle(
+                      color: tone ?? p.ink,
+                      fontSize: 18,
+                      height: 1.1,
+                      fontWeight: FontWeight.w800)),
+              const SizedBox(height: 3),
+              Text(label, style: TextStyle(color: p.muted, fontSize: 11)),
+            ]),
+          ),
         );
-    final gd = stats.goalsFor - stats.goalsAgainst;
-    return GlassCard(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-      child: Row(children: [
-        cell('Played', '${stats.played}'),
-        cell('Won', '${stats.won}', p.accent),
-        cell('Drawn', '${stats.drawn}'),
-        cell('Lost', '${stats.lost}', p.danger),
-        cell('GF', '${stats.goalsFor}'),
-        cell('GA', '${stats.goalsAgainst}'),
-        cell('GD', '${gd > 0 ? '+' : ''}$gd'),
+
+    final gd = stats == null ? 0 : stats.goalsFor - stats.goalsAgainst;
+    final card = GlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: p.surface, width: 3),
+            ),
+            child: Crest(
+                logoUrl: t.logoUrl,
+                kitPrimary: t.kitPrimary,
+                kitSecondary: t.kitSecondary,
+                label: t.name,
+                size: 64),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(t.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: p.ink,
+                        fontSize: 20,
+                        height: 1.2,
+                        letterSpacing: -0.2,
+                        fontWeight: FontWeight.w800)),
+                if (t.username != null)
+                  Text('@${t.username}',
+                      style: TextStyle(color: p.muted, fontSize: 12.5)),
+              ],
+            ),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        Wrap(spacing: 6, runSpacing: 6, children: [
+          if (t.categoryName != null)
+            _pill(p, t.categoryName!, p.accentTint, p.greenText),
+          _pill(p, '${t.members.length} player${t.members.length == 1 ? '' : 's'}',
+              p.surface2, p.ink),
+          if (t.homeVenue != null)
+            _pill(p, t.homeVenue!, p.surface2, p.ink,
+                icon: Icons.place_outlined),
+        ]),
+        if ((t.description ?? '').trim().isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Text(t.description!.trim(),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: p.muted, fontSize: 13, height: 1.5)),
+        ],
+        if (stats != null && stats.played > 0) ...[
+          const SizedBox(height: 14),
+          Row(children: [
+            stat('${stats.played}', 'Played'),
+            const SizedBox(width: 8),
+            stat('${stats.won}-${stats.drawn}-${stats.lost}', 'W-D-L',
+                p.greenText),
+            const SizedBox(width: 8),
+            stat('${gd > 0 ? '+' : ''}$gd', 'Goal diff',
+                gd < 0 ? p.danger : null),
+          ]),
+        ],
+        if (t.canManage) ...[
+          const SizedBox(height: 14),
+          Row(children: [
+            Expanded(
+              child: SpButton(
+                label: 'Add player',
+                icon: Icons.person_add_alt_rounded,
+                expand: true,
+                onTap: () => _PlayersTab.addPlayer(context, ref, t, () {
+                  ref.invalidate(teamDetailProvider(teamId));
+                  ref.invalidate(teamStatsProvider(teamId));
+                }),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Material(
+                color: p.surface,
+                shape: StadiumBorder(side: BorderSide(color: p.line)),
+                child: InkWell(
+                  customBorder: const StadiumBorder(),
+                  onTap: copyJoin,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.link_rounded, size: 17, color: p.ink),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text('Invite link',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: p.ink,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700)),
+                          ),
+                        ]),
+                  ),
+                ),
+              ),
+            ),
+          ]),
+        ],
       ]),
     );
+
+    return Stack(children: [
+      Positioned(
+        left: 0,
+        right: 0,
+        top: 0,
+        child: ClipRRect(
+          borderRadius:
+              const BorderRadius.vertical(bottom: Radius.circular(32)),
+          child: Container(
+            height: _bannerH,
+            decoration: BoxDecoration(
+              gradient: kitGradient(t.kitPrimary, t.kitSecondary),
+            ),
+            child: CustomPaint(painter: _StripesPainter()),
+          ),
+        ),
+      ),
+      Positioned(
+        left: 16,
+        top: 12,
+        child: SpRoundButton(
+          icon: canPop ? Icons.arrow_back_ios_new_rounded : Icons.home_outlined,
+          iconSize: canPop ? 18 : 21,
+          tooltip: canPop ? 'Back' : 'Home',
+          onTap: () => context.canPop() ? context.pop() : context.go('/home'),
+        ),
+      ),
+      if (t.groupId != null)
+        Positioned(
+          right: 16,
+          top: 12,
+          child: SpRoundButton(
+            icon: Icons.groups_outlined,
+            tooltip: 'Open group',
+            onTap: () => context.push('/groups/${t.groupId}'),
+          ),
+        ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, _bannerH - _overlap, 16, 8),
+        child: card,
+      ),
+    ]);
   }
+
+  Widget _pill(AppPalette p, String label, Color bg, Color fg,
+          {IconData? icon}) =>
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration:
+            BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (icon != null) ...[
+            Icon(icon, size: 13, color: fg),
+            const SizedBox(width: 4),
+          ],
+          Flexible(
+            child: Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: fg, fontSize: 11.5, fontWeight: FontWeight.w700)),
+          ),
+        ]),
+      );
+}
+
+/// Soft diagonal kit stripes over the banner.
+class _StripesPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0x14FFFFFF)
+      ..strokeWidth = 18;
+    for (double x = -size.height; x < size.width; x += 56) {
+      canvas.drawLine(
+          Offset(x, size.height), Offset(x + size.height, 0), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
 // ---------------------------------------------------------------------------
@@ -251,92 +404,57 @@ class _PlayersTab extends ConsumerWidget {
     final p = context.palette;
     // One roster pool: starters/subs are decided per tournament on the squad.
     final roster = team.members;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (team.canManage) ...[
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            _chip(context, 'Invite link', Icons.link_rounded, () {
-              final base = ref.read(appConfigProvider).apiBaseUrl;
-              Clipboard.setData(
-                  ClipboardData(text: '$base/join-team/${team.id}'));
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content:
-                      Text('Join link copied — share it to invite players')));
-            }),
-            _chip(context, 'Add player', Icons.person_add_alt_rounded,
-                () => _addPlayer(context, ref)),
-          ]),
-          const SizedBox(height: 12),
-        ],
-        if (team.members.isEmpty)
-          GlassCard(
-            child: Center(
-              child: Text(
-                'No players yet${team.canManage ? ' — add from your group members.' : '.'}',
-                style: TextStyle(color: p.muted, fontSize: 13),
-              ),
-            ),
-          )
-        else ...[
-          Eyebrow('Roster (${roster.length})'),
-          const SizedBox(height: 6),
-          for (final m in roster) _memberRow(context, ref, m),
-        ],
-      ],
-    );
-  }
-
-  Widget _chip(BuildContext context, String label, IconData icon,
-      VoidCallback onTap) {
-    final p = context.palette;
-    return Material(
-      color: p.surface,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: p.line),
+    if (roster.isEmpty) {
+      return GlassCard(
+        padding: const EdgeInsets.all(22),
+        child: Column(children: [
+          const SpIconTile(Icons.groups_outlined, size: 52, iconSize: 24),
+          const SizedBox(height: 10),
+          Text(
+            'No players yet${team.canManage ? ' — add them from your group members.' : '.'}',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: p.muted, fontSize: 13),
           ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 16, color: p.accent),
-            const SizedBox(width: 5),
-            Text(label,
-                style: TextStyle(
-                    color: p.ink,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600)),
-          ]),
-        ),
-      ),
+        ]),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SpSectionTitle('Roster', count: roster.length),
+        const SizedBox(height: 10),
+        SpListCard(children: [
+          for (final m in roster) _memberRow(context, ref, m),
+        ]),
+      ],
     );
   }
 
   Widget _memberRow(BuildContext context, WidgetRef ref, TeamMember m) {
     final p = context.palette;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: GlassCard(
-        onTap: () => _openPlayer(context, ref, m),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: () => _openPlayer(context, ref, m),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         child: Row(children: [
-          SizedBox(
-            width: 30,
+          Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: p.surface2,
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Text(
-              m.jerseyNumber != null ? '#${m.jerseyNumber}' : '—',
+              m.jerseyNumber != null ? '${m.jerseyNumber}' : '–',
               style: TextStyle(
-                  color: p.accent,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800),
+                  color: p.ink, fontSize: 14, fontWeight: FontWeight.w800),
             ),
           ),
+          const SizedBox(width: 10),
           ClipOval(
-            child: Crest(
-                logoUrl: m.avatarUrl, label: m.displayName, size: 32),
+            child: Crest(logoUrl: m.avatarUrl, label: m.displayName, size: 36),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -350,38 +468,50 @@ class _PlayersTab extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                             color: p.ink,
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w600)),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700)),
                   ),
                   if (m.isCaptain) ...[
-                    const SizedBox(width: 5),
-                    SpBadge('C', tone: p.amber),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 1),
+                      decoration: BoxDecoration(
+                          color: p.hero,
+                          borderRadius: BorderRadius.circular(999)),
+                      child: Text('C',
+                          style: TextStyle(
+                              color: p.onHero,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800)),
+                    ),
                   ],
                 ]),
                 if (m.positions.isNotEmpty)
                   Text(m.positions.join(' · '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: p.muted, fontSize: 11.5)),
+                      style: TextStyle(color: p.muted, fontSize: 12)),
               ],
             ),
           ),
-          Icon(Icons.chevron_right_rounded, size: 18, color: p.muted),
+          Icon(Icons.chevron_right_rounded, size: 20, color: p.muted),
         ]),
       ),
     );
   }
 
   void _openPlayer(BuildContext context, WidgetRef ref, TeamMember m) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
+    showSpSheet<void>(
+      context,
+      framed: false,
       builder: (_) => _PlayerSheet(team: team, member: m, onChanged: onChanged),
     );
   }
 
-  Future<void> _addPlayer(BuildContext context, WidgetRef ref) async {
+  /// Add a group member to [team] — shared with the header's Add player.
+  static Future<void> addPlayer(BuildContext context, WidgetRef ref,
+      TeamDetail team, VoidCallback onChanged) async {
     final p = context.palette;
     List<SimpleUser> eligible;
     try {
@@ -400,19 +530,18 @@ class _PlayersTab extends ConsumerWidget {
           content: Text('Every group member is already on the team.')));
       return;
     }
-    final picked = await showModalBottomSheet<SimpleUser>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
+    final picked = await showSpSheet<SimpleUser>(
+      context,
+      framed: false,
       builder: (ctx) => Container(
         constraints: BoxConstraints(
             maxHeight: MediaQuery.of(ctx).size.height * 0.7),
         decoration: BoxDecoration(
           color: p.bg,
           borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(22)),
+              const BorderRadius.vertical(top: Radius.circular(28)),
         ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -420,8 +549,8 @@ class _PlayersTab extends ConsumerWidget {
             Text('Add player',
                 style: TextStyle(
                     color: p.ink,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700)),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800)),
             const SizedBox(height: 10),
             Flexible(
               child: ListView(shrinkWrap: true, children: [
@@ -818,54 +947,82 @@ class _TournamentsTab extends ConsumerWidget {
             ]),
           );
         }
-        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          SpSectionTitle('Tournaments', count: list.length),
+          const SizedBox(height: 4),
           Text(
-            'Squads and formations are set per tournament — open one to call players, see who accepted, and set the line-up for that event.',
-            style: TextStyle(color: p.muted, fontSize: 12, height: 1.4),
+            'Squads and formations are set per tournament — open one to call players and set the line-up.',
+            style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.4),
           ),
           const SizedBox(height: 10),
-          for (final TeamTournamentEntry r in list)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: GlassCard(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          SpListCard(children: [
+            for (final TeamTournamentEntry r in list)
+              InkWell(
+                borderRadius: BorderRadius.circular(18),
                 onTap: () => context.push(
                     '/groups/${r.hostGroupId ?? team.groupId ?? '-'}/tournaments/${r.eventId}/teams/${team.id}'),
-                child: Row(children: [
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(r.eventTitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
-                      Text(
-                        [
-                          r.kind,
-                          if (r.eventDate != null) formatDayYear(r.eventDate),
-                          if (r.categoryName != null) '${r.categoryEmoji ?? ''} ${r.categoryName}'.trim(),
-                          r.eventStatus,
-                        ].join(' · '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: p.muted, fontSize: 11.5),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
+                  child: Row(children: [
+                    SpIconTile(Icons.emoji_events_outlined,
+                        bg: p.orangeTint, fg: p.orangeInk),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(r.eventTitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: p.ink,
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w700)),
+                            Text(
+                              [
+                                r.kind,
+                                if (r.eventDate != null)
+                                  formatDayYear(r.eventDate),
+                                r.eventStatus,
+                              ].join(' · '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: p.muted, fontSize: 12),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              '${r.accepted} in squad'
+                              '${r.pending > 0 ? ' · ${r.pending} awaiting' : ''}'
+                              '${r.formationName != null ? ' · ${r.formationName}' : ''}',
+                              style: TextStyle(
+                                  color: p.greenText,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ]),
+                    ),
+                    if (r.status != 'approved' && r.role != 'host') ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                            color: p.orangeTint,
+                            borderRadius: BorderRadius.circular(999)),
+                        child: Text(r.status,
+                            style: TextStyle(
+                                color: p.orangeInk,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700)),
                       ),
-                      Text(
-                        '${r.accepted} in squad'
-                        '${r.pending > 0 ? ' · ${r.pending} awaiting reply' : ''}'
-                        '${r.starters > 0 ? ' · ${r.starters} starters' : ''}'
-                        '${r.formationName != null ? ' · ${r.formationName}' : ''}',
-                        style: TextStyle(color: p.muted, fontSize: 11.5),
-                      ),
-                    ]),
-                  ),
-                  if (r.status != 'approved' && r.role != 'host') ...[
-                    const SizedBox(width: 6),
-                    SpBadge(r.status, tone: p.amber),
-                  ],
-                  Icon(Icons.chevron_right_rounded, color: p.muted, size: 20),
-                ]),
+                    ],
+                    Icon(Icons.chevron_right_rounded,
+                        color: p.muted, size: 20),
+                  ]),
+                ),
               ),
-            ),
+          ]),
         ]);
       },
     );
@@ -892,28 +1049,31 @@ class _CoachesTab extends ConsumerWidget {
       children: [
         if (coaches.isEmpty)
           GlassCard(
-            child: Center(
-              child: Text(
+            padding: const EdgeInsets.all(22),
+            child: Column(children: [
+              const SpIconTile(Icons.sports_rounded, size: 52, iconSize: 24),
+              const SizedBox(height: 10),
+              Text(
                 'No coaching staff yet${team.canManage ? ' — add from your group members.' : '.'}',
+                textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 13),
               ),
-            ),
+            ]),
           )
-        else
-          for (final c in coaches)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: GlassCard(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
+        else ...[
+          SpSectionTitle('Coaching staff', count: coaches.length),
+          const SizedBox(height: 10),
+          SpListCard(children: [
+            for (final c in coaches)
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                 child: Row(children: [
                   ClipOval(
                     child: Crest(
-                        logoUrl: c.avatarUrl,
-                        label: c.displayName,
-                        size: 34),
+                        logoUrl: c.avatarUrl, label: c.displayName, size: 40),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -923,17 +1083,20 @@ class _CoachesTab extends ConsumerWidget {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                                 color: p.ink,
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w600)),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700)),
                         Text(c.role,
                             style: TextStyle(
-                                color: p.muted, fontSize: 11.5)),
+                                color: p.greenText,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
                   if (team.canManage)
-                    InkWell(
-                      onTap: () async {
+                    IconButton(
+                      tooltip: 'Remove',
+                      onPressed: () async {
                         try {
                           await ref
                               .read(teamsRepositoryProvider)
@@ -946,17 +1109,14 @@ class _CoachesTab extends ConsumerWidget {
                           }
                         }
                       },
-                      child: Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: Icon(Icons.close_rounded,
-                            size: 17, color: p.muted),
-                      ),
+                      icon: Icon(Icons.close_rounded, size: 18, color: p.muted),
                     ),
                 ]),
               ),
-            ),
+          ]),
+        ],
         if (team.canManage && team.groupId != null) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: 14),
           SpButton(
             label: 'Add coach',
             icon: Icons.sports_rounded,
@@ -991,10 +1151,9 @@ class _CoachesTab extends ConsumerWidget {
     }
     String role = roleOptions.isNotEmpty ? roleOptions.first : 'Coach';
     String? userId;
-    final ok = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
+    final ok = await showSpSheet<bool>(
+      context,
+      framed: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) => Container(
           constraints: BoxConstraints(
@@ -1098,103 +1257,98 @@ class _GamesTab extends ConsumerWidget {
     final games = ref.watch(teamGamesProvider(teamId));
     final list = games.valueOrNull ?? const <TeamGame>[];
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Eyebrow('Last 6 months'),
-        const SizedBox(height: 8),
+        SpSectionTitle('Games',
+            count: list.isEmpty ? null : list.length,
+            trailing: Text('Last 6 months',
+                style: TextStyle(color: p.muted, fontSize: 12))),
+        const SizedBox(height: 10),
         if (games.isLoading)
-          GlassCard(
-              child: Text('Loading…',
-                  style: TextStyle(color: p.muted, fontSize: 13)))
+          const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: CircularProgressIndicator()),
+          )
         else if (list.isEmpty)
           GlassCard(
-            child: Center(
-              child: Text('No games in the last 6 months.',
+            padding: const EdgeInsets.all(22),
+            child: Column(children: [
+              const SpIconTile(Icons.sports_soccer_rounded,
+                  size: 52, iconSize: 24),
+              const SizedBox(height: 10),
+              Text('No games in the last 6 months.',
                   style: TextStyle(color: p.muted, fontSize: 13)),
-            ),
+            ]),
           )
         else
-          for (final g in list)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: GlassCard(
-                onTap: () => context.push('/games/${g.id}'),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
-                child: Row(children: [
-                  Container(
-                    width: 36,
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 3),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: g.status == 'live'
-                          ? const Color.fromRGBO(245, 167, 10, 0.15)
-                          : g.result == 'win'
-                              ? const Color.fromRGBO(23, 166, 94, 0.15)
-                              : g.result == 'loss'
-                                  ? const Color.fromRGBO(
-                                      222, 33, 33, 0.12)
-                                  : p.surface2,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      g.status == 'live'
-                          ? 'LIVE'
-                          : g.result == 'win'
-                              ? 'W'
-                              : g.result == 'loss'
-                                  ? 'L'
-                                  : g.result == 'draw'
-                                      ? 'D'
-                                      : '—',
-                      style: TextStyle(
-                        color: g.status == 'live'
-                            ? p.amber
-                            : g.result == 'win'
-                                ? p.accent
-                                : g.result == 'loss'
-                                    ? p.danger
-                                    : p.muted,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('vs ${g.oppName}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+          SpListCard(children: [
+            for (final g in list)
+              Builder(builder: (context) {
+                final live = g.status == 'live';
+                final (bg, fg, label) = live
+                    ? (p.liveTint, p.danger, 'LIVE')
+                    : switch (g.result) {
+                        'win' => (p.accentTint, p.greenText, 'W'),
+                        'loss' => (p.liveTint, p.danger, 'L'),
+                        'draw' => (p.surface2, p.muted, 'D'),
+                        _ => (p.surface2, p.muted, '–'),
+                      };
+                return InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: () => context.push('/games/${g.id}'),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 11),
+                    child: Row(children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                            color: bg, borderRadius: BorderRadius.circular(14)),
+                        child: Text(label,
                             style: TextStyle(
-                                color: p.ink,
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w600)),
-                        Text(
-                          [
-                            if (g.eventTitle != null) g.eventTitle!,
-                            if (g.playedAt != null)
-                              formatDay(g.playedAt),
-                          ].join(' · '),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: p.muted, fontSize: 11.5),
+                                color: fg,
+                                fontSize: live ? 10.5 : 15,
+                                fontWeight: FontWeight.w800)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('vs ${g.oppName}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: p.ink,
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w700)),
+                            Text(
+                              [
+                                if (g.eventTitle != null) g.eventTitle!,
+                                if (g.playedAt != null) formatDay(g.playedAt),
+                              ].join(' · '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: p.muted, fontSize: 12),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text('${g.myScore}–${g.oppScore}',
+                          style: TextStyle(
+                              color: p.ink,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800)),
+                      Icon(Icons.chevron_right_rounded,
+                          size: 20, color: p.muted),
+                    ]),
                   ),
-                  Text('${g.myScore} – ${g.oppScore}',
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800)),
-                ]),
-              ),
-            ),
+                );
+              }),
+          ]),
       ],
     );
   }
@@ -1206,7 +1360,7 @@ class _PinnedTeamTabs extends SliverPersistentHeaderDelegate {
   const _PinnedTeamTabs({required this.child});
   final Widget child;
 
-  static const double _height = 43;
+  static const double _height = 54;
 
   @override
   double get minExtent => _height;

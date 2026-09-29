@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/groups/group_models.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
 
 /// The web Groups-tab card: cover banner with the group's logo, then name
 /// (+ verification tick), description and member/follower stats.
@@ -127,8 +128,7 @@ class GroupCard extends StatelessWidget {
                         ),
                         if (g.isVerified) ...[
                           const SizedBox(width: 4),
-                          Icon(Icons.verified_rounded,
-                              size: 16, color: p.accent),
+                          const VerifiedBadge(size: 17),
                         ],
                       ],
                     ),

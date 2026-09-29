@@ -13,7 +13,7 @@ import 'package:sportpadi_mobile/features/games/officiant_panel.dart';
 import 'package:sportpadi_mobile/features/games/officiants_card.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 
 /// Live game screen — a faithful port of the web GameClient layout:
 /// scoreboard card with the clock strip, draw-resolution + shootout cards,
@@ -26,76 +26,88 @@ class GameScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
     final game = ref.watch(liveGameProvider(gameId));
+    final g0 = game.valueOrNull;
+    final kind = g0 == null
+        ? null
+        : g0.isTournament
+            ? 'Tournament match'
+            : 'Local game';
     return Scaffold(
-      appBar: AppBar(
-        leading: const SpLeading(),
-        backgroundColor: p.bg,
-        surfaceTintColor: p.bg,
-        title: Text(
-          game.valueOrNull?.categoryName != null
-              ? '${game.valueOrNull!.categoryEmoji ?? ''} ${game.valueOrNull!.categoryName}'
-                  .trim()
-              : 'Match',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-        ),
-        actions: [
-          if (game.valueOrNull != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Center(
-                child: SpBadge(
-                  game.valueOrNull!.status == 'kicked_off'
-                      ? 'live'
-                      : game.valueOrNull!.status,
-                  tone: game.valueOrNull!.isLive ? p.danger : p.muted,
+      backgroundColor: p.bg,
+      body: SafeArea(
+        bottom: false,
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+            child: SpHeader(
+              title: g0?.categoryName != null
+                  ? '${g0!.categoryEmoji != null ? '${g0.categoryEmoji} ' : ''}${g0.categoryName}'
+                  : 'Match',
+              subtitle: kind,
+              actions: [
+                // The event this game belongs to, one tap away.
+                if (g0 != null && !g0.isTournament && g0.eventSlug != null)
+                  SpRoundButton(
+                    icon: Icons.event_outlined,
+                    tooltip: 'Open event',
+                    onTap: () => context.push('/events/${g0.eventSlug}'),
+                  ),
+              ],
+            ),
+          ),
+          // Semantics for the whole app are excluded at the root (see
+          // app.dart) to dodge this Flutter build's
+          // '!semantics.parentDataDirty' bug.
+          Expanded(
+            child: AsyncView(
+              value: game,
+              onRetry: () => ref.invalidate(liveGameProvider(gameId)),
+              data: (g) => RefreshIndicator(
+                onRefresh: () =>
+                    ref.read(liveGameProvider(gameId).notifier).refresh(),
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
+                  children: [
+                    _Scoreboard(game: g),
+                    if (g.status == 'completed') ...[
+                      // Web parity: the post-match summary replaces the
+                      // lineups.
+                      const SizedBox(height: 12),
+                      _SummaryCard(game: g),
+                    ],
+                    if (g.canTime && _awaitingDraw(g)) ...[
+                      const SizedBox(height: 12),
+                      _DrawCard(gameId: gameId, game: g),
+                    ],
+                    if (_penaltiesAdded(g) && g.isLive) ...[
+                      const SizedBox(height: 12),
+                      _ShootoutCard(gameId: gameId, game: g),
+                    ],
+                    // Officiants — call people in, split jobs, step down.
+                    if (g.officiants.isNotEmpty ||
+                        g.officiating.canCallIn) ...[
+                      const SizedBox(height: 12),
+                      OfficiantsCard(gameId: gameId, game: g),
+                    ],
+                    if (g.canManage) ...[
+                      const SizedBox(height: 12),
+                      OfficiantPanel(gameId: gameId, game: g),
+                    ],
+                    const SizedBox(height: 12),
+                    _TimelineCard(game: g, gameId: gameId),
+                    if (g.status != 'completed') ...[
+                      const SizedBox(height: 20),
+                      SpSectionTitle(
+                          g.isScheduled ? 'Line-ups' : 'On the pitch'),
+                      const SizedBox(height: 10),
+                      _Lineups(game: g),
+                    ],
+                  ],
                 ),
               ),
             ),
-        ],
-      ),
-      // Semantics for the whole app are excluded at the root (see app.dart)
-      // to dodge this Flutter build's '!semantics.parentDataDirty' bug.
-      body: AsyncView(
-        value: game,
-        onRetry: () => ref.invalidate(liveGameProvider(gameId)),
-        data: (g) => RefreshIndicator(
-          onRefresh: () =>
-              ref.read(liveGameProvider(gameId).notifier).refresh(),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-            children: [
-              _Scoreboard(game: g),
-              if (g.canTime && _awaitingDraw(g)) ...[
-                const SizedBox(height: 12),
-                _DrawCard(gameId: gameId, game: g),
-              ],
-              if (_penaltiesAdded(g) && g.isLive) ...[
-                const SizedBox(height: 12),
-                _ShootoutCard(gameId: gameId, game: g),
-              ],
-              // Officiants — call people in, split jobs, step down.
-              if (g.officiants.isNotEmpty || g.officiating.canCallIn) ...[
-                const SizedBox(height: 12),
-                OfficiantsCard(gameId: gameId, game: g),
-              ],
-              if (g.canManage) ...[
-                const SizedBox(height: 12),
-                OfficiantPanel(gameId: gameId, game: g),
-              ],
-              if (g.status == 'completed') ...[
-                // Web parity: the post-match summary replaces the lineups.
-                const SizedBox(height: 12),
-                _SummaryCard(game: g),
-              ],
-              const SizedBox(height: 12),
-              _TimelineCard(game: g, gameId: gameId),
-              if (g.status != 'completed') ...[
-                const SizedBox(height: 12),
-                _Lineups(game: g),
-              ],
-            ],
           ),
-        ),
+        ]),
       ),
     );
   }
@@ -138,60 +150,71 @@ class _Scoreboard extends StatelessWidget {
     final p = context.palette;
     final g = game;
     final vsMode = g.teams.length == 2 && g.maxTeamsPerGame <= 2;
+    final status = g.isLive
+        ? 'LIVE'
+        : g.status == 'completed'
+            ? 'FULL TIME'
+            : g.isScheduled
+                ? 'NOT STARTED'
+                : g.status.replaceAll('_', ' ').toUpperCase();
     return Container(
-      clipBehavior: Clip.antiAlias,
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
       decoration: BoxDecoration(
-        color: p.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: p.line),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(15, 30, 22, 0.06),
-            blurRadius: 18,
-            offset: Offset(0, 8),
-          ),
-        ],
+        color: p.hero,
+        borderRadius: BorderRadius.circular(28),
       ),
       child: Column(children: [
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          if (g.isLive) ...[
+            Container(
+              width: 7,
+              height: 7,
+              decoration: const BoxDecoration(
+                  color: Color(0xFFFF5A52), shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+          ],
+          Text(status,
+              style: TextStyle(
+                  color: g.isLive
+                      ? const Color(0xFFFF8A84)
+                      : const Color(0xFF6EDC9E),
+                  fontSize: 11.5,
+                  letterSpacing: 1.4,
+                  fontWeight: FontWeight.w700)),
+        ]),
+        const SizedBox(height: 14),
         if (vsMode)
-          IntrinsicHeight(
-            child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: _ScoreTeam(team: g.teams[0])),
-              SizedBox(
-                width: 48,
-                child: Center(
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: p.surface2,
-                      border: Border.all(color: p.line),
-                    ),
-                    child: Text(
-                      g.status == 'completed' ? 'FT' : 'VS',
-                      style: TextStyle(
-                          color: p.muted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900),
-                    ),
-                  ),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: _ScoreTeam(team: g.teams[0])),
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text(
+                '${g.teams[0].score}–${g.teams[1].score}',
+                style: TextStyle(
+                  color: p.onHero,
+                  fontSize: 46,
+                  height: 1,
+                  letterSpacing: -1,
+                  fontWeight: FontWeight.w800,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
-              Expanded(child: _ScoreTeam(team: g.teams[1])),
-            ],
             ),
-          )
+            Expanded(child: _ScoreTeam(team: g.teams[1])),
+          ])
         else
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(children: [
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
               for (final t in g.teams)
-                Expanded(child: _ScoreTeam(team: t, compact: true)),
-            ]),
+                SizedBox(
+                  width: 96,
+                  child: _ScoreTeam(team: t, compact: true),
+                ),
+            ],
           ),
         _ClockStrip(game: g),
       ]),
@@ -199,6 +222,8 @@ class _Scoreboard extends StatelessWidget {
   }
 }
 
+/// One side on the dark scoreboard: a crest in the team colour, the name,
+/// and (multi-team) its score, then the result once decided.
 class _ScoreTeam extends StatelessWidget {
   const _ScoreTeam({required this.team, this.compact = false});
   final GameTeam team;
@@ -210,60 +235,82 @@ class _ScoreTeam extends StatelessWidget {
     final t = team;
     final won = t.result == 'win';
     final lost = t.result == 'loss';
-    return Container(
-      color: won ? const Color.fromRGBO(23, 166, 94, 0.05) : null,
+    final color = teamColor(t.color, p);
+    final initials = t.name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .take(2)
+        .map((w) => w[0].toUpperCase())
+        .join();
+    final fg = color.computeLuminance() > 0.6
+        ? const Color(0xFF0E1411)
+        : Colors.white;
+    return Opacity(
+      opacity: lost ? 0.6 : 1,
       child: Column(children: [
-        Container(height: 4, color: teamColor(t.color, p)),
-        Padding(
-          padding: EdgeInsets.symmetric(
-              horizontal: 10, vertical: compact ? 10 : 18),
-          child: Column(children: [
-            Text(
-              t.name,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+        Container(
+          width: compact ? 44 : 54,
+          height: compact ? 44 : 54,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(compact ? 15 : 18),
+            border: won
+                ? Border.all(color: const Color(0xFF6EDC9E), width: 2.5)
+                : null,
+          ),
+          child: Text(initials.isEmpty ? '?' : initials,
               style: TextStyle(
-                color: lost ? p.muted : p.ink,
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${t.score}',
-              style: TextStyle(
-                color: lost ? p.muted : p.ink,
-                fontSize: compact ? 30 : 38,
-                fontWeight: FontWeight.w900,
-                height: 1.0,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-            if (t.result != null) ...[
-              const SizedBox(height: 3),
-              Text(
-                t.result!.toUpperCase(),
-                style: TextStyle(
-                  color: won
-                      ? p.accent
-                      : lost
-                          ? p.danger
-                          : p.muted,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ]),
+                  color: fg,
+                  fontSize: compact ? 14 : 16,
+                  fontWeight: FontWeight.w800)),
         ),
+        const SizedBox(height: 8),
+        Text(
+          t.name,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: p.onHero,
+            fontSize: 13,
+            height: 1.25,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        if (compact) ...[
+          const SizedBox(height: 2),
+          Text('${t.score}',
+              style: TextStyle(
+                color: p.onHero,
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              )),
+        ],
+        if (t.result != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            t.result!.toUpperCase(),
+            style: TextStyle(
+              color: won
+                  ? const Color(0xFF6EDC9E)
+                  : lost
+                      ? const Color(0xFFFF8A84)
+                      : p.heroMuted,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.6,
+            ),
+          ),
+        ],
       ]),
     );
   }
 }
 
-/// The muted clock band under the scores — timer, +stoppage, Paused, phase.
+/// The clock under the scores — timer, phase, Paused.
 class _ClockStrip extends StatefulWidget {
   const _ClockStrip({required this.game});
   final GameDetail game;
@@ -296,44 +343,62 @@ class _ClockStripState extends State<_ClockStrip> {
     if (info == null) return const SizedBox.shrink();
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
-        color: p.surface2,
-        border: Border(top: BorderSide(color: p.line)),
+        color: p.onHero.withAlpha(18),
+        borderRadius: BorderRadius.circular(18),
       ),
-      child: Column(children: [
-        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.timer_outlined,
-              size: 15, color: info.paused ? p.muted : p.accent),
-          const SizedBox(width: 6),
-          Text(
-            info.display,
-            style: TextStyle(
-              color: info.paused ? p.muted : p.ink,
-              fontSize: 19,
-              fontWeight: FontWeight.w900,
-              fontFeatures: const [FontFeature.tabularFigures()],
+      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(Icons.timer_outlined,
+            size: 17,
+            color: info.paused ? p.heroMuted : const Color(0xFF6EDC9E)),
+        const SizedBox(width: 7),
+        Text(
+          info.display,
+          style: TextStyle(
+            color: info.paused ? p.heroMuted : p.onHero,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+        if (info.label != null) ...[
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              info.label!.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: p.heroMuted,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
             ),
           ),
-          if (info.paused) ...[
-            const SizedBox(width: 8),
-            SpBadge('Paused', tone: p.muted),
-          ],
-        ]),
-        if (info.label != null)
-          Text(
-            info.label!.toUpperCase(),
-            style: TextStyle(
-              color: p.muted,
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
+        ],
+        if (info.paused) ...[
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color(0x29FFB57D),
+              borderRadius: BorderRadius.circular(999),
             ),
+            child: const Text('Paused',
+                style: TextStyle(
+                    color: Color(0xFFFFB57D),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700)),
           ),
+        ],
       ]),
     );
   }
 }
+
 class ClockInfo {
   const ClockInfo(this.display, {this.label, this.paused = false});
   final String display;
@@ -697,11 +762,20 @@ class _TimelineCard extends ConsumerWidget {
         children: [
           Text(g.status == 'completed' ? 'Key moments' : 'Timeline',
               style: TextStyle(
-                  color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 10),
+                  color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
           if (g.activities.isEmpty)
-            Text('No activity yet.',
-                style: TextStyle(color: p.muted, fontSize: 13))
+            Row(children: [
+              const SpIconTile(Icons.timeline_rounded, size: 38, iconSize: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                    g.isScheduled
+                        ? "Nothing yet — it hasn't kicked off."
+                        : 'No activity yet.',
+                    style: TextStyle(color: p.muted, fontSize: 13)),
+              ),
+            ])
           else
             for (final a in g.activities) _row(context, ref, a),
         ],
@@ -981,10 +1055,10 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
 
     Widget badge(String text, Color tone) => Container(
           padding:
-              const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: tone),
+            color: tone.withAlpha(30),
           ),
           child: Text(text,
               style: TextStyle(
@@ -1043,11 +1117,14 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: p.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: p.line),
+        borderRadius: BorderRadius.circular(22),
+        border: Theme.of(context).brightness == Brightness.dark
+            ? Border.all(color: p.line)
+            : null,
+        boxShadow: cardShadow(context),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1058,22 +1135,24 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
                 : null,
             child: Row(children: [
               Container(
-                width: 10,
-                height: 10,
+                width: 12,
+                height: 12,
                 decoration: BoxDecoration(
                     color: teamColor(t.color, p),
-                    shape: BoxShape.circle),
+                    borderRadius: BorderRadius.circular(4)),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 7),
               Expanded(
                 child: Text(t.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         color: p.ink,
-                        fontSize: 13,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700)),
               ),
+              if (t.groupTeamId != null)
+                Icon(Icons.chevron_right_rounded, size: 18, color: p.muted),
             ]),
           ),
           const SizedBox(height: 8),
@@ -1161,28 +1240,27 @@ class _SummaryCard extends StatelessWidget {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       // Result pill — mirrors the web "🏆 Full time · X won" line.
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        decoration: BoxDecoration(
-          color: p.accent.withAlpha(26),
-          border: Border.all(color: p.accent.withAlpha(102)),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const Text('🏆 ', style: TextStyle(fontSize: 13)),
-          Text(label,
-              style: TextStyle(
-                  color: p.accent,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w800)),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(result,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    color: p.ink,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600)),
+      GlassCard(
+        padding: const EdgeInsets.all(14),
+        child: Row(children: [
+          SpIconTile(Icons.emoji_events_outlined,
+              bg: drawn ? p.surface2 : p.orangeTint,
+              fg: drawn ? p.muted : p.orangeInk),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: TextStyle(color: p.muted, fontSize: 12)),
+                  Text(result,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800)),
+                ]),
           ),
         ]),
       ),
@@ -1195,7 +1273,7 @@ class _SummaryCard extends StatelessWidget {
               Text('Scorers',
                   style: TextStyle(
                       color: p.ink,
-                      fontSize: 14,
+                      fontSize: 16,
                       fontWeight: FontWeight.w700)),
               const SizedBox(height: 10),
               for (final t in g.teams)
