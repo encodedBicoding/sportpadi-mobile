@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
 /// The cross-sport boards, in display order.
@@ -260,6 +261,27 @@ class ProgressScreen extends ConsumerWidget {
 
 /// Settings switch: others can see my XP total and streaks (level and
 /// achievements are always public).
+/// "XP private / XP public" on Profile opens this: the same switch as in
+/// Settings, right where the question comes up.
+Future<void> showXpVisibilitySheet(BuildContext context) {
+  return showSpSheet<void>(
+    context,
+    builder: (_) => const Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SpSheetHeader(
+          icon: Icons.visibility_outlined,
+          title: 'Who sees your XP',
+          subtitle: 'Your level and achievements are always visible. Your XP number, '
+              'streaks and per-sport levels stay private unless you share them.',
+        ),
+        ProgressionVisibilityTile(),
+      ],
+    ),
+  );
+}
+
 class ProgressionVisibilityTile extends ConsumerStatefulWidget {
   const ProgressionVisibilityTile({super.key});
 

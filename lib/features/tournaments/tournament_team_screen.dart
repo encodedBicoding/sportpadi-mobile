@@ -10,7 +10,9 @@ import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/shared/widgets/team_tile.dart' show kitGradient;
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// The tournament-scoped team profile: this team AS IT IS in THIS tournament.
 /// Squad (called / accepted / declined, with times), the formation set for
@@ -89,16 +91,9 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
   }
 
   Future<void> _callPlayers(TournamentSquad sq) async {
-    final req = await showModalBottomSheet<CallRequest>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => Padding(
-        // Lift the sheet above the keyboard while the remark is being typed.
-        padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: _CallPlayersSheet(squad: sq),
-      ),
+    final req = await showSpSheet<CallRequest>(
+      context,
+      builder: (_) => _CallPlayersSheet(squad: sq),
     );
     if (req == null) return;
     if (!req.all && req.playerIds.isEmpty) return;
@@ -121,83 +116,226 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
     final p = context.palette;
     final sq = ref.watch(tournamentSquadProvider(_key));
     return Scaffold(
-      appBar: AppBar(
-        leading: const SpLeading(),
-        backgroundColor: p.bg,
-        surfaceTintColor: p.bg,
-        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Squad', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-          if (sq.valueOrNull != null)
-            Text(sq.valueOrNull!.eventTitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: p.muted, fontSize: 11.5)),
-        ]),
-      ),
-      body: AsyncView(
-        value: sq,
-        onRetry: _refetch,
-        data: (d) => RefreshIndicator(
-          onRefresh: () async => ref.refresh(tournamentSquadProvider(_key).future),
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _header(d, p),
-              if (d.mySquadId != null) ...[const SizedBox(height: 10), _myCard(d, p)],
-              const SizedBox(height: 14),
-              _tabs(d, p),
-              const SizedBox(height: 12),
-              if (_tab == 0) ..._squadTab(d, p),
-              if (_tab == 1) _formationTab(d, p),
-              if (_tab == 2) ..._gamesTab(d, p),
-              if (_tab == 3)
-                _StatsTab(keyId: _key, eventId: widget.eventId),
-            ],
+      backgroundColor: p.bg,
+      body: SafeArea(
+        bottom: false,
+        child: Stack(children: [
+          AsyncView(
+            value: sq,
+            onRetry: _refetch,
+            data: (d) => RefreshIndicator(
+              onRefresh: () async =>
+                  ref.refresh(tournamentSquadProvider(_key).future),
+              child: ListView(
+                padding: const EdgeInsets.only(bottom: 36),
+                children: [
+                  _header(d, p),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (d.mySquadId != null) ...[
+                          const SizedBox(height: 12),
+                          _myCard(d, p),
+                        ],
+                        const SizedBox(height: 14),
+                        _tabs(d, p),
+                        const SizedBox(height: 14),
+                        if (_tab == 0) ..._squadTab(d, p),
+                        if (_tab == 1) _formationTab(d, p),
+                        if (_tab == 2) ..._gamesTab(d, p),
+                        if (_tab == 3)
+                          _StatsTab(keyId: _key, eventId: widget.eventId),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
+          if (sq.valueOrNull == null)
+            Positioned(
+              left: 16,
+              top: 12,
+              child: SpRoundButton(
+                icon: Icons.arrow_back_ios_new_rounded,
+                iconSize: 18,
+                tooltip: 'Back',
+                onTap: () =>
+                    context.canPop() ? context.pop() : context.go('/home'),
+              ),
+            ),
+        ]),
       ),
     );
   }
 
+  static const double _bannerH = 160;
+  static const double _overlap = 48;
+
+  /// The kit banner with round back / team buttons, and the identity card
+  /// over it: this team as it is in THIS tournament.
   Widget _header(TournamentSquad d, AppPalette p) {
     final starters = d.accepted.where((x) => x.isStarter).length;
-    return GlassCard(
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Crest(logoUrl: d.teamLogoUrl, kitPrimary: d.kitPrimary, kitSecondary: d.kitSecondary, label: d.teamName, size: 56),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Wrap(spacing: 6, runSpacing: 4, children: [
-              SpBadge(d.kind, icon: Icons.emoji_events_outlined),
-              if (d.role == 'host') const SpBadge('Host') else const SpBadge('Guest'),
-              if (d.kickedOff)
-                const SpBadge('Kicked off', tone: Color(0xFF0EA5E9)),
+    final canPop = context.canPop() || Navigator.of(context).canPop();
+
+    Widget stat(String v, String l, {Color? tone}) => Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 11),
+            decoration: BoxDecoration(
+              color: p.surface2,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(children: [
+              Text(v,
+                  style: TextStyle(
+                      color: tone ?? p.ink,
+                      fontSize: 18,
+                      height: 1.1,
+                      fontWeight: FontWeight.w800)),
+              const SizedBox(height: 3),
+              Text(l,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: p.muted, fontSize: 11)),
             ]),
-            const SizedBox(height: 4),
-            Text(d.teamName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: p.ink, fontSize: 17, fontWeight: FontWeight.w800)),
-            if (d.teamUsername != null)
-              Text('@${d.teamUsername}', style: TextStyle(color: p.muted, fontSize: 12)),
-            const SizedBox(height: 4),
-            Text(
-              '${d.accepted.length} in squad'
-              '${d.pending.isNotEmpty ? ' · ${d.pending.length} awaiting reply' : ''}'
-              '${d.needsFormation ? ' · $starters/${d.maxStarters} starters' : ''}'
-              '${d.formationName != null ? ' · ${d.formationName}' : ''}',
-              style: TextStyle(color: p.muted, fontSize: 12),
+          ),
+        );
+
+    final card = GlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: p.surface, width: 3),
             ),
-            const SizedBox(height: 6),
-            InkWell(
-              onTap: () => context.push('/teams/${d.teamId}'),
-              child: Text('General team profile ›',
-                  style: TextStyle(color: p.accent, fontSize: 12, fontWeight: FontWeight.w600)),
+            child: Crest(
+                logoUrl: d.teamLogoUrl,
+                kitPrimary: d.kitPrimary,
+                kitSecondary: d.kitSecondary,
+                label: d.teamName,
+                size: 60),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(d.teamName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: p.ink,
+                      fontSize: 19,
+                      height: 1.2,
+                      fontWeight: FontWeight.w800)),
+              if (d.teamUsername != null)
+                Text('@${d.teamUsername}',
+                    style: TextStyle(color: p.muted, fontSize: 12.5)),
+            ]),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        // Which competition, and in what capacity.
+        InkWell(
+          onTap: d.hostGroupId != null
+              ? () =>
+                  context.push('/groups/${d.hostGroupId}/tournaments/${d.eventId}')
+              : null,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: p.orangeTint,
+              borderRadius: BorderRadius.circular(16),
             ),
-          ]),
+            child: Row(children: [
+              SpIconTile(Icons.emoji_events_outlined,
+                  bg: p.surface, fg: p.orangeInk, size: 36, iconSize: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(d.eventTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: p.ink,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700)),
+                      Text(
+                          [
+                            d.kind,
+                            d.role == 'host' ? 'Host' : 'Guest',
+                            if (d.kickedOff) 'Kicked off',
+                          ].join(' · '),
+                          style: TextStyle(
+                              color: p.orangeInk,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600)),
+                    ]),
+              ),
+              if (d.hostGroupId != null)
+                Icon(Icons.chevron_right_rounded,
+                    size: 20, color: p.orangeInk),
+            ]),
+          ),
         ),
+        const SizedBox(height: 12),
+        Row(children: [
+          stat('${d.accepted.length}', 'In squad', tone: p.greenText),
+          const SizedBox(width: 8),
+          stat('${d.pending.length}', 'Awaiting',
+              tone: d.pending.isNotEmpty ? p.orangeInk : null),
+          const SizedBox(width: 8),
+          d.needsFormation
+              ? stat('$starters/${d.maxStarters}', 'Starters')
+              : stat('${d.games.length}', 'Games'),
+        ]),
       ]),
     );
+
+    return Stack(children: [
+      Positioned(
+        left: 0,
+        right: 0,
+        top: 0,
+        child: ClipRRect(
+          borderRadius:
+              const BorderRadius.vertical(bottom: Radius.circular(32)),
+          child: Container(
+            height: _bannerH,
+            decoration: BoxDecoration(
+                gradient: kitGradient(d.kitPrimary, d.kitSecondary)),
+          ),
+        ),
+      ),
+      Positioned(
+        left: 16,
+        top: 12,
+        child: SpRoundButton(
+          icon: canPop ? Icons.arrow_back_ios_new_rounded : Icons.home_outlined,
+          iconSize: canPop ? 18 : 21,
+          tooltip: canPop ? 'Back' : 'Home',
+          onTap: () => context.canPop() ? context.pop() : context.go('/home'),
+        ),
+      ),
+      Positioned(
+        right: 16,
+        top: 12,
+        child: SpRoundButton(
+          icon: Icons.shield_outlined,
+          tooltip: 'General team profile',
+          onTap: () => context.push('/teams/${d.teamId}'),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, _bannerH - _overlap, 16, 0),
+        child: card,
+      ),
+    ]);
   }
 
   /// The viewer's own call-up.
@@ -205,27 +343,36 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
     if (d.myStatus == 'called') {
       final blocked = d.myOtherTeamName != null;
       return Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: p.amber.withAlpha(18),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: p.amber.withAlpha(110)),
+          color: p.hero,
+          borderRadius: BorderRadius.circular(26),
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
-            Icon(Icons.campaign_rounded, color: p.amber, size: 20),
-            const SizedBox(width: 6),
-            Text("You've been called up",
-                style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w800)),
+            const SpIconTile(Icons.campaign_rounded,
+                bg: Color(0x29FFB57D),
+                fg: Color(0xFFFFB57D),
+                size: 40,
+                iconSize: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("You've been called up",
+                        style: TextStyle(
+                            color: p.onHero,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800)),
+                    Text('Can you play for ${d.teamName}?',
+                        style: TextStyle(color: p.heroMuted, fontSize: 12.5)),
+                  ]),
+            ),
           ]),
-          const SizedBox(height: 4),
-          Text(
-            'Can you play for ${d.teamName} in ${d.eventTitle}?',
-            style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.4),
-          ),
           // Nobody can answer "can you play?" from a title alone — put the
           // when / where / who in front of them, above the buttons.
-          const SizedBox(height: 8),
+          const SizedBox(height: 14),
           _detail(p, Icons.event_outlined, 'When', d.when.line,
               sub: d.when.viewerTime != null
                   ? '${d.when.viewerTime} your time'
@@ -248,78 +395,99 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
                   '${d.categoryEmoji ?? ''} ${d.categoryName}'.trim(),
               ].whereType<String>().join(' · ')),
           if (d.myCallNote != null && d.myCallNote!.trim().isNotEmpty) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                border: Border(left: BorderSide(color: p.amber, width: 2.5)),
+                color: p.onHero.withAlpha(18),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('${d.myCalledByName ?? 'Your coach'} says'.toUpperCase(),
-                    style: TextStyle(
-                        color: p.muted, fontSize: 9.5, letterSpacing: 0.6,
-                        fontWeight: FontWeight.w800)),
-                const SizedBox(height: 2),
+                Text('${d.myCalledByName ?? 'Your coach'} says',
+                    style: const TextStyle(
+                        color: Color(0xFFFFB57D),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 3),
                 Text(d.myCallNote!.trim(),
-                    style: TextStyle(color: p.ink, fontSize: 12, height: 1.35)),
+                    style: TextStyle(
+                        color: p.onHero, fontSize: 13, height: 1.4)),
               ]),
             ),
           ],
           if (d.eventDescription != null &&
               d.eventDescription!.trim().isNotEmpty) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               d.eventDescription!.trim(),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: p.muted, fontSize: 12, height: 1.35),
+              style: TextStyle(color: p.heroMuted, fontSize: 12.5, height: 1.4),
             ),
           ],
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             'Accepting locks you to this team for this ${d.kind.toLowerCase()}.',
-            style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.35),
+            style: TextStyle(color: p.heroMuted, fontSize: 12, height: 1.35),
           ),
-          if (d.hostGroupId != null) ...[
-            const SizedBox(height: 2),
-            InkWell(
-              onTap: () => context
-                  .push('/groups/${d.hostGroupId}/tournaments/${d.eventId}'),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Text(
-                  'Full ${d.kind.toLowerCase()} details',
-                  style: TextStyle(
-                      color: p.accent,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700),
-                ),
-              ),
-            ),
-          ],
           if (blocked) ...[
             const SizedBox(height: 6),
             Text(
               "You've already accepted for ${d.myOtherTeamName} — withdraw there first to switch.",
-              style: TextStyle(color: p.danger, fontSize: 12),
+              style: const TextStyle(color: Color(0xFFFF8A84), fontSize: 12.5),
             ),
           ],
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           Row(children: [
             Expanded(
-              child: SpButton(
-                label: "I'm in",
-                icon: Icons.check_rounded,
-                expand: true,
-                onTap: _busy || blocked ? null : () => _respond(d, true),
+              child: Material(
+                color: _busy || blocked ? p.onHero.withAlpha(30) : Colors.white,
+                shape: const StadiumBorder(),
+                child: InkWell(
+                  customBorder: const StadiumBorder(),
+                  onTap: _busy || blocked ? null : () => _respond(d, true),
+                  child: SizedBox(
+                    height: 48,
+                    child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check_rounded,
+                              size: 18,
+                              color: _busy || blocked
+                                  ? p.heroMuted
+                                  : const Color(0xFF0E1411)),
+                          const SizedBox(width: 6),
+                          Text("I'm in",
+                              style: TextStyle(
+                                  color: _busy || blocked
+                                      ? p.heroMuted
+                                      : const Color(0xFF0E1411),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700)),
+                        ]),
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _busy ? null : () => _respond(d, false),
-                icon: const Icon(Icons.close_rounded, size: 16),
-                label: const Text("Can't make it"),
+              child: Material(
+                color: p.onHero.withAlpha(24),
+                shape: const StadiumBorder(),
+                child: InkWell(
+                  customBorder: const StadiumBorder(),
+                  onTap: _busy ? null : () => _respond(d, false),
+                  child: SizedBox(
+                    height: 48,
+                    child: Center(
+                      child: Text("Can't make it",
+                          style: TextStyle(
+                              color: p.onHero,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ),
               ),
             ),
           ]),
@@ -328,23 +496,26 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
     }
     if (d.myStatus == 'accepted') {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
         decoration: BoxDecoration(
-          color: p.accent.withAlpha(18),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: p.accent.withAlpha(90)),
+          color: p.accentTint,
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Row(children: [
-          Icon(Icons.check_circle_rounded, color: p.accent, size: 18),
-          const SizedBox(width: 8),
+          Icon(Icons.check_circle_rounded, color: p.greenText, size: 20),
+          const SizedBox(width: 10),
           Expanded(
-            child: Text("You're in this squad.",
-                style: TextStyle(color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
+            child: Text("You're in this squad",
+                style: TextStyle(
+                    color: p.greenText,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700)),
           ),
           if (!d.isOver)
             TextButton(
               onPressed: _busy ? null : () => _respond(d, false),
-              child: Text('Withdraw', style: TextStyle(color: p.muted, fontSize: 12)),
+              style: TextButton.styleFrom(foregroundColor: p.muted),
+              child: const Text('Withdraw', style: TextStyle(fontSize: 12.5)),
             ),
         ]),
       );
@@ -359,23 +530,36 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
       ('Games', 2),
       ('Stats', 3),
     ];
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(children: [
-        for (final (label, i) in items)
-          Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: ChoiceChip(
-              label: Text(label),
-              selected: _tab == i,
-              onSelected: (_) => setState(() => _tab = i),
-              selectedColor: p.accent.withAlpha(40),
-              labelStyle: TextStyle(
-                  color: _tab == i ? p.accent : p.muted, fontWeight: FontWeight.w700, fontSize: 12.5),
-              side: BorderSide(color: _tab == i ? p.accent : p.line),
+    return SizedBox(
+      height: 38,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          for (final (label, i) in items)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Material(
+                color: _tab == i ? p.hero : p.surface,
+                shape: StadiumBorder(
+                    side: _tab == i ? BorderSide.none : BorderSide(color: p.line)),
+                child: InkWell(
+                  customBorder: const StadiumBorder(),
+                  onTap: () => setState(() => _tab = i),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                    child: Text(label,
+                        style: TextStyle(
+                            color: _tab == i ? p.onHero : p.ink,
+                            fontSize: 13,
+                            fontWeight:
+                                _tab == i ? FontWeight.w700 : FontWeight.w600)),
+                  ),
+                ),
+              ),
             ),
-          ),
-      ]),
+        ],
+      ),
     );
   }
 
@@ -387,67 +571,106 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
           label: 'Call players',
           icon: Icons.campaign_rounded,
           expand: true,
-          onTap: _busy || (d.uncalled.isEmpty && d.notPlaying.isEmpty) ? null : () => _callPlayers(d),
+          onTap: _busy || (d.uncalled.isEmpty && d.notPlaying.isEmpty)
+              ? null
+              : () => _callPlayers(d),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(
           'Players get an in-app, push and email call-up and accept or decline. They can only accept for one team per ${d.kind.toLowerCase()}.',
-          style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.4),
+          textAlign: TextAlign.center,
+          style: TextStyle(color: p.muted, fontSize: 12, height: 1.4),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 18),
       ],
-      _sectionTitle('In the squad (${d.accepted.length})', p),
+      SpSectionTitle('In the squad', count: d.accepted.length),
+      const SizedBox(height: 10),
       if (d.accepted.isEmpty)
         _empty('Nobody has accepted yet.', p)
       else
-        for (final m in d.accepted)
-          _row(m, d, p,
-              trailing: d.canManage && !d.isOver
-                  ? IconButton(
-                      tooltip: 'Remove from squad',
-                      icon: Icon(Icons.person_remove_outlined, size: 18, color: p.muted),
-                      onPressed: _busy
-                          ? null
-                          : () => _run(() => repo.removeSquadPlayer(widget.eventId, m.id),
-                              success: 'Removed from squad'),
-                    )
-                  : null),
+        SpListCard(children: [
+          for (final m in d.accepted)
+            _row(m, d, p,
+                trailing: d.canManage && !d.isOver
+                    ? IconButton(
+                        tooltip: 'Remove from squad',
+                        icon: Icon(Icons.person_remove_outlined,
+                            size: 18, color: p.muted),
+                        onPressed: _busy
+                            ? null
+                            : () => _run(
+                                () => repo.removeSquadPlayer(
+                                    widget.eventId, m.id),
+                                success: 'Removed from squad'),
+                      )
+                    : null),
+        ]),
       if (d.pending.isNotEmpty) ...[
-        const SizedBox(height: 12),
-        _sectionTitle('Awaiting reply (${d.pending.length})', p),
-        for (final m in d.pending)
-          _row(m, d, p,
-              trailing: d.canManage && !d.isOver
-                  ? TextButton(
-                      onPressed: _busy
-                          ? null
-                          : () => _run(
-                              () => repo.addSquadPlayer(widget.eventId, d.tournamentTeamId, m.playerId),
-                              success: 'Added to squad'),
-                      child: const Text('Add', style: TextStyle(fontSize: 12)),
-                    )
-                  : null),
+        const SizedBox(height: 20),
+        SpSectionTitle('Awaiting reply', count: d.pending.length),
+        const SizedBox(height: 10),
+        SpListCard(children: [
+          for (final m in d.pending)
+            _row(m, d, p,
+                trailing: d.canManage && !d.isOver
+                    ? TextButton(
+                        onPressed: _busy
+                            ? null
+                            : () => _run(
+                                () => repo.addSquadPlayer(widget.eventId,
+                                    d.tournamentTeamId, m.playerId),
+                                success: 'Added to squad'),
+                        style: TextButton.styleFrom(
+                            foregroundColor: p.greenText),
+                        child: const Text('Add',
+                            style: TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w700)),
+                      )
+                    : null),
+        ]),
       ],
       if (d.notPlaying.isNotEmpty) ...[
-        const SizedBox(height: 12),
-        _sectionTitle('Not playing (${d.notPlaying.length})', p),
-        for (final m in d.notPlaying) _row(m, d, p),
+        const SizedBox(height: 20),
+        SpSectionTitle('Not playing', count: d.notPlaying.length),
+        const SizedBox(height: 10),
+        SpListCard(children: [
+          for (final m in d.notPlaying) _row(m, d, p),
+        ]),
       ],
       if (d.coaches.isNotEmpty) ...[
-        const SizedBox(height: 12),
-        Text('Coaches: ${d.coaches.map((c) => c.displayName).join(', ')}',
-            style: TextStyle(color: p.muted, fontSize: 11.5)),
+        const SizedBox(height: 20),
+        SpSectionTitle('Coaches', count: d.coaches.length),
+        const SizedBox(height: 10),
+        GlassCard(
+          padding: const EdgeInsets.all(14),
+          child: Wrap(spacing: 6, runSpacing: 6, children: [
+            for (final c in d.coaches)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                decoration: BoxDecoration(
+                    color: p.surface2,
+                    borderRadius: BorderRadius.circular(999)),
+                child: Text(c.displayName,
+                    style: TextStyle(
+                        color: p.ink,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600)),
+              ),
+          ]),
+        ),
       ],
     ];
   }
 
-  Widget _row(SquadPlayer m, TournamentSquad d, AppPalette p, {Widget? trailing}) {
-    final (String status, Color tone) = switch (m.status) {
-      'accepted' => ('In', p.accent),
-      'called' => ('Awaiting', p.amber),
-      'removed' => ('Removed', p.danger),
-      'withdrawn' => ('Withdrew', p.muted),
-      _ => ('Declined', p.muted),
+  Widget _row(SquadPlayer m, TournamentSquad d, AppPalette p,
+      {Widget? trailing}) {
+    final (String status, Color bg, Color fg) = switch (m.status) {
+      'accepted' => ('In', p.accentTint, p.greenText),
+      'called' => ('Awaiting', p.orangeTint, p.orangeInk),
+      'removed' => ('Removed', p.liveTint, p.danger),
+      'withdrawn' => ('Withdrew', p.surface2, p.muted),
+      _ => ('Declined', p.surface2, p.muted),
     };
     final sub = <String>[
       if (m.positions.isNotEmpty) m.positions.join(' · '),
@@ -458,42 +681,94 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
       else
         '$status ${timeAgo(m.respondedAt)}',
     ].join(' · ');
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: GlassCard(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        onTap: () => context.push('/players/${m.playerId}'),
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: () => context.push('/players/${m.playerId}'),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 10, 4, 10),
         child: Row(children: [
-          ClipOval(child: Crest(logoUrl: m.profile?.avatarUrl, label: m.name, size: 36)),
-          const SizedBox(width: 10),
+          Stack(clipBehavior: Clip.none, children: [
+            ClipOval(
+                child: Crest(
+                    logoUrl: m.profile?.avatarUrl, label: m.name, size: 40)),
+            if (m.jerseyNumber != null)
+              Positioned(
+                right: -4,
+                bottom: -4,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: p.hero,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: p.surface, width: 2),
+                  ),
+                  child: Text('${m.jerseyNumber}',
+                      style: TextStyle(
+                          color: p.onHero,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800)),
+                ),
+              ),
+          ]),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                if (m.jerseyNumber != null)
-                  Text('#${m.jerseyNumber} ',
-                      style: TextStyle(color: p.muted, fontSize: 12.5, fontWeight: FontWeight.w700)),
                 Flexible(
                   child: Text(m.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
                 ),
-                if (m.isCaptain)
-                  Text(' C', style: TextStyle(color: p.amber, fontSize: 11, fontWeight: FontWeight.w900)),
+                if (m.isCaptain) ...[
+                  const SizedBox(width: 5),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(
+                        color: p.hero,
+                        borderRadius: BorderRadius.circular(999)),
+                    child: Text('C',
+                        style: TextStyle(
+                            color: p.onHero,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800)),
+                  ),
+                ],
                 if (m.accepted) ...[
-                  const SizedBox(width: 6),
-                  SpBadge(m.isStarter ? 'Starter' : 'Sub', tone: m.isStarter ? p.accent : p.muted),
+                  const SizedBox(width: 5),
+                  Text(m.isStarter ? 'Starter' : 'Sub',
+                      style: TextStyle(
+                          color: m.isStarter ? p.greenText : p.muted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700)),
                 ],
               ]),
-              Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: p.muted, fontSize: 11.5)),
+              Text(sub,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: p.muted, fontSize: 12)),
               if (m.accepted && m.joinedAfterKickoff)
-                const Text('Joined after kick-off',
-                    style: TextStyle(color: Color(0xFF0EA5E9), fontSize: 11, fontWeight: FontWeight.w600)),
+                Text('Joined after kick-off',
+                    style: TextStyle(
+                        color: p.orangeInk,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600)),
             ]),
           ),
           const SizedBox(width: 6),
-          SpBadge(status, tone: tone),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration:
+                BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+            child: Text(status,
+                style: TextStyle(
+                    color: fg, fontSize: 10.5, fontWeight: FontWeight.w700)),
+          ),
           if (trailing != null) trailing,
         ]),
       ),
@@ -502,28 +777,69 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
 
   Widget _formationTab(TournamentSquad d, AppPalette p) {
     final starters = d.accepted.where((x) => x.isStarter).length;
-    return GlassCard(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(d.formationName ?? 'No formation set',
-            style: TextStyle(color: p.ink, fontSize: 15, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 4),
-        Text(
-          d.accepted.isEmpty
-              ? 'The formation is built from players who accepted the call-up. Call players first.'
-              : 'For ${d.eventTitle} only — $starters of ${d.maxStarters} on the pitch. This is what the match line-up is built from.',
-          style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.4),
+    return Container(
+      decoration: BoxDecoration(
+        color: p.surface,
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: cardShadow(context),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        // A pitch, with the shape and how full it is.
+        Container(
+          height: 150,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF17873F), Color(0xFF0F6B34)],
+            ),
+          ),
+          child: CustomPaint(
+            painter: _MiniPitch(),
+            child: Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text(d.formationName ?? 'No formation',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5)),
+                const SizedBox(height: 2),
+                Text('$starters of ${d.maxStarters} on the pitch',
+                    style: const TextStyle(
+                        color: Color(0xCCFFFFFF),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600)),
+              ]),
+            ),
+          ),
         ),
-        const SizedBox(height: 12),
-        SpButton(
-          label: d.canManage && !d.isOver ? 'Open formation board' : 'View formation',
-          icon: Icons.grid_on_rounded,
-          expand: true,
-          onTap: d.accepted.isEmpty
-              ? null
-              : () async {
-                  await context.push('/groups/${widget.groupId}/tournaments/${widget.eventId}/teams/${widget.teamId}/formation');
-                  _refetch();
-                },
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text(
+              d.accepted.isEmpty
+                  ? 'The formation is built from players who accepted the call-up. Call players first.'
+                  : 'For ${d.eventTitle} only. This is what the match line-up is built from.',
+              style: TextStyle(color: p.muted, fontSize: 13, height: 1.45),
+            ),
+            const SizedBox(height: 14),
+            SpButton(
+              label: d.canManage && !d.isOver
+                  ? 'Open formation board'
+                  : 'View formation',
+              icon: Icons.grid_on_rounded,
+              expand: true,
+              onTap: d.accepted.isEmpty
+                  ? null
+                  : () async {
+                      await context.push(
+                          '/groups/${widget.groupId}/tournaments/${widget.eventId}/teams/${widget.teamId}/formation');
+                      _refetch();
+                    },
+            ),
+          ]),
         ),
       ]),
     );
@@ -532,65 +848,147 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
   List<Widget> _gamesTab(TournamentSquad d, AppPalette p) {
     if (d.games.isEmpty) return [_empty('No games yet.', p)];
     return [
-      for (final g in d.games)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: GlassCard(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      SpSectionTitle('Games', count: d.games.length),
+      const SizedBox(height: 10),
+      SpListCard(children: [
+        for (final g in d.games)
+          InkWell(
+            borderRadius: BorderRadius.circular(18),
             onTap: () => context.push('/games/${g.id}'),
-            child: Row(children: [
-              Expanded(
-                child: Text(
-                  g.teams.map((t) => '${t.name} ${t.score}').join('  vs  '),
-                  maxLines: 2,
-                  style: TextStyle(color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w600),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              child: Row(children: [
+                Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final t in g.teams)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 1.5),
+                            child: Row(children: [
+                              Expanded(
+                                child: Text(t.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        color: t.result == 'loss'
+                                            ? p.muted
+                                            : p.ink,
+                                        fontSize: 14,
+                                        fontWeight: t.result == 'win'
+                                            ? FontWeight.w800
+                                            : FontWeight.w600)),
+                              ),
+                              Text('${t.score}',
+                                  style: TextStyle(
+                                      color: t.result == 'loss'
+                                          ? p.muted
+                                          : p.ink,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800)),
+                            ]),
+                          ),
+                      ]),
                 ),
-              ),
-              SpBadge(g.status),
-            ]),
+                const SizedBox(width: 12),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: g.status == 'live'
+                        ? p.liveTint
+                        : g.status == 'completed'
+                            ? p.surface2
+                            : p.accentTint,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                      g.status == 'live'
+                          ? 'LIVE'
+                          : g.status == 'completed'
+                              ? 'FT'
+                              : g.status == 'scheduled'
+                                  ? 'Upcoming'
+                                  : g.status,
+                      style: TextStyle(
+                          color: g.status == 'live'
+                              ? p.danger
+                              : g.status == 'completed'
+                                  ? p.muted
+                                  : p.greenText,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800)),
+                ),
+                Icon(Icons.chevron_right_rounded, size: 20, color: p.muted),
+              ]),
+            ),
           ),
-        ),
+      ]),
     ];
   }
 
-  /// One "When / Where / Opponent" line in the call-up prompt. [sub] carries
-  /// the viewer's own clock when their zone differs from the venue's.
+  /// One "When / Where / Opponent" line in the call-up prompt (on the dark
+  /// card). [sub] carries the viewer's own clock when their zone differs
+  /// from the venue's.
   Widget _detail(AppPalette p, IconData icon, String label, String value,
       {String? sub}) {
     if (value.trim().isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 3),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, size: 14, color: p.muted),
-        const SizedBox(width: 6),
-        SizedBox(
-          width: 62,
-          child: Text(label,
-              style: TextStyle(color: p.muted, fontSize: 11.5)),
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: p.onHero.withAlpha(20),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 15, color: p.heroMuted),
         ),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label, style: TextStyle(color: p.heroMuted, fontSize: 11)),
             Text(value,
                 style: TextStyle(
-                    color: p.ink, fontSize: 11.5, fontWeight: FontWeight.w700)),
+                    color: p.onHero, fontSize: 13, fontWeight: FontWeight.w700)),
             if (sub != null)
-              Text(sub, style: TextStyle(color: p.muted, fontSize: 11)),
+              Text(sub, style: TextStyle(color: p.heroMuted, fontSize: 11.5)),
           ]),
         ),
       ]),
     );
   }
 
-  Widget _sectionTitle(String t, AppPalette p) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(t.toUpperCase(),
-            style: TextStyle(color: p.muted, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
-      );
-
   Widget _empty(String t, AppPalette p) => GlassCard(
-        padding: const EdgeInsets.all(18),
-        child: Center(child: Text(t, style: TextStyle(color: p.muted, fontSize: 13))),
+        padding: const EdgeInsets.all(22),
+        child: Column(children: [
+          const SpIconTile(Icons.inbox_outlined, size: 50, iconSize: 24),
+          const SizedBox(height: 10),
+          Text(t,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: p.muted, fontSize: 13)),
+        ]),
       );
+}
+
+/// Faint pitch lines behind the formation name.
+class _MiniPitch extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final line = Paint()
+      ..color = const Color(0x2EFFFFFF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final r = Rect.fromLTWH(14, 12, size.width - 28, size.height - 24);
+    canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(8)), line);
+    canvas.drawLine(Offset(size.width / 2, r.top),
+        Offset(size.width / 2, r.bottom), line);
+    canvas.drawCircle(Offset(size.width / 2, size.height / 2), 30, line);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
 /// Pick roster players to call up (uncalled + anyone who declined/withdrew).
@@ -633,15 +1031,14 @@ class _CallPlayersSheetState extends State<_CallPlayersSheet> {
           avatar: m.profile?.avatarUrl
         ),
     ];
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text('Call players', style: TextStyle(color: p.ink, fontSize: 17, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 4),
-          Text(
-            'Each player gets an in-app, push and email call-up and replies in the app. Only roster members can be called.',
-            style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.4),
+    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          SpSheetHeader(
+            icon: Icons.campaign_rounded,
+            iconBg: p.orangeTint,
+            iconFg: p.orangeInk,
+            title: 'Call players',
+            subtitle:
+                'Each player gets an in-app, push and email call-up and replies in the app. Only roster members can be called.',
           ),
           if (rows.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -713,7 +1110,7 @@ class _CallPlayersSheetState extends State<_CallPlayersSheet> {
               hintStyle: TextStyle(color: p.muted, fontSize: 12),
               counterStyle: TextStyle(color: p.muted, fontSize: 10),
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(16)),
             ),
           ),
           const SizedBox(height: 6),
@@ -727,15 +1124,30 @@ class _CallPlayersSheetState extends State<_CallPlayersSheet> {
                     (playerIds: _sel.toList(), all: false, note: _noteText)),
           ),
           const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => Navigator.pop<CallRequest>(
-                context, (playerIds: const <String>[], all: true, note: _noteText)),
-            icon: const Icon(Icons.groups_2_outlined, size: 16),
-            label: const Text('Call whole roster'),
+          Material(
+            color: p.surface,
+            shape: StadiumBorder(side: BorderSide(color: p.line)),
+            child: InkWell(
+              customBorder: const StadiumBorder(),
+              onTap: () => Navigator.pop<CallRequest>(context,
+                  (playerIds: const <String>[], all: true, note: _noteText)),
+              child: SizedBox(
+                height: 48,
+                child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.groups_2_outlined, size: 17, color: p.ink),
+                      const SizedBox(width: 6),
+                      Text('Call whole roster',
+                          style: TextStyle(
+                              color: p.ink,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700)),
+                    ]),
+              ),
+            ),
           ),
-        ]),
-      ),
-    );
+        ]);
   }
 }
 
@@ -773,13 +1185,15 @@ class _StatsTab extends ConsumerWidget {
         ];
         if (games == 0 || players.isEmpty) {
           return GlassCard(
-            padding: const EdgeInsets.all(18),
-            child: Center(
-              child: Text(
+            padding: const EdgeInsets.all(22),
+            child: Column(children: [
+              const SpIconTile(Icons.bar_chart_rounded, size: 50, iconSize: 24),
+              const SizedBox(height: 10),
+              Text(
                   'Stats appear once this squad has played a game in this tournament.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: p.muted, fontSize: 13)),
-            ),
+            ]),
           );
         }
         final rows = [
@@ -814,8 +1228,12 @@ class _StatsTab extends ConsumerWidget {
         // One horizontal scroller for the whole grid: the name column stays
         // readable on a phone and the stat columns run off to the right.
         return GlassCard(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+          padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Player stats',
+                style: TextStyle(
+                    color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -841,13 +1259,19 @@ class _StatsTab extends ConsumerWidget {
                 ),
                 for (final r in rows)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 7),
+                    padding: const EdgeInsets.only(bottom: 4),
                     child: InkWell(
                       onTap: parseStr(r['playerId']) != null
                           ? () => context.push(
                               '/players/${parseStr(r['playerId'])}/tournaments/$eventId')
                           : null,
-                      child: Row(children: [
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 7),
+                        decoration: BoxDecoration(
+                          border: Border(
+                              top: BorderSide(color: p.surface2)),
+                        ),
+                        child: Row(children: [
                         SizedBox(
                           width: 140,
                           child: Row(children: [
@@ -888,6 +1312,7 @@ class _StatsTab extends ConsumerWidget {
                                 dim: v == 0, bold: v > 0, width: 58);
                           }(),
                       ]),
+                      ),
                     ),
                   ),
               ]),

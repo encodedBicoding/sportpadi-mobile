@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
-import 'package:sportpadi_mobile/shared/widgets/app_logo.dart';
+import 'package:sportpadi_mobile/features/auth/auth_scaffold.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
 const _otpLength = 4;
@@ -151,125 +151,163 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final email = ref.watch(authControllerProvider).value?.user?.email ?? '';
-    return Scaffold(
-      backgroundColor: p.bg,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const AppLogo(height: 38),
-              const SizedBox(height: 28),
-              Icon(Icons.mark_email_unread_outlined, size: 40, color: p.accent),
-              const SizedBox(height: 12),
-              Text('Confirm your email',
+    final canResend = !_sending && _cooldown <= 0;
+    return AuthScaffold(
+      eyebrow: 'One last step',
+      title: 'Confirm your email',
+      subtitle: Text.rich(
+        TextSpan(children: [
+          const TextSpan(text: 'We sent a 4-digit code to '),
+          TextSpan(
+              text: email.isEmpty ? 'your email' : email,
+              style: TextStyle(color: p.onHero, fontWeight: FontWeight.w700)),
+          const TextSpan(
+              text: '. Enter it below to finish setting up your account.'),
+        ]),
+      ),
+      card: Container(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 18),
+        decoration: BoxDecoration(
+          color: p.surface,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: cardShadow(context),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            SpIconTile(Icons.mark_email_unread_outlined,
+                bg: p.accentTint, fg: p.greenText, size: 40, iconSize: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text('Enter your code',
                   style: TextStyle(
-                      color: p.ink, fontSize: 21, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              Text.rich(
-                TextSpan(children: [
-                  const TextSpan(text: 'We sent a 4-digit code to '),
-                  TextSpan(
-                      text: email.isEmpty ? 'your email' : email,
+                      color: p.ink,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800)),
+            ),
+          ]),
+          const SizedBox(height: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < _otpLength; i++)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  child: SizedBox(
+                    width: 60,
+                    child: TextField(
+                      controller: _controllers[i],
+                      focusNode: _nodes[i],
+                      autofocus: i == 0,
+                      textAlign: TextAlign.center,
+                      keyboardType: TextInputType.number,
+                      textInputAction: i == _otpLength - 1
+                          ? TextInputAction.done
+                          : TextInputAction.next,
+                      autofillHints:
+                          i == 0 ? const [AutofillHints.oneTimeCode] : null,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      maxLength: i == 0 ? _otpLength : 1,
+                      enabled: !_verifying,
                       style: TextStyle(
-                          color: p.ink, fontWeight: FontWeight.w700)),
-                  const TextSpan(
-                      text: '. Enter it below to finish setting up your account.'),
-                ]),
-                textAlign: TextAlign.center,
-                style: TextStyle(color: p.muted, fontSize: 13.5, height: 1.45),
-              ),
-              const SizedBox(height: 22),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  for (var i = 0; i < _otpLength; i++)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                      child: SizedBox(
-                        width: 54,
-                        child: TextField(
-                          controller: _controllers[i],
-                          focusNode: _nodes[i],
-                          autofocus: i == 0,
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          textInputAction: i == _otpLength - 1
-                              ? TextInputAction.done
-                              : TextInputAction.next,
-                          autofillHints: i == 0
-                              ? const [AutofillHints.oneTimeCode]
-                              : null,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          maxLength: i == 0 ? _otpLength : 1,
-                          enabled: !_verifying,
-                          style: TextStyle(
-                              color: p.ink,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800),
-                          decoration: InputDecoration(
-                            counterText: '',
-                            contentPadding:
-                                const EdgeInsets.symmetric(vertical: 14),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: p.line),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: p.accent, width: 2),
-                            ),
-                          ),
-                          onChanged: (v) => _onDigit(i, v),
+                          color: p.ink,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800),
+                      decoration: InputDecoration(
+                        counterText: '',
+                        filled: true,
+                        fillColor: _controllers[i].text.isEmpty
+                            ? p.surface2
+                            : p.accentTint,
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 16),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          borderSide: BorderSide.none,
+                        ),
+                        disabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          borderSide: BorderSide(color: p.accent, width: 2),
                         ),
                       ),
+                      onChanged: (v) => _onDigit(i, v),
                     ),
-                ],
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(_error!,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: p.danger, fontSize: 12.5)),
-              ],
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                child: SpButton(
-                  label: _verifying ? 'Verifying…' : 'Verify email',
-                  expand: true,
-                  onTap: _verifying ||
-                          _controllers.any((c) => c.text.isEmpty)
-                      ? null
-                      : _verify,
+                  ),
+                ),
+            ],
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 14),
+            AuthError(_error!),
+          ],
+          const SizedBox(height: 18),
+          AuthPrimaryButton(
+            label: 'Verify email',
+            busy: _verifying,
+            onTap: _controllers.any((c) => c.text.isEmpty) ? null : _verify,
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: Material(
+              color: p.surface2,
+              shape: const StadiumBorder(),
+              child: InkWell(
+                customBorder: const StadiumBorder(),
+                onTap: canResend ? () => _sendCode(manual: true) : null,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.refresh_rounded,
+                        size: 16, color: canResend ? p.ink : p.muted),
+                    const SizedBox(width: 6),
+                    Text(
+                      _sending
+                          ? 'Sending…'
+                          : _cooldown > 0
+                              ? 'Resend code in ${_cooldown}s'
+                              : 'Resend code',
+                      style: TextStyle(
+                          color: canResend ? p.ink : p.muted,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700),
+                    ),
+                  ]),
                 ),
               ),
-              const SizedBox(height: 10),
-              TextButton(
-                onPressed:
-                    _sending || _cooldown > 0 ? null : () => _sendCode(manual: true),
-                child: Text(
-                  _sending
-                      ? 'Sending…'
-                      : _cooldown > 0
-                          ? 'Resend code in ${_cooldown}s'
-                          : 'Resend code',
-                  style: TextStyle(color: p.accent, fontSize: 13),
-                ),
-              ),
-              const SizedBox(height: 4),
-              TextButton(
-                onPressed: () =>
-                    ref.read(authControllerProvider.notifier).signOut(),
-                child: Text('Use a different account',
-                    style: TextStyle(color: p.muted, fontSize: 12.5)),
-              ),
-            ]),
+            ),
+          ),
+        ]),
+      ),
+      footer: [
+        const SizedBox(height: 16),
+        Center(
+          child: Text("Can't find it? Check spam, or resend in a moment.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: p.muted, fontSize: 12.5)),
+        ),
+        const SizedBox(height: 6),
+        Center(
+          child: TextButton(
+            onPressed: () =>
+                ref.read(authControllerProvider.notifier).signOut(),
+            child: Text('Use a different account',
+                style: TextStyle(
+                    color: p.greenText,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700)),
           ),
         ),
-      ),
+      ],
     );
   }
 }

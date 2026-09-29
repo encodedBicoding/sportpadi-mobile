@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:sportpadi_mobile/core/ads/admob.dart';
+import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_dock.dart';
 import 'package:sportpadi_mobile/core/analytics/analytics_service.dart';
 import 'package:sportpadi_mobile/core/push/push_alert.dart';
 import 'package:sportpadi_mobile/core/push/push_service.dart';
@@ -163,52 +166,82 @@ class _HomeShellState extends ConsumerState<HomeShell>
       }
     });
     final index = ref.watch(homeTabIndexProvider);
+    final p = context.palette;
+    return Scaffold(
+      backgroundColor: p.bg,
+      body: _tab(index),
+      bottomNavigationBar: ShellBottomBar(
+        index: index,
+        onSelect: (i) => ref.read(homeTabIndexProvider.notifier).state = i,
+      ),
+    );
+  }
+}
+
+
+/// The app's bottom bar: the floating dock on the page canvas, then the
+/// anchored ad strip under it (it collapses to nothing until an ad loads).
+/// The system inset goes under the ad, not between the dock and the ad.
+///
+/// Used by the shell, and by pushed screens that should keep the dock in
+/// reach (the group page) — those pass [onSelect] to jump back to a tab.
+class ShellBottomBar extends ConsumerWidget {
+  const ShellBottomBar({super.key, required this.index, required this.onSelect});
+  final int index;
+  final ValueChanged<int> onSelect;
+
+  /// For a pushed screen: select the tab, then return to the shell.
+  static void goToTab(BuildContext context, WidgetRef ref, int i) {
+    ref.read(homeTabIndexProvider.notifier).state = i;
+    context.go('/home');
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     // Dot on the Tournaments tab when a live/upcoming tournament involves one
     // of the user's teams — an invitation to look, never a number.
     final tournamentDot =
         ref.watch(myTournamentsActiveProvider).valueOrNull ?? false;
-    return Scaffold(
-      body: _tab(index),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (i) =>
-            ref.read(homeTabIndexProvider.notifier).state = i,
-        destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Home',
+    final p = context.palette;
+    return ColoredBox(
+      color: p.bg,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SpDock(
+            index: index,
+            onSelect: onSelect,
+            items: [
+              const SpDockItem(
+                icon: Icons.home_outlined,
+                selectedIcon: Icons.home_rounded,
+                label: 'Home',
+              ),
+              const SpDockItem(
+                icon: Icons.explore_outlined,
+                selectedIcon: Icons.explore_rounded,
+                label: 'Browse',
+              ),
+              const SpDockItem(
+                icon: Icons.groups_outlined,
+                selectedIcon: Icons.groups_rounded,
+                label: 'Groups',
+              ),
+              SpDockItem(
+                icon: Icons.emoji_events_outlined,
+                selectedIcon: Icons.emoji_events_rounded,
+                label: 'Tournaments',
+                dot: tournamentDot,
+              ),
+              const SpDockItem(
+                icon: Icons.person_outline_rounded,
+                selectedIcon: Icons.person_rounded,
+                label: 'Profile',
+              ),
+            ],
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore_rounded),
-            label: 'Browse',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups_rounded),
-            label: 'Groups',
-          ),
-          NavigationDestination(
-            icon: Badge(
-              isLabelVisible: tournamentDot,
-              smallSize: 8,
-              backgroundColor: const Color(0xFFF0821E),
-              child: const Icon(Icons.emoji_events_outlined),
-            ),
-            selectedIcon: Badge(
-              isLabelVisible: tournamentDot,
-              smallSize: 8,
-              backgroundColor: const Color(0xFFF0821E),
-              child: const Icon(Icons.emoji_events_rounded),
-            ),
-            label: 'Tournaments',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'Profile',
-          ),
+          const AdMobBannerBar(),
+          SizedBox(height: MediaQuery.paddingOf(context).bottom),
         ],
       ),
     );

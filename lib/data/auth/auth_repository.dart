@@ -89,6 +89,23 @@ class AuthRepository {
     return currentUser();
   }
 
+  /// Password reset (Better Auth). Emails a link to the web page that sets
+  /// the new password — resets finish in the browser on purpose (the
+  /// Universal Link / App Link manifests exclude /auth*). The server answers
+  /// the same whether or not the address has an account.
+  ///
+  /// `redirectTo` is a path, not a URL: Better Auth resolves it against its
+  /// own base URL, so it passes the trusted-origin check on every flavour
+  /// (a dev build talking to 10.0.2.2 would fail it with an absolute URL).
+  Future<void> requestPasswordReset(String email) async {
+    try {
+      await _dio.post('/api/auth/request-password-reset',
+          data: {'email': email, 'redirectTo': '/auth/reset'});
+    } on DioException catch (e) {
+      throw _err(e);
+    }
+  }
+
   Future<void> signOut() async {
     try {
       await _dio.post('/api/auth/sign-out');

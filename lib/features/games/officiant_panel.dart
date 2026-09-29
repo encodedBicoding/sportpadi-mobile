@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
 import 'package:sportpadi_mobile/features/games/game_screen.dart'
     show activityMinute;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// Scorekeeper controls: kickoff, clock/phase control, stat recording,
 /// substitutions, shootout tallying and finishing the match. Stat writes
@@ -296,11 +297,10 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
   // -- Record an activity (web dialog flow: team → player → assist) --------
 
   Future<void> _recordActivity(ActivityDef def) async {
-    final result = await showModalBottomSheet<
+    final result = await showSpSheet<
         ({String teamId, String playerId, String? relatedId})>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
+      context,
+      framed: false,
       builder: (_) => _RecordSheet(game: g, def: def),
     );
     if (result == null) return;
@@ -322,17 +322,9 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
       return;
     }
     final p = context.palette;
-    final team = await showModalBottomSheet<GameTeam>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-          color: p.bg,
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(22)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-        child: Column(
+    final team = await showSpSheet<GameTeam>(
+      context,
+      builder: (ctx) => Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -351,7 +343,6 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
               ),
           ],
         ),
-      ),
     );
     if (team != null) await _substitute(team);
   }
@@ -413,10 +404,9 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
   Future<String?> _pickPlayer(String title, List<_Pick> players,
       {bool allowSkip = false}) {
     final p = context.palette;
-    return showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
+    return showSpSheet<String>(
+      context,
+      framed: false,
       builder: (ctx) => Container(
         constraints: BoxConstraints(
             maxHeight: MediaQuery.of(ctx).size.height * 0.7),

@@ -9,9 +9,7 @@ import 'package:sportpadi_mobile/features/players/aka_card.dart';
 import 'package:sportpadi_mobile/features/players/player_record.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
-import 'package:sportpadi_mobile/shared/widgets/crest.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
-import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 
 /// One player's record inside ONE group, per sport.
 ///
@@ -61,14 +59,9 @@ class _PlayerGroupStatsScreenState
 
     return Scaffold(
       backgroundColor: p.bg,
-      appBar: AppBar(
-        leading: const SpLeading(),
-        backgroundColor: p.bg,
-        surfaceTintColor: p.bg,
-        title: const Text('Record in group',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-      ),
-      body: AsyncView(
+      body: SafeArea(
+        bottom: false,
+        child: AsyncView(
         value: data,
         onRetry: () => ref.invalidate(playerGroupStatsProvider(key)),
         data: (m) {
@@ -99,61 +92,63 @@ class _PlayerGroupStatsScreenState
                       t
                 ];
 
+          final groupName = parseStr(group['name']) ?? 'Group';
+          final local = cat == null ? const <String, dynamic>{} : mapOf(cat['local']);
+          final fields = cat == null ? const <Map<String, dynamic>>[] : listOf(cat['fields']);
+          final rank = cat == null ? const <String, dynamic>{} : mapOf(cat['rank']);
+
           return RefreshIndicator(
             onRefresh: () =>
                 ref.refresh(playerGroupStatsProvider(key).future),
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
               children: [
-                GlassCard(
-                  child: Row(children: [
-                    ClipOval(
-                      child: Crest(
-                          logoUrl: parseStr(player['avatarUrl']),
-                          label: parseStr(player['displayName']) ?? 'P',
-                          size: 40),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                                '$shownName at '
-                                '${parseStr(group['name']) ?? 'group'}',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    color: p.ink,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800)),
-                            if (aka != null)
-                              Text(parseStr(player['displayName']) ?? '',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style:
-                                      TextStyle(color: p.muted, fontSize: 11.5)),
-                            const SizedBox(height: 2),
-                            InkWell(
-                              onTap: () =>
-                                  context.push('/groups/${widget.groupId}'),
-                              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                Text('Open group',
-                                    style: TextStyle(
-                                        color: p.accent,
-                                        fontSize: 11.5,
-                                        fontWeight: FontWeight.w700)),
-                                Icon(Icons.north_east_rounded,
-                                    size: 12, color: p.accent),
-                              ]),
-                            ),
-                          ]),
-                    ),
-                  ]),
+                SpHeader(title: 'Record in group', subtitle: groupName),
+                const SizedBox(height: 16),
+
+                // Who, which group, and the local-games headline for the
+                // chosen sport. Local only: tournaments get their own card.
+                RecordHero(
+                  name: shownName,
+                  avatarUrl: parseStr(player['avatarUrl']),
+                  nameSub: aka != null ? parseStr(player['displayName']) : null,
+                  onPlayerTap: () => context.push('/players/${widget.userId}'),
+                  eyebrow: cat == null
+                      ? 'Group record'
+                      : '${parseStr(cat['name']) ?? 'Sport'} · local games',
+                  title: groupName,
+                  stats: statInt(local['games']) > 0
+                      ? recordHeroStats(local, fields)
+                      : const [],
+                  pills: [
+                    if (rank.isNotEmpty)
+                      recordHeroPill(
+                          '#${statInt(rank['rank'])} of ${statInt(rank['of'])} on the board',
+                          const Color(0x29F4781F),
+                          const Color(0xFFFFB57D),
+                          icon: Icons.leaderboard_rounded),
+                    if (statInt(local['games']) > 0)
+                      recordHeroPill(
+                          '${statInt(local['games'])} game${statInt(local['games']) == 1 ? '' : 's'} · ${statInt(local['winRate'])}% wins',
+                          p.onHero.withAlpha(28),
+                          p.onHero),
+                  ],
                 ),
+                const SizedBox(height: 12),
+                recordActions([
+                  RecordAction(
+                      label: 'Open group',
+                      icon: Icons.north_east_rounded,
+                      onTap: () => context.push('/groups/${widget.groupId}')),
+                  if (rank.isNotEmpty)
+                    RecordAction(
+                        label: 'Leaderboard',
+                        icon: Icons.leaderboard_outlined,
+                        onTap: () => context
+                            .push('/groups/${widget.groupId}/leaderboard')),
+                ]),
                 if (isMe) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   AkaCard(
                     groupId: widget.groupId,
                     groupName: parseStr(group['name']) ?? 'this group',
@@ -163,7 +158,7 @@ class _PlayerGroupStatsScreenState
                   ),
                 ],
                 if (cats.isNotEmpty) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   CategoryControl(
                     categories: cats,
                     selectedId: parseStr(cat?['categoryId']),
@@ -172,71 +167,42 @@ class _PlayerGroupStatsScreenState
                   ),
                 ],
                 if (cat == null) ...[
-                  const SizedBox(height: 12),
-                  GlassCard(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(children: [
-                      Icon(Icons.emoji_events_outlined,
-                          size: 30, color: p.muted),
-                      const SizedBox(height: 8),
-                      Text('No completed games with this group',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: p.ink,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 4),
-                      Text(
+                  const SizedBox(height: 14),
+                  RecordEmpty(
+                    icon: Icons.emoji_events_outlined,
+                    title: 'No completed games with this group',
+                    body:
                         "${parseStr(player['displayName']) ?? 'They'} are a member, but haven't finished a game here yet.",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: p.muted, fontSize: 12, height: 1.35),
-                      ),
-                    ]),
                   ),
                 ] else ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   if (nothingOnRecord(cat))
-                    NothingOnRecord(sportName: parseStr(cat['name']) ?? 'this sport')
+                    NothingOnRecord(
+                        sportName: parseStr(cat['name']) ?? 'this sport')
                   else ...[
-                  SportSetup(category: cat),
-                  const SizedBox(height: 12),
-                  ScopeBlock(
-                    title:
-                        '${parseStr(cat['emoji']) ?? ''} ${parseStr(cat['name']) ?? 'Sport'} · local group games',
-                    tally: mapOf(cat['local']),
-                    fields: listOf(cat['fields']),
-                    empty: 'No completed local games in this sport yet.',
-                    rank: mapOf(cat['rank']),
-                  ),
-                  const SizedBox(height: 12),
-                  ScopeBlock(
-                    title:
-                        '${parseStr(cat['emoji']) ?? ''} ${parseStr(cat['name']) ?? 'Sport'} · tournaments',
-                    tally: mapOf(cat['tournament']),
-                    fields: listOf(cat['fields']),
-                    accent: true,
-                    empty: 'No tournament games in this sport yet.',
-                  ),
-                  ],
-                  if (mapOf(cat['rank']).isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    InkWell(
-                      onTap: () => context
-                          .push('/groups/${widget.groupId}/leaderboard'),
-                      child: Text(
-                          'See the full ${parseStr(cat['name']) ?? ''} leaderboard →',
-                          style: TextStyle(
-                              color: p.accent,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700)),
+                    SportSetup(category: cat),
+                    const SizedBox(height: 12),
+                    ScopeBlock(
+                      title: 'Local group games',
+                      tally: local,
+                      fields: fields,
+                      empty: 'No completed local games in this sport yet.',
+                      rank: rank,
+                    ),
+                    const SizedBox(height: 12),
+                    ScopeBlock(
+                      title: 'Tournaments',
+                      tally: mapOf(cat['tournament']),
+                      fields: fields,
+                      accent: true,
+                      empty: 'No tournament games in this sport yet.',
                     ),
                   ],
                   if (catTournaments.isNotEmpty) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 22),
                     TournamentList(
                         rows: catTournaments,
-                        title: 'TOURNAMENTS WITH THIS GROUP',
+                        title: 'Tournaments with this group',
                         playerId: widget.userId),
                   ],
                 ],
@@ -244,6 +210,7 @@ class _PlayerGroupStatsScreenState
             ),
           );
         },
+        ),
       ),
     );
   }

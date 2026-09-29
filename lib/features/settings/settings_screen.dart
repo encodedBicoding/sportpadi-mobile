@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sportpadi_mobile/core/theme/theme_mode.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/profile/profile_models.dart';
@@ -168,6 +169,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 18),
+
+          // ── Appearance: follow the phone, or force light / dark ──
+          const Eyebrow('Appearance'),
+          const SizedBox(height: 8),
+          const _AppearanceCard(),
           const SizedBox(height: 18),
 
           // ── Notifications: can this device receive pushes? (tap to fix) ──
@@ -376,5 +383,64 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (ok == true) {
       await ref.read(authControllerProvider.notifier).signOut();
     }
+  }
+}
+
+/// System / Light / Dark as three pills. System (default) follows the
+/// phone, so dark-mode phones get the dark theme without asking.
+class _AppearanceCard extends ConsumerWidget {
+  const _AppearanceCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = context.palette;
+    final mode = ref.watch(themeModeProvider);
+    Widget option(ThemeMode m, IconData icon, String label) {
+      final on = mode == m;
+      return Expanded(
+        child: Material(
+          color: on ? p.hero : p.surface2,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => ref.read(themeModeProvider.notifier).set(m),
+            child: SizedBox(
+              height: 64,
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(icon, size: 20, color: on ? p.onHero : p.muted),
+                const SizedBox(height: 4),
+                Text(label,
+                    style: TextStyle(
+                        color: on ? p.onHero : p.ink,
+                        fontSize: 12.5,
+                        fontWeight: on ? FontWeight.w700 : FontWeight.w600)),
+              ]),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return GlassCard(
+      padding: const EdgeInsets.all(12),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          option(ThemeMode.system, Icons.brightness_auto_rounded, 'System'),
+          const SizedBox(width: 8),
+          option(ThemeMode.light, Icons.light_mode_rounded, 'Light'),
+          const SizedBox(width: 8),
+          option(ThemeMode.dark, Icons.dark_mode_rounded, 'Dark'),
+        ]),
+        const SizedBox(height: 10),
+        Text(
+          mode == ThemeMode.system
+              ? "Matches your phone's light or dark setting."
+              : mode == ThemeMode.dark
+                  ? 'Always dark, whatever your phone is set to.'
+                  : 'Always light, whatever your phone is set to.',
+          style: TextStyle(color: p.muted, fontSize: 12),
+        ),
+      ]),
+    );
   }
 }

@@ -24,25 +24,46 @@ class AdMobIds {
   AdMobIds._();
 
   // Android (AdMob app ca-app-pub-5037534828580049~4304696149).
-  static const _androidAppOpen = 'ca-app-pub-5037534828580049/8613751446'; // SP-AND-OVERLAY
-  static const _androidNative = 'ca-app-pub-5037534828580049/4545504766'; // SP-AND-NATIVE
+  static const _androidAppOpen =
+      'ca-app-pub-5037534828580049/8613751446'; // SP-AND-OVERLAY
+  static const _androidNative =
+      'ca-app-pub-5037534828580049/4545504766'; // SP-AND-NATIVE
 
   // iOS (AdMob app ca-app-pub-5037534828580049~8777402976).
-  static const _iosAppOpen = 'ca-app-pub-5037534828580049/4140153963'; // SP-IOS-APP-OPEN
-  static const _iosNative = 'ca-app-pub-5037534828580049/7410592823'; // SP-IOS-NATIVE-ADV
+  static const _iosAppOpen =
+      'ca-app-pub-5037534828580049/4140153963'; // SP-IOS-APP-OPEN
+  static const _iosNative =
+      'ca-app-pub-5037534828580049/7410592823'; // SP-IOS-NATIVE-ADV
+
+  // Anchored adaptive BANNER under the bottom nav. Create a "Banner" ad unit
+  // per platform in AdMob (Apps → your app → Ad units → Add → Banner) and
+  // paste its id here. Until then (null) release builds simply show nothing.
+  static const String _androidBanner =
+      'ca-app-pub-5037534828580049/7125837581'; // e.g. 'ca-app-pub-5037534828580049/XXXXXXXXXX'
+  static const String _iosBanner =
+      'ca-app-pub-5037534828580049/9987145501'; // e.g. 'ca-app-pub-5037534828580049/XXXXXXXXXX'
 
   // Google's public test units — always fill, never earn.
+  static const _testBannerAndroid = 'ca-app-pub-3940256099942544/9214589741';
+  static const _testBannerIos = 'ca-app-pub-3940256099942544/2435281174';
   static const _testAppOpenAndroid = 'ca-app-pub-3940256099942544/9257395921';
   static const _testNativeAndroid = 'ca-app-pub-3940256099942544/2247696110';
   static const _testAppOpenIos = 'ca-app-pub-3940256099942544/5575463023';
   static const _testNativeIos = 'ca-app-pub-3940256099942544/3986624511';
 
-  static bool get supported => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+  static bool get supported =>
+      !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   static String? get appOpen {
     if (!supported) return null;
     if (Platform.isIOS) return kDebugMode ? _testAppOpenIos : _iosAppOpen;
     return kDebugMode ? _testAppOpenAndroid : _androidAppOpen;
+  }
+
+  static String? get banner {
+    if (!supported) return null;
+    if (Platform.isIOS) return kDebugMode ? _testBannerIos : _iosBanner;
+    return kDebugMode ? _testBannerAndroid : _androidBanner;
   }
 
   static String? get native {
@@ -74,7 +95,8 @@ class AdMob {
       // serve, just non-personalised — and the prompt is only ever shown once
       // by the OS, so this is cheap on every later launch.
       if (Platform.isIOS) {
-        final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+        final status =
+            await AppTrackingTransparency.trackingAuthorizationStatus;
         if (status == TrackingStatus.notDetermined) {
           // iOS only presents the dialog once the app is active with a
           // window up; asked during launch it silently returns
@@ -355,6 +377,8 @@ class _AdMobNativeCardState extends State<AdMobNativeCard> {
     final p = context.palette;
     // Google's minimums for the templates: small 320×90, medium 320×320.
     final height = widget.template == TemplateType.small ? 100.0 : 340.0;
+    // Same as the banner: no native view while a sheet/dialog is on top.
+    final covered = !(ModalRoute.of(context)?.isCurrent ?? true);
     return Padding(
       padding: widget.padding,
       child: Container(
@@ -365,7 +389,111 @@ class _AdMobNativeCardState extends State<AdMobNativeCard> {
           border: Border.all(color: p.line),
         ),
         clipBehavior: Clip.antiAlias,
-        child: AdWidget(ad: ad),
+        child: covered ? null : AdWidget(ad: ad),
+      ),
+    );
+  }
+}
+
+// ── Anchored banner ──────────────────────────────────────────────────────────
+
+/// The thin, full-width ad strip pinned under the bottom navigation — the
+/// "small rectangle that keeps changing". It's the standard 320×50 banner —
+/// deliberately the slim one (adaptive sizes run 60–90+ dp on modern phones),
+/// and the SDK swaps the creative on the refresh rate set for the unit in the
+/// AdMob console (Ad unit → Advanced settings → Refresh rate, 30–120s, or
+/// "Google optimized"). No timer code in the app.
+///
+/// Takes no space until an ad loads, so a no-fill never leaves a blank bar.
+/// A hairline + a small gap separate it from the nav so taps on the tabs
+/// never land on the ad (AdMob's accidental-click policy).
+class AdMobBannerBar extends StatefulWidget {
+  const AdMobBannerBar({super.key});
+
+  @override
+  State<AdMobBannerBar> createState() => _AdMobBannerBarState();
+}
+
+class _AdMobBannerBarState extends State<AdMobBannerBar> {
+  BannerAd? _ad;
+  AdSize? _size;
+  bool _loaded = false;
+  bool _requested = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_requested) {
+      _requested = true;
+      unawaited(_load());
+    }
+  }
+
+  Future<void> _load() async {
+    final id = AdMobIds.banner;
+    if (id == null) return;
+    await AdMob.init();
+    if (!mounted) return;
+    // The standard 320×50 banner: the slim strip. (The anchored ADAPTIVE
+    // sizes run 60–90+ dp tall on modern phones — too much under the dock.)
+    const AdSize size = AdSize.banner;
+    if (!mounted) return;
+    final old = _ad;
+    final ad = BannerAd(
+      adUnitId: id,
+      size: size,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (a) {
+          if (!mounted) {
+            a.dispose();
+            return;
+          }
+          setState(() {
+            _ad = a as BannerAd;
+            _size = size;
+            _loaded = true;
+          });
+          old?.dispose();
+        },
+        onAdFailedToLoad: (a, err) {
+          a.dispose();
+          if (kDebugMode) debugPrint('[admob] banner failed to load: $err');
+        },
+      ),
+    );
+    await ad.load();
+  }
+
+  @override
+  void dispose() {
+    _ad?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ad = _ad;
+    final size = _size;
+    if (ad == null || size == null || !_loaded) return const SizedBox.shrink();
+    final p = context.palette;
+    // A sheet or dialog over this screen (its route is no longer current):
+    // the banner is a native view, and on some Android devices native views
+    // paint above Flutter's own layers — the strip would show through, on
+    // top of the sheet. Keep its space so nothing jumps; drop the view until
+    // the screen is back on top.
+    final covered = !(ModalRoute.of(context)?.isCurrent ?? true);
+    return Container(
+      decoration: BoxDecoration(
+        color: p.surface,
+        border: Border(top: BorderSide(color: p.line)),
+      ),
+      padding: const EdgeInsets.only(top: 3, bottom: 3),
+      alignment: Alignment.center,
+      child: SizedBox(
+        width: size.width.toDouble(),
+        height: size.height.toDouble(),
+        child: covered ? null : AdWidget(ad: ad),
       ),
     );
   }

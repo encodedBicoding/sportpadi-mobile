@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// Shown right after an RSVP: it tells the organiser you're planning to come,
 /// but doesn't hold a place — checking in at the venue does. Then why showing
@@ -17,10 +18,8 @@ class RsvpInfoSheet extends StatefulWidget {
   static Future<void> maybeShow(BuildContext context) async {
     _dismissed ??= (await _storage.read(key: _key).catchError((_) => null)) == '1';
     if (_dismissed == true || !context.mounted) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
+    await showSpSheet<void>(
+      context,
       builder: (_) => const RsvpInfoSheet(),
     );
   }
@@ -59,20 +58,13 @@ class _RsvpInfoSheetState extends State<RsvpInfoSheet> {
             Text(xp, style: TextStyle(color: p.accent, fontSize: 12.5, fontWeight: FontWeight.w800)),
           ]),
         );
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 0, 22, 16),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Row(children: [
-            Icon(Icons.event_available_rounded, color: p.accent),
-            const SizedBox(width: 8),
-            Text("You've RSVP'd", style: TextStyle(color: p.ink, fontSize: 18, fontWeight: FontWeight.w800)),
-          ]),
-          const SizedBox(height: 8),
-          Text(
-            "This lets the organiser know you're planning to come — it doesn't lock in your spot. "
-            'Your place is confirmed when you check in at the venue.',
-            style: TextStyle(color: p.muted, fontSize: 13.5, height: 1.4),
+    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const SpSheetHeader(
+            icon: Icons.event_available_rounded,
+            title: "You've RSVP'd",
+            subtitle:
+                "This lets the organiser know you're planning to come — it doesn't lock in your spot. "
+                'Your place is confirmed when you check in at the venue.',
           ),
           const SizedBox(height: 14),
           Text('SHOW UP AND EARN',
@@ -96,8 +88,6 @@ class _RsvpInfoSheetState extends State<RsvpInfoSheet> {
           ),
           const SizedBox(height: 4),
           FilledButton(onPressed: _close, child: const Text('Got it')),
-        ]),
-      ),
-    );
+        ]);
   }
 }

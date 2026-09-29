@@ -15,7 +15,9 @@ import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/info_tip.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/features/groups/groups_providers.dart' show groupProvider;
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// Group wallet for admins — mirrors the web wallet page: balance hero
 /// (withdrawable for Stripe, settled-to-bank for auto-settling providers),
@@ -135,9 +137,8 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
     final acct = ov.settlementAccount;
     final policy = ov.policy;
     if (acct == null || policy == null) return;
-    final amountMinor = await showModalBottomSheet<int>(
-      context: context,
-      isScrollControlled: true,
+    final amountMinor = await showSpSheet<int>(
+      context,
       builder: (_) => _WithdrawSheet(policy: policy, currency: ov.currency, exponent: ov.currencyExponent),
     );
     if (amountMinor == null) return;
@@ -155,29 +156,37 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final ov = ref.watch(walletOverviewProvider(widget.groupId));
+    final groupName =
+        ref.watch(groupProvider(widget.groupId)).valueOrNull?.name;
     return Scaffold(
-      appBar: AppBar(
-        leading: const SpLeading(),
-        backgroundColor: p.bg,
-        title: const Text('Group wallet'),
-        actions: [
-          if (ov.valueOrNull != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Center(child: _statusBadge(ov.valueOrNull!, p)),
+      backgroundColor: p.bg,
+      body: SafeArea(
+        bottom: false,
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+            child: SpHeader(
+              title: 'Wallet',
+              subtitle: groupName,
+              actions: [
+                if (ov.valueOrNull != null) _statusBadge(ov.valueOrNull!, p),
+              ],
             ),
-        ],
-      ),
-      body: AsyncView<WalletOverview>(
-        value: ov,
-        onRetry: _refetch,
-        data: (o) => RefreshIndicator(
-          onRefresh: () async => _refetch(),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-            children: _body(o, p),
           ),
-        ),
+          Expanded(
+            child: AsyncView<WalletOverview>(
+              value: ov,
+              onRetry: _refetch,
+              data: (o) => RefreshIndicator(
+                onRefresh: () async => _refetch(),
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
+                  children: _body(o, p),
+                ),
+              ),
+            ),
+          ),
+        ]),
       ),
     );
   }
@@ -320,11 +329,11 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
       padding: const EdgeInsets.all(24),
       child: Column(children: [
         Container(
-          width: 56,
-          height: 56,
+          width: 60,
+          height: 60,
           decoration: BoxDecoration(
-            color: tone.withAlpha(38),
-            shape: BoxShape.circle,
+            color: tone.withAlpha(34),
+            borderRadius: BorderRadius.circular(20),
           ),
           child: Icon(icon, color: tone, size: 28),
         ),
@@ -351,13 +360,13 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color.fromRGBO(245, 167, 10, 0.10),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color.fromRGBO(245, 167, 10, 0.35)),
+        color: p.orangeTint,
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Row(children: [
-        Icon(Icons.pause_circle_outline_rounded, size: 18, color: p.amber),
-        const SizedBox(width: 8),
+        SpIconTile(Icons.pause_circle_outline_rounded,
+            bg: p.surface, fg: p.orangeInk, size: 36, iconSize: 18),
+        const SizedBox(width: 10),
         Expanded(child: Text(text, style: TextStyle(color: p.ink, fontSize: 12.5))),
         if (action != null) TextButton(onPressed: onAction, child: Text(action)),
       ]),
@@ -366,13 +375,13 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
 
   Widget _sectionTitle(String t, AppPalette p, {Widget? trailing, String? tip}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.fromLTRB(2, 8, 0, 10),
       child: Row(children: [
         Expanded(
-          child: TipText(t.toUpperCase(),
+          child: TipText(t,
               tip: tip,
               style: TextStyle(
-                  color: p.muted, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+                  color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
         ),
         if (trailing != null) trailing,
       ]),
@@ -420,8 +429,9 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
           child: Container(
             width: 56,
             height: 56,
-            decoration: BoxDecoration(color: p.accent.withAlpha(38), shape: BoxShape.circle),
-            child: Icon(Icons.account_balance_rounded, color: p.accent, size: 28),
+            decoration: BoxDecoration(
+                color: p.accentTint, borderRadius: BorderRadius.circular(20)),
+            child: Icon(Icons.account_balance_rounded, color: p.greenText, size: 28),
           ),
         ),
         const SizedBox(height: 12),
@@ -481,10 +491,23 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
             onTap: _busy ? null : _continueOnboarding,
           ),
         const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: _busy ? null : _refreshStatus,
-          icon: const Icon(Icons.refresh_rounded, size: 18),
-          label: const Text('Refresh status'),
+        Material(
+          color: p.surface,
+          shape: StadiumBorder(side: BorderSide(color: p.line)),
+          child: InkWell(
+            customBorder: const StadiumBorder(),
+            onTap: _busy ? null : _refreshStatus,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Icons.refresh_rounded, size: 18, color: p.ink),
+                const SizedBox(width: 6),
+                Text('Refresh status',
+                    style: TextStyle(
+                        color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
+              ]),
+            ),
+          ),
         ),
       ]),
     );
@@ -523,23 +546,39 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
             ? tips.availableAtProvider
             : tips.availableToWithdraw;
 
-    return GlassCard(
+    const mint = Color(0xFF6EDC9E);
+    const warm = Color(0xFFFFB57D);
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: p.hero,
+        borderRadius: BorderRadius.circular(28),
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         TipText(eyebrow,
             tip: eyebrowTip,
             style: TextStyle(
-                color: providerKnown ? p.accent : p.muted,
+                color: providerKnown ? mint : p.heroMuted,
                 fontSize: 11,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
                 letterSpacing: 1.2)),
-        const SizedBox(height: 4),
-        Text(formatMoney(appControlled ? withdrawable : o.collectedMinor, cur, exp),
-            style: TextStyle(color: p.ink, fontSize: 30, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 6),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+              formatMoney(appControlled ? withdrawable : o.collectedMinor, cur, exp),
+              style: TextStyle(
+                  color: p.onHero,
+                  fontSize: 36,
+                  letterSpacing: -0.8,
+                  fontWeight: FontWeight.w800)),
+        ),
         if (appControlled && policy?.providerName != null) ...[
           const SizedBox(height: 6),
           TipText('Matured on SportPadi: ${formatMoney(matured, cur, exp)}',
               tip: tips.maturedOnSportPadi,
-              style: TextStyle(color: p.muted, fontSize: 12.5, fontWeight: FontWeight.w700)),
+              style: TextStyle(color: p.onHero, fontSize: 12.5, fontWeight: FontWeight.w700)),
           const SizedBox(height: 2),
           TipText(
             !providerKnown
@@ -549,7 +588,9 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
                     : 'Fully settled with $providerLabel.',
             tip: providerKnown && settling > 0 ? tips.settlingAtProvider : null,
             style: TextStyle(
-                color: providerKnown && settling > 0 ? p.amber : p.muted, fontSize: 12),
+                color: providerKnown && settling > 0 ? warm : p.heroMuted,
+                fontSize: 12,
+                height: 1.4),
           ),
         ],
         if (appControlled && (policy?.pendingApprovalMinor ?? 0) > 0) ...[
@@ -557,78 +598,106 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
           TipText(
             '${formatMoney(policy!.pendingApprovalMinor, cur, exp)} is locked by a withdrawal awaiting approval — excluded from the balance above.',
             tip: tips.lockedByApproval,
-            style: TextStyle(color: p.amber, fontSize: 12),
+            style: const TextStyle(color: warm, fontSize: 12, height: 1.4),
           ),
         ],
         if (appControlled) ...[
           const SizedBox(height: 10),
           if (policy != null && policy.dayBlocked && policy.nextPayoutDate != null)
             Text('Withdrawals open on ${formatDayYear(policy.nextPayoutDate)}.',
-                style: TextStyle(color: p.amber, fontSize: 12))
+                style: const TextStyle(color: warm, fontSize: 12))
           else if (policy != null && !policy.withdrawalsEnabled)
-            Text('Withdrawals are paused for this group.',
-                style: TextStyle(color: p.amber, fontSize: 12)),
-          const SizedBox(height: 8),
-          SpButton(
-            label: 'Withdraw to bank',
-            icon: Icons.arrow_outward_rounded,
-            expand: true,
-            onTap: canWithdraw && !_busy ? () => _withdraw(o) : null,
+            const Text('Withdrawals are paused for this group.',
+                style: TextStyle(color: warm, fontSize: 12)),
+          const SizedBox(height: 10),
+          Material(
+            color: canWithdraw && !_busy ? Colors.white : p.onHero.withAlpha(30),
+            shape: const StadiumBorder(),
+            child: InkWell(
+              customBorder: const StadiumBorder(),
+              onTap: canWithdraw && !_busy ? () => _withdraw(o) : null,
+              child: SizedBox(
+                height: 50,
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.arrow_outward_rounded,
+                      size: 18,
+                      color: canWithdraw && !_busy
+                          ? const Color(0xFF0E1411)
+                          : p.heroMuted),
+                  const SizedBox(width: 7),
+                  Text('Withdraw to bank',
+                      style: TextStyle(
+                          color: canWithdraw && !_busy
+                              ? const Color(0xFF0E1411)
+                              : p.heroMuted,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            ),
           ),
         ],
-        const SizedBox(height: 14),
-        Container(height: 1, color: p.line),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         Row(children: [
           _stat('Settled to bank', formatMoney(settled, cur, exp), p, tip: tips.settledToBank),
+          const SizedBox(width: 8),
           _stat('Maturing', formatMoney(held, cur, exp), p,
               muted: held <= 0, tip: tips.maturing),
+          const SizedBox(width: 8),
           _stat('Collected', formatMoney(o.collectedMinor, cur, exp), p, tip: tips.collected),
         ]),
-        const SizedBox(height: 10),
+        const SizedBox(height: 14),
         Text(
           appControlled
               ? 'Ticket revenue collects in your wallet at the full price you set — buyers pay the fees on top, and card-processing costs come out of those fees, never out of your balance.'
                   '${policy != null && policy.maturationDays > 0 ? ' Recent revenue matures over ${policy.maturationDays} days so refunds stay covered.' : ''}'
               : "Ticket money settles straight to your connected bank on the provider's schedule — buyers pay a small fee at checkout and SportPadi never holds your funds.",
-          style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.45),
+          style: TextStyle(color: p.heroMuted, fontSize: 11.5, height: 1.5),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Row(children: [
-          Icon(Icons.receipt_long_rounded, size: 14, color: p.muted),
+          Icon(Icons.receipt_long_rounded, size: 14, color: p.heroMuted),
           const SizedBox(width: 6),
           Text('${o.ticketCount} ticket payment${o.ticketCount == 1 ? '' : 's'} to date',
-              style: TextStyle(color: p.muted, fontSize: 12)),
+              style: TextStyle(color: p.heroMuted, fontSize: 12)),
         ]),
       ]),
     );
   }
 
+  /// A figure tile on the dark balance card.
   Widget _stat(String label, String value, AppPalette p,
       {bool muted = false, String? tip}) {
     return Expanded(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-                color: muted ? p.muted : p.ink, fontSize: 13.5, fontWeight: FontWeight.w800)),
-        TipText(label,
-            tip: tip, maxLines: 1, style: TextStyle(color: p.muted, fontSize: 10.5)),
-      ]),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: p.onHero.withAlpha(18),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  color: muted ? p.heroMuted : p.onHero,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800)),
+          const SizedBox(height: 2),
+          TipText(label,
+              tip: tip,
+              maxLines: 1,
+              style: TextStyle(color: p.heroMuted, fontSize: 10.5)),
+        ]),
+      ),
     );
   }
 
   Widget _accountCard(PaymentAccount a, String currency, AppPalette p) {
     return GlassCard(
       child: Row(children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-              color: p.accent.withAlpha(38), borderRadius: BorderRadius.circular(10)),
-          child: Icon(Icons.account_balance_rounded, color: p.accent, size: 20),
-        ),
+        SpIconTile(Icons.account_balance_rounded,
+            bg: p.accentTint, fg: p.greenText),
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -660,18 +729,13 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
   Widget _withdrawalsSection(AppPalette p) {
     final page = ref.watch(walletWithdrawalsProvider(widget.groupId)).valueOrNull;
     final pending = page?.pending.length ?? 0;
-    const sky = Color(0xFF0EA5E9);
     return GlassCard(
       padding: const EdgeInsets.all(14),
       onTap: () => context.push('/groups/${widget.groupId}/wallet/withdrawals'),
       child: Row(children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-              color: sky.withAlpha(38), borderRadius: BorderRadius.circular(10)),
-          child: const Icon(Icons.fact_check_outlined, color: sky, size: 20),
-        ),
+        SpIconTile(Icons.fact_check_outlined,
+            bg: pending > 0 ? p.orangeTint : p.surface2,
+            fg: pending > 0 ? p.orangeInk : p.muted),
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -685,7 +749,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
                   ? '$pending awaiting approval'
                   : 'Who requested, who approved or rejected, and when each payout reached the bank.',
               style: TextStyle(
-                  color: pending > 0 ? p.amber : p.muted,
+                  color: pending > 0 ? p.orangeInk : p.muted,
                   fontSize: 11.5,
                   fontWeight: pending > 0 ? FontWeight.w700 : FontWeight.w400),
             ),
@@ -696,7 +760,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-                color: p.amber, borderRadius: BorderRadius.circular(999)),
+                color: p.orange, borderRadius: BorderRadius.circular(999)),
             child: Text('$pending',
                 style: const TextStyle(
                     color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
@@ -728,50 +792,41 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
             ]),
           );
         }
-        return Column(children: [
-          for (final e in entries) ...[
-            GlassCard(
-              padding: const EdgeInsets.all(12),
+        return SpListCard(children: [
+          for (final e in entries)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
               child: Row(children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: e.isCredit
-                        ? const Color.fromRGBO(16, 185, 129, 0.15)
-                        : const Color.fromRGBO(239, 68, 68, 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    e.isCredit ? Icons.south_west_rounded : Icons.north_east_rounded,
-                    size: 16,
-                    color: e.isCredit ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                  ),
+                SpIconTile(
+                  e.isCredit ? Icons.south_west_rounded : Icons.north_east_rounded,
+                  bg: e.isCredit ? p.accentTint : p.surface2,
+                  fg: e.isCredit ? p.greenText : p.muted,
+                  size: 38,
+                  iconSize: 17,
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(
                       e.description ?? e.type?.replaceAll('_', ' ') ?? 'Transaction',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                     if (e.createdAt != null)
-                      Text(timeAgo(e.createdAt), style: TextStyle(color: p.muted, fontSize: 11.5)),
+                      Text(timeAgo(e.createdAt), style: TextStyle(color: p.muted, fontSize: 12)),
                   ]),
                 ),
+                const SizedBox(width: 8),
                 Text(
                   '${e.isCredit ? '+' : '−'}${formatMoney(e.amount, o.currency, o.currencyExponent)}',
                   style: TextStyle(
-                      color: e.isCredit ? const Color(0xFF10B981) : p.ink,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700),
+                      color: e.isCredit ? p.greenText : p.ink,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800),
                 ),
               ]),
             ),
-            const SizedBox(height: 6),
-          ],
         ]);
       },
     );
@@ -833,12 +888,11 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
         provider: pol.providerName != null ? pol.providerLabel : null,
         maturationDays: pol.maturationDays,
         periodDays: pol.periodDays);
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Text('Withdraw to bank',
-            style: TextStyle(color: p.ink, fontSize: 17, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 12),
+    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const SpSheetHeader(
+          icon: Icons.account_balance_outlined,
+          title: 'Withdraw to bank',
+        ),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -899,8 +953,7 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
         ),
         const SizedBox(height: 14),
         SpButton(label: 'Request withdrawal', icon: Icons.arrow_outward_rounded, expand: true, onTap: _submit),
-      ]),
-    );
+      ]);
   }
 
   Widget _kv(String k, String v, AppPalette p, {String? tip}) => Padding(

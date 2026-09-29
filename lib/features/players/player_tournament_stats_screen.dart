@@ -11,7 +11,7 @@ import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
 /// One player's record inside ONE tournament.
@@ -55,14 +55,9 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: p.bg,
-      appBar: AppBar(
-        leading: const SpLeading(),
-        backgroundColor: p.bg,
-        surfaceTintColor: p.bg,
-        title: const Text('Record in tournament',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-      ),
-      body: AsyncView(
+      body: SafeArea(
+        bottom: false,
+        child: AsyncView(
         value: data,
         onRetry: () => ref.invalidate(playerTournamentStatsProvider(key)),
         data: (m) {
@@ -85,143 +80,167 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
           final when = formatEventTimeJson(event);
           final cat = mapOf(event['category']);
 
+          final kindTitle = kind[0].toUpperCase() + kind.substring(1);
+          final jersey = squad == null ? null : parseInt(squad['jerseyNumber']);
+
+          String pendingLabel(Map<String, dynamic> x) =>
+              parseStr(x['scheduledDate']) != null
+                  ? '${x['scheduledDate']}${parseStr(x['scheduledTime']) != null ? ' · ${formatTime12(x['scheduledTime'] as String)}' : ''}'
+                  : 'Not scheduled';
+
           return RefreshIndicator(
             onRefresh: () =>
                 ref.refresh(playerTournamentStatsProvider(key).future),
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
               children: [
-                // Who, where, and the way out to the tournament itself.
-                GlassCard(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          InkWell(
-                            onTap: () => context.push('/players/$userId'),
-                            child: ClipOval(
-                              child: Crest(
-                                  logoUrl: parseStr(player['avatarUrl']),
-                                  label: first,
-                                  size: 42),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Wrap(spacing: 5, runSpacing: 4, children: [
-                                    SpBadge(kind[0].toUpperCase() + kind.substring(1),
-                                        icon: Icons.emoji_events_outlined),
-                                    if (cat.isNotEmpty)
-                                      SpBadge(
-                                          '${parseStr(cat['emoji']) ?? ''} ${parseStr(cat['name']) ?? ''}'
-                                              .trim()),
-                                  ]),
-                                  const SizedBox(height: 4),
-                                  Text(parseStr(event['title']) ?? 'Tournament',
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                          color: p.ink,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w800)),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    [
-                                      when.line,
-                                      if (parseStr(event['locationName']) != null)
-                                        event['locationName'] as String,
-                                      if (parseStr(event['hostGroupName']) != null)
-                                        'hosted by ${event['hostGroupName']}',
-                                    ].join(' · '),
-                                    style: TextStyle(color: p.muted, fontSize: 11.5),
-                                  ),
-                                  if (when.viewerTime != null)
-                                    Text('${when.viewerTime} your time',
-                                        style: TextStyle(color: p.muted, fontSize: 11)),
-                                ]),
-                          ),
-                        ]),
-                        const SizedBox(height: 10),
-                        Wrap(spacing: 8, runSpacing: 6, children: [
-                          if (hostGroupId != null)
-                            _chip(p, 'Open $kind', Icons.north_east_rounded,
-                                () => context.push(
-                                    '/groups/$hostGroupId/tournaments/$eventId')),
-                          if (hostGroupId != null && team != null)
-                            _chip(
-                                p,
-                                '${parseStr(team['name']) ?? 'Team'} squad',
-                                Icons.groups_2_outlined,
-                                () => context.push(
-                                    '/groups/$hostGroupId/tournaments/$eventId/teams/${team['id']}')),
-                        ]),
-                      ]),
+                SpHeader(
+                  title: 'Record in $kind',
+                  subtitle: parseStr(event['title']),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
+
+                // Who, which competition, and the headline numbers.
+                RecordHero(
+                  name: parseStr(player['displayName']) ?? 'Player',
+                  avatarUrl: parseStr(player['avatarUrl']),
+                  onPlayerTap: () => context.push('/players/$userId'),
+                  eyebrow: [
+                    kindTitle,
+                    if (parseStr(cat['name']) != null) parseStr(cat['name'])!,
+                  ].join(' · '),
+                  title: parseStr(event['title']) ?? 'Tournament',
+                  meta: [
+                    when.line,
+                    if (when.viewerTime != null) '${when.viewerTime} your time',
+                    if (parseStr(event['locationName']) != null)
+                      event['locationName'] as String,
+                    if (parseStr(event['hostGroupName']) != null)
+                      'hosted by ${event['hostGroupName']}',
+                  ].join(' · '),
+                  stats: statInt(record['games']) > 0
+                      ? recordHeroStats(record, fields)
+                      : const [],
+                  pills: [
+                    if (team != null)
+                      recordHeroPill(
+                          '${parseStr(team['name']) ?? 'Team'}${jersey != null ? ' · #$jersey' : ''}',
+                          const Color(0x29F4781F),
+                          const Color(0xFFFFB57D),
+                          icon: Icons.shield_outlined),
+                    if (squad != null && squad['isStarter'] == true)
+                      recordHeroPill('Starting line-up',
+                          const Color(0x296EDC9E), recordMint,
+                          icon: Icons.check_circle_rounded),
+                  ],
+                ),
+
+                // The tournament itself and the squad — both on purpose.
+                if (hostGroupId != null) ...[
+                  const SizedBox(height: 12),
+                  recordActions([
+                    RecordAction(
+                        label: 'Open $kind',
+                        icon: Icons.north_east_rounded,
+                        onTap: () => context.push(
+                            '/groups/$hostGroupId/tournaments/$eventId')),
+                    if (team != null)
+                      RecordAction(
+                          label: 'Squad',
+                          icon: Icons.groups_2_outlined,
+                          onTap: () => context.push(
+                              '/groups/$hostGroupId/tournaments/$eventId/teams/${team['id']}')),
+                  ]),
+                ],
 
                 // Their place in the squad.
+                const SizedBox(height: 22),
+                const RecordSectionTitle('Squad place'),
+                const SizedBox(height: 10),
                 if (squad != null && team != null)
                   GlassCard(
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('SQUAD PLACE',
-                              style: TextStyle(
-                                  color: p.muted,
-                                  fontSize: 9.5,
-                                  letterSpacing: 0.6,
-                                  fontWeight: FontWeight.w800)),
-                          const SizedBox(height: 6),
-                          Text.rich(TextSpan(children: [
-                            TextSpan(
-                                text: 'Team ',
-                                style: TextStyle(color: p.muted, fontSize: 12.5)),
-                            TextSpan(
-                                text: parseStr(team['name']) ?? 'Team',
-                                style: TextStyle(
-                                    color: p.ink,
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w700)),
-                            if (parseStr(team['groupName']) != null)
-                              TextSpan(
-                                  text: ' · ${team['groupName']}',
-                                  style: TextStyle(color: p.muted, fontSize: 12.5)),
-                            if (parseInt(squad['jerseyNumber']) != null)
-                              TextSpan(
-                                  text: '   Shirt #${squad['jerseyNumber']}',
-                                  style: TextStyle(
-                                      color: p.ink,
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w700)),
-                          ])),
-                          const SizedBox(height: 2),
-                          Text(
-                            [
-                              'Status: ${parseStr(squad['status']) ?? '—'}',
-                              if (squad['isStarter'] == true) 'in the starting line-up',
-                              if (parseDate(squad['acceptedAt']) != null)
-                                'joined ${formatDayYear(squad['acceptedAt'])}'
-                                    '${squad['joinedAfterKickoff'] == true ? ' (after kick-off)' : ''}',
-                            ].join(' · '),
-                            style: TextStyle(color: p.muted, fontSize: 12),
-                          ),
+                          Row(children: [
+                            Crest(
+                                logoUrl: parseStr(team['logoUrl']),
+                                kitPrimary: parseStr(team['kitPrimary']),
+                                kitSecondary: parseStr(team['kitSecondary']),
+                                label: parseStr(team['name']) ?? 'T',
+                                size: 46),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(parseStr(team['name']) ?? 'Team',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                            color: p.ink,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700)),
+                                    if (parseStr(team['groupName']) != null)
+                                      Text(parseStr(team['groupName'])!,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                              color: p.muted, fontSize: 12)),
+                                  ]),
+                            ),
+                            if (jersey != null)
+                              Container(
+                                width: 48,
+                                height: 48,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                    color: p.surface2,
+                                    borderRadius: BorderRadius.circular(16)),
+                                child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text('SHIRT',
+                                          style: TextStyle(
+                                              color: p.muted,
+                                              fontSize: 8.5,
+                                              letterSpacing: 0.6,
+                                              fontWeight: FontWeight.w700)),
+                                      Text('$jersey',
+                                          style: TextStyle(
+                                              color: p.ink,
+                                              fontSize: 17,
+                                              height: 1.1,
+                                              fontWeight: FontWeight.w800)),
+                                    ]),
+                              ),
+                          ]),
+                          const SizedBox(height: 12),
+                          Wrap(spacing: 6, runSpacing: 6, children: [
+                            _tag(p, _statusLabel(parseStr(squad['status'])),
+                                parseStr(squad['status']) == 'accepted'),
+                            if (squad['isStarter'] == true)
+                              _tag(p, 'Starter', true),
+                            if (parseDate(squad['acceptedAt']) != null)
+                              _tag(
+                                  p,
+                                  'Joined ${formatDayYear(squad['acceptedAt'])}'
+                                  '${squad['joinedAfterKickoff'] == true ? ' · after kick-off' : ''}',
+                                  false),
+                          ]),
                         ]),
                   )
                 else
-                  GlassCard(
-                    child: Text(
-                      "$first isn't in a squad for this $kind"
-                      "${matches.isNotEmpty ? ', but appeared in its games.' : '.'}",
-                      style: TextStyle(color: p.muted, fontSize: 12.5),
-                    ),
+                  RecordEmpty(
+                    icon: Icons.groups_2_outlined,
+                    title: 'Not in a squad',
+                    body: "$first isn't in a squad for this $kind"
+                        "${matches.isNotEmpty ? ', but appeared in its games.' : '.'}",
                   ),
-                const SizedBox(height: 12),
 
                 // The tally.
+                const SizedBox(height: 14),
                 ScopeBlock(
                   title: "$first's record in this $kind",
                   collapseKey: 'tournament-record',
@@ -235,126 +254,50 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
 
                 // Match by match.
                 if (matches.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  GlassCard(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('MATCHES (${matches.length})',
-                              style: TextStyle(
-                                  color: p.muted,
-                                  fontSize: 9.5,
-                                  letterSpacing: 0.6,
-                                  fontWeight: FontWeight.w800)),
-                          const SizedBox(height: 8),
-                          for (final x in matches) _match(context, p, x, fields),
-                        ]),
-                  ),
+                  const SizedBox(height: 22),
+                  RecordSectionTitle('Matches', count: matches.length),
+                  const SizedBox(height: 10),
+                  RecordList(children: [
+                    for (final x in matches)
+                      RecordMatchRow(
+                        match: x,
+                        fields: fields,
+                        pendingLabel: pendingLabel(x),
+                        opponentFallback: 'TBD',
+                      ),
+                  ]),
                 ],
               ],
             ),
           );
         },
+        ),
       ),
     );
   }
 
-  Widget _chip(AppPalette p, String label, IconData icon, VoidCallback onTap) =>
-      InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: p.line),
-          ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 13, color: p.muted),
-            const SizedBox(width: 4),
-            Text(label,
-                style: TextStyle(
-                    color: p.ink, fontSize: 11.5, fontWeight: FontWeight.w700)),
-          ]),
+  static String _statusLabel(String? status) {
+    final s = status ?? '';
+    return switch (s) {
+      'accepted' => 'In the squad',
+      'pending' || 'invited' => 'Call-up pending',
+      'declined' => 'Declined',
+      'removed' => 'Removed',
+      '' => 'Squad',
+      _ => '${s[0].toUpperCase()}${s.substring(1).replaceAll('_', ' ')}',
+    };
+  }
+
+  Widget _tag(AppPalette p, String label, bool positive) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: positive ? p.accentTint : p.surface2,
+          borderRadius: BorderRadius.circular(999),
         ),
+        child: Text(label,
+            style: TextStyle(
+                color: positive ? p.greenText : p.muted,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700)),
       );
-
-  Widget _match(BuildContext context, AppPalette p, Map<String, dynamic> m,
-      List<Map<String, dynamic>> fields) {
-    final us = mapOf(m['us']);
-    final them = m['them'] is Map ? mapOf(m['them']) : null;
-    final status = parseStr(m['status']) ?? 'scheduled';
-    final result = parseStr(m['result']);
-    final counts = mapOf(m['counts']);
-    final contrib = [
-      for (final f in fields)
-        if (statInt(counts[parseStr(f['key'])]) > 0)
-          '${parseStr(f['icon']) ?? ''}${statInt(counts[parseStr(f['key'])])}'
-    ].join('  ');
-    final tone = result == 'win'
-        ? const Color(0xFF16A34A)
-        : result == 'loss'
-            ? p.danger
-            : p.muted;
-    final sub = [
-      status == 'completed'
-          ? 'Full time'
-          : status == 'live'
-              ? 'Live now'
-              : (parseStr(m['scheduledDate']) != null
-                  ? '${m['scheduledDate']}${parseStr(m['scheduledTime']) != null ? ' · ${formatTime12(m['scheduledTime'] as String)}' : ''}'
-                  : 'Not scheduled'),
-      if (status == 'completed') m['started'] == true ? 'started' : 'from the bench',
-      if (contrib.isNotEmpty) contrib,
-    ].join(' · ');
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: InkWell(
-        onTap: () => context.push('/games/${m['gameId']}'),
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: p.surface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: p.line),
-          ),
-          child: Row(children: [
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                        '${parseStr(us['name']) ?? 'Us'} vs ${parseStr(them?['name']) ?? 'TBD'}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: p.ink,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 2),
-                    Text(sub,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: p.muted, fontSize: 11)),
-                  ]),
-            ),
-            const SizedBox(width: 8),
-            Text(
-                status == 'scheduled'
-                    ? '–'
-                    : '${statInt(us['score'])}–${statInt(them?['score'])}',
-                style: TextStyle(
-                    color: p.ink, fontSize: 14, fontWeight: FontWeight.w900)),
-            if (result != null) ...[
-              const SizedBox(width: 8),
-              SpBadge(result.toUpperCase(), tone: tone),
-            ],
-          ]),
-        ),
-      ),
-    );
-  }
 }

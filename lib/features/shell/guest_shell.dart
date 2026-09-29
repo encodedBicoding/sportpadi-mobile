@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/analytics/analytics_service.dart';
+import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/core/links/deep_links.dart';
 import 'package:sportpadi_mobile/features/browse/browse_screen.dart';
 import 'package:sportpadi_mobile/features/home/guest_home_screen.dart';
 import 'package:sportpadi_mobile/features/shell/home_shell.dart'
     show homeTabIndexProvider;
+import 'package:sportpadi_mobile/shared/widgets/sp_dock.dart';
 
 /// The app before an account.
 ///
@@ -80,36 +82,49 @@ class _GuestShellState extends ConsumerState<GuestShell> {
     final raw = ref.watch(homeTabIndexProvider);
     final index = raw <= 1 ? raw : 0;
 
+    final p = context.palette;
     return Scaffold(
+      backgroundColor: p.bg,
       body: _tab(index),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (i) {
-          if (i == _signInTab) {
-            // Not a tab with a body: the selection stays where it is and the
-            // sign-in page opens on top, so "back" returns to browsing.
-            context.push('/sign-in');
-            return;
-          }
-          ref.read(homeTabIndexProvider.notifier).state = i;
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore_rounded),
-            label: 'Browse',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.login_rounded),
-            selectedIcon: Icon(Icons.login_rounded),
-            label: 'Sign in',
-          ),
-        ],
+      // The member dock (2026), with Sign in as its third button.
+      bottomNavigationBar: ColoredBox(
+        color: p.bg,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SpDock(
+              index: index,
+              onSelect: (i) {
+                if (i == _signInTab) {
+                  // Not a tab with a body: the selection stays where it is
+                  // and the sign-in page opens on top, so "back" returns to
+                  // browsing.
+                  context.push('/sign-in');
+                  return;
+                }
+                ref.read(homeTabIndexProvider.notifier).state = i;
+              },
+              items: const [
+                SpDockItem(
+                  icon: Icons.home_outlined,
+                  selectedIcon: Icons.home_rounded,
+                  label: 'Home',
+                ),
+                SpDockItem(
+                  icon: Icons.explore_outlined,
+                  selectedIcon: Icons.explore_rounded,
+                  label: 'Browse',
+                ),
+                SpDockItem(
+                  icon: Icons.login_rounded,
+                  selectedIcon: Icons.login_rounded,
+                  label: 'Sign in',
+                ),
+              ],
+            ),
+            SizedBox(height: MediaQuery.paddingOf(context).bottom),
+          ],
+        ),
       ),
     );
   }

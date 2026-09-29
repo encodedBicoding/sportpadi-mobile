@@ -12,125 +12,318 @@ import 'package:sportpadi_mobile/data/payments/payments_repository.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/shared/widgets/sheet_scroll.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
-/// My purchases — paid tickets, each opening its gate QR.
-class MyTicketsScreen extends ConsumerWidget {
+/// My purchases — paid tickets as ticket stubs (2026), each opening its
+/// gate QR. Unused tickets lead; used ones sit under their own tab.
+class MyTicketsScreen extends ConsumerStatefulWidget {
   const MyTicketsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyTicketsScreen> createState() => _MyTicketsScreenState();
+}
+
+class _MyTicketsScreenState extends ConsumerState<MyTicketsScreen> {
+  bool _used = false;
+
+  @override
+  Widget build(BuildContext context) {
     final p = context.palette;
     final tickets = ref.watch(myTicketsProvider);
+    final all = tickets.valueOrNull ?? const <MyTicket>[];
+    final ready = all.where((t) => t.redeemedAt == null).length;
+    final used = all.length - ready;
     return Scaffold(
-      appBar: AppBar(
-        leading: const SpLeading(),
-        backgroundColor: p.bg,
-        surfaceTintColor: p.bg,
-        title: const Text('My purchases',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async => ref.refresh(myTicketsProvider.future),
-        child: AsyncView(
-          value: tickets,
-          onRetry: () => ref.invalidate(myTicketsProvider),
-          data: (list) {
-            if (list.isEmpty) {
-              return ListView(children: [
-                const SizedBox(height: 120),
-                Center(
-                  child: Text('No purchases yet.',
-                      style: TextStyle(color: p.muted)),
-                ),
-              ]);
-            }
-            // Groups the holder neither belongs to nor follows → nudge a
-            // follow so their events stay on the home page.
-            final unfollowed = <String, String>{};
-            for (final t in list) {
-              if (t.groupRelation == 'none' &&
-                  t.groupId != null &&
-                  t.groupName != null) {
-                unfollowed[t.groupId!] = t.groupName!;
-              }
-            }
-            return ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                for (final e in unfollowed.entries) ...[
-                  _FollowNudge(groupId: e.key, groupName: e.value),
-                  const SizedBox(height: 10),
-                ],
-                for (final t in list) ...[
-                  _TicketRow(ticket: t),
-                  const SizedBox(height: 10),
-                ],
+      backgroundColor: p.bg,
+      body: SafeArea(
+        bottom: false,
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: SpHeader(
+              title: 'My purchases',
+              subtitle: tickets.hasValue
+                  ? '$ready ready to use'
+                  : null,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
+            child: SpSegmented(
+              options: [
+                ready > 0 ? 'Ready · $ready' : 'Ready',
+                used > 0 ? 'Used · $used' : 'Used',
               ],
-            );
-          },
-        ),
+              index: _used ? 1 : 0,
+              onChanged: (i) => setState(() => _used = i == 1),
+            ),
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async => ref.refresh(myTicketsProvider.future),
+              child: AsyncView(
+                value: tickets,
+                onRetry: () => ref.invalidate(myTicketsProvider),
+                data: (list) {
+                  final shown = [
+                    for (final t in list)
+                      if ((t.redeemedAt != null) == _used) t
+                  ];
+                  // Groups the holder neither belongs to nor follows → nudge
+                  // a follow so their events stay on the home page.
+                  final unfollowed = <String, String>{};
+                  for (final t in list) {
+                    if (t.groupRelation == 'none' &&
+                        t.groupId != null &&
+                        t.groupName != null) {
+                      unfollowed[t.groupId!] = t.groupName!;
+                    }
+                  }
+                  if (shown.isEmpty) {
+                    return ListView(
+                      padding: const EdgeInsets.fromLTRB(32, 70, 32, 32),
+                      children: [
+                        Center(
+                          child: SpIconTile(
+                              Icons.confirmation_num_outlined,
+                              bg: p.accentTint,
+                              fg: p.greenText,
+                              size: 60,
+                              iconSize: 28),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                            _used
+                                ? 'No used tickets yet'
+                                : list.isEmpty
+                                    ? 'No purchases yet'
+                                    : 'Nothing waiting to be scanned',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                color: p.ink,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 4),
+                        Text(
+                            _used
+                                ? 'Tickets move here once they\'re scanned at the gate.'
+                                : 'Tickets you buy — or get gifted — land here, ready to show at the gate.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                color: p.muted, fontSize: 13, height: 1.45)),
+                      ],
+                    );
+                  }
+                  return ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
+                    children: [
+                      for (final e in unfollowed.entries) ...[
+                        _FollowNudge(groupId: e.key, groupName: e.value),
+                        const SizedBox(height: 12),
+                      ],
+                      for (final t in shown) ...[
+                        _TicketStub(ticket: t),
+                        const SizedBox(height: 14),
+                      ],
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ]),
       ),
     );
   }
 }
 
-class _TicketRow extends StatelessWidget {
-  const _TicketRow({required this.ticket});
+/// A ticket as a stub: what and when on top, a perforation, then the code
+/// and the way in. Ready tickets are dark; used ones are quiet.
+class _TicketStub extends StatelessWidget {
+  const _TicketStub({required this.ticket});
   final MyTicket ticket;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
     final t = ticket;
-    return GlassCard(
-      onTap: () => _showQr(context),
-      child: Row(children: [
-        Icon(Icons.confirmation_number_outlined, color: p.accent),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(t.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: p.ink,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14)),
-              Text(
-                [
-                  if (t.groupName != null) t.groupName!,
-                  if (t.eventTitle != null) t.eventTitle!,
-                  if (t.paidAt != null) 'paid ${timeAgo(t.paidAt)}',
-                  if (t.giftedByName != null) '🎁 paid for by ${t.giftedByName}',
-                ].join(' · '),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: p.muted, fontSize: 12),
-              ),
-            ],
+    final ready = t.redeemedAt == null;
+    final bg = ready ? p.hero : p.surface;
+    final fg = ready ? p.onHero : p.ink;
+    final muted = ready ? p.heroMuted : p.muted;
+    final eyebrow = t.giftedByName != null
+        ? 'GIFTED BY ${t.giftedByName!.toUpperCase()}'
+        : ready
+            ? 'READY TO SCAN'
+            : 'USED ${formatDayYear(t.redeemedAt).toUpperCase()}';
+    final meta = [
+      if (t.groupName != null) t.groupName!,
+      if (t.eventDate != null) formatDayYear(t.eventDate),
+    ].join(' · ');
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(26),
+        onTap: () => showSpSheet<void>(
+      context,
+      framed: false,
+      builder: (_) => _LiveTicketSheet(ticket: t),
+    ),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: ready ? null : cardShadow(context),
           ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(eyebrow,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: ready
+                                ? const Color(0xFF6EDC9E)
+                                : t.giftedByName != null
+                                    ? p.orangeInk
+                                    : p.muted,
+                            fontSize: 11,
+                            letterSpacing: 1.3,
+                            fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 6),
+                    Text(t.eventTitle ?? t.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: fg,
+                            fontSize: 18,
+                            height: 1.25,
+                            fontWeight: FontWeight.w800)),
+                    if (t.eventTitle != null)
+                      Text(t.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: fg.withAlpha(215),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600)),
+                    if (meta.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(meta,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: muted, fontSize: 12.5)),
+                    ],
+                  ]),
+            ),
+            TicketPerforation(
+                color: ready ? p.onHero.withAlpha(46) : p.line,
+                notch: p.bg),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 16, 16),
+              child: Row(children: [
+                Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Receipt code',
+                            style: TextStyle(color: muted, fontSize: 11.5)),
+                        Text(t.code,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: fg,
+                                fontFamily: 'monospace',
+                                fontSize: 14,
+                                letterSpacing: 1.5,
+                                fontWeight: FontWeight.w700)),
+                      ]),
+                ),
+                const SizedBox(width: 10),
+                Text(formatMoney(t.amountMinor, t.currency, t.currencyExponent),
+                    style: TextStyle(
+                        color: fg, fontSize: 14, fontWeight: FontWeight.w800)),
+                const SizedBox(width: 10),
+                Container(
+                  height: 38,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: ready ? Colors.white : p.surface2,
+                    borderRadius: BorderRadius.circular(19),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(ready ? Icons.qr_code_2_rounded : Icons.receipt_long_outlined,
+                        size: 16,
+                        color: ready ? const Color(0xFF0E1411) : p.ink),
+                    const SizedBox(width: 5),
+                    Text(ready ? 'Show' : 'Receipt',
+                        style: TextStyle(
+                            color: ready ? const Color(0xFF0E1411) : p.ink,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+              ]),
+            ),
+          ]),
         ),
-        const SizedBox(width: 8),
-        Text(formatMoney(t.amountMinor, t.currency, t.currencyExponent),
-            style: TextStyle(
-                color: p.ink, fontWeight: FontWeight.w800, fontSize: 13)),
+      ),
+    );
+  }
+}
+
+/// The tear line across a ticket: a dashed rule with a half-circle notch
+/// bitten out of each edge (in the page colour).
+class TicketPerforation extends StatelessWidget {
+  const TicketPerforation({super.key, required this.color, required this.notch});
+  final Color color;
+  final Color notch;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 20,
+      child: Stack(clipBehavior: Clip.none, children: [
+        Positioned(
+          left: -10,
+          top: 0,
+          child: Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(color: notch, shape: BoxShape.circle)),
+        ),
+        Positioned(
+          right: -10,
+          top: 0,
+          child: Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(color: notch, shape: BoxShape.circle)),
+        ),
+        Positioned.fill(
+          left: 18,
+          right: 18,
+          child: LayoutBuilder(builder: (_, c) {
+            final n = (c.maxWidth / 10).floor();
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                for (var i = 0; i < n; i++)
+                  Container(width: 5, height: 2, color: color),
+              ],
+            );
+          }),
+        ),
       ]),
     );
   }
-
-  void _showQr(BuildContext context) {
-    final t = ticket;
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) => _LiveTicketSheet(ticket: t),
-    );
-  }
-
 }
 
 /// "Follow this group so its events show on your home page" — shown when the
@@ -177,23 +370,24 @@ class _FollowNudgeState extends ConsumerState<_FollowNudge> {
     final p = context.palette;
     if (_done) return const SizedBox.shrink();
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color.fromRGBO(23, 166, 94, 0.06),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color.fromRGBO(23, 166, 94, 0.30)),
+        color: p.accentTint,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(children: [
+        SpIconTile(Icons.groups_outlined,
+            bg: p.surface, fg: p.greenText, size: 40),
+        const SizedBox(width: 12),
         Expanded(
           child: Text(
-            'You have tickets from ${widget.groupName} but don\'t follow them — follow so their events always show on your home page when you log in.',
-            style: TextStyle(color: p.ink, fontSize: 12, height: 1.4),
+            'Follow ${widget.groupName} so their events always show on your home page.',
+            style: TextStyle(color: p.ink, fontSize: 12.5, height: 1.4),
           ),
         ),
         const SizedBox(width: 8),
         SpButton(
           label: 'Follow',
-          icon: Icons.favorite_rounded,
           onTap: _busy ? null : _follow,
         ),
       ]),
@@ -255,111 +449,260 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final t = _t;
+    final used = t.redeemedAt != null;
     return Container(
       constraints:
-          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
+          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.92),
       decoration: BoxDecoration(
         color: p.bg,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
-      child: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text(t.title,
-            style: TextStyle(
-                color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 4),
-        Text(t.redeemedAt != null ? 'This ticket has been used' : 'Show this at the gate',
-            style: TextStyle(color: p.muted, fontSize: 12)),
-        const SizedBox(height: 14),
-        if (t.redeemedAt != null)
-          // Checked in — replaces the QR with unmistakable feedback.
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 26),
-            decoration: BoxDecoration(
-              color: p.accent.withAlpha(26),
-              border: Border.all(color: p.accent, width: 2),
-              borderRadius: BorderRadius.circular(14),
+      // Pull down from the top to close (a plain scroll view swallowed the
+      // sheet's drag, so the ticket wouldn't go away), or tap the X.
+      child: SheetScrollView(
+        padding: EdgeInsets.fromLTRB(
+            20, 10, 20, 24 + MediaQuery.of(context).padding.bottom),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Row(children: [
+            const SizedBox(width: 44),
+            Expanded(
+              child: Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: p.line, borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
             ),
-            child: Column(children: [
-              Icon(Icons.check_circle_rounded, size: 52, color: p.accent),
-              const SizedBox(height: 8),
-              Text(_justScanned ? 'Checked in — enjoy! 🎉' : 'Checked in',
-                  style: TextStyle(
-                      color: p.accent,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800)),
-              const SizedBox(height: 2),
-              Text('Scanned ${timeAgo(t.redeemedAt)}',
-                  style: TextStyle(color: p.muted, fontSize: 12)),
-            ]),
-          )
-        else
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
+            SpRoundButton(
+              icon: Icons.close_rounded,
+              tooltip: 'Close',
+              onTap: () => Navigator.of(context).pop(),
             ),
-            child: QrImageView(
-                data: t.code, size: 200, backgroundColor: Colors.white),
-          ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: () async {
-            await Clipboard.setData(ClipboardData(text: t.code));
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Receipt code copied')));
-            }
-          },
-          child: Text('${t.code}  ⧉',
-              style: TextStyle(
-                  color: p.muted, fontSize: 11, fontFamily: 'monospace')),
-        ),
-        const SizedBox(height: 14),
-        // Full receipt: what was actually paid, and for what.
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: p.surface2,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(children: [
-            _kv(p, 'Ticket',
-                formatMoney(t.amountMinor, t.currency, t.currencyExponent)),
-            if (t.feeMinor > 0)
-              _kv(p, 'Fees',
-                  formatMoney(t.feeMinor, t.currency, t.currencyExponent)),
-            _kv(p, 'Total paid',
-                formatMoney(t.totalMinor, t.currency, t.currencyExponent),
-                bold: true),
-            if (t.groupName != null) _kv(p, 'Group', t.groupName!),
-            if (t.eventTitle != null) _kv(p, 'Event', t.eventTitle!),
-            if (t.eventDate != null) _kv(p, 'Date', formatDayYear(t.eventDate)),
-            if (t.paidAt != null) _kv(p, 'Paid', formatDayYear(t.paidAt)),
-            if (t.giftedByName != null)
-              _kv(p, 'Paid for by', '🎁 ${t.giftedByName}'),
-            if (t.redeemedAt != null)
-              _kv(p, 'Used', '✓ ${formatDayYear(t.redeemedAt)}'),
           ]),
-        ),
-      ])),
+          const SizedBox(height: 12),
+          // The ticket itself.
+          Container(
+            decoration: BoxDecoration(
+              color: p.surface,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: cardShadow(context),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+                decoration: BoxDecoration(
+                  color: p.hero,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Expanded(
+                          child: Text(
+                              t.giftedByName != null
+                                  ? 'GIFTED BY ${t.giftedByName!.toUpperCase()}'
+                                  : 'MATCH TICKET',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  color: Color(0xFF6EDC9E),
+                                  fontSize: 11,
+                                  letterSpacing: 1.3,
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 9, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: used
+                                ? const Color(0x296EDC9E)
+                                : p.onHero.withAlpha(30),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(used ? 'Used' : 'Valid',
+                              style: TextStyle(
+                                  color: used
+                                      ? const Color(0xFF6EDC9E)
+                                      : p.onHero,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                      ]),
+                      const SizedBox(height: 8),
+                      Text(t.eventTitle ?? t.title,
+                          style: TextStyle(
+                              color: p.onHero,
+                              fontSize: 20,
+                              height: 1.25,
+                              fontWeight: FontWeight.w800)),
+                      if (t.eventTitle != null)
+                        Text(t.title,
+                            style: TextStyle(
+                                color: p.onHero.withAlpha(215),
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                      Text(
+                          [
+                            if (t.groupName != null) t.groupName!,
+                            if (t.eventDate != null) formatDayYear(t.eventDate),
+                          ].join(' · '),
+                          style:
+                              TextStyle(color: p.heroMuted, fontSize: 12.5)),
+                    ]),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                child: used
+                    // Checked in — replaces the QR with unmistakable feedback.
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(vertical: 26),
+                        decoration: BoxDecoration(
+                          color: p.accentTint,
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                        child: Column(children: [
+                          Container(
+                            width: 64,
+                            height: 64,
+                            decoration: BoxDecoration(
+                                color: p.accent, shape: BoxShape.circle),
+                            child: const Icon(Icons.check_rounded,
+                                size: 38, color: Colors.white),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                              _justScanned
+                                  ? "You're in — enjoy the game"
+                                  : 'Checked in',
+                              style: TextStyle(
+                                  color: p.greenText,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 2),
+                          Text('Scanned ${timeAgo(t.redeemedAt)}',
+                              style: TextStyle(
+                                  color: p.muted, fontSize: 12.5)),
+                        ]),
+                      )
+                    : Column(children: [
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(color: p.line),
+                          ),
+                          child: QrImageView(
+                              data: t.code,
+                              size: 210,
+                              backgroundColor: Colors.white),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                                color: p.accent, shape: BoxShape.circle),
+                          ),
+                          const SizedBox(width: 6),
+                          Text('Show this at the gate — it updates when scanned',
+                              style: TextStyle(
+                                  color: p.muted, fontSize: 12)),
+                        ]),
+                      ]),
+              ),
+              TicketPerforation(color: p.line, notch: p.bg),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 6, 20, 18),
+                child: Material(
+                  color: p.surface2,
+                  borderRadius: BorderRadius.circular(16),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () async {
+                      await Clipboard.setData(ClipboardData(text: t.code));
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Receipt code copied')));
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      child: Row(children: [
+                        Expanded(
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Receipt code',
+                                    style: TextStyle(
+                                        color: p.muted, fontSize: 11.5)),
+                                Text(t.code,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        color: p.ink,
+                                        fontFamily: 'monospace',
+                                        fontSize: 15,
+                                        letterSpacing: 1.5,
+                                        fontWeight: FontWeight.w700)),
+                              ]),
+                        ),
+                        Icon(Icons.copy_rounded, size: 18, color: p.muted),
+                      ]),
+                    ),
+                  ),
+                ),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 14),
+          // Full receipt: what was actually paid, and for what.
+          GlassCard(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+            child: Column(children: [
+              _kv(p, 'Ticket',
+                  formatMoney(t.amountMinor, t.currency, t.currencyExponent)),
+              if (t.feeMinor > 0)
+                _kv(p, 'Fees',
+                    formatMoney(t.feeMinor, t.currency, t.currencyExponent)),
+              Divider(height: 14, color: p.surface2),
+              _kv(p, 'Total paid',
+                  formatMoney(t.totalMinor, t.currency, t.currencyExponent),
+                  bold: true),
+              if (t.groupName != null) _kv(p, 'Group', t.groupName!),
+              if (t.eventTitle != null) _kv(p, 'Event', t.eventTitle!),
+              if (t.eventDate != null)
+                _kv(p, 'Date', formatDayYear(t.eventDate)),
+              if (t.paidAt != null) _kv(p, 'Paid', formatDayYear(t.paidAt)),
+              if (t.giftedByName != null)
+                _kv(p, 'Paid for by', t.giftedByName!),
+              if (t.redeemedAt != null)
+                _kv(p, 'Used', formatDayYear(t.redeemedAt)),
+            ]),
+          ),
+        ]),
+      ),
     );
   }
 
   Widget _kv(AppPalette p, String k, String v, {bool bold = false}) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
+        padding: const EdgeInsets.symmetric(vertical: 5),
         child: Row(children: [
           Expanded(
-              child: Text(k, style: TextStyle(color: p.muted, fontSize: 12))),
+              child: Text(k, style: TextStyle(color: p.muted, fontSize: 13))),
           Flexible(
             child: Text(v,
                 textAlign: TextAlign.right,
                 style: TextStyle(
                     color: p.ink,
-                    fontSize: 12,
+                    fontSize: bold ? 14 : 13,
                     fontWeight: bold ? FontWeight.w800 : FontWeight.w600)),
           ),
         ]),

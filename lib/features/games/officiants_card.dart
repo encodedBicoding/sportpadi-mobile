@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/data/games/game_models.dart';
 import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// Officiant jobs. Missing = both.
 const kOfficiantRoles = <String, ({String label, String icon, String blurb})>{
@@ -192,18 +193,9 @@ class _OfficiantsCardState extends ConsumerState<OfficiantsCard> {
   Future<void> _manage(GameOfficiant o, bool self) async {
     final p = context.palette;
     final repo = ref.read(gamesRepositoryProvider);
-    final choice = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-          color: p.bg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: SafeArea(
-          top: false,
-          child: Column(
+    final choice = await showSpSheet<String>(
+      context,
+      builder: (ctx) => Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -247,8 +239,6 @@ class _OfficiantsCardState extends ConsumerState<OfficiantsCard> {
               ),
             ],
           ),
-        ),
-      ),
     );
     if (choice == null || !mounted) return;
     if (choice == '__remove') {
@@ -261,10 +251,9 @@ class _OfficiantsCardState extends ConsumerState<OfficiantsCard> {
   }
 
   Future<void> _callIn() async {
-    final res = await showModalBottomSheet<({List<String> ids, String role})>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+    final res = await showSpSheet<({List<String> ids, String role})>(
+      context,
+      framed: false,
       builder: (_) =>
           _CallInSheet(gameId: widget.gameId, isTournament: g.isTournament),
     );

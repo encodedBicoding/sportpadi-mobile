@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/analytics/analytics_service.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/auth/sign_in_screen.dart';
+import 'package:sportpadi_mobile/features/auth/forgot_password_screen.dart';
 import 'package:sportpadi_mobile/features/auth/verify_email_screen.dart';
 import 'package:sportpadi_mobile/features/events/event_detail_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_detail_screen.dart';
@@ -83,7 +84,12 @@ String? safeRedirectTarget(String? raw) {
   final v = Uri.decodeComponent(raw);
   if (!v.startsWith('/') || v.startsWith('//')) return null;
   final path = Uri.tryParse(v)?.path ?? v;
-  if (path == '/' || path == '/sign-in' || path == '/verify-email') return null;
+  if (path == '/' ||
+      path == '/sign-in' ||
+      path == '/forgot-password' ||
+      path == '/verify-email') {
+    return null;
+  }
   return v;
 }
 
@@ -127,7 +133,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         // anything. Everything else — an event, a group, a profile — needs
         // an account, and we remember where they were headed so sign-in
         // drops them there rather than back on Home.
-        if (loc == '/sign-in' || loc == '/home' || loc.startsWith('/join')) {
+        if (loc == '/sign-in' ||
+            loc == '/forgot-password' ||
+            loc == '/home' ||
+            loc.startsWith('/join')) {
           return null;
         }
         if (loc == '/') return '/home';
@@ -139,7 +148,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (session?.needsEmailVerification ?? false) {
         return loc == '/verify-email' ? null : '/verify-email';
       }
-      if (loc == '/sign-in' || loc == '/' || loc == '/verify-email') {
+      if (loc == '/sign-in' ||
+          loc == '/forgot-password' ||
+          loc == '/' ||
+          loc == '/verify-email') {
         return safeRedirectTarget(state.uri.queryParameters['redirect']) ??
             '/home';
       }
@@ -148,6 +160,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/sign-in', builder: (_, __) => const SignInScreen()),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (_, st) =>
+            ForgotPasswordScreen(email: st.uri.queryParameters['email']),
+      ),
       GoRoute(
           path: '/verify-email', builder: (_, __) => const VerifyEmailScreen()),
       GoRoute(path: '/home', builder: (_, __) => const _HomeGate()),
@@ -217,7 +234,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/groups/:id/new-team',
-        builder: (_, s) => CreateTeamScreen(groupId: s.pathParameters['id']!),
+        builder: (_, s) => CreateTeamScreen(
+            groupId: s.pathParameters['id']!,
+            categoryId: s.uri.queryParameters['category']),
       ),
       GoRoute(
         path: '/groups/:id/new-tournament',

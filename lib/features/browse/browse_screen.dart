@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,12 +14,13 @@ import 'package:sportpadi_mobile/features/ads/ad_display.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
-import 'package:sportpadi_mobile/shared/widgets/event_tile_square.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// Browse — universal network search (events, groups, players, teams), the
-/// "find your event" location filter, and an infinite-scroll event grid where
-/// tournaments glow and live events carry the LIVE badge. Web /discover twin.
+/// "find your event" location filter, and an infinite-scroll 2-column grid of
+/// event tiles (2026 design): cover, sport, status, then title, when, group.
+/// Web /discover twin.
 class BrowseScreen extends ConsumerStatefulWidget {
   const BrowseScreen({super.key});
   @override
@@ -126,28 +128,30 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   }
 
   Future<void> _openFinder() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: context.palette.surface,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    await showSpSheet<void>(
+      context,
       builder: (ctx) => Consumer(builder: (ctx, ref, _) {
         final p = ctx.palette;
         final loc = ref.watch(locationProvider);
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-            child: Column(
+        return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  Icon(Icons.place_outlined, size: 18, color: p.accent),
-                  const SizedBox(width: 6),
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                        color: p.accentTint,
+                        borderRadius: BorderRadius.circular(14)),
+                    child: Icon(Icons.place_outlined,
+                        size: 20, color: p.greenText),
+                  ),
+                  const SizedBox(width: 12),
                   Text('Find your event',
                       style: TextStyle(
                           color: p.ink,
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.w800)),
                   const Spacer(),
                   if (loc.location != null && _locationFilter)
@@ -218,9 +222,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                   ),
                 ],
               ],
-            ),
-          ),
-        );
+            );
       }),
     );
   }
@@ -230,126 +232,130 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
     final p = context.palette;
     final showResults = _search.text.trim().length >= 2;
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false, // bottom-nav tab, not a pushed page
-        backgroundColor: p.bg,
-        surfaceTintColor: p.bg,
-        title: const Text('Browse',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+      backgroundColor: p.bg,
+      body: SafeArea(
+        bottom: false,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // Bottom-nav tab, not a pushed page: a big title, no back button.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
+            child: Text('Browse',
+                style: TextStyle(
+                    color: p.ink,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5)),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: _searchField(p),
+          ),
+          if (!showResults) _filterChips(p),
+          // Sponsored (zero-height when no ads). Must live in the Column,
+          // not a Row: a Row gives it unbounded width and the frame can't
+          // lay out.
+          if (!showResults)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
+              child: AdDisplay(slots: ['home_ads'], carousel: true),
+            ),
+          Expanded(
+            child: showResults ? _resultsList(p) : _list(p),
+          ),
+        ]),
       ),
-      body: Column(children: [
-        // Sponsored (zero-height when no ads). Must live in the Column, not
-        // the search Row: a Row gives it unbounded width and the frame
-        // can't lay out.
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 4, 16, 0),
-          child: AdDisplay(slots: ['home_ads'], carousel: true),
-        ),
-        // Search bar + find-your-event
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
-          child: Row(children: [
-            Expanded(
-              child: TextField(
-                controller: _search,
-                onChanged: (v) {
-                  setState(() {});
-                  _onSearch(v);
-                },
-                style: TextStyle(color: p.ink, fontSize: 14),
-                decoration: InputDecoration(
-                  isDense: true,
-                  hintText: 'Search groups, players, events…',
-                  hintStyle: TextStyle(color: p.muted, fontSize: 13.5),
-                  prefixIcon:
-                      Icon(Icons.search_rounded, size: 20, color: p.muted),
-                  suffixIcon: _searching
-                      ? const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2)),
-                        )
-                      : _search.text.isNotEmpty
-                          ? InkWell(
-                              onTap: () {
-                                _search.clear();
-                                setState(() => _results = null);
-                              },
-                              child: Icon(Icons.close_rounded,
-                                  size: 18, color: p.muted),
-                            )
-                          : null,
-                  filled: true,
-                  fillColor: p.surface,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: p.line)),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: p.line)),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Material(
-              color: _locationFilter ? p.accent : p.surface,
-              borderRadius: BorderRadius.circular(14),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: _openFinder,
-                child: Container(
-                  width: 46,
-                  height: 46,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    border:
-                        Border.all(color: _locationFilter ? p.accent : p.line),
-                  ),
-                  child: Icon(Icons.place_outlined,
-                      size: 21,
-                      color: _locationFilter ? Colors.white : p.muted),
-                ),
-              ),
-            ),
-          ]),
-        ),
-        if (!showResults) _filterChips(p),
-        Expanded(
-          child: showResults ? _resultsList(p) : _grid(p),
-        ),
-      ]),
     );
   }
 
-  /// Sport chips (All + active sports) and the Live / Tournaments toggles.
+  Widget _searchField(AppPalette p) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      height: 52,
+      decoration: BoxDecoration(
+        color: p.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: dark ? Border.all(color: p.line) : null,
+        boxShadow: cardShadow(context),
+      ),
+      alignment: Alignment.center,
+      child: TextField(
+        controller: _search,
+        onChanged: (v) {
+          setState(() {});
+          _onSearch(v);
+        },
+        textInputAction: TextInputAction.search,
+        style: TextStyle(color: p.ink, fontSize: 14.5),
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: 'Search groups, players, events…',
+          hintStyle: TextStyle(color: p.muted, fontSize: 14.5),
+          prefixIcon: Icon(Icons.search_rounded, size: 21, color: p.muted),
+          suffixIcon: _searching
+              ? const Padding(
+                  padding: EdgeInsets.all(15),
+                  child: SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2)),
+                )
+              : _search.text.isNotEmpty
+                  ? IconButton(
+                      onPressed: () {
+                        _search.clear();
+                        setState(() => _results = null);
+                      },
+                      icon: Icon(Icons.close_rounded,
+                          size: 18, color: p.muted),
+                    )
+                  : null,
+          filled: false,
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 15),
+        ),
+      ),
+    );
+  }
+
+  /// Near me (opens the finder), sport chips (All + active sports) and the
+  /// Live / Tournaments toggles. Active = ink pill, like the rest of the app.
   Widget _filterChips(AppPalette p) {
     final sports = ref.watch(browseCategoriesProvider).valueOrNull ?? const [];
+    final loc = ref.watch(locationProvider);
 
-    Widget chip(String label, bool active, VoidCallback onTap) => Padding(
+    Widget chip(String label, bool active, VoidCallback onTap,
+            {IconData? icon, Color? iconColor}) =>
+        Padding(
           padding: const EdgeInsets.only(right: 8),
           child: Material(
-            color: active ? p.accent : p.surface,
+            color: active ? p.hero : p.surface,
             borderRadius: BorderRadius.circular(999),
             child: InkWell(
               borderRadius: BorderRadius.circular(999),
               onTap: onTap,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+                height: 36,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: active ? p.accent : p.line),
+                  border: active ? null : Border.all(color: p.line),
                 ),
-                child: Text(label,
-                    style: TextStyle(
-                        color: active ? Colors.white : p.muted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  if (icon != null) ...[
+                    Icon(icon,
+                        size: icon == Icons.circle ? 9 : 15,
+                        color: iconColor ?? (active ? p.onHero : p.muted)),
+                    const SizedBox(width: 6),
+                  ],
+                  Text(label,
+                      style: TextStyle(
+                          color: active ? p.onHero : p.ink,
+                          fontSize: 12.5,
+                          fontWeight:
+                              active ? FontWeight.w700 : FontWeight.w600)),
+                ]),
               ),
             ),
           ),
@@ -360,12 +366,17 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
       _loadMore(reset: true);
     }
 
+    final near = _locationFilter && loc.location != null;
     return SizedBox(
-      height: 42,
+      height: 48,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
+        padding: const EdgeInsets.fromLTRB(20, 0, 12, 12),
         children: [
+          chip(near ? 'Near me · ${loc.radiusMiles} mi' : 'Near me', near,
+              _openFinder,
+              icon: Icons.place_outlined,
+              iconColor: near ? const Color(0xFF6EDC9E) : null),
           chip('All', _categoryId == null,
               () => apply(() => _categoryId = null)),
           for (final c in sports)
@@ -378,12 +389,15 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
             ),
           Container(
             width: 1,
-            margin: const EdgeInsets.only(right: 8, top: 4, bottom: 12),
+            margin: const EdgeInsets.only(right: 8, top: 8, bottom: 8),
             color: p.line,
           ),
-          chip('🔴 Live', _liveOnly, () => apply(() => _liveOnly = !_liveOnly)),
-          chip('🏆 Tournaments', _tournamentsOnly,
-              () => apply(() => _tournamentsOnly = !_tournamentsOnly)),
+          chip('Live', _liveOnly, () => apply(() => _liveOnly = !_liveOnly),
+              icon: Icons.circle, iconColor: const Color(0xFFE02424)),
+          chip('Tournaments', _tournamentsOnly,
+              () => apply(() => _tournamentsOnly = !_tournamentsOnly),
+              icon: Icons.emoji_events_outlined,
+              iconColor: _tournamentsOnly ? p.onHero : p.orange),
         ],
       ),
     );
@@ -410,176 +424,247 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
     final teams = section('teams');
     final players = section('players');
     if (events.isEmpty && groups.isEmpty && teams.isEmpty && players.isEmpty) {
-      return Center(
-        child: Text('Nothing on the network matches that.',
-            style: TextStyle(color: p.muted, fontSize: 13)),
-      );
+      return _emptyState(p, Icons.search_off_rounded,
+          'Nothing on the network matches that.', 'Try a shorter name or a username.');
     }
 
-    Widget header(IconData icon, String label) => Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+    Widget header(String label, int n) => Padding(
+          padding: const EdgeInsets.fromLTRB(4, 18, 4, 10),
           child: Row(children: [
-            Icon(icon, size: 13, color: p.muted),
-            const SizedBox(width: 5),
-            Text(label.toUpperCase(),
+            Text(label,
                 style: TextStyle(
-                    color: p.muted,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2)),
+                    color: p.ink,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                  color: p.surface2, borderRadius: BorderRadius.circular(999)),
+              child: Text('$n',
+                  style: TextStyle(
+                      color: p.muted,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700)),
+            ),
           ]),
         );
 
-    return ListView(children: [
-      if (events.isNotEmpty) ...[
-        header(Icons.calendar_today_outlined, 'Events'),
-        for (final e in events)
-          ListTile(
-            dense: true,
-            leading: Text(
-                (e['category'] is Map
-                        ? parseStr((e['category'] as Map)['emoji'])
-                        : null) ??
-                    '🏅',
-                style: const TextStyle(fontSize: 18)),
-            title: Text(parseStr(e['title']) ?? 'Event',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: p.ink, fontSize: 14)),
-            trailing: Text(formatDay(e['eventDate']),
-                style: TextStyle(color: p.muted, fontSize: 11.5)),
-            onTap: () {
-              final id = parseStr(e['id']);
-              if (e['isTournament'] == true && id != null) {
-                context.push('/tournaments/$id');
-              } else {
-                context.push('/events/${parseStr(e['slug']) ?? id}');
-              }
-            },
+    Widget group(List<Widget> rows) => GlassCard(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          child: Column(children: [
+            for (var i = 0; i < rows.length; i++) ...[
+              if (i > 0)
+                Divider(
+                    height: 1,
+                    thickness: 1,
+                    indent: 12,
+                    endIndent: 12,
+                    color: p.surface2),
+              rows[i],
+            ],
+          ]),
+        );
+
+    Widget row(Widget lead, String title, String? sub, VoidCallback onTap) =>
+        InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            child: Row(children: [
+              lead,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: p.ink,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w700)),
+                      if (sub != null && sub.isNotEmpty)
+                        Text(sub,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: p.muted, fontSize: 12)),
+                    ]),
+              ),
+              Icon(Icons.chevron_right_rounded, size: 20, color: p.muted),
+            ]),
           ),
-      ],
-      if (groups.isNotEmpty) ...[
-        header(Icons.groups_outlined, 'Groups'),
-        for (final g in groups)
-          ListTile(
-            dense: true,
-            leading: ClipOval(
-              child: Crest(
-                  logoUrl: parseStr(g['imageUrl']),
-                  label: parseStr(g['name']) ?? 'G',
-                  size: 32),
-            ),
-            title: Text(parseStr(g['name']) ?? 'Group',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: p.ink, fontSize: 14)),
-            onTap: () => context.push('/groups/${parseStr(g['id'])}'),
+        );
+
+    Widget tile(String text, {bool tournament = false}) => Container(
+          width: 42,
+          height: 42,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: tournament ? p.orangeTint : p.accentTint,
+            borderRadius: BorderRadius.circular(14),
           ),
+          child: tournament
+              ? Icon(Icons.emoji_events_outlined, size: 20, color: p.orangeInk)
+              : Text(text, style: const TextStyle(fontSize: 19)),
+        );
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+      children: [
+        if (events.isNotEmpty) ...[
+          header('Events', events.length),
+          group([
+            for (final e in events)
+              row(
+                tile(
+                    (e['category'] is Map
+                            ? parseStr((e['category'] as Map)['emoji'])
+                            : null) ??
+                        '🏅',
+                    tournament: e['isTournament'] == true),
+                parseStr(e['title']) ?? 'Event',
+                [
+                  formatDay(e['eventDate']),
+                  if (e['isTournament'] == true) 'Tournament',
+                ].join(' · '),
+                () {
+                  final id = parseStr(e['id']);
+                  if (e['isTournament'] == true && id != null) {
+                    context.push('/tournaments/$id');
+                  } else {
+                    context.push('/events/${parseStr(e['slug']) ?? id}');
+                  }
+                },
+              ),
+          ]),
+        ],
+        if (groups.isNotEmpty) ...[
+          header('Groups', groups.length),
+          group([
+            for (final g in groups)
+              row(
+                Crest(
+                    logoUrl: parseStr(g['imageUrl']),
+                    label: parseStr(g['name']) ?? 'G',
+                    size: 42),
+                parseStr(g['name']) ?? 'Group',
+                null,
+                () => context.push('/groups/${parseStr(g['id'])}'),
+              ),
+          ]),
+        ],
+        if (teams.isNotEmpty) ...[
+          header('Teams', teams.length),
+          group([
+            for (final t in teams)
+              row(
+                Crest(
+                    logoUrl: parseStr(t['logoUrl']),
+                    kitPrimary: parseStr(t['kitPrimary']),
+                    kitSecondary: parseStr(t['kitSecondary']),
+                    label: parseStr(t['name']) ?? 'T',
+                    size: 42),
+                parseStr(t['name']) ?? 'Team',
+                [
+                  if (parseStr(t['username']) != null)
+                    '@${parseStr(t['username'])}',
+                  if (parseStr(t['groupName']) != null)
+                    parseStr(t['groupName'])!,
+                ].join(' · '),
+                () => context.push('/teams/${parseStr(t['id'])}'),
+              ),
+          ]),
+        ],
+        if (players.isNotEmpty) ...[
+          header('Players', players.length),
+          group([
+            for (final u in players)
+              row(
+                ClipOval(
+                  child: Crest(
+                      logoUrl: parseStr(u['avatarUrl']),
+                      label: parseStr(u['displayName']) ?? 'P',
+                      size: 42),
+                ),
+                parseStr(u['displayName']) ?? 'Player',
+                parseStr(u['username']) != null
+                    ? '@${parseStr(u['username'])}'
+                    : null,
+                () => context.push('/players/${parseStr(u['userId'])}'),
+              ),
+          ]),
+        ],
       ],
-      if (teams.isNotEmpty) ...[
-        header(Icons.shield_outlined, 'Teams'),
-        for (final t in teams)
-          ListTile(
-            dense: true,
-            leading: Crest(
-                logoUrl: parseStr(t['logoUrl']),
-                kitPrimary: parseStr(t['kitPrimary']),
-                kitSecondary: parseStr(t['kitSecondary']),
-                label: parseStr(t['name']) ?? 'T',
-                size: 32),
-            title: Text(parseStr(t['name']) ?? 'Team',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: p.ink, fontSize: 14)),
-            subtitle: Text(
-                '@${parseStr(t['username']) ?? ''} · ${parseStr(t['groupName']) ?? ''}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: p.muted, fontSize: 11.5)),
-            onTap: () => context.push('/teams/${parseStr(t['id'])}'),
-          ),
-      ],
-      if (players.isNotEmpty) ...[
-        header(Icons.person_outline_rounded, 'Players'),
-        for (final u in players)
-          ListTile(
-            dense: true,
-            leading: ClipOval(
-              child: Crest(
-                  logoUrl: parseStr(u['avatarUrl']),
-                  label: parseStr(u['displayName']) ?? 'P',
-                  size: 32),
-            ),
-            title: Text(parseStr(u['displayName']) ?? 'Player',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: p.ink, fontSize: 14)),
-            subtitle: parseStr(u['username']) != null
-                ? Text('@${parseStr(u['username'])}',
-                    style: TextStyle(color: p.muted, fontSize: 11.5))
-                : null,
-            onTap: () => context.push('/players/${parseStr(u['userId'])}'),
-          ),
-      ],
-      const SizedBox(height: 24),
-    ]);
+    );
   }
 
-  // ── Event grid ────────────────────────────────────────────────────────────
-
-  Widget _grid(AppPalette p) {
-    if (_error != null && _items.isEmpty) {
-      return Center(
+  Widget _emptyState(AppPalette p, IconData icon, String title, String body,
+          {Widget? action}) =>
+      Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(28),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(_error!,
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                  color: p.surface2, borderRadius: BorderRadius.circular(20)),
+              child: Icon(icon, color: p.muted, size: 26),
+            ),
+            const SizedBox(height: 12),
+            Text(title,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: p.muted, fontSize: 13)),
-            const SizedBox(height: 10),
-            SpButton(label: 'Retry', onTap: () => _loadMore(reset: true)),
+                style: TextStyle(
+                    color: p.ink, fontSize: 15, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            Text(body,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.45)),
+            if (action != null) ...[const SizedBox(height: 14), action],
           ]),
         ),
       );
+
+  // ── Event list ────────────────────────────────────────────────────────────
+
+  Widget _list(AppPalette p) {
+    if (_error != null && _items.isEmpty) {
+      return _emptyState(p, Icons.wifi_off_rounded, 'Couldn\'t load events',
+          _error!,
+          action: SpButton(label: 'Retry', onTap: () => _loadMore(reset: true)));
     }
     if (_items.isEmpty && _loading) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_items.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            _locationFilter
-                ? 'No events in this area — widen the radius or clear the location filter.'
-                : (_categoryId != null || _liveOnly || _tournamentsOnly)
-                    ? 'No events match these filters right now.'
-                    : 'No upcoming events right now.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: p.muted, fontSize: 13),
-          ),
-        ),
+      return _emptyState(
+        p,
+        Icons.travel_explore_rounded,
+        'No events here yet',
+        _locationFilter
+            ? 'Nothing in this area — widen the radius or clear the location filter.'
+            : (_categoryId != null || _liveOnly || _tournamentsOnly)
+                ? 'No events match these filters right now.'
+                : 'No upcoming events right now.',
       );
     }
+
     // The grid is cut into runs of [_adEvery] tiles with a full-width AdMob
     // native card between runs (Android only; on iOS the card is empty and
     // the runs simply abut). Slivers rather than one GridView.builder because
     // a fixed-column grid can't host a cell that spans both columns.
     const gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
       crossAxisCount: 2,
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: 0.88,
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      // A fixed height, not an aspect ratio: the text block under the cover
+      // needs the same room on every phone width.
+      mainAxisExtent: 244,
     );
-    Widget tile(EventSummary e) => Column(children: [
-          Expanded(child: EventTileSquare(event: e)),
-          if (e.distanceMiles != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text('${e.distanceMiles} mi away',
-                  style: TextStyle(color: p.muted, fontSize: 9.5)),
-            ),
-        ]);
 
     final slivers = <Widget>[];
     for (var start = 0; start < _items.length; start += _adEvery) {
@@ -591,14 +676,14 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
             // Keyed by position so a longer list doesn't hand a recycled
             // (disposed) ad to a new slot.
             key: ValueKey('browse-ad-$start'),
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 12),
           ),
         ));
       }
       slivers.add(SliverGrid(
         gridDelegate: gridDelegate,
         delegate: SliverChildBuilderDelegate(
-          (context, i) => tile(run[i]),
+          (context, i) => _BrowseTile(event: run[i]),
           childCount: run.length,
         ),
       ));
@@ -622,9 +707,8 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
       child: CustomScrollView(
         controller: _scroll,
         slivers: [
-          const SliverPadding(padding: EdgeInsets.only(top: 4)),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            padding: const EdgeInsets.fromLTRB(20, 6, 20, 28),
             sliver: SliverMainAxisGroup(slivers: slivers),
           ),
         ],
@@ -634,4 +718,214 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
 
   /// Tiles between native ads in the Browse grid.
   static const _adEvery = 8;
+}
+
+/// One event in the Browse grid (2026): a cover — photo, or a pitch drawn
+/// in the sport's colour — carrying the sport and status, then the title,
+/// when, and the group underneath.
+class _BrowseTile extends StatelessWidget {
+  const _BrowseTile({required this.event});
+  final EventSummary event;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final e = event;
+    final live = e.isLive || e.status == 'kicked_off';
+    final t = e.isTournament;
+    final d = e.eventDate?.toUtc();
+    const wd = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const mo = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final when = [
+      if (d != null) '${wd[d.weekday - 1]} ${d.day} ${mo[d.month - 1]}',
+      if (formatClock(e.startTime) != null) formatClock(e.startTime)!,
+    ].join(' · ');
+    final going = e.interestCount ?? 0;
+    final foot = [
+      if (e.distanceMiles != null) '${e.distanceMiles} mi',
+      if (going > 0) '$going going',
+    ].join(' · ');
+
+    void open() => t
+        ? context.push('/tournaments/${e.id}')
+        : context.push('/events/${e.slug.isNotEmpty ? e.slug : e.id}');
+
+    Widget pill(String label, Color bg, Color fg, {Widget? lead}) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+              color: bg, borderRadius: BorderRadius.circular(999)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            if (lead != null) ...[lead, const SizedBox(width: 4)],
+            Flexible(
+              child: Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: fg, fontSize: 10, fontWeight: FontWeight.w700)),
+            ),
+          ]),
+        );
+
+    final pitch = t ? const Color(0xFF7A3E12) : const Color(0xFF1E6B45);
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: open,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: p.surface,
+            borderRadius: BorderRadius.circular(22),
+            border: dark
+                ? Border.all(color: p.line)
+                : t
+                    ? Border.all(color: p.orange.withAlpha(90))
+                    : null,
+            boxShadow: cardShadow(context),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            // Cover, inset so the card's white frames it.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(17),
+                child: SizedBox(
+                  height: 112,
+                  child: Stack(fit: StackFit.expand, children: [
+                    if (e.coverImage != null)
+                      CachedNetworkImage(
+                        imageUrl: e.coverImage!,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) =>
+                            CustomPaint(painter: _CoverPitch(pitch)),
+                      )
+                    else
+                      CustomPaint(painter: _CoverPitch(pitch)),
+                    if (e.coverImage == null)
+                      Center(
+                        child: t
+                            ? const Icon(Icons.emoji_events_outlined,
+                                size: 30, color: Color(0xCCFFFFFF))
+                            : Text(e.categoryEmoji ?? '',
+                                style: const TextStyle(fontSize: 28)),
+                      ),
+                    Positioned(
+                      left: 8,
+                      top: 8,
+                      right: live ? 56 : 8,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: pill(
+                          t ? 'Tournament' : (e.categoryName ?? 'Event'),
+                          const Color(0xEBFFFFFF),
+                          t
+                              ? const Color(0xFF9A4308)
+                              : const Color(0xFF0F7A45),
+                        ),
+                      ),
+                    ),
+                    if (live)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: pill('LIVE', const Color(0xFFE02424),
+                            Colors.white,
+                            lead: Container(
+                                width: 5,
+                                height: 5,
+                                decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle))),
+                      )
+                    else if (e.isPrivate)
+                      const Positioned(
+                        right: 8,
+                        top: 8,
+                        child: CircleAvatar(
+                          radius: 11,
+                          backgroundColor: Color(0xEBFFFFFF),
+                          child: Icon(Icons.lock_outline_rounded,
+                              size: 12, color: Color(0xFF3E4A45)),
+                        ),
+                      ),
+                  ]),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(e.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: p.ink,
+                              fontSize: 13.5,
+                              height: 1.25,
+                              fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 4),
+                      if (when.isNotEmpty)
+                        Text(when,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: live ? p.danger : p.muted,
+                                fontSize: 11.5,
+                                fontWeight: live
+                                    ? FontWeight.w700
+                                    : FontWeight.w500)),
+                      if (e.groupName != null)
+                        Text(e.groupName!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: p.muted, fontSize: 11.5)),
+                      const Spacer(),
+                      if (foot.isNotEmpty)
+                        Text(foot,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: t ? p.orangeInk : p.greenText,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700)),
+                    ]),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+/// A plain pitch in the card's colour — the cover when an event has no photo.
+class _CoverPitch extends CustomPainter {
+  _CoverPitch(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(Offset.zero & size, Paint()..color = color);
+    final line = Paint()
+      ..color = const Color(0x24FFFFFF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final r = Rect.fromLTWH(16, 14, size.width - 32, size.height - 28);
+    canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(6)), line);
+    canvas.drawLine(Offset(size.width / 2, r.top),
+        Offset(size.width / 2, r.bottom), line);
+    canvas.drawCircle(Offset(size.width / 2, size.height / 2), 26, line);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CoverPitch old) => old.color != color;
 }

@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 class _MemberEdit {
   const _MemberEdit(this.positions, this.jersey, this.starter);
@@ -28,15 +29,15 @@ class ManageRosterScreen extends ConsumerWidget {
   }
 
   Future<void> _add(BuildContext context, WidgetRef ref, TeamDetail team) async {
-    final picked = await showModalBottomSheet<SimpleUser>(
-      context: context,
-      isScrollControlled: true,
+    final picked = await showSpSheet<SimpleUser>(
+      context,
+      scrollable: false,
+      padding: EdgeInsets.zero,
       builder: (_) => _EligiblePicker(teamId: teamId),
     );
     if (picked == null || !context.mounted) return;
-    final edit = await showModalBottomSheet<_MemberEdit>(
-      context: context,
-      isScrollControlled: true,
+    final edit = await showSpSheet<_MemberEdit>(
+      context,
       builder: (_) => _MemberSheet(
         title: picked.displayName,
         options: team.positionOptions,
@@ -58,9 +59,8 @@ class ManageRosterScreen extends ConsumerWidget {
   }
 
   Future<void> _edit(BuildContext context, WidgetRef ref, TeamDetail team, TeamMember m) async {
-    final edit = await showModalBottomSheet<_MemberEdit>(
-      context: context,
-      isScrollControlled: true,
+    final edit = await showSpSheet<_MemberEdit>(
+      context,
       builder: (_) => _MemberSheet(
         title: m.displayName,
         options: team.positionOptions,
@@ -196,15 +196,15 @@ class _EligiblePicker extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final eligible = ref.watch(eligibleMembersProvider(teamId));
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.6,
-      builder: (_, controller) => Column(
+    return Column(
         children: [
           const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('Add a group member',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: SpSheetHeader(
+              icon: Icons.person_add_alt_1_outlined,
+              title: 'Add a group member',
+              subtitle: 'Pick who joins the team, then set their position.',
+            ),
           ),
           Expanded(
             child: AsyncView(
@@ -213,7 +213,6 @@ class _EligiblePicker extends ConsumerWidget {
               data: (list) => list.isEmpty
                   ? const Center(child: Text('Everyone in the group is already on the team.'))
                   : ListView.builder(
-                      controller: controller,
                       itemCount: list.length,
                       itemBuilder: (_, i) {
                         final u = list[i];
@@ -228,8 +227,7 @@ class _EligiblePicker extends ConsumerWidget {
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 }
 
@@ -275,17 +273,15 @@ class _MemberSheetState extends State<_MemberSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20, right: 20, top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Column(
+    return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(widget.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-          const SizedBox(height: 16),
+          SpSheetHeader(
+            icon: Icons.badge_outlined,
+            title: widget.title,
+            subtitle: 'Position, shirt number and starting spot.',
+          ),
           if (widget.options.isNotEmpty) ...[
             const Text('Positions (up to 3)', style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
@@ -331,7 +327,6 @@ class _MemberSheetState extends State<_MemberSheet> {
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 }

@@ -24,9 +24,11 @@ import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/core/referral/referral.dart';
 import 'package:sportpadi_mobile/features/events/rsvp_info_sheet.dart';
+import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// Event detail — a faithful mobile port of the web /events/[slug] page:
 /// photos, info, hosted-by (follow), stats, interest/check-in, organizer QR,
@@ -137,12 +139,11 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     final picked = <String>{};
     final freeCtrl = TextEditingController();
     var saving = false;
-    await showModalBottomSheet<void>(
-      context: context,
+    await showSpSheet<void>(
+      context,
       isDismissible: false,
       enableDrag: false,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      framed: false,
       builder: (ctx) => PopScope(
         canPop: false,
         child: StatefulBuilder(
@@ -355,46 +356,35 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     final p = context.palette;
     final detail = ref.watch(eventDetailProvider(slug));
     return Scaffold(
-      appBar: AppBar(
-        leading: const SpLeading(),
-        backgroundColor: p.bg,
-        surfaceTintColor: p.bg,
-        titleSpacing: 0,
-        title: detail.valueOrNull == null
-            ? const Text('Event',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700))
-            : Text(
-                '${detail.valueOrNull!.categoryEmoji ?? '🏅'} ${detail.valueOrNull!.title}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    fontSize: 15.5, fontWeight: FontWeight.w700),
-              ),
-        actions: [
-          if (detail.valueOrNull?.canManage == true &&
-              detail.valueOrNull?.status == 'open')
-            IconButton(
-              icon: const Icon(Icons.edit_outlined, size: 20),
-              onPressed: () => _openEdit(detail.valueOrNull!),
+      backgroundColor: p.bg,
+      body: SafeArea(
+        bottom: false,
+        child: Stack(children: [
+          AsyncView(
+            value: detail,
+            onRetry: _refetch,
+            data: (e) => RefreshIndicator(
+              onRefresh: () async =>
+                  ref.refresh(eventDetailProvider(slug).future),
+              child: _body(e),
             ),
-          IconButton(
-            icon: const Icon(Icons.share_outlined, size: 20),
-            onPressed: () => _share(detail.valueOrNull),
           ),
-          if (detail.valueOrNull != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Center(child: _statusBadge(detail.valueOrNull!.status, p)),
+          // While loading (or on error) there's no cover to carry the back
+          // button — keep one on screen regardless.
+          if (detail.valueOrNull == null)
+            Positioned(
+              left: 16,
+              top: 12,
+              child: SpRoundButton(
+                icon: Icons.arrow_back_ios_new_rounded,
+                iconSize: 18,
+                tooltip: 'Back',
+                onTap: () => context.canPop()
+                    ? context.pop()
+                    : context.go('/home'),
+              ),
             ),
-        ],
-      ),
-      body: AsyncView(
-        value: detail,
-        onRetry: _refetch,
-        data: (e) => RefreshIndicator(
-          onRefresh: () async => ref.refresh(eventDetailProvider(slug).future),
-          child: _body(e),
-        ),
+        ]),
       ),
     );
   }
@@ -410,28 +400,12 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   }
 
   Future<void> _openEdit(EventDetail e) async {
-    final saved = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
+    final saved = await showSpSheet<bool>(
+      context,
+      framed: false,
       builder: (_) => _EditEventSheet(event: e),
     );
     if (saved == true) _refetch();
-  }
-
-  Widget _statusBadge(String? status, AppPalette p) {
-    switch (status) {
-      case 'open':
-        return SpBadge('Open', tone: p.accent);
-      case 'drafting':
-        return const SpBadge('🎲 Drafting');
-      case 'kicked_off':
-        return SpBadge('⚡ Live', tone: p.amber);
-      case 'completed':
-        return SpBadge('Completed', tone: p.muted);
-      default:
-        return SpBadge(status ?? '', tone: p.muted);
-    }
   }
 
   bool _isPast(EventDetail e) {
@@ -462,52 +436,16 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         e.status == 'open' || (e.status == 'kicked_off' && e.hasLatePool);
 
     final children = <Widget>[
-      if (e.isPrivate) ...[
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          decoration: BoxDecoration(
-            color: const Color.fromRGBO(245, 167, 10, 0.10),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color.fromRGBO(245, 167, 10, 0.4)),
-          ),
-          child: Row(children: [
-            Icon(Icons.lock_outline, size: 14, color: p.amber),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Private event — only members of ${e.groupName ?? 'this group'} can see it.',
-                style: TextStyle(color: p.amber, fontSize: 12),
-              ),
-            ),
-          ]),
-        ),
-        const SizedBox(height: 12),
-      ],
-      _Photos(event: e),
       if (e.canManage && e.status != 'completed') ...[
-        const SizedBox(height: 10),
         _PhotoManager(event: e, onChanged: _refetch),
-      ],
-      const SizedBox(height: 14),
-      _InfoCard(event: e),
-      if (e.groupId != null) ...[
         const SizedBox(height: 12),
+      ],
+      if (e.groupId != null) ...[
         _HostedByCard(
             groupId: e.groupId!,
             name: e.groupName ?? 'Group',
-            imageUrl: e.groupImageUrl),
-      ],
-      const SizedBox(height: 12),
-      _StatsRow(event: e),
-      if (e.typicalAttendance != null) ...[
-        const SizedBox(height: 8),
-        Center(
-          child: Text(
-            '${e.groupName != null ? "${e.groupName}'s " : ''}${e.categoryName ?? 'These'} events usually draw ~${e.typicalAttendance} players',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: p.muted, fontSize: 12),
-          ),
-        ),
+            imageUrl: e.groupImageUrl,
+            verified: e.groupVerified),
       ],
       if (e.status != 'cancelled') EventTicketsCard(eventId: e.id),
       // Cancelled + organizer → surface any refunds still outstanding, with a
@@ -658,29 +596,22 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
           e.status != 'cancelled') ...[
         const SizedBox(height: 10),
         Material(
-          color: p.surface,
-          borderRadius: BorderRadius.circular(12),
+          color: p.liveTint,
+          shape: const StadiumBorder(),
           child: InkWell(
-            borderRadius: BorderRadius.circular(12),
+            customBorder: const StadiumBorder(),
             onTap: _busy != null ? null : () => _cancelEvent(e),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border:
-                    Border.all(color: const Color.fromRGBO(222, 33, 33, 0.4)),
-              ),
+            child: SizedBox(
+              height: 50,
               child: Row(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.event_busy_outlined, size: 16, color: p.danger),
-                  const SizedBox(width: 6),
+                  Icon(Icons.event_busy_outlined, size: 17, color: p.danger),
+                  const SizedBox(width: 7),
                   Text('Cancel event',
                       style: TextStyle(
                           color: p.danger,
-                          fontSize: 13.5,
+                          fontSize: 14,
                           fontWeight: FontWeight.w700)),
                 ],
               ),
@@ -689,18 +620,30 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         ),
       ],
     ];
-    // Pin the Games / Teams / Check-ins row while everything above scrolls
-    // away — same behavior as the group page.
+    // The cover + title card is full-bleed; everything else sits in the
+    // 20px page gutter. Pin the Games / Teams / Check-ins switch while
+    // everything above scrolls away — same behaviour as the group page.
+    final hero = SliverToBoxAdapter(
+      child: _EventHero(
+        event: e,
+        onShare: () => _share(e),
+        onEdit: e.canManage && e.status == 'open' ? () => _openEdit(e) : null,
+      ),
+    );
     final ti = children.indexWhere((w) => w is _TabRow);
     if (ti < 0) {
-      return ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-        children: children,
-      );
+      return CustomScrollView(slivers: [
+        hero,
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 36),
+          sliver: SliverList(delegate: SliverChildListDelegate(children)),
+        ),
+      ]);
     }
     return CustomScrollView(slivers: [
+      hero,
       SliverPadding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
         sliver: SliverList(
             delegate: SliverChildListDelegate(children.sublist(0, ti))),
       ),
@@ -709,13 +652,13 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         delegate: _PinnedTabs(
           child: Container(
             color: p.bg,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
             child: children[ti],
           ),
         ),
       ),
       SliverPadding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 36),
         sliver: SliverList(
             delegate: SliverChildListDelegate(children.sublist(ti + 1))),
       ),
@@ -815,152 +758,327 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// Photos — carousel of event images, emoji hero fallback.
+// Hero (2026) — edge-to-edge cover (photos, or a drawn pitch) with floating
+// back / edit / share, and the title card overlapping its bottom edge:
+// sport, level and status pills, title, group, when / where, the headline
+// numbers and the description.
 // ---------------------------------------------------------------------------
 
-class _Photos extends StatelessWidget {
-  const _Photos({required this.event});
+class _EventHero extends StatefulWidget {
+  const _EventHero({required this.event, required this.onShare, this.onEdit});
   final EventDetail event;
+  final VoidCallback onShare;
+  final VoidCallback? onEdit;
 
   @override
-  Widget build(BuildContext context) {
-    final e = event;
-    final images = <String>[
-      if (e.thumbnailUrl != null) e.thumbnailUrl!,
-      ...e.images.where((x) => x != e.thumbnailUrl),
-    ];
-    if (images.isEmpty) {
-      return GradientHero(emoji: e.categoryEmoji ?? '🏅', height: 170);
-    }
-    if (images.length == 1) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: CachedNetworkImage(
-          imageUrl: images.first,
-          height: 190,
-          width: double.infinity,
-          fit: BoxFit.cover,
-          errorWidget: (_, __, ___) =>
-              GradientHero(emoji: e.categoryEmoji ?? '🏅', height: 190),
-        ),
-      );
-    }
-    return SizedBox(
-      height: 190,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: images.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
-        itemBuilder: (_, i) => ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: CachedNetworkImage(
-            imageUrl: images[i],
-            height: 190,
-            width: 300,
-            fit: BoxFit.cover,
-            errorWidget: (_, __, ___) => Container(
-              width: 300,
-              color: context.palette.surface2,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  State<_EventHero> createState() => _EventHeroState();
 }
 
-// ---------------------------------------------------------------------------
-// Info card — category, competitiveness, date, time, venue + directions,
-// description. Mirrors the web info card line for line.
-// ---------------------------------------------------------------------------
-
-class _InfoCard extends StatelessWidget {
-  const _InfoCard({required this.event});
-  final EventDetail event;
+class _EventHeroState extends State<_EventHero> {
+  static const double _coverH = 250;
+  static const double _overlap = 48;
+  int _page = 0;
+  bool _more = false;
 
   static const _competitive = {
-    'non_competitive': ('Non-competitive', Color(0xFF059669)),
-    'moderate': ('Moderately competitive', Color(0xFFD97706)),
-    'high': ('Highly competitive', Color(0xFFDC2626)),
+    'non_competitive': 'Non-competitive',
+    'moderate': 'Moderately competitive',
+    'high': 'Highly competitive',
   };
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final e = event;
+    final e = widget.event;
+    final images = <String>[
+      if (e.thumbnailUrl != null) e.thumbnailUrl!,
+      ...e.images.where((x) => x != e.thumbnailUrl),
+    ];
+
+    Widget pitch() => CustomPaint(
+          painter: _CoverPitch(const Color(0xFF1E6B45)),
+          child: Center(
+            child: Text(e.categoryEmoji ?? '',
+                style: const TextStyle(fontSize: 56)),
+          ),
+        );
+
+    Widget image(String url) => CachedNetworkImage(
+          imageUrl: url,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: _coverH,
+          errorWidget: (_, __, ___) => pitch(),
+        );
+
+    final cover = ClipRRect(
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+      child: SizedBox(
+        height: _coverH,
+        width: double.infinity,
+        child: Stack(fit: StackFit.expand, children: [
+          if (images.isEmpty)
+            pitch()
+          else if (images.length == 1)
+            image(images.first)
+          else
+            PageView.builder(
+              itemCount: images.length,
+              onPageChanged: (i) => setState(() => _page = i),
+              itemBuilder: (_, i) => image(images[i]),
+            ),
+          // Shade the top so the round buttons read on any photo.
+          const IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0x59000000), Color(0x00000000)],
+                  stops: [0.0, 0.45],
+                ),
+              ),
+            ),
+          ),
+          if (images.length > 1)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: _overlap + 12,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var i = 0; i < images.length; i++)
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: i == _page ? 18 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: i == _page
+                            ? Colors.white
+                            : const Color(0x80FFFFFF),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ]),
+      ),
+    );
+
+    final canPop = context.canPop() || Navigator.of(context).canPop();
+    return Stack(children: [
+      Positioned(left: 0, right: 0, top: 0, child: cover),
+      Positioned(
+        left: 16,
+        top: 12,
+        child: SpRoundButton(
+          icon: canPop ? Icons.arrow_back_ios_new_rounded : Icons.home_outlined,
+          iconSize: canPop ? 18 : 21,
+          tooltip: canPop ? 'Back' : 'Home',
+          onTap: () => context.canPop() ? context.pop() : context.go('/home'),
+        ),
+      ),
+      Positioned(
+        right: 16,
+        top: 12,
+        child: Row(children: [
+          if (widget.onEdit != null) ...[
+            SpRoundButton(
+                icon: Icons.edit_outlined,
+                tooltip: 'Edit event',
+                onTap: widget.onEdit!),
+            const SizedBox(width: 8),
+          ],
+          SpRoundButton(
+              icon: Icons.ios_share_rounded,
+              tooltip: 'Share',
+              onTap: widget.onShare),
+        ]),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, _coverH - _overlap, 16, 0),
+        child: _titleCard(context, p, e),
+      ),
+    ]);
+  }
+
+  Widget _pill(String label, Color bg, Color fg, {IconData? icon, bool dot = false}) =>
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration:
+            BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (dot) ...[
+            Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(color: fg, shape: BoxShape.circle)),
+            const SizedBox(width: 5),
+          ] else if (icon != null) ...[
+            Icon(icon, size: 13, color: fg),
+            const SizedBox(width: 4),
+          ],
+          Text(label,
+              style: TextStyle(
+                  color: fg, fontSize: 11.5, fontWeight: FontWeight.w700)),
+        ]),
+      );
+
+  Widget _titleCard(BuildContext context, AppPalette p, EventDetail e) {
     final time = [
       formatClock(e.startTime),
       if (e.endTime != null) formatClock(e.endTime),
     ].where((s) => s != null && s.isNotEmpty).join(' – ');
-    final comp =
+    final level =
         e.competitiveLevel != null ? _competitive[e.competitiveLevel!] : null;
+    final status = switch (e.status) {
+      'open' => _pill('Open', p.accentTint, p.greenText, dot: true),
+      'drafting' => _pill('Drafting', p.orangeTint, p.orangeInk),
+      'kicked_off' => _pill('Live', p.liveTint, p.danger, dot: true),
+      'completed' => _pill('Completed', p.surface2, p.muted),
+      'cancelled' => _pill('Cancelled', p.liveTint, p.danger),
+      _ => null,
+    };
+    final desc = e.description?.trim() ?? '';
+
+    Widget stat(String value, String label, Color color) => Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: p.surface2,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Column(children: [
+              Text(value,
+                  style: TextStyle(
+                      color: color,
+                      fontSize: 20,
+                      height: 1.1,
+                      fontWeight: FontWeight.w800)),
+              const SizedBox(height: 3),
+              Text(label, style: TextStyle(color: p.muted, fontSize: 11)),
+            ]),
+          ),
+        );
 
     return GlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Wrap(spacing: 6, runSpacing: 6, children: [
           if (e.categoryName != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(children: [
-                Text(e.categoryEmoji ?? '🏅',
-                    style: const TextStyle(fontSize: 16)),
-                const SizedBox(width: 8),
-                Text(e.categoryName!,
-                    style: TextStyle(
-                        color: p.ink,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600)),
+            _pill(
+                '${e.categoryEmoji != null ? '${e.categoryEmoji} ' : ''}${e.categoryName}',
+                p.accentTint,
+                p.greenText),
+          if (level != null) _pill(level, p.orangeTint, p.orangeInk),
+          if (status != null) status,
+          if (e.isPrivate)
+            _pill('Members only', p.surface2, p.muted,
+                icon: Icons.lock_outline_rounded),
+        ]),
+        const SizedBox(height: 12),
+        Text(e.title,
+            style: TextStyle(
+                color: p.ink,
+                fontSize: 22,
+                height: 1.25,
+                letterSpacing: -0.3,
+                fontWeight: FontWeight.w800)),
+        if (e.groupName != null) ...[
+          const SizedBox(height: 4),
+          InkWell(
+            onTap: e.groupId == null
+                ? null
+                : () => context.push('/groups/${e.groupId}'),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                        color: p.accent, shape: BoxShape.circle)),
+                const SizedBox(width: 7),
+                Flexible(
+                  child: Text(e.groupName!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: p.muted,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600)),
+                ),
               ]),
             ),
-          if (comp != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(children: [
-                Icon(Icons.sports_kabaddi_rounded, size: 16, color: p.accent),
-                const SizedBox(width: 8),
-                SpBadge(comp.$1, tone: comp.$2),
-              ]),
-            ),
-          if (e.eventDate != null)
-            InfoRow(Icons.calendar_today_rounded, formatDayYear(e.eventDate)),
-          EventTicketedLine(eventId: e.id),
-          if (time.isNotEmpty) InfoRow(Icons.schedule_rounded, time),
-          if (e.locationName != null)
-            InfoRow(
-              Icons.place_rounded,
-              e.locationName!,
-              trailing: InkWell(
+          ),
+        ],
+        const SizedBox(height: 12),
+        if (e.eventDate != null)
+          InfoRow(Icons.calendar_today_rounded, formatDayYear(e.eventDate)),
+        if (time.isNotEmpty) InfoRow(Icons.schedule_rounded, time),
+        EventTicketedLine(eventId: e.id),
+        if (e.locationName != null)
+          InfoRow(
+            Icons.place_outlined,
+            e.locationName!,
+            trailing: Material(
+              color: p.accentTint,
+              shape: const StadiumBorder(),
+              child: InkWell(
+                customBorder: const StadiumBorder(),
                 onTap: () => _openMaps(e),
                 child: Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.near_me_outlined, size: 13, color: p.greenText),
+                    const SizedBox(width: 4),
                     Text('Directions',
                         style: TextStyle(
-                            color: p.accent,
+                            color: p.greenText,
                             fontSize: 12,
-                            fontWeight: FontWeight.w600)),
-                    const SizedBox(width: 3),
-                    Icon(Icons.open_in_new_rounded, size: 12, color: p.accent),
+                            fontWeight: FontWeight.w700)),
                   ]),
                 ),
               ),
             ),
-          if (e.description != null && e.description!.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.only(top: 10),
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: p.line)),
+          ),
+        const SizedBox(height: 14),
+        Row(children: [
+          stat('${e.interestCount}', 'RSVPs', p.ink),
+          const SizedBox(width: 8),
+          stat('${e.attendeeCount}', 'Checked in', p.greenText),
+          const SizedBox(width: 8),
+          if (e.typicalAttendance != null)
+            stat('~${e.typicalAttendance}', 'Usually', p.ink)
+          else
+            stat(e.myCheckedIn ? 'In' : '—', 'You',
+                e.myCheckedIn ? p.greenText : p.muted),
+        ]),
+        if (desc.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Text(desc,
+              maxLines: _more ? null : 4,
+              overflow: _more ? TextOverflow.visible : TextOverflow.ellipsis,
+              style: TextStyle(color: p.muted, fontSize: 13.5, height: 1.55)),
+          if (desc.length > 180 || '\n'.allMatches(desc).length > 3)
+            GestureDetector(
+              onTap: () => setState(() => _more = !_more),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(_more ? 'Show less' : 'Read more',
+                    style: TextStyle(
+                        color: p.greenText,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700)),
               ),
-              child: Text(e.description!,
-                  style:
-                      TextStyle(color: p.muted, fontSize: 13.5, height: 1.55)),
             ),
-          ],
         ],
-      ),
+      ]),
     );
   }
 
@@ -974,16 +1092,48 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
+/// A plain pitch — the cover when an event has no photo.
+class _CoverPitch extends CustomPainter {
+  _CoverPitch(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(Offset.zero & size, Paint()..color = color);
+    final line = Paint()
+      ..color = const Color(0x24FFFFFF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final r = Rect.fromLTWH(20, 20, size.width - 40, size.height - 40);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(r, const Radius.circular(8)), line);
+    canvas.drawLine(Offset(size.width / 2, r.top),
+        Offset(size.width / 2, r.bottom), line);
+    canvas.drawCircle(Offset(size.width / 2, size.height / 2), 34, line);
+    canvas.drawRect(
+        Rect.fromLTWH(r.left, size.height / 2 - 40, 44, 80), line);
+    canvas.drawRect(
+        Rect.fromLTWH(r.right - 44, size.height / 2 - 40, 44, 80), line);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CoverPitch old) => old.color != color;
+}
+
 // ---------------------------------------------------------------------------
 // Hosted by — group card with Follow.
 // ---------------------------------------------------------------------------
 
 class _HostedByCard extends ConsumerStatefulWidget {
   const _HostedByCard(
-      {required this.groupId, required this.name, this.imageUrl});
+      {required this.groupId,
+      required this.name,
+      this.imageUrl,
+      this.verified = false});
   final String groupId;
   final String name;
   final String? imageUrl;
+  final bool verified;
 
   @override
   ConsumerState<_HostedByCard> createState() => _HostedByCardState();
@@ -1051,10 +1201,8 @@ class _HostedByCardState extends ConsumerState<_HostedByCard> {
           Row(children: [
             InkWell(
               onTap: () => context.push('/groups/${widget.groupId}'),
-              child: ClipOval(
-                child: Crest(
-                    logoUrl: widget.imageUrl, label: widget.name, size: 44),
-              ),
+              child: Crest(
+                  logoUrl: widget.imageUrl, label: widget.name, size: 48),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1073,6 +1221,10 @@ class _HostedByCardState extends ConsumerState<_HostedByCard> {
                                 fontWeight: FontWeight.w700,
                                 fontSize: 14.5)),
                       ),
+                      if (widget.verified) ...[
+                        const SizedBox(width: 4),
+                        const VerifiedBadge(size: 16),
+                      ],
                       Icon(Icons.chevron_right_rounded,
                           size: 18, color: p.muted),
                     ]),
@@ -1086,20 +1238,20 @@ class _HostedByCardState extends ConsumerState<_HostedByCard> {
             ),
             const SizedBox(width: 8),
             Material(
-              color: following ? p.surface2 : p.accent,
+              color: following ? p.surface2 : p.hero,
               borderRadius: BorderRadius.circular(999),
               child: InkWell(
                 borderRadius: BorderRadius.circular(999),
                 onTap: _busy || _following == null ? null : _toggle,
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   child: Text(
                     following ? 'Following' : 'Follow',
                     style: TextStyle(
-                      color: following ? p.ink : Colors.white,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
+                      color: following ? p.ink : p.onHero,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
@@ -1109,39 +1261,6 @@ class _HostedByCardState extends ConsumerState<_HostedByCard> {
         ],
       ),
     );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Stats row — Interested / Checked in / You.
-// ---------------------------------------------------------------------------
-
-class _StatsRow extends StatelessWidget {
-  const _StatsRow({required this.event});
-  final EventDetail event;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    Widget cell(String value, String label, Color color) => Expanded(
-          child: GlassCard(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Column(children: [
-              Text(value,
-                  style: TextStyle(
-                      color: color, fontSize: 22, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 2),
-              Text(label, style: TextStyle(color: p.muted, fontSize: 11)),
-            ]),
-          ),
-        );
-    return Row(children: [
-      cell('${event.interestCount}', 'RSVPs', const Color(0xFFEC4899)),
-      const SizedBox(width: 10),
-      cell('${event.attendeeCount}', 'Checked in', p.accent),
-      const SizedBox(width: 10),
-      cell(event.myCheckedIn ? '✅' : '—', 'You', p.ink),
-    ]);
   }
 }
 
@@ -1160,8 +1279,6 @@ class _EngageBlock extends ConsumerStatefulWidget {
 
 class _EngageBlockState extends ConsumerState<_EngageBlock> {
   bool _busy = false;
-  static const _pink = Color(0xFFEC4899);
-
   Future<void> _toggleInterest() async {
     if (_busy) return;
     setState(() => _busy = true);
@@ -1223,115 +1340,123 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
     final p = context.palette;
     final e = widget.event;
     final open = e.status == 'open';
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(children: [
-          if (open)
-            Expanded(
-              child: Material(
-                color: e.myInterested ? _pink : p.surface,
-                borderRadius: BorderRadius.circular(12),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: _busy ? null : _toggleInterest,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: e.myInterested
-                              ? _pink
-                              : const Color.fromRGBO(236, 72, 153, 0.4)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          e.myInterested
-                              ? Icons.event_available_rounded
-                              : Icons.event_outlined,
-                          size: 16,
-                          color: e.myInterested ? Colors.white : _pink,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          e.myInterested ? "RSVP'd — you're going" : 'RSVP',
+
+    Widget pill({
+      required String label,
+      required IconData icon,
+      required Color bg,
+      required Color fg,
+      VoidCallback? onTap,
+      Color? border,
+    }) =>
+        Material(
+          color: bg,
+          shape: StadiumBorder(
+              side: border != null ? BorderSide(color: border) : BorderSide.none),
+          child: InkWell(
+            customBorder: const StadiumBorder(),
+            onTap: onTap,
+            child: SizedBox(
+              height: 52,
+              child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, size: 18, color: fg),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: e.myInterested ? Colors.white : _pink,
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
+                              color: fg,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w700)),
                     ),
-                  ),
+                  ]),
+            ),
+          ),
+        );
+
+    return GlassCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (e.myCheckedIn)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: p.accentTint,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(children: [
+                Icon(Icons.check_circle_rounded, size: 20, color: p.greenText),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text("You're checked in",
+                      style: TextStyle(
+                          color: p.greenText,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
+                ),
+              ]),
+            ),
+          Row(children: [
+            if (open)
+              Expanded(
+                child: pill(
+                  label: e.myInterested ? "You're going" : "RSVP — I'm in",
+                  icon: e.myInterested
+                      ? Icons.event_available_rounded
+                      : Icons.add_rounded,
+                  bg: e.myInterested ? p.accentTint : p.hero,
+                  fg: e.myInterested ? p.greenText : p.onHero,
+                  onTap: _busy ? null : _toggleInterest,
                 ),
               ),
+            if (open && e.myCheckedIn) const SizedBox(width: 10),
+            if (open && e.myCheckedIn)
+              Expanded(
+                child: pill(
+                  label: 'Check out',
+                  icon: Icons.logout_rounded,
+                  bg: p.surface,
+                  fg: p.danger,
+                  border: p.danger.withAlpha(90),
+                  onTap: _busy ? null : _checkOut,
+                ),
+              ),
+          ]),
+          if (!e.myCheckedIn) ...[
+            if (open) const SizedBox(height: 10),
+            pill(
+              label: 'Scan to check in',
+              icon: Icons.qr_code_scanner_rounded,
+              bg: p.accentDeep,
+              fg: Colors.white,
+              onTap: () async {
+                await context.push('/scan');
+                widget.onChanged();
+              },
             ),
-          if (open && e.myCheckedIn) const SizedBox(width: 10),
-          if (e.myCheckedIn)
-            Expanded(
-              child: open
-                  ? Material(
-                      color: p.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: _busy ? null : _checkOut,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                                color: const Color.fromRGBO(222, 33, 33, 0.4)),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.logout_rounded,
-                                  size: 16, color: p.danger),
-                              const SizedBox(width: 6),
-                              Text('Check out',
-                                  style: TextStyle(
-                                      color: p.danger,
-                                      fontSize: 13.5,
-                                      fontWeight: FontWeight.w700)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    )
-                  : Center(
-                      child: Text("✅  You're checked in",
-                          style: TextStyle(
-                              color: p.accent,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600)),
-                    ),
+            const SizedBox(height: 8),
+            Text(
+              e.status == 'kicked_off'
+                  ? 'Teams are already set — scan the event QR at the venue to join the available pool.'
+                  : "Scan the event's QR code at the venue to check in.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: p.muted, fontSize: 12),
             ),
-        ]),
-        if (!e.myCheckedIn) ...[
-          const SizedBox(height: 10),
-          SpButton(
-            label: 'Scan to check in',
-            icon: Icons.qr_code_scanner_rounded,
-            expand: true,
-            onTap: () async {
-              await context.push('/scan');
-              widget.onChanged();
-            },
-          ),
-          const SizedBox(height: 6),
-          Text(
-            e.status == 'kicked_off'
-                ? 'Teams are already set — scan the event QR at the venue to join the available pool.'
-                : "Scan the event's QR code at the venue to check in.",
-            textAlign: TextAlign.center,
-            style: TextStyle(color: context.palette.muted, fontSize: 11),
-          ),
+          ],
+          if (open && e.myInterested && !e.myCheckedIn) ...[
+            const SizedBox(height: 2),
+            Text('Tap “You\'re going” to take your RSVP back.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: p.muted, fontSize: 11.5)),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
@@ -1350,7 +1475,9 @@ class _QrCard extends StatelessWidget {
     final e = event;
     return GlassCard(
       child: Column(children: [
-        const Eyebrow('Event check-in QR'),
+        Text('Check-in QR',
+            style: TextStyle(
+                color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
         const SizedBox(height: 4),
         Text(
           e.status == 'kicked_off'
@@ -1397,18 +1524,11 @@ class _AssignTeamsCard extends StatelessWidget {
   final VoidCallback onDraft;
 
   static Future<int?> pickCount(BuildContext context) {
-    return showModalBottomSheet<int>(
-      context: context,
-      backgroundColor: Colors.transparent,
+    return showSpSheet<int>(
+      context,
       builder: (ctx) {
         final p = ctx.palette;
-        return Container(
-          decoration: BoxDecoration(
-            color: p.bg,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-          child: Column(
+        return Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1446,8 +1566,7 @@ class _AssignTeamsCard extends StatelessWidget {
                   ),
               ]),
             ],
-          ),
-        );
+          );
       },
     );
   }
@@ -1593,52 +1712,17 @@ class _TabRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.palette;
-    Widget btn(int i, IconData icon, String label) {
-      final active = tab == i;
-      return Expanded(
-        child: InkWell(
-          onTap: () => onChanged(i),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 11),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: active ? p.accent : Colors.transparent,
-                  width: 2,
-                ),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 15, color: active ? p.accent : p.muted),
-                const SizedBox(width: 5),
-                Text(
-                  label.toUpperCase(),
-                  style: TextStyle(
-                    color: active ? p.accent : p.muted,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: p.line)),
-      ),
-      child: Row(children: [
-        if (showGames) btn(0, Icons.sports_esports_outlined, 'Games'),
-        btn(1, Icons.shield_outlined, 'Teams'),
-        btn(2, Icons.checklist_rounded, 'Check-ins'),
-      ]),
+    final tabs = [
+      if (showGames) (0, Icons.sports_soccer_rounded, 'Games'),
+      (1, Icons.shield_outlined, 'Teams'),
+      (2, Icons.how_to_reg_outlined, 'Check-ins'),
+    ];
+    final at = tabs.indexWhere((t) => t.$1 == tab);
+    return SpSegmented(
+      options: [for (final t in tabs) t.$3],
+      icons: [for (final t in tabs) t.$2],
+      index: at < 0 ? 0 : at,
+      onChanged: (i) => onChanged(tabs[i].$1),
     );
   }
 }
@@ -1881,10 +1965,9 @@ class _GamesTab extends ConsumerWidget {
         ? [if (homeId != null) homeId!, if (awayId != null) awayId!]
         : selected.toList();
 
-    final ok = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
+    final ok = await showSpSheet<bool>(
+      context,
+      framed: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) {
           final p = ctx.palette;
@@ -2402,10 +2485,9 @@ class _TeamsTab extends ConsumerWidget {
 
   void _openRoster(BuildContext context, EventTeam t, Color color) {
     final p = context.palette;
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
+    showSpSheet<void>(
+      context,
+      framed: false,
       builder: (ctx) => Container(
         constraints:
             BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.7),
@@ -2484,31 +2566,30 @@ class _RosterTag extends StatelessWidget {
 class _InterestedList extends StatelessWidget {
   const _InterestedList({required this.people});
   final List<Attendee> people;
-  static const _pink = Color(0xFFEC4899);
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Eyebrow('RSVPs · ${people.length}'),
-        const SizedBox(height: 8),
+        SpSectionTitle('RSVPs', count: people.length),
+        const SizedBox(height: 10),
         GlassCard(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(14),
           child: Wrap(spacing: 6, runSpacing: 6, children: [
             for (final x in people)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color.fromRGBO(236, 72, 153, 0.10),
+                  color: p.accentTint,
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                      color: const Color.fromRGBO(236, 72, 153, 0.25)),
                 ),
                 child: Text(x.displayName,
-                    style: const TextStyle(
-                        color: _pink,
-                        fontSize: 11.5,
+                    style: TextStyle(
+                        color: p.greenText,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600)),
               ),
           ]),
@@ -2536,45 +2617,40 @@ class _CheckinsList extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Eyebrow('Checked in · ${e.attendeeCount}'),
-        const SizedBox(height: 8),
+        SpSectionTitle('Checked in', count: e.attendeeCount),
+        const SizedBox(height: 10),
         if (e.attendees.isEmpty)
           GlassCard(
-            child: Center(
-              child: Text('No players checked in yet.',
+            padding: const EdgeInsets.all(20),
+            child: Column(children: [
+              const SpIconTile(Icons.how_to_reg_outlined, size: 48),
+              const SizedBox(height: 10),
+              Text('No players checked in yet.',
                   style: TextStyle(color: p.muted, fontSize: 13)),
-            ),
+            ]),
           )
         else
-          for (var i = 0; i < e.attendees.length; i++)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: GlassCard(
+          SpListCard(children: [
+            for (var i = 0; i < e.attendees.length; i++)
+              Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 child: Row(children: [
-                  Container(
-                    width: 26,
-                    height: 26,
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(
-                      color: Color.fromRGBO(23, 166, 94, 0.14),
-                      shape: BoxShape.circle,
-                    ),
+                  SizedBox(
+                    width: 24,
                     child: Text('${i + 1}',
                         style: TextStyle(
-                            color: p.accent,
-                            fontSize: 11.5,
+                            color: p.muted,
+                            fontSize: 12.5,
                             fontWeight: FontWeight.w800)),
                   ),
-                  const SizedBox(width: 10),
                   ClipOval(
                     child: Crest(
                         logoUrl: e.attendees[i].avatarUrl,
                         label: e.attendees[i].displayName,
-                        size: 30),
+                        size: 38),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2584,27 +2660,25 @@ class _CheckinsList extends ConsumerWidget {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                                 color: p.ink,
-                                fontSize: 13.5,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w600)),
                         if (e.attendees[i].checkedInAt != null)
-                          Text(timeAgo(e.attendees[i].checkedInAt),
-                              style: TextStyle(color: p.muted, fontSize: 11)),
+                          Text('Checked in ${timeAgo(e.attendees[i].checkedInAt)}',
+                              style: TextStyle(color: p.muted, fontSize: 12)),
                       ],
                     ),
                   ),
                   if (canEdit)
-                    InkWell(
-                      onTap: () => _checkOut(context, ref,
+                    IconButton(
+                      tooltip: 'Check out',
+                      onPressed: () => _checkOut(context, ref,
                           e.attendees[i].userId, e.attendees[i].displayName),
-                      child: Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: Icon(Icons.person_remove_outlined,
-                            size: 18, color: p.muted),
-                      ),
+                      icon: Icon(Icons.person_remove_outlined,
+                          size: 19, color: p.muted),
                     ),
                 ]),
               ),
-            ),
+          ]),
       ],
     );
   }
@@ -3098,16 +3172,9 @@ class _PoolSection extends ConsumerWidget {
   Future<void> _addToTeam(
       BuildContext context, WidgetRef ref, PoolPlayer x) async {
     final p = context.palette;
-    final teamId = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-          color: p.bg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-        child: Column(
+    final teamId = await showSpSheet<String>(
+      context,
+      builder: (ctx) => Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -3130,7 +3197,6 @@ class _PoolSection extends ConsumerWidget {
             ),
           ],
         ),
-      ),
     );
     if (teamId == null) return;
     try {
@@ -3220,16 +3286,9 @@ class _PhotoManagerState extends ConsumerState<_PhotoManager> {
   void _photoMenu(String url) {
     final p = context.palette;
     final e = widget.event;
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-          color: p.bg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
+    showSpSheet<void>(
+      context,
+      builder: (ctx) => Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(
             leading: Icon(Icons.star_outline_rounded, color: p.accent),
             title: const Text('Set as cover'),
@@ -3248,7 +3307,6 @@ class _PhotoManagerState extends ConsumerState<_PhotoManager> {
             },
           ),
         ]),
-      ),
     );
   }
 
@@ -3629,7 +3687,7 @@ class _PinnedTabs extends SliverPersistentHeaderDelegate {
   const _PinnedTabs({required this.child});
   final Widget child;
 
-  static const double _height = 45;
+  static const double _height = 58;
 
   @override
   double get minExtent => _height;

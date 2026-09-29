@@ -125,10 +125,28 @@ class LeaderboardRow {
     this.losses = 0,
     this.points = 0,
     this.tallies = const {},
+    this.username,
+    this.rank = 0,
+    this.prevRank,
+    this.move,
+    this.isNew = false,
   });
   final String playerId;
   final String displayName;
   final String? avatarUrl;
+  final String? username;
+
+  /// Place on the board now (1-based, by points).
+  final int rank;
+
+  /// Place before the most recent session, or null if not on it then.
+  final int? prevRank;
+
+  /// prevRank − rank: >0 moved up, <0 down, 0 held; null = nothing to compare.
+  final int? move;
+
+  /// On the board for the first time after the most recent session.
+  final bool isNew;
   final int games;
   final int wins;
   final int draws;
@@ -153,6 +171,11 @@ class LeaderboardRow {
       losses: (j['losses'] as num?)?.toInt() ?? 0,
       points: (j['points'] as num?)?.toInt() ?? 0,
       tallies: t,
+      username: j['username'] as String?,
+      rank: (j['rank'] as num?)?.toInt() ?? 0,
+      prevRank: (j['prevRank'] as num?)?.toInt(),
+      move: (j['move'] as num?)?.toInt(),
+      isNew: j['isNew'] == true,
     );
   }
 }

@@ -6,9 +6,14 @@ import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/router/app_router.dart' show safeRedirectTarget;
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
-import 'package:sportpadi_mobile/shared/widgets/app_logo.dart';
+import 'package:sportpadi_mobile/features/auth/auth_scaffold.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
+/// Sign in / create account (2026): dark pitch cover with logo, close and a
+/// title that follows the mode (and names what's behind a gated link), then
+/// the form card on the cover's edge — pill segmented switch, filled inputs
+/// with icons, show-password, soft error box, ink pill with spinner — and a
+/// "New to SportPadi? Create an account" line under it.
 class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
   @override
@@ -23,7 +28,36 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
   bool _isSignUp = false;
   bool _busy = false;
+  bool _showPassword = false;
   String? _error;
+
+  bool _prefilled = false;
+
+  /// Coming back from "Forgot password" by address (not by pop) carries the
+  /// email in `?email=` — put it in the form.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_prefilled) return;
+    _prefilled = true;
+    final email = GoRouterState.of(context).uri.queryParameters['email'];
+    if (email != null && email.isNotEmpty) _email.text = email;
+  }
+
+  /// Forgot password: take what's typed along, and bring the address back.
+  Future<void> _forgotPassword() async {
+    final typed = _email.text.trim();
+    final back = await context.push<String>(Uri(
+      path: '/forgot-password',
+      queryParameters: typed.isEmpty ? null : {'email': typed},
+    ).toString());
+    if (!mounted || back == null || back.isEmpty) return;
+    setState(() {
+      _email.text = back;
+      _password.clear();
+      _error = null;
+    });
+  }
 
   @override
   void dispose() {
@@ -89,173 +123,179 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     // explains itself reads as a door.
     final wanted = GoRouterState.of(context).uri.queryParameters['redirect'];
     final gated = wanted != null && wanted.isNotEmpty;
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          tooltip: 'Not now',
-          icon: const Icon(Icons.close_rounded),
-          // Pushed from the guest shell → pop back to it; sent here by the
-          // router (a gated link) → there's nothing underneath, so go Home.
-          onPressed: () =>
-              context.canPop() ? context.pop() : context.go('/home'),
+    final up = _isSignUp;
+
+    return AuthScaffold(
+      eyebrow: gated ? 'Account needed' : (up ? 'Join free' : 'Welcome back'),
+      title: up ? 'Create your account' : 'Sign in to play',
+      subtitle: Text(gated
+          ? _gateLine(wanted, signUp: up)
+          : up
+              ? 'One account for every sport you play — games, groups, tickets and your record.'
+              : 'Your games, groups and record, right where you left them.'),
+      // Pushed from the guest shell → pop back to it; sent here by the
+      // router (a gated link) → there's nothing underneath, so go Home.
+      onClose: () => context.canPop() ? context.pop() : context.go('/home'),
+      card: Container(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+        decoration: BoxDecoration(
+          color: p.surface,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: cardShadow(context),
         ),
-      ),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Center(child: AppLogo(height: 64)),
-                  if (gated) ...[
-                    const SizedBox(height: 14),
-                    Text(
-                      _gateLine(wanted),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: p.muted, fontSize: 13),
-                    ),
+        child: AutofillGroup(
+          child: Form(
+            key: _form,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SpSegmented(
+                  options: const ['Sign in', 'Create account'],
+                  index: up ? 1 : 0,
+                  onChanged: (i) => _setMode(i == 1),
+                ),
+                const SizedBox(height: 18),
+                if (up) ...[
+                  TextFormField(
+                    controller: _name,
+                    textInputAction: TextInputAction.next,
+                    textCapitalization: TextCapitalization.words,
+                    autofillHints: const [AutofillHints.name],
+                    decoration: authInput(context,
+                        label: 'Your name', icon: Icons.person_outline_rounded),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Enter your name'
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                TextFormField(
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  autocorrect: false,
+                  autofillHints: const [AutofillHints.email],
+                  decoration: authInput(context,
+                      label: 'Email', icon: Icons.mail_outline_rounded),
+                  validator: (v) => (v == null || !v.contains('@'))
+                      ? 'Enter a valid email'
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _password,
+                  obscureText: !_showPassword,
+                  textInputAction: TextInputAction.done,
+                  autofillHints: [
+                    up ? AutofillHints.newPassword : AutofillHints.password
                   ],
-                  const SizedBox(height: 28),
-                  GlassCard(
-                    padding: const EdgeInsets.all(20),
-                    child: Form(
-                      key: _form,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _SegTabs(
-                            isSignUp: _isSignUp,
-                            onChanged: (v) => setState(() {
-                              _isSignUp = v;
-                              _error = null;
-                            }),
-                          ),
-                          const SizedBox(height: 18),
-                          if (_isSignUp) ...[
-                            TextFormField(
-                              controller: _name,
-                              textInputAction: TextInputAction.next,
-                              decoration: const InputDecoration(labelText: 'Name'),
-                              validator: (v) =>
-                                  (v == null || v.trim().isEmpty) ? 'Enter your name' : null,
-                            ),
-                            const SizedBox(height: 12),
-                          ],
-                          TextFormField(
-                            controller: _email,
-                            keyboardType: TextInputType.emailAddress,
-                            textInputAction: TextInputAction.next,
-                            decoration: const InputDecoration(labelText: 'Email'),
-                            validator: (v) =>
-                                (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
-                          ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: _password,
-                            obscureText: true,
-                            textInputAction: TextInputAction.done,
-                            onFieldSubmitted: (_) => _submit(),
-                            decoration: const InputDecoration(labelText: 'Password'),
-                            validator: (v) =>
-                                (v == null || v.length < 8) ? 'At least 8 characters' : null,
-                          ),
-                          if (_error != null) ...[
-                            const SizedBox(height: 14),
-                            Text(_error!, style: TextStyle(color: p.danger, fontSize: 13)),
-                          ],
-                          const SizedBox(height: 18),
-                          FilledButton(
-                            onPressed: _busy ? null : _submit,
-                            child: _busy
-                                ? const SizedBox(
-                                    height: 20, width: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                : Text(_isSignUp ? 'Create account' : 'Sign in'),
-                          ),
-                        ],
+                  onFieldSubmitted: (_) => _submit(),
+                  decoration: authInput(
+                    context,
+                    label: 'Password',
+                    icon: Icons.lock_outline_rounded,
+                    suffix: IconButton(
+                      tooltip: _showPassword ? 'Hide password' : 'Show password',
+                      icon: Icon(
+                          _showPassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          size: 20,
+                          color: p.muted),
+                      onPressed: () =>
+                          setState(() => _showPassword = !_showPassword),
+                    ),
+                  ),
+                  validator: (v) => (v == null || v.length < 8)
+                      ? 'At least 8 characters'
+                      : null,
+                ),
+                if (up) ...[
+                  const SizedBox(height: 6),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Text('At least 8 characters.',
+                        style: TextStyle(color: p.muted, fontSize: 12)),
+                  ),
+                ] else
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: _busy ? null : _forgotPassword,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(6, 8, 4, 2),
+                        child: Text('Forgot password?',
+                            style: TextStyle(
+                                color: p.greenText,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700)),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 18),
-                  Text(
-                    'By continuing you agree to our Terms and Privacy Policy.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: p.muted, fontSize: 11.5),
-                  ),
+                if (_error != null) ...[
+                  const SizedBox(height: 14),
+                  AuthError(_error!),
                 ],
-              ),
+                const SizedBox(height: 18),
+                AuthPrimaryButton(
+                  label: up ? 'Create account' : 'Sign in',
+                  busy: _busy,
+                  onTap: _submit,
+                ),
+              ],
             ),
           ),
         ),
       ),
+      footer: [
+        const SizedBox(height: 18),
+        Center(
+          child: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(up ? 'Already have an account? ' : 'New to SportPadi? ',
+                  style: TextStyle(color: p.muted, fontSize: 13.5)),
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => _setMode(!up),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  child: Text(up ? 'Sign in' : 'Create an account',
+                      style: TextStyle(
+                          color: p.greenText,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'By continuing you agree to our Terms and Privacy Policy.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: p.muted, fontSize: 11.5),
+        ),
+      ],
     );
   }
+
+  void _setMode(bool signUp) => setState(() {
+        _isSignUp = signUp;
+        _error = null;
+      });
 }
 
 /// One line naming what's behind the door, from the path they were sent from.
-String _gateLine(String raw) {
+String _gateLine(String raw, {bool signUp = false}) {
+  final lead = signUp ? 'Create an account' : 'Sign in';
   final path = Uri.tryParse(Uri.decodeComponent(raw))?.path ?? '';
-  if (path.startsWith('/events/')) return 'Sign in to open this event.';
-  if (path.startsWith('/tournaments/')) return 'Sign in to open this tournament.';
-  if (path.startsWith('/groups/')) return 'Sign in to open this group.';
-  if (path.startsWith('/teams/')) return 'Sign in to open this team.';
-  if (path.startsWith('/players/')) return 'Sign in to view this player.';
-  return 'Sign in to continue.';
-}
-
-class _SegTabs extends StatelessWidget {
-  const _SegTabs({required this.isSignUp, required this.onChanged});
-  final bool isSignUp;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: p.surface2,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(children: [
-        _seg(context, 'Sign in', !isSignUp, () => onChanged(false)),
-        _seg(context, 'Sign up', isSignUp, () => onChanged(true)),
-      ]),
-    );
-  }
-
-  Widget _seg(BuildContext context, String label, bool active, VoidCallback onTap) {
-    final p = context.palette;
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(vertical: 9),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: active ? p.surface : Colors.transparent,
-            borderRadius: BorderRadius.circular(9),
-            boxShadow: active
-                ? const [BoxShadow(color: Color.fromRGBO(15, 30, 22, 0.08), blurRadius: 6, offset: Offset(0, 2))]
-                : null,
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: active ? p.accent : p.muted,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  if (path.startsWith('/events/')) return '$lead to open this event.';
+  if (path.startsWith('/tournaments/')) return '$lead to open this tournament.';
+  if (path.startsWith('/groups/')) return '$lead to open this group.';
+  if (path.startsWith('/teams/')) return '$lead to open this team.';
+  if (path.startsWith('/players/')) return '$lead to view this player.';
+  return '$lead to continue.';
 }
