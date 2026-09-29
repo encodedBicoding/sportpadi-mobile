@@ -97,6 +97,7 @@ class TicketSale {
     this.periodKey,
     this.paidAt,
     this.redeemedAt,
+    this.reconciled = false,
   });
   final String id;
   final String buyerName;
@@ -109,6 +110,8 @@ class TicketSale {
   final String? periodKey;
   final DateTime? paidAt;
   final DateTime? redeemedAt;
+  /// An admin has put this payment right against the provider at least once.
+  final bool reconciled;
 
   factory TicketSale.fromJson(Map<String, dynamic> j) => TicketSale(
         id: (j['id'] ?? '') as String,
@@ -122,7 +125,62 @@ class TicketSale {
         periodKey: parseStr(j['periodKey']),
         paidAt: parseDate(j['paidAt']),
         redeemedAt: parseDate(j['redeemedAt']),
+        reconciled: j['reconciled'] == true,
       );
+}
+
+/// One payment checked against its payment provider (tickets.checkPayment):
+/// what the provider says, in plain words, and the reconcile action when
+/// SportPadi is out of step.
+class PaymentCheck {
+  const PaymentCheck({
+    required this.paymentId,
+    required this.code,
+    required this.ourStatus,
+    required this.verdict,
+    required this.headline,
+    this.details = const [],
+    this.providerLabel,
+    this.providerStatus,
+    this.action,
+    this.actionLabel,
+    this.actionHint,
+    this.coveredCodes = const [],
+  });
+  final String paymentId;
+  final String code;
+  final String ourStatus;
+  /// in_sync | out_of_sync | needs_attention | no_provider | error
+  final String verdict;
+  final String headline;
+  final List<String> details;
+  final String? providerLabel;
+  final String? providerStatus;
+  /// mark_refunded | mark_paid | mark_failed — null when nothing to apply.
+  final String? action;
+  final String? actionLabel;
+  final String? actionHint;
+  final List<String> coveredCodes;
+
+  factory PaymentCheck.fromJson(Map<String, dynamic> j) {
+    final insp = j['inspection'] is Map ? Map<String, dynamic>.from(j['inspection'] as Map) : null;
+    List<String> strs(dynamic v) =>
+        v is List ? [for (final x in v) if (x is String) x] : const <String>[];
+    return PaymentCheck(
+      paymentId: parseStr(j['paymentId']) ?? '',
+      code: parseStr(j['code']) ?? '',
+      ourStatus: parseStr(j['ourStatus']) ?? '',
+      verdict: parseStr(j['verdict']) ?? 'error',
+      headline: parseStr(j['headline']) ?? '',
+      details: strs(j['details']),
+      providerLabel: parseStr(j['providerLabel']),
+      providerStatus: insp == null ? null : parseStr(insp['providerStatus']),
+      action: parseStr(j['action']),
+      actionLabel: parseStr(j['actionLabel']),
+      actionHint: parseStr(j['actionHint']),
+      coveredCodes: strs(j['coveredCodes']),
+    );
+  }
 }
 
 class TicketSales {

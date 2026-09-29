@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
 import 'package:sportpadi_mobile/features/games/officiant_panel.dart';
 import 'package:sportpadi_mobile/features/games/officiants_card.dart';
+import 'package:sportpadi_mobile/features/games/scoreboard_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
@@ -150,19 +151,32 @@ class _Scoreboard extends StatelessWidget {
     final p = context.palette;
     final g = game;
     final vsMode = g.teams.length == 2 && g.maxTeamsPerGame <= 2;
+    // Sport-aware wording + court markings (goals / points / runs; Full time /
+    // Final / Match over…).
+    final board = boardSpec(g.profile.family);
+    final unit = Text(board.unit.toUpperCase(),
+        style: TextStyle(
+            color: p.heroMuted,
+            fontSize: 10,
+            letterSpacing: 1.6,
+            fontWeight: FontWeight.w700));
     final status = g.isLive
         ? 'LIVE'
         : g.status == 'completed'
-            ? 'FULL TIME'
+            ? board.finalLabel.toUpperCase()
             : g.isScheduled
                 ? 'NOT STARTED'
                 : g.status.replaceAll('_', ' ').toUpperCase();
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: p.hero,
         borderRadius: BorderRadius.circular(28),
       ),
+      child: Stack(children: [
+        Positioned.fill(child: CourtLines(family: g.profile.family)),
+        Padding(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
       child: Column(children: [
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           if (g.isLive) ...[
@@ -189,17 +203,21 @@ class _Scoreboard extends StatelessWidget {
             Expanded(child: _ScoreTeam(team: g.teams[0])),
             Padding(
               padding: const EdgeInsets.only(top: 10),
-              child: Text(
-                '${g.teams[0].score}–${g.teams[1].score}',
-                style: TextStyle(
-                  color: p.onHero,
-                  fontSize: 46,
-                  height: 1,
-                  letterSpacing: -1,
-                  fontWeight: FontWeight.w800,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+              child: Column(children: [
+                Text(
+                  '${g.teams[0].score}–${g.teams[1].score}',
+                  style: TextStyle(
+                    color: p.onHero,
+                    fontSize: 46,
+                    height: 1,
+                    letterSpacing: -1,
+                    fontWeight: FontWeight.w800,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
-              ),
+                const SizedBox(height: 6),
+                unit,
+              ]),
             ),
             Expanded(child: _ScoreTeam(team: g.teams[1])),
           ])
@@ -214,9 +232,12 @@ class _Scoreboard extends StatelessWidget {
                   width: 96,
                   child: _ScoreTeam(team: t, compact: true),
                 ),
+              SizedBox(width: double.infinity, child: Center(child: unit)),
             ],
           ),
         _ClockStrip(game: g),
+      ]),
+        ),
       ]),
     );
   }
@@ -235,36 +256,20 @@ class _ScoreTeam extends StatelessWidget {
     final t = team;
     final won = t.result == 'win';
     final lost = t.result == 'loss';
-    final color = teamColor(t.color, p);
-    final initials = t.name
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((w) => w.isNotEmpty)
-        .take(2)
-        .map((w) => w[0].toUpperCase())
-        .join();
-    final fg = color.computeLuminance() > 0.6
-        ? const Color(0xFF0E1411)
-        : Colors.white;
+    // Logo first (tournament teams), kit colour as a shirt on its corner;
+    // no logo → the kit-colour tile with initials.
+    final kit = (t.color == null || t.color!.isEmpty) ? null : teamColor(t.color, p);
     return Opacity(
       opacity: lost ? 0.6 : 1,
       child: Column(children: [
-        Container(
-          width: compact ? 44 : 54,
-          height: compact ? 44 : 54,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(compact ? 15 : 18),
-            border: won
-                ? Border.all(color: const Color(0xFF6EDC9E), width: 2.5)
-                : null,
-          ),
-          child: Text(initials.isEmpty ? '?' : initials,
-              style: TextStyle(
-                  color: fg,
-                  fontSize: compact ? 14 : 16,
-                  fontWeight: FontWeight.w800)),
+        ScoreCrest(
+          name: t.name,
+          color: kit,
+          logoUrl: t.logoUrl,
+          size: compact ? 44 : 54,
+          radius: compact ? 15 : 18,
+          won: won,
+          outline: p.hero,
         ),
         const SizedBox(height: 8),
         Text(
@@ -409,7 +414,9 @@ class ClockInfo {
 /// Shared clock math (also used to stamp minutes on recorded activities).
 ClockInfo? clockInfo(GameDetail g) {
   if (!g.isLive) {
-    if (g.status == 'completed') return const ClockInfo('FT');
+    if (g.status == 'completed') {
+      return ClockInfo(boardSpec(g.profile.family).finalShort);
+    }
     return null;
   }
   // Offset anchored at FETCH time (serverNow vs fetchedAt) — computing it
@@ -452,7 +459,12 @@ ClockInfo? clockInfo(GameDetail g) {
   if (elapsed < 0) elapsed = 0;
   return ClockInfo(
     _fmt(elapsed),
-    label: g.timer.stoppageMin > 0 ? "+${g.timer.stoppageMin}' stoppage" : null,
+    // Untimed sports (volleyball, racket, cricket…): reference clock only.
+    label: g.timer.stoppageMin > 0
+        ? "+${g.timer.stoppageMin}' stoppage"
+        : g.profile.clock == 'elapsed'
+            ? 'Elapsed'
+            : null,
     paused: g.timer.pausedAt != null,
   );
 }
@@ -1166,7 +1178,13 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.6)),
           const SizedBox(height: 3),
-          if (onPitch.isEmpty)
+          if (onPitch.isEmpty && lineup.isEmpty && g.isTournament)
+            // Tournament sides are the SQUAD only: accepted call-ups and
+            // coach adds. Nobody in it → nobody here.
+            Text(
+                'No one in the squad yet — players appear here when they accept the call-up or the coach adds them.',
+                style: TextStyle(color: p.muted, fontSize: 11, height: 1.35))
+          else if (onPitch.isEmpty)
             Text('No one on yet.',
                 style: TextStyle(color: p.muted, fontSize: 11))
           else

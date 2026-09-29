@@ -9,10 +9,14 @@ class GameTeam {
     this.score = 0,
     this.result,
     this.groupTeamId,
+    this.logoUrl,
   });
   final String teamId;
   final String name;
+  /// The kit colour this side wears in THIS game (officiating uses it).
   final String? color;
+  /// Tournament team crest — the scoreboard shows it before the colour.
+  final String? logoUrl;
   final int score;
   final String? result; // win | loss | draw (set at completion)
   final String? groupTeamId;
@@ -24,6 +28,7 @@ class GameTeam {
         score: parseInt(j['score']) ?? 0,
         result: parseStr(j['result']),
         groupTeamId: parseStr(j['groupTeamId']),
+        logoUrl: parseStr(j['logoUrl']),
       );
 }
 

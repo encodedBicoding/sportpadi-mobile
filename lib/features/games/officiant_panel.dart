@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
 import 'package:sportpadi_mobile/features/games/game_screen.dart'
     show activityMinute;
+import 'package:sportpadi_mobile/features/games/stoppage_pad.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
@@ -28,6 +29,10 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
   bool _busy = false;
 
   GameDetail get g => widget.game;
+
+  /// Stoppage already added to the current period (phased) or the game.
+  int _stoppageNow(GameDetail g) =>
+      g.lifecycle?.current?.timer.stoppageMin ?? g.timer.stoppageMin;
   GamesRepository get repo => ref.read(gamesRepositoryProvider);
 
   Future<void> _run(Future<void> Function() op) async {
@@ -198,12 +203,38 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                     ),
                     if (prof.addsTime)
                       _MiniAction(
-                        label: "+1' stoppage",
+                        label: 'Stoppage',
                         icon: Icons.more_time_rounded,
                         onTap: _busy
                             ? null
-                            : () => _run(() => repo.timer(widget.gameId,
-                                'stoppage', minutes: 1)),
+                            : () => showSpSheet<void>(
+                                  context,
+                                  builder: (ctx) => Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      const SpSheetHeader(
+                                        icon: Icons.more_time_rounded,
+                                        title: 'Stoppage time',
+                                        subtitle: 'Add any amount up to 120\', or correct the total.',
+                                      ),
+                                      StoppagePad(
+                                        dark: false,
+                                        startExpanded: true,
+                                        current: _stoppageNow(g),
+                                        presets: prof.stoppagePresets,
+                                        onAdd: (m) {
+                                          Navigator.of(ctx).pop();
+                                          _run(() => repo.timer(widget.gameId, 'stoppage', minutes: m));
+                                        },
+                                        onSet: (m) {
+                                          Navigator.of(ctx).pop();
+                                          _run(() => repo.timer(widget.gameId, 'setStoppage', minutes: m));
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
                       ),
                   ],
                   if (canTime && lc != null && inTimedPhase)
