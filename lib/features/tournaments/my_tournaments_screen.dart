@@ -10,8 +10,10 @@ import 'package:sportpadi_mobile/data/tournaments/squad_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart' show SideMenuButton;
-import 'package:sportpadi_mobile/shared/widgets/team_tile.dart' show kitGradient;
+import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart'
+    show SideMenuButton;
+import 'package:sportpadi_mobile/shared/widgets/team_tile.dart'
+    show kitGradient;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
 /// Bottom-nav "Tournaments" tab, team first (2026): call-ups waiting for you
@@ -31,7 +33,9 @@ class MyTournamentsScreen extends ConsumerWidget {
       ref.invalidate(myTeamCardsProvider);
       ref.invalidate(myCallsProvider);
       ref.invalidate(myTournamentInvitesProvider);
-      await ref.read(myTeamCardsProvider.future).catchError((_) => <MyTeamCard>[]);
+      await ref
+          .read(myTeamCardsProvider.future)
+          .catchError((_) => <MyTeamCard>[]);
     }
 
     return Scaffold(
@@ -69,7 +73,8 @@ class MyTournamentsScreen extends ConsumerWidget {
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 13, vertical: 10),
-                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            child:
+                                Row(mainAxisSize: MainAxisSize.min, children: [
                               Icon(Icons.mail_outline_rounded,
                                   size: 16, color: p.orangeInk),
                               const SizedBox(width: 5),
@@ -160,12 +165,16 @@ class TeamCrest extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final kit = hexColor(team.kitPrimary) ?? p.accent;
-    final words =
-        team.name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    final words = team.name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
     final initials = words.isEmpty
         ? '?'
         : words.length == 1
-            ? (words[0].length < 2 ? words[0] : words[0].substring(0, 2)).toUpperCase()
+            ? (words[0].length < 2 ? words[0] : words[0].substring(0, 2))
+                .toUpperCase()
             : (words[0][0] + words[1][0]).toUpperCase();
     final ink = kit.computeLuminance() > 0.55 ? Colors.black87 : Colors.white;
     return Container(
@@ -198,7 +207,20 @@ String? _day(String? ymd) {
   final d = DateTime.tryParse(ymd);
   if (d == null) return ymd;
   const wd = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const mo = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec'
+  ];
   return '${wd[d.weekday - 1]} ${d.day} ${mo[d.month - 1]}';
 }
 
@@ -298,7 +320,8 @@ class TeamSummaryCard extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Expanded(
                 child: Column(
@@ -358,12 +381,8 @@ class TeamSummaryCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(children: [
-                  Icon(
-                      n.isLive
-                          ? Icons.sensors_rounded
-                          : Icons.event_outlined,
-                      size: 18,
-                      color: n.isLive ? p.danger : p.greenText),
+                  Icon(n.isLive ? Icons.sensors_rounded : Icons.event_outlined,
+                      size: 18, color: n.isLive ? p.danger : p.greenText),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -435,7 +454,8 @@ class _SquadCallUpsState extends ConsumerState<SquadCallUps> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
       }
     } finally {
       if (mounted) setState(() => _busyId = null);
@@ -445,7 +465,8 @@ class _SquadCallUpsState extends ConsumerState<SquadCallUps> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final all = ref.watch(myCallsProvider).valueOrNull?.pending ?? const <SquadCall>[];
+    final all =
+        ref.watch(myCallsProvider).valueOrNull?.pending ?? const <SquadCall>[];
     final calls = widget.teamId == null
         ? all
         : all.where((c) => c.teamId == widget.teamId).toList();
@@ -480,140 +501,160 @@ class _SquadCallUpsState extends ConsumerState<SquadCallUps> {
                 color: p.hero,
                 borderRadius: BorderRadius.circular(26),
               ),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                InkWell(
-                  onTap: c.route != null ? () => context.push(c.route!) : null,
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(children: [
-                      const SpIconTile(Icons.campaign_rounded,
-                          bg: Color(0x29FFB57D),
-                          fg: Color(0xFFFFB57D),
-                          size: 40,
-                          iconSize: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(c.eventTitle ?? 'Tournament',
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      color: p.onHero,
-                                      fontSize: 15.5,
-                                      fontWeight: FontWeight.w800)),
-                              Text(
-                                  [
-                                    if (widget.teamId == null)
-                                      c.teamName ?? 'Your team',
-                                    'called ${timeAgo(c.calledAt)}',
-                                  ].join(' · '),
-                                  style: TextStyle(
-                                      color: p.heroMuted, fontSize: 12)),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    InkWell(
+                      onTap:
+                          c.route != null ? () => context.push(c.route!) : null,
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              const SpIconTile(Icons.campaign_rounded,
+                                  bg: Color(0x29FFB57D),
+                                  fg: Color(0xFFFFB57D),
+                                  size: 40,
+                                  iconSize: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(c.eventTitle ?? 'Tournament',
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                              color: p.onHero,
+                                              fontSize: 15.5,
+                                              fontWeight: FontWeight.w800)),
+                                      Text(
+                                          [
+                                            if (widget.teamId == null)
+                                              c.teamName ?? 'Your team',
+                                            'called ${timeAgo(c.calledAt)}',
+                                          ].join(' · '),
+                                          style: TextStyle(
+                                              color: p.heroMuted,
+                                              fontSize: 12)),
+                                    ]),
+                              ),
                             ]),
+                            const SizedBox(height: 12),
+                            // A call-up is a commitment — show enough to answer it.
+                            detail(
+                                Icons.event_outlined,
+                                c.when.viewerTime != null
+                                    ? '${c.when.line} (${c.when.viewerTime} your time)'
+                                    : c.when.line),
+                            if (c.locationName != null)
+                              detail(Icons.place_outlined, c.locationName!),
+                            if (c.opponentName != null)
+                              detail(Icons.sports_kabaddi_outlined,
+                                  'vs ${c.opponentName}'),
+                            if (c.hostGroupName != null ||
+                                c.categoryName != null)
+                              detail(
+                                  Icons.groups_outlined,
+                                  [
+                                    if (c.categoryName != null)
+                                      '${c.categoryEmoji ?? ''} ${c.categoryName}'
+                                          .trim(),
+                                    if (c.hostGroupName != null)
+                                      'hosted by ${c.hostGroupName}',
+                                  ].join(' · ')),
+                            if (c.callNote != null &&
+                                c.callNote!.trim().isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: p.onHero.withAlpha(18),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text("Coach's remark",
+                                          style: TextStyle(
+                                              color: Color(0xFFFFB57D),
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w700)),
+                                      const SizedBox(height: 3),
+                                      Text(c.callNote!.trim(),
+                                          style: TextStyle(
+                                              color: p.onHero,
+                                              fontSize: 13,
+                                              height: 1.4)),
+                                    ]),
+                              ),
+                            ],
+                            const SizedBox(height: 8),
+                            Text(
+                                'Accepting locks you to this team for this tournament.',
+                                style: TextStyle(
+                                    color: p.heroMuted, fontSize: 12)),
+                          ]),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(children: [
+                      Expanded(
+                        child: Material(
+                          color: _busyId != null
+                              ? p.onHero.withAlpha(30)
+                              : Colors.white,
+                          shape: const StadiumBorder(),
+                          child: InkWell(
+                            customBorder: const StadiumBorder(),
+                            onTap: _busyId != null
+                                ? null
+                                : () => _respond(c, true),
+                            child: SizedBox(
+                              height: 48,
+                              child: Center(
+                                child: Text(
+                                    _busyId == c.squadId
+                                        ? 'Sending…'
+                                        : "I'm in",
+                                    style: TextStyle(
+                                        color: _busyId != null
+                                            ? p.heroMuted
+                                            : const Color(0xFF0E1411),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700)),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Material(
+                          color: p.onHero.withAlpha(24),
+                          shape: const StadiumBorder(),
+                          child: InkWell(
+                            customBorder: const StadiumBorder(),
+                            onTap: _busyId != null
+                                ? null
+                                : () => _respond(c, false),
+                            child: SizedBox(
+                              height: 48,
+                              child: Center(
+                                child: Text("Can't make it",
+                                    style: TextStyle(
+                                        color: p.onHero,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700)),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ]),
-                    const SizedBox(height: 12),
-                    // A call-up is a commitment — show enough to answer it.
-                    detail(
-                        Icons.event_outlined,
-                        c.when.viewerTime != null
-                            ? '${c.when.line} (${c.when.viewerTime} your time)'
-                            : c.when.line),
-                    if (c.locationName != null)
-                      detail(Icons.place_outlined, c.locationName!),
-                    if (c.opponentName != null)
-                      detail(Icons.sports_kabaddi_outlined,
-                          'vs ${c.opponentName}'),
-                    if (c.hostGroupName != null || c.categoryName != null)
-                      detail(
-                          Icons.groups_outlined,
-                          [
-                            if (c.categoryName != null)
-                              '${c.categoryEmoji ?? ''} ${c.categoryName}'.trim(),
-                            if (c.hostGroupName != null)
-                              'hosted by ${c.hostGroupName}',
-                          ].join(' · ')),
-                    if (c.callNote != null && c.callNote!.trim().isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: p.onHero.withAlpha(18),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text("Coach's remark",
-                                  style: TextStyle(
-                                      color: Color(0xFFFFB57D),
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w700)),
-                              const SizedBox(height: 3),
-                              Text(c.callNote!.trim(),
-                                  style: TextStyle(
-                                      color: p.onHero, fontSize: 13, height: 1.4)),
-                            ]),
-                      ),
-                    ],
-                    const SizedBox(height: 8),
-                    Text('Accepting locks you to this team for this tournament.',
-                        style: TextStyle(color: p.heroMuted, fontSize: 12)),
                   ]),
-                ),
-                const SizedBox(height: 14),
-                Row(children: [
-                  Expanded(
-                    child: Material(
-                      color: _busyId != null
-                          ? p.onHero.withAlpha(30)
-                          : Colors.white,
-                      shape: const StadiumBorder(),
-                      child: InkWell(
-                        customBorder: const StadiumBorder(),
-                        onTap: _busyId != null ? null : () => _respond(c, true),
-                        child: SizedBox(
-                          height: 48,
-                          child: Center(
-                            child: Text(
-                                _busyId == c.squadId ? 'Sending…' : "I'm in",
-                                style: TextStyle(
-                                    color: _busyId != null
-                                        ? p.heroMuted
-                                        : const Color(0xFF0E1411),
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700)),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Material(
-                      color: p.onHero.withAlpha(24),
-                      shape: const StadiumBorder(),
-                      child: InkWell(
-                        customBorder: const StadiumBorder(),
-                        onTap:
-                            _busyId != null ? null : () => _respond(c, false),
-                        child: SizedBox(
-                          height: 48,
-                          child: Center(
-                            child: Text("Can't make it",
-                                style: TextStyle(
-                                    color: p.onHero,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700)),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ]),
-              ]),
             ),
           ),
       ]),

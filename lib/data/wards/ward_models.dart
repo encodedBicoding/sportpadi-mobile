@@ -329,10 +329,14 @@ class WardDetail {
   /// Why it can't be handed over yet ("Handing over opens when…").
   final String? claimBlockedReason;
 
-  List<WardGuardian> get active =>
-      [for (final g in guardians) if (!g.isPending) g];
-  List<WardGuardian> get pending =>
-      [for (final g in guardians) if (g.isPending) g];
+  List<WardGuardian> get active => [
+        for (final g in guardians)
+          if (!g.isPending) g
+      ];
+  List<WardGuardian> get pending => [
+        for (final g in guardians)
+          if (g.isPending) g
+      ];
 
   factory WardDetail.fromJson(Map<String, dynamic> j) => WardDetail(
         ward: Ward.fromJson(j['ward'] is Map
@@ -386,6 +390,7 @@ class WardGroup {
   final String name;
   final String? slug;
   final String? imageUrl;
+
   /// The group carries the verification badge.
   final bool verified;
   final DateTime? joinedAt;
@@ -420,6 +425,7 @@ class WardGroupOption {
   final String name;
   final String? slug;
   final String? imageUrl;
+
   /// The group carries the verification badge.
   final bool verified;
 
@@ -521,7 +527,8 @@ class WardTeamInvite {
 
 /// What answering a team invitation did (`respond-team-invite`).
 class WardTeamInviteResult {
-  const WardTeamInviteResult({this.jerseyDropped = false, this.madeSub = false});
+  const WardTeamInviteResult(
+      {this.jerseyDropped = false, this.madeSub = false});
 
   /// Their jersey number was taken meanwhile, so they joined without one.
   final bool jerseyDropped;

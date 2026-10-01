@@ -38,8 +38,8 @@ class MySportsScreen extends ConsumerWidget {
                   Text(
                     'The sports you play and how — positions, strong foot and '
                     'more. Smart team balancing uses these.',
-                    style: TextStyle(
-                        color: p.muted, fontSize: 13.5, height: 1.45),
+                    style:
+                        TextStyle(color: p.muted, fontSize: 13.5, height: 1.45),
                   ),
                   const SizedBox(height: 22),
                   const _SportsSection(),
@@ -74,9 +74,7 @@ class _AddPill extends StatelessWidget {
             const SizedBox(width: 6),
             Text('Add',
                 style: TextStyle(
-                    color: p.ink,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700)),
+                    color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
           ]),
         ),
       ),
@@ -110,7 +108,8 @@ class _SportsSection extends ConsumerWidget {
       ]);
     }
     final byId = {for (final c in data.categories) c.id: c};
-    final mine = data.mine.where((m) => byId.containsKey(m.categoryId)).toList();
+    final mine =
+        data.mine.where((m) => byId.containsKey(m.categoryId)).toList();
     final mineIds = mine.map((m) => m.categoryId).toSet();
     final others =
         data.categories.where((c) => !mineIds.contains(c.id)).toList();
@@ -119,15 +118,14 @@ class _SportsSection extends ConsumerWidget {
       // Web's "Add a sport" dialog, as a bottom sheet: pick from the sports
       // you haven't added yet.
       await showSpSheet<void>(
-      context,
-      framed: false,
-      builder: (ctx) => Container(
-          constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(ctx).size.height * 0.8),
+        context,
+        framed: false,
+        builder: (ctx) => Container(
+          constraints:
+              BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.8),
           decoration: BoxDecoration(
             color: p.bg,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(28)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: SafeArea(
             top: false,
@@ -169,8 +167,8 @@ class _SportsSection extends ConsumerWidget {
                             }
                           } catch (e) {
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('$e')));
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(SnackBar(content: Text('$e')));
                             }
                           }
                         },
@@ -201,7 +199,7 @@ class _SportsSection extends ConsumerWidget {
             ),
           ),
         ),
-    );
+      );
     }
 
     return Column(
@@ -210,9 +208,7 @@ class _SportsSection extends ConsumerWidget {
         SpSectionTitle(
           'Your sports',
           count: mine.isEmpty ? null : mine.length,
-          trailing: others.isEmpty
-              ? null
-              : _AddPill(onTap: addSport),
+          trailing: others.isEmpty ? null : _AddPill(onTap: addSport),
         ),
         const SizedBox(height: 10),
         if (mine.isEmpty)
@@ -370,8 +366,7 @@ class _SportEditSheetState extends ConsumerState<_SportEditSheet> {
     setState(() {
       if (f.type == 'multi') {
         final list = _draft[f.key] is List
-            ? List<String>.from(
-                (_draft[f.key] as List).map((x) => '$x'))
+            ? List<String>.from((_draft[f.key] as List).map((x) => '$x'))
             : <String>[];
         if (list.contains(option)) {
           list.remove(option);
@@ -388,9 +383,7 @@ class _SportEditSheetState extends ConsumerState<_SportEditSheet> {
 
   bool _selected(StatField f, String option) {
     final v = _draft[f.key];
-    return f.type == 'multi'
-        ? v is List && v.contains(option)
-        : v == option;
+    return f.type == 'multi' ? v is List && v.contains(option) : v == option;
   }
 
   Future<void> _save() async {
@@ -412,9 +405,7 @@ class _SportEditSheetState extends ConsumerState<_SportEditSheet> {
   Future<void> _remove() async {
     setState(() => _busy = true);
     try {
-      await ref
-          .read(profileRepositoryProvider)
-          .removeSport(widget.category.id);
+      await ref.read(profileRepositoryProvider).removeSport(widget.category.id);
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {
@@ -430,8 +421,8 @@ class _SportEditSheetState extends ConsumerState<_SportEditSheet> {
     final p = context.palette;
     final c = widget.category;
     return Container(
-      constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.8),
+      constraints:
+          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
       decoration: BoxDecoration(
         color: p.bg,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
@@ -449,9 +440,7 @@ class _SportEditSheetState extends ConsumerState<_SportEditSheet> {
             Expanded(
               child: Text(c.name,
                   style: TextStyle(
-                      color: p.ink,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800)),
+                      color: p.ink, fontSize: 19, fontWeight: FontWeight.w800)),
             ),
             InkWell(
               onTap: _busy ? null : _remove,
@@ -495,15 +484,11 @@ class _SportEditSheetState extends ConsumerState<_SportEditSheet> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(999),
                           border: Border.all(
-                              color: _selected(f, o)
-                                  ? p.ink
-                                  : p.line),
+                              color: _selected(f, o) ? p.ink : p.line),
                         ),
                         child: Text(o,
                             style: TextStyle(
-                              color: _selected(f, o)
-                                  ? p.bg
-                                  : p.ink,
+                              color: _selected(f, o) ? p.bg : p.ink,
                               fontSize: 12.5,
                               fontWeight: FontWeight.w600,
                             )),

@@ -48,9 +48,7 @@ class MessageTarget {
         memberId: memberId,
         toLabel: isWard ? "$name's guardians" : name,
         aboutWardName: isWard ? name : null,
-        note: isWard
-            ? "$name is a ward: this goes to their guardians."
-            : null,
+        note: isWard ? "$name is a ward: this goes to their guardians." : null,
       );
 
   /// Me (or a ward of mine) → the group's admins.
@@ -126,8 +124,8 @@ Future<void> showMessageStartSheet(
 }) async {
   final target = await showSpSheet<MessageTarget>(
     context,
-    builder: (_) => _StartOptionsSheet(
-        groupId: groupId, wardId: wardId, teamId: teamId),
+    builder: (_) =>
+        _StartOptionsSheet(groupId: groupId, wardId: wardId, teamId: teamId),
   );
   if (target == null || !context.mounted) return;
   if (target.kind == 'pick') {
@@ -219,8 +217,7 @@ class _GroupPickerSheet extends ConsumerWidget {
             leading: Crest(logoUrl: g.logoUrl, label: g.name, size: 40),
             title: Text(g.name, maxLines: 1, overflow: TextOverflow.ellipsis),
             subtitle: g.role == 'admin'
-                ? Text('Admin',
-                    style: TextStyle(color: p.muted, fontSize: 12))
+                ? Text('Admin', style: TextStyle(color: p.muted, fontSize: 12))
                 : null,
             trailing: Icon(Icons.chevron_right_rounded, color: p.muted),
             onTap: () => Navigator.of(context).pop(g.id),
@@ -275,8 +272,7 @@ class SelfBlockedNote extends StatelessWidget {
 // ── Start options ────────────────────────────────────────────────────────
 
 class _StartOptionsSheet extends ConsumerWidget {
-  const _StartOptionsSheet(
-      {required this.groupId, this.wardId, this.teamId});
+  const _StartOptionsSheet({required this.groupId, this.wardId, this.teamId});
   final String groupId;
   final String? wardId;
   final String? teamId;
@@ -339,17 +335,15 @@ class _StartOptionsSheet extends ConsumerWidget {
                   color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700)),
           subtitle: subtitle == null && about == null
               ? null
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (subtitle != null)
-                      Text(subtitle,
-                          style: TextStyle(color: p.muted, fontSize: 12)),
-                    if (about != null) ...[
-                      const SizedBox(height: 4),
-                      AboutWardChip(about),
-                    ],
-                  ]),
+              : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  if (subtitle != null)
+                    Text(subtitle,
+                        style: TextStyle(color: p.muted, fontSize: 12)),
+                  if (about != null) ...[
+                    const SizedBox(height: 4),
+                    AboutWardChip(about),
+                  ],
+                ]),
           trailing: Icon(Icons.chevron_right_rounded, color: p.muted),
           onTap: onTap,
         );
@@ -544,8 +538,8 @@ class _ReachablePickerSheetState extends ConsumerState<_ReachablePickerSheet> {
                     itemBuilder: (_, i) {
                       final u = results[i];
                       return ListTile(
-                        leading:
-                            WardAvatar(name: u.name, url: u.avatarUrl, size: 36),
+                        leading: WardAvatar(
+                            name: u.name, url: u.avatarUrl, size: 36),
                         title: Row(children: [
                           Flexible(
                             child: Text(u.name,
@@ -558,8 +552,8 @@ class _ReachablePickerSheetState extends ConsumerState<_ReachablePickerSheet> {
                         ]),
                         subtitle: u.isWard
                             ? Text('Goes to their guardians',
-                                style: TextStyle(
-                                    color: p.wardInk, fontSize: 11.5))
+                                style:
+                                    TextStyle(color: p.wardInk, fontSize: 11.5))
                             : null,
                         trailing:
                             Icon(Icons.chevron_right_rounded, color: p.muted),
@@ -680,8 +674,7 @@ class _FirstMessageSheetState extends ConsumerState<_FirstMessageSheet> {
               children: [
                 if (t.aboutWardName != null) AboutWardChip(t.aboutWardName!),
                 if (t.note != null)
-                  Text(t.note!,
-                      style: TextStyle(color: p.muted, fontSize: 12)),
+                  Text(t.note!, style: TextStyle(color: p.muted, fontSize: 12)),
               ]),
           const SizedBox(height: 12),
         ],

@@ -63,8 +63,7 @@ class TeamTile extends StatelessWidget {
               right: 8,
               top: 8,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: const Color(0xEBFFFFFF),
                   borderRadius: BorderRadius.circular(999),
@@ -99,33 +98,30 @@ class TeamTile extends StatelessWidget {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(t.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700)),
-                  if (t.username != null)
-                    Text('@${t.username}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: p.muted, fontSize: 11.5)),
-                  const Spacer(),
-                  Row(children: [
-                    Icon(Icons.groups_outlined, size: 14, color: p.greenText),
-                    const SizedBox(width: 4),
-                    Text(
-                        '${t.memberCount ?? 0} player${(t.memberCount ?? 0) == 1 ? '' : 's'}',
-                        style: TextStyle(
-                            color: p.greenText,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700)),
-                  ]),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(t.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
+              if (t.username != null)
+                Text('@${t.username}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: p.muted, fontSize: 11.5)),
+              const Spacer(),
+              Row(children: [
+                Icon(Icons.groups_outlined, size: 14, color: p.greenText),
+                const SizedBox(width: 4),
+                Text(
+                    '${t.memberCount ?? 0} player${(t.memberCount ?? 0) == 1 ? '' : 's'}',
+                    style: TextStyle(
+                        color: p.greenText,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700)),
+              ]),
+            ]),
           ),
         ),
       ]),

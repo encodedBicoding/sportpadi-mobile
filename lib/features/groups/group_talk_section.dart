@@ -172,8 +172,7 @@ class GroupTalkSection extends ConsumerWidget {
     final hot = showDiscussions
         ? ref.watch(discussionListProvider(_hotKey(groupId))).valueOrNull?.items
         : null;
-    final topTitle =
-        hot == null || hot.isEmpty ? '' : hot.first.title.trim();
+    final topTitle = hot == null || hot.isEmpty ? '' : hot.first.title.trim();
     final discussionsStatus = counts.discussions > 0
         ? '${counts.discussions} new'
         : topTitle.isEmpty
@@ -276,8 +275,7 @@ class GroupTalkSection extends ConsumerWidget {
             .valueOrNull
             ?.items
         : null;
-    final topTitle =
-        hot == null || hot.isEmpty ? '' : hot.first.title.trim();
+    final topTitle = hot == null || hot.isEmpty ? '' : hot.first.title.trim();
     final discussionsStatus = counts.discussions > 0
         ? '${counts.discussions} new'
         : topTitle.isEmpty
@@ -310,8 +308,7 @@ class GroupTalkSection extends ConsumerWidget {
           label: 'Messages',
           status: messagesStatus,
           badge: counts.messages,
-          onTap: () =>
-              _afterSheet(context, _openTeamMessages(context, teamId)),
+          onTap: () => _afterSheet(context, _openTeamMessages(context, teamId)),
         ),
       if (inTeam)
         _TalkTile(

@@ -20,7 +20,8 @@ Color _teamColor(String? hex) {
 }
 
 bool isVolleyballSport(String? name, String? emoji) =>
-    RegExp('volley', caseSensitive: false).hasMatch(name ?? '') || emoji == '🏐';
+    RegExp('volley', caseSensitive: false).hasMatch(name ?? '') ||
+    emoji == '🏐';
 
 /// "Set 2" from a stamped phase ("S2").
 String setStamp(String? phase) {
@@ -67,7 +68,10 @@ class VolleyballScorePad extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final box = {for (final l in game.volleyball?.boxPlayers ?? const <VbLine>[]) l.playerId: l};
+    final box = {
+      for (final l in game.volleyball?.boxPlayers ?? const <VbLine>[])
+        l.playerId: l
+    };
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       PlayerScorePad(
         game: game,
@@ -95,7 +99,8 @@ class VolleyballScorePad extends StatelessWidget {
 
 /// One chip per set ("25–21"), in the scoreboard's team order.
 class SetScoresStrip extends StatelessWidget {
-  const SetScoresStrip({super.key, required this.game, required this.order, this.dark = true});
+  const SetScoresStrip(
+      {super.key, required this.game, required this.order, this.dark = true});
   final GameDetail game;
   final List<String> order;
   final bool dark;
@@ -104,7 +109,9 @@ class SetScoresStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final vb = game.volleyball;
-    if (vb == null || order.length != 2 || vb.sets.isEmpty) return const SizedBox.shrink();
+    if (vb == null || order.length != 2 || vb.sets.isEmpty) {
+      return const SizedBox.shrink();
+    }
     final a = order[0], b = order[1];
     final muted = dark ? p.heroMuted : p.muted;
     final ink = dark ? p.onHero : p.ink;
@@ -115,34 +122,57 @@ class SetScoresStrip extends StatelessWidget {
         color: dark ? p.onHero.withAlpha(15) : p.surface2,
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Wrap(alignment: WrapAlignment.center, spacing: 6, runSpacing: 6, children: [
-        for (final s in vb.sets)
-          Builder(builder: (context) {
-            final live = s.n == vb.currentSet && s.winnerTeamId == null && game.isLive;
-            TextStyle digit(String id) => TextStyle(
-                  color: live ? const Color(0xFFFFB57D) : ink,
-                  fontSize: 12.5,
-                  fontWeight: s.winnerTeamId == id ? FontWeight.w900 : FontWeight.w600,
-                  decoration: s.winnerTeamId == id ? TextDecoration.underline : null,
-                  decorationColor: _teamColor(game.teams.where((t) => t.teamId == id).firstOrNull?.color),
-                  decorationThickness: 2,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+      child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final s in vb.sets)
+              Builder(builder: (context) {
+                final live = s.n == vb.currentSet &&
+                    s.winnerTeamId == null &&
+                    game.isLive;
+                TextStyle digit(String id) => TextStyle(
+                      color: live ? const Color(0xFFFFB57D) : ink,
+                      fontSize: 12.5,
+                      fontWeight: s.winnerTeamId == id
+                          ? FontWeight.w900
+                          : FontWeight.w600,
+                      decoration: s.winnerTeamId == id
+                          ? TextDecoration.underline
+                          : null,
+                      decorationColor: _teamColor(game.teams
+                          .where((t) => t.teamId == id)
+                          .firstOrNull
+                          ?.color),
+                      decorationThickness: 2,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    );
+                return Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: live
+                        ? const Color(0x33FFB57D)
+                        : (dark ? p.onHero.withAlpha(25) : p.surface),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text.rich(TextSpan(children: [
+                    TextSpan(
+                        text: 'S${s.n} ',
+                        style: TextStyle(
+                            color: muted,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800)),
+                    TextSpan(text: '${s.points[a] ?? 0}', style: digit(a)),
+                    TextSpan(
+                        text: '–',
+                        style: TextStyle(color: ink, fontSize: 12.5)),
+                    TextSpan(text: '${s.points[b] ?? 0}', style: digit(b)),
+                  ])),
                 );
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-              decoration: BoxDecoration(
-                color: live ? const Color(0x33FFB57D) : (dark ? p.onHero.withAlpha(25) : p.surface),
-                borderRadius: BorderRadius.circular(99),
-              ),
-              child: Text.rich(TextSpan(children: [
-                TextSpan(text: 'S${s.n} ', style: TextStyle(color: muted, fontSize: 10, fontWeight: FontWeight.w800)),
-                TextSpan(text: '${s.points[a] ?? 0}', style: digit(a)),
-                TextSpan(text: '–', style: TextStyle(color: ink, fontSize: 12.5)),
-                TextSpan(text: '${s.points[b] ?? 0}', style: digit(b)),
-              ])),
-            );
-          }),
-      ]),
+              }),
+          ]),
     );
   }
 }
@@ -169,18 +199,26 @@ class VolleyballSetCard extends StatelessWidget {
     final p = context.palette;
     final vb = game.volleyball;
     if (vb == null || !game.isLive) return const SizedBox.shrink();
-    String name(String? id) => game.teams.where((t) => t.teamId == id).firstOrNull?.name ?? 'A team';
+    String name(String? id) =>
+        game.teams.where((t) => t.teamId == id).firstOrNull?.name ?? 'A team';
 
-    Widget card(IconData icon, Color bg, Color fg, String title, String body, String? cta, VoidCallback? onTap) =>
+    Widget card(IconData icon, Color bg, Color fg, String title, String body,
+            String? cta, VoidCallback? onTap) =>
         GlassCard(
           child: Row(children: [
             SpIconTile(icon, bg: bg, fg: fg),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w800)),
-                Text(body, style: TextStyle(color: p.muted, fontSize: 12)),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800)),
+                    Text(body, style: TextStyle(color: p.muted, fontSize: 12)),
+                  ]),
             ),
             if (cta != null && onTap != null) ...[
               const SizedBox(width: 8),
@@ -196,8 +234,14 @@ class VolleyballSetCard extends StatelessWidget {
       for (final e in vb.setsWon.entries) {
         if (e.key != wid && e.value > lost) lost = e.value;
       }
-      return card(Icons.emoji_events_rounded, p.accentTint, p.accentDeep, '${name(wid)} won the match $won–$lost',
-          'End the match to lock in the result. You can still correct stats afterwards.', 'End match', onEnd);
+      return card(
+          Icons.emoji_events_rounded,
+          p.accentTint,
+          p.accentDeep,
+          '${name(wid)} won the match $won–$lost',
+          'End the match to lock in the result. You can still correct stats afterwards.',
+          'End match',
+          onEnd);
     }
     final cur = vb.current;
     if (vb.currentSetDecided && cur != null && cur.winnerTeamId != null) {
@@ -213,8 +257,14 @@ class VolleyballSetCard extends StatelessWidget {
           onStartNext);
     }
     if (vb.switchSidesDue) {
-      return card(Icons.swap_horiz_rounded, p.orangeTint, p.orangeInk, 'Change ends',
-          'A team has reached ${vb.rules.switchAt} in the deciding set — the teams switch sides.', 'Done', onSwitched);
+      return card(
+          Icons.swap_horiz_rounded,
+          p.orangeTint,
+          p.orangeInk,
+          'Change ends',
+          'A team has reached ${vb.rules.switchAt} in the deciding set — the teams switch sides.',
+          'Done',
+          onSwitched);
     }
     return const SizedBox.shrink();
   }
@@ -235,7 +285,10 @@ class VolleyballSummary extends StatelessWidget {
     final done = game.status == 'completed';
     final winner = game.teams.where((t) => t.result == 'win').firstOrNull;
     final names = {for (final x in game.participants) x.playerId: x};
-    final played = [for (final s in vb.sets) if (s.points.values.any((n) => n > 0)) s];
+    final played = [
+      for (final s in vb.sets)
+        if (s.points.values.any((n) => n > 0)) s
+    ];
 
     VbLine? leader(int Function(VbLine) f) {
       VbLine? best;
@@ -258,8 +311,15 @@ class VolleyballSummary extends StatelessWidget {
           fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
           fontFeatures: const [FontFeature.tabularFigures()],
         );
-    Widget c(String v, {double w = 40, bool bold = false, Color? color, TextAlign align = TextAlign.right}) =>
-        SizedBox(width: w, child: Text(v, textAlign: align, style: cell(bold: bold, color: color)));
+    Widget c(String v,
+            {double w = 40,
+            bool bold = false,
+            Color? color,
+            TextAlign align = TextAlign.right}) =>
+        SizedBox(
+            width: w,
+            child: Text(v,
+                textAlign: align, style: cell(bold: bold, color: color)));
 
     final scores = [for (final t in game.teams) t.score]..sort((x, y) => y - x);
 
@@ -268,15 +328,25 @@ class VolleyballSummary extends StatelessWidget {
         GlassCard(
           child: Row(children: [
             SpIconTile(Icons.emoji_events_rounded,
-                bg: winner != null ? p.orangeTint : p.surface2, fg: winner != null ? p.orangeInk : p.muted),
+                bg: winner != null ? p.orangeTint : p.surface2,
+                fg: winner != null ? p.orangeInk : p.muted),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Final${vb.rules.bestOf > 1 ? ' · best of ${vb.rules.bestOf}' : ''}',
-                    style: TextStyle(color: p.muted, fontSize: 12)),
-                Text(winner != null ? '${winner.name} won ${scores.join('–')}' : 'Match summary',
-                    style: TextStyle(color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        'Final${vb.rules.bestOf > 1 ? ' · best of ${vb.rules.bestOf}' : ''}',
+                        style: TextStyle(color: p.muted, fontSize: 12)),
+                    Text(
+                        winner != null
+                            ? '${winner.name} won ${scores.join('–')}'
+                            : 'Match summary',
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800)),
+                  ]),
             ),
           ]),
         ),
@@ -286,7 +356,8 @@ class VolleyballSummary extends StatelessWidget {
         GlassCard(
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 c('TEAM', w: 120, color: p.muted, align: TextAlign.left),
                 for (final s in played) c('S${s.n}', color: p.muted),
@@ -297,11 +368,15 @@ class VolleyballSummary extends StatelessWidget {
                 Row(children: [
                   SizedBox(
                     width: 120,
-                    child: Text(t.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: cell(bold: true)),
+                    child: Text(t.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: cell(bold: true)),
                   ),
                   for (final s in played)
                     c('${s.points[t.teamId] ?? 0}',
-                        bold: s.winnerTeamId == t.teamId, color: s.winnerTeamId == t.teamId ? null : p.muted),
+                        bold: s.winnerTeamId == t.teamId,
+                        color: s.winnerTeamId == t.teamId ? null : p.muted),
                   c('${vb.setsWon[t.teamId] ?? 0}', w: 48, bold: true),
                 ]),
               ],
@@ -317,18 +392,28 @@ class VolleyballSummary extends StatelessWidget {
               width: (MediaQuery.sizeOf(context).width - 48) / 2,
               child: GlassCard(
                 padding: const EdgeInsets.all(12),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(x.$1.toUpperCase(), style: TextStyle(color: p.muted, fontSize: 10, fontWeight: FontWeight.w800)),
-                  Text('${x.$3(x.$2!)}', style: TextStyle(color: p.ink, fontSize: 22, fontWeight: FontWeight.w800)),
-                  Text(
-                    names[x.$2!.playerId] != null
-                        ? '${_jn(names[x.$2!.playerId]!.jersey)}${names[x.$2!.playerId]!.displayName}'
-                        : 'Player',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: p.muted, fontSize: 11.5),
-                  ),
-                ]),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(x.$1.toUpperCase(),
+                          style: TextStyle(
+                              color: p.muted,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800)),
+                      Text('${x.$3(x.$2!)}',
+                          style: TextStyle(
+                              color: p.ink,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800)),
+                      Text(
+                        names[x.$2!.playerId] != null
+                            ? '${_jn(names[x.$2!.playerId]!.jersey)}${names[x.$2!.playerId]!.displayName}'
+                            : 'Player',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: p.muted, fontSize: 11.5),
+                      ),
+                    ]),
               ),
             ),
         ]),
@@ -336,78 +421,118 @@ class VolleyballSummary extends StatelessWidget {
       ],
       for (final t in game.teams) ...[
         Builder(builder: (context) {
-          final rows = [for (final l in vb.boxPlayers) if (l.teamId == t.teamId) l]
-            ..sort((x, y) => y.pts != x.pts ? y.pts - x.pts : y.kills - x.kills);
+          final rows = [
+            for (final l in vb.boxPlayers)
+              if (l.teamId == t.teamId) l
+          ]..sort((x, y) => y.pts != x.pts ? y.pts - x.pts : y.kills - x.kills);
           if (rows.isEmpty) return const SizedBox.shrink();
           final tot = vb.boxTeams[t.teamId];
-          const heads = ['PTS', 'K', 'AE', 'ACE', 'SE', 'BLK', 'DIG', 'AST', 'RE', 'F'];
+          const heads = [
+            'PTS',
+            'K',
+            'AE',
+            'ACE',
+            'SE',
+            'BLK',
+            'DIG',
+            'AST',
+            'RE',
+            'F'
+          ];
           const errCols = {2, 4, 8, 9};
           List<int> vals(VbLine l) => [
-                l.pts, l.kills, l.attackErrors, l.aces, l.serviceErrors,
-                l.blocks, l.digs, l.assists, l.receptionErrors, l.faults,
+                l.pts,
+                l.kills,
+                l.attackErrors,
+                l.aces,
+                l.serviceErrors,
+                l.blocks,
+                l.digs,
+                l.assists,
+                l.receptionErrors,
+                l.faults,
               ];
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: GlassCard(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(color: _teamColor(t.color), borderRadius: BorderRadius.circular(4)),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(t.name, style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w800)),
-                  ),
-                  Text('Stat sheet', style: TextStyle(color: p.muted, fontSize: 11)),
-                ]),
-                const SizedBox(height: 8),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Row(children: [
-                      c('PLAYER', w: 130, color: p.muted, align: TextAlign.left),
-                      for (final h in heads) c(h, color: p.muted),
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                            color: _teamColor(t.color),
+                            borderRadius: BorderRadius.circular(4)),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(t.name,
+                            style: TextStyle(
+                                color: p.ink,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800)),
+                      ),
+                      Text('Stat sheet',
+                          style: TextStyle(color: p.muted, fontSize: 11)),
                     ]),
-                    for (final l in rows) ...[
-                      const Divider(height: 10),
-                      Row(children: [
-                        SizedBox(
-                          width: 130,
-                          child: Text(
-                            names[l.playerId] != null
-                                ? '${_jn(names[l.playerId]!.jersey)}${names[l.playerId]!.displayName}'
-                                : 'Player',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: cell(bold: true),
-                          ),
-                        ),
-                        for (var i = 0; i < heads.length; i++)
-                          c('${vals(l)[i]}',
-                              bold: i == 0,
-                              color: errCols.contains(i) && vals(l)[i] > 0 ? p.danger : null),
-                      ]),
-                    ],
+                    const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              c('PLAYER',
+                                  w: 130,
+                                  color: p.muted,
+                                  align: TextAlign.left),
+                              for (final h in heads) c(h, color: p.muted),
+                            ]),
+                            for (final l in rows) ...[
+                              const Divider(height: 10),
+                              Row(children: [
+                                SizedBox(
+                                  width: 130,
+                                  child: Text(
+                                    names[l.playerId] != null
+                                        ? '${_jn(names[l.playerId]!.jersey)}${names[l.playerId]!.displayName}'
+                                        : 'Player',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: cell(bold: true),
+                                  ),
+                                ),
+                                for (var i = 0; i < heads.length; i++)
+                                  c('${vals(l)[i]}',
+                                      bold: i == 0,
+                                      color:
+                                          errCols.contains(i) && vals(l)[i] > 0
+                                              ? p.danger
+                                              : null),
+                              ]),
+                            ],
+                            if (tot != null) ...[
+                              const Divider(height: 12, thickness: 1.5),
+                              Row(children: [
+                                c('Team',
+                                    w: 130, bold: true, align: TextAlign.left),
+                                for (var i = 0; i < heads.length; i++)
+                                  c('${vals(tot)[i]}', bold: true),
+                              ]),
+                            ],
+                          ]),
+                    ),
                     if (tot != null) ...[
-                      const Divider(height: 12, thickness: 1.5),
-                      Row(children: [
-                        c('Team', w: 130, bold: true, align: TextAlign.left),
-                        for (var i = 0; i < heads.length; i++) c('${vals(tot)[i]}', bold: true),
-                      ]),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Points won ${tot.kills + tot.aces + tot.blocks} (kills, aces, blocks) · '
+                        'errors given away ${tot.errors}',
+                        style: TextStyle(color: p.muted, fontSize: 11),
+                      ),
                     ],
                   ]),
-                ),
-                if (tot != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'Points won ${tot.kills + tot.aces + tot.blocks} (kills, aces, blocks) · '
-                    'errors given away ${tot.errors}',
-                    style: TextStyle(color: p.muted, fontSize: 11),
-                  ),
-                ],
-              ]),
             ),
           );
         }),
@@ -420,36 +545,55 @@ class VolleyballSummary extends StatelessWidget {
 
 /// How a volleyball match is played: one set, best of 3 or best of 5.
 class VolleyballFormatFields extends StatelessWidget {
-  const VolleyballFormatFields({super.key, required this.value, required this.onChanged});
+  const VolleyballFormatFields(
+      {super.key, required this.value, required this.onChanged});
   final VolleyballRules value;
   final ValueChanged<VolleyballRules> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    Widget field(String label, int v, int min, int max, ValueChanged<int> set, {String? hint}) => Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: TextStyle(color: p.muted, fontSize: 11.5, fontWeight: FontWeight.w600)),
+    Widget field(String label, int v, int min, int max, ValueChanged<int> set,
+            {String? hint}) =>
+        Expanded(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label,
+                style: TextStyle(
+                    color: p.muted,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
             Row(children: [
-              _StepBtn(icon: Icons.remove_rounded, onTap: v > min ? () => set(v - 1) : null),
+              _StepBtn(
+                  icon: Icons.remove_rounded,
+                  onTap: v > min ? () => set(v - 1) : null),
               Expanded(
                 child: Text('$v',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
+                    style: TextStyle(
+                        color: p.ink,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800)),
               ),
-              _StepBtn(icon: Icons.add_rounded, onTap: v < max ? () => set(v + 1) : null),
+              _StepBtn(
+                  icon: Icons.add_rounded,
+                  onTap: v < max ? () => set(v + 1) : null),
             ]),
-            if (hint != null) Text(hint, style: TextStyle(color: p.muted, fontSize: 10.5)),
+            if (hint != null)
+              Text(hint, style: TextStyle(color: p.muted, fontSize: 10.5)),
           ]),
         );
     const bests = [1, 3, 5];
     final multi = value.bestOf > 1;
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: p.surface2, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+          color: p.surface2, borderRadius: BorderRadius.circular(16)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Text('🏐 Match format', style: TextStyle(color: p.ink, fontSize: 13, fontWeight: FontWeight.w800)),
+        Text('🏐 Match format',
+            style: TextStyle(
+                color: p.ink, fontSize: 13, fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
         SpSegmented(
           options: const ['1 set', 'Best of 3', 'Best of 5'],
@@ -458,7 +602,8 @@ class VolleyballFormatFields extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Row(children: [
-          field('Points per set', value.setPoints, 5, 50, (n) => onChanged(value.copyWith(setPoints: n)),
+          field('Points per set', value.setPoints, 5, 50,
+              (n) => onChanged(value.copyWith(setPoints: n)),
               hint: 'Indoor 25 · beach 21'),
           const SizedBox(width: 12),
           if (multi)
@@ -466,15 +611,18 @@ class VolleyballFormatFields extends StatelessWidget {
                 (n) => onChanged(value.copyWith(decidingSetPoints: n)),
                 hint: 'Set ${value.bestOf}')
           else
-            field('Win by', value.winBy, 1, 5, (n) => onChanged(value.copyWith(winBy: n))),
+            field('Win by', value.winBy, 1, 5,
+                (n) => onChanged(value.copyWith(winBy: n))),
         ]),
         const SizedBox(height: 10),
         Row(children: [
           if (multi) ...[
-            field('Win by', value.winBy, 1, 5, (n) => onChanged(value.copyWith(winBy: n))),
+            field('Win by', value.winBy, 1, 5,
+                (n) => onChanged(value.copyWith(winBy: n))),
             const SizedBox(width: 12),
           ],
-          field('Timeouts per set', value.timeoutsPerSet, 0, 5, (n) => onChanged(value.copyWith(timeoutsPerSet: n)),
+          field('Timeouts per set', value.timeoutsPerSet, 0, 5,
+              (n) => onChanged(value.copyWith(timeoutsPerSet: n)),
               hint: 'Per team · 30 s each'),
         ]),
         const SizedBox(height: 8),

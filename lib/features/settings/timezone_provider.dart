@@ -64,7 +64,8 @@ class TimezoneController extends Notifier<TimezonePref> {
 
   /// Load the setting; on automatic, report the device's zone if the profile
   /// has a different one. Best-effort — offline keeps the last known state.
-  Future<void> sync() => _syncing ??= _sync().whenComplete(() => _syncing = null);
+  Future<void> sync() =>
+      _syncing ??= _sync().whenComplete(() => _syncing = null);
 
   Future<void> _sync() async {
     final device = await refreshDeviceTimezone();

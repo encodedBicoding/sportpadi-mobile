@@ -99,7 +99,9 @@ class _Square extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             boxShadow: const [
               BoxShadow(
-                  color: Color(0x1F000000), blurRadius: 3, offset: Offset(0, 1)),
+                  color: Color(0x1F000000),
+                  blurRadius: 3,
+                  offset: Offset(0, 1)),
             ],
           ),
           padding: const EdgeInsets.all(6),

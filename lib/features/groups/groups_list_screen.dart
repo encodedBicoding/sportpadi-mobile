@@ -5,11 +5,13 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/groups/group_models.dart';
 import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
+import 'package:sportpadi_mobile/features/groups/group_invitations.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart' show SideMenuButton;
+import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart'
+    show SideMenuButton;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
@@ -23,7 +25,39 @@ class GroupsListScreen extends ConsumerStatefulWidget {
 
 class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
   String _query = '';
-  int _tab = 0; // 0 = mine, 1 = discover
+  int _tab = 0; // 0 = mine, 1 = discover, 2 = invites
+  final _scroll = ScrollController();
+  final _invites = GlobalKey<InvitationsTabState>();
+
+  @override
+  void initState() {
+    super.initState();
+    // Invites page as you scroll.
+    _scroll.addListener(_maybeMoreInvites);
+    // Opened from a "You've been invited" notification → Invites.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _takeTabRequest());
+  }
+
+  /// Near the end of the list (or it doesn't fill the screen yet): the next
+  /// page of invitations.
+  void _maybeMoreInvites() {
+    if (_tab != 2 || !_scroll.hasClients) return;
+    if (_scroll.position.extentAfter < 500) _invites.currentState?.loadMore();
+  }
+
+  void _takeTabRequest() {
+    if (!mounted) return;
+    final want = ref.read(groupsTabRequestProvider);
+    if (want == null) return;
+    ref.read(groupsTabRequestProvider.notifier).state = null;
+    setState(() => _tab = want);
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   bool _match(GroupSummary g) {
     final q = _query.trim().toLowerCase();
@@ -36,6 +70,8 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
     await Future.wait([
       ref.refresh(myGroupsProvider.future),
       ref.refresh(discoverGroupsProvider.future),
+      ref.refresh(groupInvitationCountProvider.future),
+      if (_invites.currentState != null) _invites.currentState!.reload(),
     ]);
   }
 
@@ -43,6 +79,13 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
   Widget build(BuildContext context) {
     final mine = ref.watch(myGroupsProvider);
     final discover = ref.watch(discoverGroupsProvider);
+    final inviteCount = ref.watch(groupInvitationCountProvider).valueOrNull ?? 0;
+    ref.listen<int?>(groupsTabRequestProvider, (_, next) {
+      // After this frame: never change a provider while it's notifying.
+      if (next != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _takeTabRequest());
+      }
+    });
     final p = context.palette;
     final dark = Theme.of(context).brightness == Brightness.dark;
 
@@ -64,6 +107,8 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
                   .toList();
 
               return ListView(
+                controller: _scroll,
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
                 children: [
                   // Tab title, New, and the side menu (this tab has no app bar).
@@ -138,12 +183,19 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
                       discover.hasValue
                           ? 'Discover · ${discoverList.length}'
                           : 'Discover',
+                      'Invites',
                     ],
+                    // Invitations waiting, on the Invites tab.
+                    badges: [null, null, inviteCount],
                     index: _tab,
                     onChanged: (i) => setState(() => _tab = i),
                   ),
                   const SizedBox(height: 14),
-                  if (_tab == 0) ...[
+                  if (_tab == 2) ...[
+                    // Invitations group admins sent me — what they are, and
+                    // accept / decline each (pages as you scroll).
+                    InvitationsTab(key: _invites, onLoaded: _maybeMoreInvites),
+                  ] else if (_tab == 0) ...[
                     if (myFiltered.isEmpty)
                       _EmptyBox(
                         icon: Icons.groups_outlined,
@@ -390,39 +442,37 @@ class _GroupTile extends StatelessWidget {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: [
-                    Flexible(
-                      child: Text(g.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: p.ink,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700)),
-                    ),
-                    if (_verified(g)) ...[
-                      const SizedBox(width: 3),
-                      const VerifiedBadge(size: 15),
-                    ],
-                  ]),
-                  if ((g.description ?? '').isNotEmpty)
-                    Text(g.description!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: p.muted, fontSize: 11.5, height: 1.35)),
-                  const Spacer(),
-                  if (g.memberCount != null)
-                    Text(
-                        '${g.memberCount} member${g.memberCount == 1 ? '' : 's'}',
-                        style: TextStyle(
-                            color: p.greenText,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700)),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Flexible(
+                  child: Text(g.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
+                ),
+                if (_verified(g)) ...[
+                  const SizedBox(width: 3),
+                  const VerifiedBadge(size: 15),
+                ],
+              ]),
+              if ((g.description ?? '').isNotEmpty)
+                Text(g.description!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: p.muted, fontSize: 11.5, height: 1.35)),
+              const Spacer(),
+              if (g.memberCount != null)
+                Text('${g.memberCount} member${g.memberCount == 1 ? '' : 's'}',
+                    style: TextStyle(
+                        color: p.greenText,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700)),
+            ]),
           ),
         ),
       ]),
@@ -520,40 +570,40 @@ class _CreateGroupSheetState extends ConsumerState<_CreateGroupSheet> {
   Widget build(BuildContext context) {
     final p = context.palette;
     return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SpSheetHeader(
-              icon: Icons.groups_rounded,
-              title: 'Create a group',
-              subtitle: 'Start a new group to organise events and members.',
-            ),
-            TextField(
-              controller: _name,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Name'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _desc,
-              maxLines: 3,
-              minLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Description (optional)',
-                alignLabelWithHint: true,
-              ),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 10),
-              Text(_error!, style: TextStyle(color: p.danger, fontSize: 12.5)),
-            ],
-            const SizedBox(height: 18),
-            SpButton(
-              label: _busy ? 'Creating…' : 'Create group',
-              expand: true,
-              onTap: _busy ? null : _submit,
-            ),
-          ],
-        );
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SpSheetHeader(
+          icon: Icons.groups_rounded,
+          title: 'Create a group',
+          subtitle: 'Start a new group to organise events and members.',
+        ),
+        TextField(
+          controller: _name,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(labelText: 'Name'),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _desc,
+          maxLines: 3,
+          minLines: 2,
+          decoration: const InputDecoration(
+            labelText: 'Description (optional)',
+            alignLabelWithHint: true,
+          ),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 10),
+          Text(_error!, style: TextStyle(color: p.danger, fontSize: 12.5)),
+        ],
+        const SizedBox(height: 18),
+        SpButton(
+          label: _busy ? 'Creating…' : 'Create group',
+          expand: true,
+          onTap: _busy ? null : _submit,
+        ),
+      ],
+    );
   }
 }

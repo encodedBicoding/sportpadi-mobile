@@ -174,7 +174,8 @@ class _PushNotificationsCardState extends ConsumerState<PushNotificationsCard>
           SizedBox(width: 24, child: Center(child: leading)),
           const SizedBox(width: 10),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Push notifications',
                   style: TextStyle(
                       color: p.ink, fontSize: 14, fontWeight: FontWeight.w600)),
@@ -216,20 +217,29 @@ class _PushNotificationsCardState extends ConsumerState<PushNotificationsCard>
       null => 'Unknown — Firebase not initialised',
     };
 
-    Widget row(String label, String value, {required bool ok, Widget? trailing}) =>
+    Widget row(String label, String value,
+            {required bool ok, Widget? trailing}) =>
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Icon(ok ? Icons.check_circle_outline_rounded : Icons.error_outline_rounded,
-                size: 15, color: ok ? p.accent : p.danger),
+            Icon(
+                ok
+                    ? Icons.check_circle_outline_rounded
+                    : Icons.error_outline_rounded,
+                size: 15,
+                color: ok ? p.accent : p.danger),
             const SizedBox(width: 8),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(label,
-                    style: TextStyle(
-                        color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w600)),
-                Text(value, style: TextStyle(color: p.muted, fontSize: 11)),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label,
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600)),
+                    Text(value, style: TextStyle(color: p.muted, fontSize: 11)),
+                  ]),
             ),
             if (trailing != null) trailing,
           ]),

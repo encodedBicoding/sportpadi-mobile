@@ -16,7 +16,8 @@ class AttentionRepository {
     try {
       final res = await _dio.get('/api/mobile/attention');
       return res.data is Map
-          ? AttentionSummary.fromJson(Map<String, dynamic>.from(res.data as Map))
+          ? AttentionSummary.fromJson(
+              Map<String, dynamic>.from(res.data as Map))
           : AttentionSummary.none;
     } catch (e) {
       throw apiError(e, fallback: "Couldn't load what's waiting for you.");

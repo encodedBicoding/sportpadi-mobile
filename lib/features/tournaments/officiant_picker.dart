@@ -107,8 +107,7 @@ class _OfficiantPickerState extends ConsumerState<OfficiantPicker> {
                   decoration: BoxDecoration(
                     color: p.accent.withAlpha(26),
                     borderRadius: BorderRadius.circular(999),
-                    border:
-                        Border.all(color: p.accent.withAlpha(77)),
+                    border: Border.all(color: p.accent.withAlpha(77)),
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     ConstrainedBox(
@@ -130,8 +129,8 @@ class _OfficiantPickerState extends ConsumerState<OfficiantPicker> {
                       ]),
                       child: Padding(
                         padding: const EdgeInsets.all(3),
-                        child: Icon(Icons.close_rounded,
-                            size: 14, color: p.muted),
+                        child:
+                            Icon(Icons.close_rounded, size: 14, color: p.muted),
                       ),
                     ),
                   ]),
@@ -195,15 +194,14 @@ class _OfficiantPickerState extends ConsumerState<OfficiantPicker> {
                           title: Text(u.displayName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style:
-                                  TextStyle(color: p.ink, fontSize: 13.5)),
+                              style: TextStyle(color: p.ink, fontSize: 13.5)),
                           subtitle: u.username != null
                               ? Text('@${u.username}',
-                                  style: TextStyle(
-                                      color: p.muted, fontSize: 11))
+                                  style:
+                                      TextStyle(color: p.muted, fontSize: 11))
                               : null,
-                          trailing: Icon(Icons.add_rounded,
-                              size: 18, color: p.muted),
+                          trailing:
+                              Icon(Icons.add_rounded, size: 18, color: p.muted),
                           onTap: () => _add(u),
                         ),
                     ],
@@ -268,8 +266,7 @@ class _AddOfficiantsSheetState extends ConsumerState<AddOfficiantsSheet> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
   }
 
@@ -277,32 +274,33 @@ class _AddOfficiantsSheetState extends ConsumerState<AddOfficiantsSheet> {
   Widget build(BuildContext context) {
     final n = _picked.length;
     return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SpSheetHeader(
-                icon: Icons.sports_rounded,
-                title: 'Add officiants',
-                subtitle: 'Ask anyone on SportPadi. Each person gets a request and can '
-                    'run the match once they accept — have as many as you need.',
-              ),
-              OfficiantPicker(
-                eventId: widget.eventId,
-                selected: _picked,
-                exclude: widget.exclude,
-                onChanged: (v) => setState(() => _picked = v),
-              ),
-              const SizedBox(height: 16),
-              SpButton(
-                label: _saving
-                    ? 'Sending…'
-                    : n == 0
-                        ? 'Send requests'
-                        : 'Send $n ${n == 1 ? 'request' : 'requests'}',
-                expand: true,
-                onTap: _saving || n == 0 ? null : _submit,
-              ),
-            ],
-          );
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SpSheetHeader(
+          icon: Icons.sports_rounded,
+          title: 'Add officiants',
+          subtitle:
+              'Ask anyone on SportPadi. Each person gets a request and can '
+              'run the match once they accept — have as many as you need.',
+        ),
+        OfficiantPicker(
+          eventId: widget.eventId,
+          selected: _picked,
+          exclude: widget.exclude,
+          onChanged: (v) => setState(() => _picked = v),
+        ),
+        const SizedBox(height: 16),
+        SpButton(
+          label: _saving
+              ? 'Sending…'
+              : n == 0
+                  ? 'Send requests'
+                  : 'Send $n ${n == 1 ? 'request' : 'requests'}',
+          expand: true,
+          onTap: _saving || n == 0 ? null : _submit,
+        ),
+      ],
+    );
   }
 }

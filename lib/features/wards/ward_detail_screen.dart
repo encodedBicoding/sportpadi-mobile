@@ -57,8 +57,7 @@ class WardDetailScreen extends ConsumerWidget {
               child: AsyncView(
                 value: data,
                 onRetry: () => ref.invalidate(wardDetailProvider(wardId)),
-                data: (d) =>
-                    _WardBody(key: ValueKey(d.ward.userId), detail: d),
+                data: (d) => _WardBody(key: ValueKey(d.ward.userId), detail: d),
               ),
             ),
           ),
@@ -197,8 +196,8 @@ class _WardBodyState extends ConsumerState<_WardBody> {
               child: const Text('Keep')),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text('Remove',
-                  style: TextStyle(color: ctx.palette.danger))),
+              child:
+                  Text('Remove', style: TextStyle(color: ctx.palette.danger))),
         ],
       ),
     );
@@ -276,62 +275,59 @@ class _WardBodyState extends ConsumerState<_WardBody> {
       onTap: () => context.push('/groups/${g.groupId}'),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(8, 10, 0, 10),
-        child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Crest(logoUrl: g.imageUrl, label: g.name, size: 40),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        Flexible(
-                          child: Text(g.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  color: p.ink,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700)),
-                        ),
-                        if (g.verified) ...[
-                          const SizedBox(width: 4),
-                          const VerifiedBadge(size: 14),
-                        ],
-                      ]),
-                      if (g.addedByName != null)
-                        Text('Added by ${g.addedByName}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: p.muted, fontSize: 12)),
-                      if (g.teams.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Wrap(spacing: 6, runSpacing: 6, children: [
-                          for (final t in g.teams)
-                            SpBadge(t.name,
-                                icon: Icons.shield_outlined, tone: p.wardInk),
-                        ]),
-                      ],
-                      // Message their coach / the admins "About <ward>"
-                      // (hidden when there's no one to message there).
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: WardGroupMessageButton(
-                          groupId: g.groupId,
-                          wardId: _wardId,
-                          wardName: _ward.firstName,
-                        ),
-                      ),
-                    ]),
-              ),
-              IconButton(
-                tooltip: 'Remove from group',
-                onPressed: _groupBusy ? null : () => _removeFromGroup(g),
-                icon: Icon(Icons.remove_circle_outline_rounded,
-                    size: 20, color: p.muted),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Crest(logoUrl: g.imageUrl, label: g.name, size: 40),
+          const SizedBox(width: 12),
+          Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Flexible(
+                  child: Text(g.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
+                ),
+                if (g.verified) ...[
+                  const SizedBox(width: 4),
+                  const VerifiedBadge(size: 14),
+                ],
+              ]),
+              if (g.addedByName != null)
+                Text('Added by ${g.addedByName}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: p.muted, fontSize: 12)),
+              if (g.teams.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Wrap(spacing: 6, runSpacing: 6, children: [
+                  for (final t in g.teams)
+                    SpBadge(t.name,
+                        icon: Icons.shield_outlined, tone: p.wardInk),
+                ]),
+              ],
+              // Message their coach / the admins "About <ward>"
+              // (hidden when there's no one to message there).
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: WardGroupMessageButton(
+                  groupId: g.groupId,
+                  wardId: _wardId,
+                  wardName: _ward.firstName,
+                ),
               ),
             ]),
+          ),
+          IconButton(
+            tooltip: 'Remove from group',
+            onPressed: _groupBusy ? null : () => _removeFromGroup(g),
+            icon: Icon(Icons.remove_circle_outline_rounded,
+                size: 20, color: p.muted),
+          ),
+        ]),
       ),
     );
   }
@@ -507,8 +503,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
           content: Text('$e'),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK')),
+                onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
           ],
         ),
       );
@@ -778,9 +773,8 @@ class _WardBodyState extends ConsumerState<_WardBody> {
               ),
               Switch(
                 value: _searchable,
-                onChanged: _privacyBusy
-                    ? null
-                    : (v) => _setPrivacy(searchable: v),
+                onChanged:
+                    _privacyBusy ? null : (v) => _setPrivacy(searchable: v),
               ),
             ]),
           ]),
@@ -791,7 +785,8 @@ class _WardBodyState extends ConsumerState<_WardBody> {
         SpSectionTitle('Guardians', count: d.active.length),
         const SizedBox(height: 10),
         SpListCard(children: [
-          for (final g in d.guardians) _guardianRow(p, g, isMe: g.userId == d.me),
+          for (final g in d.guardians)
+            _guardianRow(p, g, isMe: g.userId == d.me),
         ]),
         const SizedBox(height: 12),
         SpButton(
@@ -852,7 +847,8 @@ class _WardBodyState extends ConsumerState<_WardBody> {
         WardAvatar(name: g.displayName, url: g.avatarUrl, size: 40),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('${g.displayName}${isMe ? ' (you)' : ''}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -864,8 +860,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    color: g.isPending ? p.orangeInk : p.muted,
-                    fontSize: 12)),
+                    color: g.isPending ? p.orangeInk : p.muted, fontSize: 12)),
           ]),
         ),
         if (g.isPending)
@@ -978,8 +973,9 @@ class _DeleteWardDialogState extends State<_DeleteWardDialog> {
           child: const Text('Keep'),
         ),
         TextButton(
-          onPressed:
-              _matches ? () => Navigator.pop(context, _typed.text.trim()) : null,
+          onPressed: _matches
+              ? () => Navigator.pop(context, _typed.text.trim())
+              : null,
           child: Text('Delete',
               style: TextStyle(color: _matches ? p.danger : p.muted)),
         ),
@@ -1040,7 +1036,8 @@ class _InviteGuardianSheetState extends ConsumerState<_InviteGuardianSheet> {
         if (!mounted) return;
         setState(() => _results = [
               for (final r in res)
-                if (r.userId.isNotEmpty && !widget.excludeIds.contains(r.userId))
+                if (r.userId.isNotEmpty &&
+                    !widget.excludeIds.contains(r.userId))
                   r
             ]);
       } catch (_) {
@@ -1115,8 +1112,7 @@ class _InviteGuardianSheetState extends ConsumerState<_InviteGuardianSheet> {
                 _results = const [];
               }),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                 child: Row(children: [
                   WardAvatar(name: r.displayName, url: r.avatarUrl, size: 36),
                   const SizedBox(width: 12),
@@ -1133,8 +1129,7 @@ class _InviteGuardianSheetState extends ConsumerState<_InviteGuardianSheet> {
                                   fontWeight: FontWeight.w700)),
                           if (r.username.isNotEmpty)
                             Text('@${r.username}',
-                                style:
-                                    TextStyle(color: p.muted, fontSize: 12)),
+                                style: TextStyle(color: p.muted, fontSize: 12)),
                         ]),
                   ),
                   Icon(Icons.add_circle_outline_rounded, color: p.greenText),
@@ -1281,8 +1276,7 @@ class _AddToGroupSheet extends StatelessWidget {
                         ],
                       ]),
                     ),
-                    Icon(Icons.add_circle_outline_rounded,
-                        color: p.greenText),
+                    Icon(Icons.add_circle_outline_rounded, color: p.greenText),
                   ]),
                 ),
               ),

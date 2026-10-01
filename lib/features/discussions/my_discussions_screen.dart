@@ -261,7 +261,8 @@ class _MyDiscussionRow extends StatelessWidget {
                     ),
                   DiscussionFlairPill(d.flair),
                   if (d.isResolved) const DiscussionResolvedPill(),
-                  _Stat(icon: Icons.mode_comment_outlined, value: d.commentCount),
+                  _Stat(
+                      icon: Icons.mode_comment_outlined, value: d.commentCount),
                   _Stat(icon: Icons.arrow_upward_rounded, value: d.score),
                 ],
               ),

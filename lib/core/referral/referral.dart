@@ -9,7 +9,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// one and plays is recorded as brought by them (the server decides whether it
 /// counts — only brand-new players do).
 
-final _uuid = RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', caseSensitive: false);
+final _uuid = RegExp(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    caseSensitive: false);
 
 /// Add ?ref=<me>&k=<kind>&src=<id> to a share URL (unchanged when signed out).
 String withRef(String url, String? me, String kind, [String? sourceId]) {
@@ -82,5 +84,5 @@ class ReferralStore {
   }
 }
 
-final referralStoreProvider = Provider<ReferralStore>((_) => ReferralStore(const FlutterSecureStorage()));
-
+final referralStoreProvider =
+    Provider<ReferralStore>((_) => ReferralStore(const FlutterSecureStorage()));

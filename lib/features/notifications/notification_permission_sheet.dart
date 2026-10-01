@@ -79,49 +79,48 @@ class NotificationPermissionSheet extends ConsumerWidget {
         );
 
     return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Icon(Icons.notifications_active_rounded, size: 40, color: p.accent),
-            const SizedBox(height: 10),
-            Text(settings ? 'Notifications are off' : 'Stay in the loop',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: p.ink, fontSize: 19, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 6),
-            Text(
-              settings
-                  ? 'This device has notifications switched off for SportPadi, '
-                      'so game reminders and updates can\'t reach you here. '
-                      'Allow them in Settings to turn that on.'
-                  : 'Turn on notifications so you never miss a game. You can change this any time in Settings.',
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Icon(Icons.notifications_active_rounded, size: 40, color: p.accent),
+          const SizedBox(height: 10),
+          Text(settings ? 'Notifications are off' : 'Stay in the loop',
               textAlign: TextAlign.center,
-              style: TextStyle(color: p.muted, fontSize: 13, height: 1.4),
-            ),
-            const SizedBox(height: 18),
-            row(Icons.sports_soccer_rounded, 'Game reminders',
-                'Kick-off times, venue changes and cancellations for events you\'re in.'),
-            row(Icons.groups_rounded, 'Team assignments',
-                'Find out which side you\'re on the moment teams are set.'),
-            row(Icons.confirmation_number_rounded, 'Tickets & payments',
-                'Purchase confirmations, refunds and check-in updates.'),
-            row(Icons.account_balance_wallet_rounded, 'Group admin alerts',
-                'Withdrawal approvals and new followers for groups you run.'),
-            const SizedBox(height: 6),
-            SpButton(
-              label: settings ? 'Open Settings' : 'Turn on notifications',
-              icon: settings
-                  ? Icons.settings_rounded
-                  : Icons.notifications_rounded,
-              expand: true,
-              onTap: () => Navigator.pop(context, true),
-            ),
-            const SizedBox(height: 6),
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text('Not now', style: TextStyle(color: p.muted)),
-            ),
-          ]);
+              style: TextStyle(
+                  color: p.ink, fontSize: 19, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          Text(
+            settings
+                ? 'This device has notifications switched off for SportPadi, '
+                    'so game reminders and updates can\'t reach you here. '
+                    'Allow them in Settings to turn that on.'
+                : 'Turn on notifications so you never miss a game. You can change this any time in Settings.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: p.muted, fontSize: 13, height: 1.4),
+          ),
+          const SizedBox(height: 18),
+          row(Icons.sports_soccer_rounded, 'Game reminders',
+              'Kick-off times, venue changes and cancellations for events you\'re in.'),
+          row(Icons.groups_rounded, 'Team assignments',
+              'Find out which side you\'re on the moment teams are set.'),
+          row(Icons.confirmation_number_rounded, 'Tickets & payments',
+              'Purchase confirmations, refunds and check-in updates.'),
+          row(Icons.account_balance_wallet_rounded, 'Group admin alerts',
+              'Withdrawal approvals and new followers for groups you run.'),
+          const SizedBox(height: 6),
+          SpButton(
+            label: settings ? 'Open Settings' : 'Turn on notifications',
+            icon:
+                settings ? Icons.settings_rounded : Icons.notifications_rounded,
+            expand: true,
+            onTap: () => Navigator.pop(context, true),
+          ),
+          const SizedBox(height: 6),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Not now', style: TextStyle(color: p.muted)),
+          ),
+        ]);
   }
 }
 
@@ -158,21 +157,20 @@ class NotificationsOffBanner extends ConsumerWidget {
               bg: p.orangeTint, fg: p.orangeInk),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Push notifications are off',
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700)),
-                  Text(
-                    notAsked
-                        ? 'Turn them on for game reminders and updates.'
-                        : 'Allow SportPadi in your device settings for game reminders and updates.',
-                    style: TextStyle(color: p.muted, fontSize: 12, height: 1.35),
-                  ),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Push notifications are off',
+                  style: TextStyle(
+                      color: p.ink,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700)),
+              Text(
+                notAsked
+                    ? 'Turn them on for game reminders and updates.'
+                    : 'Allow SportPadi in your device settings for game reminders and updates.',
+                style: TextStyle(color: p.muted, fontSize: 12, height: 1.35),
+              ),
+            ]),
           ),
           const SizedBox(width: 8),
           Material(

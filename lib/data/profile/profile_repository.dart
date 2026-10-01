@@ -44,11 +44,15 @@ class ProfileRepository {
   }
 
   /// Change who sees my profile and/or whether search finds me.
-  Future<void> setMyPrivacy({String? visibility, bool? searchable}) async {
+  /// [profilePrivate]: everyone but supervised players — make the public
+  /// profile private (or public again).
+  Future<void> setMyPrivacy(
+      {String? visibility, bool? searchable, bool? profilePrivate}) async {
     try {
       await _dio.post('/api/mobile/me/privacy', data: {
         if (visibility != null) 'visibility': visibility,
         if (searchable != null) 'searchable': searchable,
+        if (profilePrivate != null) 'profilePrivate': profilePrivate,
       });
     } catch (e) {
       throw apiError(e, fallback: 'Could not save your privacy settings.');

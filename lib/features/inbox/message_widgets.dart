@@ -167,9 +167,8 @@ class ConversationRow extends StatelessWidget {
                           text: preview.isEmpty ? 'Photo' : preview,
                           style: TextStyle(
                               color: unread ? p.ink : p.muted,
-                              fontWeight: unread
-                                  ? FontWeight.w700
-                                  : FontWeight.w400)),
+                              fontWeight:
+                                  unread ? FontWeight.w700 : FontWeight.w400)),
                     ]),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -181,8 +180,8 @@ class ConversationRow extends StatelessWidget {
                   Container(
                     width: 10,
                     height: 10,
-                    decoration: BoxDecoration(
-                        color: p.accent, shape: BoxShape.circle),
+                    decoration:
+                        BoxDecoration(color: p.accent, shape: BoxShape.circle),
                   ),
                 ],
               ]),
@@ -259,8 +258,7 @@ class PendingImagesStrip extends StatelessWidget {
                   onTap: () => onRemove(a),
                   child: Padding(
                     padding: const EdgeInsets.all(3),
-                    child: Icon(Icons.close_rounded,
-                        size: 14, color: p.onHero),
+                    child: Icon(Icons.close_rounded, size: 14, color: p.onHero),
                   ),
                 ),
               ),
@@ -291,8 +289,8 @@ class LinkifiedText extends ConsumerStatefulWidget {
 }
 
 class _LinkifiedTextState extends ConsumerState<LinkifiedText> {
-  static final _url = RegExp(r'''(https?://|www\.)[^\s<>"']+''',
-      caseSensitive: false);
+  static final _url =
+      RegExp(r'''(https?://|www\.)[^\s<>"']+''', caseSensitive: false);
   static const _trailing = '.,;:!?)]}';
   final List<TapGestureRecognizer> _recognizers = [];
 

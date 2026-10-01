@@ -161,8 +161,7 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
       for (final s in RecordScope.values) s: gamesOf(tallyOf(cat, s)),
     };
     // A scope that has emptied (after a refresh) falls back to All.
-    final scope =
-        (counts[_scope] ?? 0) > 0 ? _scope : RecordScope.all;
+    final scope = (counts[_scope] ?? 0) > 0 ? _scope : RecordScope.all;
     final tally = tallyOf(cat, scope);
     final recent = recentOf(cat, scope);
     final rawFields = listOf(cat['fields']);
@@ -173,9 +172,8 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
         if (parseStr(t['categoryId']) == catId) t
     ];
 
-    final me = isMe
-        ? ref.watch(authControllerProvider).valueOrNull?.user
-        : null;
+    final me =
+        isMe ? ref.watch(authControllerProvider).valueOrNull?.user : null;
     final playerName =
         parseStr(profile['displayName']) ?? parseStr(me?.name) ?? 'Player';
     final avatarUrl = parseStr(profile['avatarUrl']) ?? me?.image;

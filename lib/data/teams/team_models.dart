@@ -156,7 +156,10 @@ class FormationConfig {
     if (j == null) return const FormationConfig();
     final rawForms = j['formations'];
     final forms = rawForms is List
-        ? [for (final e in rawForms) if (e is Map) _def(Map<String, dynamic>.from(e))]
+        ? [
+            for (final e in rawForms)
+              if (e is Map) _def(Map<String, dynamic>.from(e))
+          ]
         : <FormationDef>[];
     final def = j['defaultFormation'];
     return FormationConfig(
@@ -201,7 +204,8 @@ class TeamMember {
   /// A ward (a player run by a guardian).
   final bool isWard;
 
-  factory TeamMember.fromJson(Map<String, dynamic> j, {String? captainPlayerId}) {
+  factory TeamMember.fromJson(Map<String, dynamic> j,
+      {String? captainPlayerId}) {
     final pid = (j['playerId'] ?? '') as String;
     final positions = parseStrList(j['positions']);
     final pos = parseStr(j['position']);
@@ -212,7 +216,8 @@ class TeamMember {
       username: parseStr(j['username']),
       avatarUrl: parseStr(j['avatarUrl']),
       jerseyNumber: parseInt(j['jerseyNumber']),
-      positions: positions.isNotEmpty ? positions : (pos != null ? [pos] : const []),
+      positions:
+          positions.isNotEmpty ? positions : (pos != null ? [pos] : const []),
       isStarter: j['isStarter'] == true,
       isCaptain: captainPlayerId != null && pid == captainPlayerId,
       posX: parseDouble(j['posX']),
@@ -265,7 +270,8 @@ class TeamDetail {
     final members = rawMembers is List
         ? [
             for (final e in rawMembers)
-              TeamMember.fromJson(Map<String, dynamic>.from(e as Map), captainPlayerId: captain),
+              TeamMember.fromJson(Map<String, dynamic>.from(e as Map),
+                  captainPlayerId: captain),
           ]
         : <TeamMember>[];
     members.sort((a, b) {
@@ -389,9 +395,8 @@ class TeamStats {
   factory TeamStats.fromJson(Map<String, dynamic> j) {
     final rec = j['record'] is Map ? j['record'] as Map : const {};
     final raw = j['players'];
-    final stats = raw is Map && raw['stats'] is Map
-        ? raw['stats'] as Map
-        : const {};
+    final stats =
+        raw is Map && raw['stats'] is Map ? raw['stats'] as Map : const {};
     final players = <String, Map<String, int>>{};
     stats.forEach((k, v) {
       if (v is Map) {

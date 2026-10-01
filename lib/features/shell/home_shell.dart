@@ -32,6 +32,8 @@ import 'package:sportpadi_mobile/features/profile/profile_screen.dart';
 import 'package:sportpadi_mobile/features/tournaments/my_tournaments_screen.dart';
 import 'package:sportpadi_mobile/core/referral/referral.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
+import 'package:sportpadi_mobile/data/groups/groups_repository.dart'
+    show groupInvitationCountProvider;
 
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
@@ -103,7 +105,8 @@ class _HomeShellState extends ConsumerState<HomeShell>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Back from Settings (or anywhere): pick up a permission change and
     // register the device if notifications were just turned on.
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
       _awaySince ??= DateTime.now();
     }
     if (state == AppLifecycleState.resumed) {
@@ -123,6 +126,8 @@ class _HomeShellState extends ConsumerState<HomeShell>
       ref.invalidate(messagesUnreadProvider);
       // And the side-menu button's dot (everything waiting, in one call).
       ref.invalidate(attentionProvider);
+      // Group invitations that arrived while away (Groups tab list).
+      ref.invalidate(groupInvitationCountProvider);
       // Crossed a border while away? Re-read the phone's zone.
       // ignore: discarded_futures
       ref.read(timezoneControllerProvider.notifier).sync();
@@ -224,7 +229,13 @@ class _HomeShellState extends ConsumerState<HomeShell>
         ref.invalidate(messagesUnreadProvider);
         ref.invalidate(attentionProvider);
       }
-      const names = ['/tab/home', '/tab/browse', '/tab/groups', '/tab/tournaments', '/tab/profile'];
+      const names = [
+        '/tab/home',
+        '/tab/browse',
+        '/tab/groups',
+        '/tab/tournaments',
+        '/tab/profile'
+      ];
       if (next >= 0 && next < names.length) {
         ref.read(analyticsServiceProvider).logScreen(names[next]);
       }
@@ -242,7 +253,6 @@ class _HomeShellState extends ConsumerState<HomeShell>
   }
 }
 
-
 /// The app's bottom bar: the floating dock on the page canvas, then the
 /// anchored ad strip under it (it collapses to nothing until an ad loads).
 /// The system inset goes under the ad, not between the dock and the ad.
@@ -250,7 +260,8 @@ class _HomeShellState extends ConsumerState<HomeShell>
 /// Used by the shell, and by pushed screens that should keep the dock in
 /// reach (the group page) — those pass [onSelect] to jump back to a tab.
 class ShellBottomBar extends ConsumerWidget {
-  const ShellBottomBar({super.key, required this.index, required this.onSelect});
+  const ShellBottomBar(
+      {super.key, required this.index, required this.onSelect});
   final int index;
   final ValueChanged<int> onSelect;
 

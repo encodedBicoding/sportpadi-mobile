@@ -145,11 +145,9 @@ class _SideMenu extends ConsumerWidget {
             ),
             if (badge != null && badge > 0)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
-                    color: p.danger,
-                    borderRadius: BorderRadius.circular(999)),
+                    color: p.danger, borderRadius: BorderRadius.circular(999)),
                 child: Text(badge > 99 ? '99+' : '$badge',
                     style: const TextStyle(
                         color: Colors.white,
@@ -214,7 +212,8 @@ class _SideMenu extends ConsumerWidget {
         child: SizedBox(
           width: width * 0.86 > 320 ? 320 : width * 0.86,
           height: double.infinity,
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -359,8 +358,7 @@ class _SideMenu extends ConsumerWidget {
                     child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.logout_rounded,
-                              size: 18, color: p.danger),
+                          Icon(Icons.logout_rounded, size: 18, color: p.danger),
                           const SizedBox(width: 8),
                           Text('Sign out',
                               style: TextStyle(
@@ -437,7 +435,8 @@ class SideMenuAttentionCount extends ConsumerWidget {
     final p = context.palette;
     final urgent = a?.urgent ?? false;
     return Semantics(
-      label: urgent ? 'Something urgent in the menu' : 'Something new in the menu',
+      label:
+          urgent ? 'Something urgent in the menu' : 'Something new in the menu',
       excludeSemantics: true,
       child: Container(
         width: 10,
@@ -472,11 +471,15 @@ class NotificationBell extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
             constraints: const BoxConstraints(minWidth: 15),
-            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(999)),
+            decoration: BoxDecoration(
+                color: color, borderRadius: BorderRadius.circular(999)),
             child: Text(
               count > 99 ? '99+' : '$count',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700),
             ),
           ),
         ),

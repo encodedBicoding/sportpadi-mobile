@@ -20,7 +20,11 @@ class BaseballRecord extends StatelessWidget {
       ('L', '${nums.losses}', p.ink),
       if (nums.draws > 0) ('T', '${nums.draws}', p.ink),
       ('PCT', baseballPct(nums.wins, nums.games), p.ink),
-      ('STRK', streak ?? '—', streak == null ? p.muted : streakColor(p, streak!)),
+      (
+        'STRK',
+        streak ?? '—',
+        streak == null ? p.muted : streakColor(p, streak!)
+      ),
     ];
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Container(

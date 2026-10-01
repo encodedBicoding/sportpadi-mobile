@@ -4,8 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 /// Open the provider's hosted checkout in the browser, then wait for the user
 /// to come back and confirm. Returns true when they tapped "I've paid".
 Future<bool> runHostedCheckout(BuildContext context, String url) async {
-  final ok = await launchUrl(Uri.parse(url),
-      mode: LaunchMode.externalApplication);
+  final ok =
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   if (!ok) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

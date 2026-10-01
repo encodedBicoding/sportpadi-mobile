@@ -147,9 +147,8 @@ class _TimezonePickerSheetState extends State<_TimezonePickerSheet> {
     final p = context.palette;
     final device = widget.device;
     final auto = widget.current == null;
-    final list = _q.isEmpty
-        ? _all
-        : _all.where((z) => _norm(z).contains(_q)).toList();
+    final list =
+        _q.isEmpty ? _all : _all.where((z) => _norm(z).contains(_q)).toList();
     return Column(children: [
       const Padding(
         padding: EdgeInsets.symmetric(horizontal: 20),
@@ -175,8 +174,7 @@ class _TimezonePickerSheetState extends State<_TimezonePickerSheet> {
           ),
           subtitle: Text('Follows your phone, including when you travel.',
               style: TextStyle(color: p.muted, fontSize: 12)),
-          trailing:
-              auto ? Icon(Icons.check_rounded, color: p.greenText) : null,
+          trailing: auto ? Icon(Icons.check_rounded, color: p.greenText) : null,
           onTap: () => Navigator.of(context).pop(_automatic),
         ),
       ),

@@ -208,8 +208,7 @@ class AnnouncementsRepository {
         "Couldn't change the setting.");
   }
 
-  Future<void> setPreference(String category,
-      {bool? push, bool? email}) async {
+  Future<void> setPreference(String category, {bool? push, bool? email}) async {
     await _post({
       'action': 'preference',
       'category': category,
@@ -281,8 +280,7 @@ class AnnouncementsInboxController
     final now = DateTime.now();
     state = AsyncData(AnnouncementPage(
       items: [
-        for (final a in current.items)
-          a.isUnread ? a.copyWith(seenAt: now) : a
+        for (final a in current.items) a.isUnread ? a.copyWith(seenAt: now) : a
       ],
       nextCursor: current.nextCursor,
     ));

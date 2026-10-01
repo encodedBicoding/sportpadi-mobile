@@ -9,7 +9,8 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/billing/iap_repository.dart';
-import 'package:sportpadi_mobile/data/groups/groups_repository.dart' show groupOverviewProvider;
+import 'package:sportpadi_mobile/data/groups/groups_repository.dart'
+    show groupOverviewProvider;
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
@@ -35,12 +36,15 @@ class GroupPlanScreen extends ConsumerStatefulWidget {
 class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen> {
   StreamSubscription<List<PurchaseDetails>>? _purchases;
   Map<String, ProductDetails> _details = const {};
+
   /// Ids StoreKit said it does not know. These are not "still loading" — no
   /// amount of waiting turns them into a price.
   Set<String> _missing = const {};
+
   /// A transport failure on the last lookup (offline, sandbox unreachable).
   String? _priceError;
   bool _pricesLoading = false;
+
   /// The exact set of ids the last lookup asked for. build() re-requests
   /// prices after every frame, so without this the answer's own setState would
   /// trigger the next lookup, forever — a steady drip of StoreKit queries that
@@ -48,6 +52,7 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen> {
   Set<String> _pricesAskedFor = const {};
   String? _busyProductId;
   bool _restoring = false;
+
   /// Product ids we've already handed to the server this session, so a
   /// re-delivered StoreKit event doesn't redeem twice.
   final Set<String> _seen = {};
@@ -127,8 +132,7 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen> {
 
   void _say(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   Future<void> _loadPrices(IapCatalogue cat, {bool force = false}) async {
@@ -195,7 +199,9 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen> {
       final n = await ref.read(iapRepositoryProvider).restore();
       ref.invalidate(iapCatalogueProvider(widget.groupId));
       ref.invalidate(groupOverviewProvider(widget.groupId));
-      _say(n > 0 ? 'Restored $n subscription${n == 1 ? '' : 's'}.' : 'Nothing to restore.');
+      _say(n > 0
+          ? 'Restored $n subscription${n == 1 ? '' : 's'}.'
+          : 'Nothing to restore.');
     } catch (e) {
       _say('$e');
     } finally {
@@ -284,7 +290,8 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen> {
                       ),
                     ]),
                   ),
-                if (c.viaApple && c.renewsAt != null) const SizedBox(height: 12),
+                if (c.viaApple && c.renewsAt != null)
+                  const SizedBox(height: 12),
                 for (final plan in c.plans) ...[
                   _PlanCard(
                     plan: plan,
@@ -379,8 +386,8 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen> {
   Widget _legalLink(AppPalette p, String label, String path) {
     final base = ref.read(appConfigProvider).apiBaseUrl;
     return InkWell(
-      onTap: () => launchUrl(Uri.parse('$base$path'),
-          mode: LaunchMode.inAppBrowserView),
+      onTap: () =>
+          launchUrl(Uri.parse('$base$path'), mode: LaunchMode.inAppBrowserView),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
         child: Text(label,
@@ -462,13 +469,13 @@ class _PlanCard extends StatelessWidget {
                         fontSize: 16,
                         fontWeight: FontWeight.w800)),
               ),
-              if (plan.isCurrent)
-                SpBadge('Current plan', tone: p.accent),
+              if (plan.isCurrent) SpBadge('Current plan', tone: p.accent),
             ]),
             if (plan.description != null) ...[
               const SizedBox(height: 4),
               Text(plan.description!,
-                  style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.35)),
+                  style:
+                      TextStyle(color: p.muted, fontSize: 12.5, height: 1.35)),
             ],
             if (plan.features.isNotEmpty) ...[
               const SizedBox(height: 10),
@@ -515,8 +522,7 @@ class _PlanCard extends StatelessWidget {
                     child: SpButton(
                       label: label,
                       expand: true,
-                      onTap:
-                          busy || d == null ? null : () => onBuy(productId),
+                      onTap: busy || d == null ? null : () => onBuy(productId),
                     ),
                   );
                 }),

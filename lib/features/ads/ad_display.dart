@@ -133,7 +133,10 @@ class _AdDisplayState extends ConsumerState<AdDisplay> {
             key: s.key,
             slotId: s.slotId,
             display: s.display,
-            ads: [for (final a in s.ads) if (!_closed.contains(a.id)) a],
+            ads: [
+              for (final a in s.ads)
+                if (!_closed.contains(a.id)) a
+            ],
           ),
     ].where((s) => s.ads.isNotEmpty).toList();
     if (inline.isEmpty) return const SizedBox.shrink();
@@ -153,7 +156,8 @@ class _AdDisplayState extends ConsumerState<AdDisplay> {
             'carousel' => _PromoCarousel(
                 // A new set of ads (e.g. after a location fix) is a new
                 // carousel: page, timer and viewport start fresh.
-                key: ValueKey('${s.slotId}:${s.ads.map((a) => a.id).join(',')}'),
+                key:
+                    ValueKey('${s.slotId}:${s.ads.map((a) => a.id).join(',')}'),
                 ads: s.ads,
                 interval: widget.interval,
                 onSeen: _impress,
@@ -222,7 +226,9 @@ class _AdDisplayState extends ConsumerState<AdDisplay> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          color: fg, fontSize: 12, fontWeight: FontWeight.w800)),
+                          color: fg,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800)),
                 ),
                 Icon(Icons.chevron_right_rounded, size: 15, color: fg),
               ]),
@@ -259,19 +265,26 @@ class _AdDisplayState extends ConsumerState<AdDisplay> {
     return Column(children: [
       AnimatedSwitcher(
         duration: const Duration(milliseconds: 350),
-        child: KeyedSubtree(
-            key: ValueKey(current.id), child: _frame(current)),
+        child: KeyedSubtree(key: ValueKey(current.id), child: _frame(current)),
       ),
       if (ads.length > 1) ...[
         const SizedBox(height: 6),
-        _Dots(count: ads.length, index: _idx % ads.length, color: p.accent, rest: p.muted.withAlpha(80)),
+        _Dots(
+            count: ads.length,
+            index: _idx % ads.length,
+            color: p.accent,
+            rest: p.muted.withAlpha(80)),
       ],
     ]);
   }
 }
 
 class _Dots extends StatelessWidget {
-  const _Dots({required this.count, required this.index, required this.color, required this.rest});
+  const _Dots(
+      {required this.count,
+      required this.index,
+      required this.color,
+      required this.rest});
   final int count;
   final int index;
   final Color color;
@@ -337,7 +350,8 @@ class _PromoCarouselState extends ConsumerState<_PromoCarousel> {
       final next = (_page + 1) % widget.ads.length;
       // ignore: discarded_futures
       _pc.animateToPage(next,
-          duration: const Duration(milliseconds: 450), curve: Curves.easeOutCubic);
+          duration: const Duration(milliseconds: 450),
+          curve: Curves.easeOutCubic);
     });
   }
 
@@ -402,11 +416,14 @@ class _PromoCarouselState extends ConsumerState<_PromoCarousel> {
                                       ? CachedNetworkImage(
                                           imageUrl: ad.imageUrl,
                                           fit: BoxFit.contain,
-                                          placeholder: (_, __) => Container(color: p.surface2),
-                                          errorWidget: (_, __, ___) => Container(color: p.surface2),
+                                          placeholder: (_, __) =>
+                                              Container(color: p.surface2),
+                                          errorWidget: (_, __, ___) =>
+                                              Container(color: p.surface2),
                                         )
                                       : Container(color: p.surface2),
-                                  Positioned(right: 8, top: 8, child: AdBadge(ad: ad)),
+                                  Positioned(
+                                      right: 8, top: 8, child: AdBadge(ad: ad)),
                                 ]),
                               ),
                             ),
@@ -419,10 +436,13 @@ class _PromoCarouselState extends ConsumerState<_PromoCarousel> {
         ),
         if (ads.length > 1) ...[
           const SizedBox(height: 8),
-          _Dots(count: ads.length, index: _page, color: p.accent, rest: p.muted.withAlpha(80)),
+          _Dots(
+              count: ads.length,
+              index: _page,
+              color: p.accent,
+              rest: p.muted.withAlpha(80)),
         ],
       ]);
     });
   }
 }
-

@@ -37,9 +37,10 @@ class AuthScaffold extends StatelessWidget {
       backgroundColor: p.bg,
       body: SingleChildScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).padding.bottom + 24),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 24),
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           ClipRRect(
             borderRadius:
                 const BorderRadius.vertical(bottom: Radius.circular(32)),
@@ -204,8 +205,8 @@ class AuthPrimaryButton extends StatelessWidget {
                 ? SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: p.bg))
+                    child:
+                        CircularProgressIndicator(strokeWidth: 2, color: p.bg))
                 : Row(mainAxisSize: MainAxisSize.min, children: [
                     Flexible(
                       child: Text(label,
@@ -257,8 +258,8 @@ class _AuthCover extends CustomPainter {
     final cx = size.width * 0.78;
     canvas.drawLine(Offset(cx, 0), Offset(cx, size.height), line);
     canvas.drawCircle(Offset(cx, size.height * 0.55), 58, line);
-    canvas.drawCircle(
-        Offset(cx, size.height * 0.55), 4, Paint()..color = const Color(0x1AFFFFFF));
+    canvas.drawCircle(Offset(cx, size.height * 0.55), 4,
+        Paint()..color = const Color(0x1AFFFFFF));
   }
 
   @override

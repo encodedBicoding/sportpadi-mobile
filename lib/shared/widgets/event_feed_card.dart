@@ -66,7 +66,8 @@ class EventFeedCard extends StatelessWidget {
                         e.description!,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.35),
+                        style: TextStyle(
+                            color: p.muted, fontSize: 12.5, height: 1.35),
                       ),
                     ],
                     const SizedBox(height: 10),
@@ -219,7 +220,8 @@ class EventFeedCard extends StatelessWidget {
         if (e.locationName != null)
           _iconLine(context, Icons.place_outlined, e.locationName!),
         if (e.distanceMiles != null)
-          _iconLine(context, Icons.near_me_outlined, _distance(e.distanceMiles!)),
+          _iconLine(
+              context, Icons.near_me_outlined, _distance(e.distanceMiles!)),
       ],
     );
   }
@@ -262,8 +264,7 @@ class EventFeedCard extends StatelessWidget {
           style: TextStyle(
               color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700),
         ),
-        Text(' RSVPs',
-            style: TextStyle(color: p.muted, fontSize: 12.5)),
+        Text(' RSVPs', style: TextStyle(color: p.muted, fontSize: 12.5)),
         const Spacer(),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -277,9 +278,7 @@ class EventFeedCard extends StatelessWidget {
               Text(
                 e.isTournament ? 'Spectate' : 'View',
                 style: TextStyle(
-                    color: p.ink,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600),
+                    color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w600),
               ),
               Icon(Icons.chevron_right_rounded, size: 16, color: p.ink),
             ],

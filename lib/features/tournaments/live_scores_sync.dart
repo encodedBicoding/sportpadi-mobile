@@ -57,18 +57,15 @@ class _LiveScoresSyncState extends ConsumerState<LiveScoresSync> {
 
   void _listen(String gameId) {
     _subs.remove(gameId)?.cancel();
-    _subs[gameId] = ref
-        .read(gamesRepositoryProvider)
-        .pings(gameId)
-        .listen(
-          (_) {
-            _backoff[gameId] = 2; // healthy stream — reset backoff
-            _refresh();
-          },
-          onError: (_) => _scheduleReconnect(gameId),
-          onDone: () => _scheduleReconnect(gameId),
-          cancelOnError: true,
-        );
+    _subs[gameId] = ref.read(gamesRepositoryProvider).pings(gameId).listen(
+      (_) {
+        _backoff[gameId] = 2; // healthy stream — reset backoff
+        _refresh();
+      },
+      onError: (_) => _scheduleReconnect(gameId),
+      onDone: () => _scheduleReconnect(gameId),
+      cancelOnError: true,
+    );
   }
 
   void _scheduleReconnect(String gameId) {
@@ -147,8 +144,7 @@ class LivePip extends StatefulWidget {
   State<LivePip> createState() => _LivePipState();
 }
 
-class _LivePipState extends State<LivePip>
-    with SingleTickerProviderStateMixin {
+class _LivePipState extends State<LivePip> with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1100),

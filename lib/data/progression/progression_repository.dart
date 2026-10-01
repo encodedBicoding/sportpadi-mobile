@@ -11,22 +11,35 @@ import 'package:sportpadi_mobile/shared/format/parse.dart';
 
 Map<String, dynamic> _map(dynamic v) =>
     v is Map ? Map<String, dynamic>.from(v) : <String, dynamic>{};
-List<Map<String, dynamic>> _list(dynamic v) =>
-    v is List ? [for (final e in v) if (e is Map) Map<String, dynamic>.from(e)] : const [];
+List<Map<String, dynamic>> _list(dynamic v) => v is List
+    ? [
+        for (final e in v)
+          if (e is Map) Map<String, dynamic>.from(e)
+      ]
+    : const [];
 int _int(dynamic v) => parseInt(v) ?? 0;
 double _dbl(dynamic v) => parseDouble(v) ?? 0;
 
 class Streak {
-  const Streak({required this.current, required this.best, required this.paused});
+  const Streak(
+      {required this.current, required this.best, required this.paused});
   final int current;
   final int best;
   final bool paused;
-  factory Streak.fromJson(Map<String, dynamic> j) =>
-      Streak(current: _int(j['current']), best: _int(j['best']), paused: j['paused'] == true);
+  factory Streak.fromJson(Map<String, dynamic> j) => Streak(
+      current: _int(j['current']),
+      best: _int(j['best']),
+      paused: j['paused'] == true);
 }
 
 class Quest {
-  const Quest({required this.key, required this.title, required this.description, required this.target, required this.progress, required this.done});
+  const Quest(
+      {required this.key,
+      required this.title,
+      required this.description,
+      required this.target,
+      required this.progress,
+      required this.done});
   final String key, title, description;
   final int target, progress;
   final bool done;
@@ -41,7 +54,15 @@ class Quest {
 }
 
 class Mission {
-  const Mission({required this.key, required this.title, required this.description, required this.target, required this.progress, required this.done, required this.xp, this.endsAt});
+  const Mission(
+      {required this.key,
+      required this.title,
+      required this.description,
+      required this.target,
+      required this.progress,
+      required this.done,
+      required this.xp,
+      this.endsAt});
   final String key, title, description;
   final int target, progress, xp;
   final bool done;
@@ -59,7 +80,14 @@ class Mission {
 }
 
 class WeekQuests {
-  const WeekQuests({required this.quests, required this.completed, required this.needed, required this.rewardXp, required this.rewarded, this.endsAt, this.missions = const []});
+  const WeekQuests(
+      {required this.quests,
+      required this.completed,
+      required this.needed,
+      required this.rewardXp,
+      required this.rewarded,
+      this.endsAt,
+      this.missions = const []});
   final List<Mission> missions;
   final List<Quest> quests;
   final int completed, needed, rewardXp;
@@ -77,13 +105,25 @@ class WeekQuests {
 }
 
 class NextUnlock {
-  const NextUnlock({required this.title, required this.description, required this.current, required this.target});
+  const NextUnlock(
+      {required this.title,
+      required this.description,
+      required this.current,
+      required this.target});
   final String title, description;
   final int current, target;
 }
 
 class YourWeek {
-  const YourWeek({required this.level, required this.title, required this.xp, required this.nextLevelXp, required this.progress, required this.streak, this.quests, this.next});
+  const YourWeek(
+      {required this.level,
+      required this.title,
+      required this.xp,
+      required this.nextLevelXp,
+      required this.progress,
+      required this.streak,
+      this.quests,
+      this.next});
   final int level, xp;
   final int? nextLevelXp;
   final String title;
@@ -102,7 +142,8 @@ class YourWeek {
       nextLevelXp: parseInt(j['nextLevelXp']),
       progress: _dbl(j['progress']),
       streak: Streak.fromJson(_map(j['streak'])),
-      quests: j['quests'] is Map ? WeekQuests.fromJson(_map(j['quests'])) : null,
+      quests:
+          j['quests'] is Map ? WeekQuests.fromJson(_map(j['quests'])) : null,
       next: n == null
           ? null
           : NextUnlock(
@@ -115,7 +156,12 @@ class YourWeek {
 }
 
 class Achievement {
-  const Achievement({required this.key, required this.title, required this.description, required this.xp, this.unlocked = false});
+  const Achievement(
+      {required this.key,
+      required this.title,
+      required this.description,
+      required this.xp,
+      this.unlocked = false});
   final String key, title, description;
   final int xp;
   final bool unlocked;
@@ -147,7 +193,9 @@ class MyProgression {
 
   static MyProgression? fromJson(Map<String, dynamic> j) {
     if (j['available'] != true) return null;
-    final got = {for (final a in _list(j['achievements'])) parseStr(a['key']) ?? ''};
+    final got = {
+      for (final a in _list(j['achievements'])) parseStr(a['key']) ?? ''
+    };
     final streaks = _list(j['streaks']);
     final w = streaks.where((s) => s['key'] == 'weekly').toList();
     return MyProgression(
@@ -159,7 +207,11 @@ class MyProgression {
       progress: _dbl(j['progress']),
       categories: [
         for (final c in _list(j['categories']))
-          (categoryId: parseStr(c['categoryId']) ?? '', title: parseStr(c['title']) ?? '', level: _int(c['level']))
+          (
+            categoryId: parseStr(c['categoryId']) ?? '',
+            title: parseStr(c['title']) ?? '',
+            level: _int(c['level'])
+          )
       ],
       weekly: w.isEmpty ? null : Streak.fromJson(w.first),
       unlocked: [
@@ -185,16 +237,22 @@ class MyProgression {
 }
 
 class Identity {
-  const Identity({required this.level, required this.title, this.weeklyStreak, this.frame = 'none'});
+  const Identity(
+      {required this.level,
+      required this.title,
+      this.weeklyStreak,
+      this.frame = 'none'});
   final int level;
   final String title;
   final int? weeklyStreak;
+
   /// Avatar frame earned by level: none | bronze | silver | gold | legend.
   final String frame;
 }
 
 class Season {
-  const Season({required this.id, required this.name, this.startsAt, this.endsAt});
+  const Season(
+      {required this.id, required this.name, this.startsAt, this.endsAt});
   final String id, name;
   final DateTime? startsAt, endsAt;
 }
@@ -242,7 +300,9 @@ class GroupProgression {
       ],
       titles: {
         for (final e in t.entries)
-          e.key: [for (final v in (e.value is List ? e.value as List : const [])) '$v']
+          e.key: [
+            for (final v in (e.value is List ? e.value as List : const [])) '$v'
+          ]
       },
       seasons: [
         for (final s in _list(j['seasons']))
@@ -258,11 +318,18 @@ class GroupProgression {
 }
 
 class RewardLine {
-  const RewardLine({required this.kind, required this.label, required this.xp, required this.count});
+  const RewardLine(
+      {required this.kind,
+      required this.label,
+      required this.xp,
+      required this.count});
   final String kind, label;
   final int xp, count;
   factory RewardLine.fromJson(Map<String, dynamic> j) => RewardLine(
-      kind: parseStr(j['kind']) ?? '', label: parseStr(j['label']) ?? '', xp: _int(j['xp']), count: _int(j['count']));
+      kind: parseStr(j['kind']) ?? '',
+      label: parseStr(j['label']) ?? '',
+      xp: _int(j['xp']),
+      count: _int(j['count']));
 }
 
 class MatchSummary {
@@ -279,7 +346,9 @@ class MatchSummary {
   });
   final String status;
   final bool played;
-  final List<({String name, int score, String? result, bool mine, String? color})> teams;
+  final List<
+          ({String name, int score, String? result, bool mine, String? color})>
+      teams;
   final List<({String label, String? icon, int value})> myStats;
   final int xp;
   final List<RewardLine> earned;
@@ -304,21 +373,37 @@ class MatchSummary {
       ],
       myStats: [
         for (final s in _list(j['myStats']))
-          (label: parseStr(s['label']) ?? '', icon: parseStr(s['icon']), value: _int(s['value']))
+          (
+            label: parseStr(s['label']) ?? '',
+            icon: parseStr(s['icon']),
+            value: _int(s['value'])
+          )
       ],
       xp: _int(j['xp']),
       earned: [for (final l in _list(j['earned'])) RewardLine.fromJson(l)],
-      unlocked: [for (final u in _list(j['unlocked'])) parseStr(u['title']) ?? ''],
+      unlocked: [
+        for (final u in _list(j['unlocked'])) parseStr(u['title']) ?? ''
+      ],
       identity: id == null
           ? null
-          : (level: _int(id['level']), title: parseStr(id['title']) ?? '', weeklyStreak: _int(id['weeklyStreak'])),
+          : (
+              level: _int(id['level']),
+              title: parseStr(id['title']) ?? '',
+              weeklyStreak: _int(id['weeklyStreak'])
+            ),
       eventTitle: parseStr(_map(j['event'])['title']),
     );
   }
 }
 
 class BoardEntry {
-  const BoardEntry({required this.rank, required this.userId, required this.displayName, required this.username, this.avatarUrl, this.value});
+  const BoardEntry(
+      {required this.rank,
+      required this.userId,
+      required this.displayName,
+      required this.username,
+      this.avatarUrl,
+      this.value});
   final int rank;
   final String userId, displayName, username;
   final String? avatarUrl;
@@ -326,7 +411,12 @@ class BoardEntry {
 }
 
 class Board {
-  const Board({required this.title, required this.unit, required this.blurb, required this.entries, this.needsCategory = false});
+  const Board(
+      {required this.title,
+      required this.unit,
+      required this.blurb,
+      required this.entries,
+      this.needsCategory = false});
   final String title, unit, blurb;
   final List<BoardEntry> entries;
   final bool needsCategory;
@@ -350,7 +440,11 @@ class Board {
 }
 
 class Strength {
-  const Strength({required this.label, this.icon, required this.value, required this.percentile});
+  const Strength(
+      {required this.label,
+      this.icon,
+      required this.value,
+      required this.percentile});
   final String label;
   final String? icon;
   final int value, percentile;
@@ -360,7 +454,9 @@ class ProgressionRepository {
   ProgressionRepository(this._dio);
   final Dio _dio;
 
-  Future<Map<String, dynamic>> _get(String path, {Map<String, dynamic>? query, String fallback = 'Could not load.'}) async {
+  Future<Map<String, dynamic>> _get(String path,
+      {Map<String, dynamic>? query,
+      String fallback = 'Could not load.'}) async {
     try {
       final res = await _dio.get(path, queryParameters: query);
       return _map(res.data);
@@ -369,9 +465,11 @@ class ProgressionRepository {
     }
   }
 
-  Future<YourWeek?> week() async => YourWeek.fromJson(await _get('/api/mobile/progression/week'));
+  Future<YourWeek?> week() async =>
+      YourWeek.fromJson(await _get('/api/mobile/progression/week'));
 
-  Future<MyProgression?> me() async => MyProgression.fromJson(await _get('/api/mobile/progression/me'));
+  Future<MyProgression?> me() async =>
+      MyProgression.fromJson(await _get('/api/mobile/progression/me'));
 
   Future<void> setPublic(bool value) async {
     try {
@@ -397,11 +495,13 @@ class ProgressionRepository {
   }
 
   Future<MatchSummary> game(String gameId) async =>
-      MatchSummary.fromJson(await _get('/api/mobile/progression/game/$gameId', fallback: 'Could not load the match.'));
+      MatchSummary.fromJson(await _get('/api/mobile/progression/game/$gameId',
+          fallback: 'Could not load the match.'));
 
   Future<GroupProgression?> group(String groupId) async {
     try {
-      return GroupProgression.fromJson(await _get('/api/mobile/progression/group/$groupId'));
+      return GroupProgression.fromJson(
+          await _get('/api/mobile/progression/group/$groupId'));
     } catch (_) {
       return null; // decoration: never fail the group page over it
     }
@@ -409,13 +509,16 @@ class ProgressionRepository {
 
   Future<void> startSeason(String groupId, String name) async {
     try {
-      await _dio.post('/api/mobile/progression/group/$groupId', data: {'action': 'startSeason', 'name': name});
+      await _dio.post('/api/mobile/progression/group/$groupId',
+          data: {'action': 'startSeason', 'name': name});
     } catch (e) {
       throw apiError(e, fallback: 'Could not start the season.');
     }
   }
 
-  Future<Board> board(String board, {String? groupId, String? categoryId, String? seasonId}) async => Board.fromJson(await _get(
+  Future<Board> board(String board,
+          {String? groupId, String? categoryId, String? seasonId}) async =>
+      Board.fromJson(await _get(
         '/api/mobile/progression/board',
         query: {
           'board': board,
@@ -429,12 +532,17 @@ class ProgressionRepository {
 
   Future<List<Strength>> strengths(String userId, String categoryId) async {
     try {
-      final res = await _dio.get('/api/mobile/progression/strengths/$userId', queryParameters: {'categoryId': categoryId});
+      final res = await _dio.get('/api/mobile/progression/strengths/$userId',
+          queryParameters: {'categoryId': categoryId});
       if (res.data is! Map) return const [];
       return [
         for (final m in _list(_map(res.data)['metrics']))
           if (_int(m['value']) > 0)
-            Strength(label: parseStr(m['label']) ?? '', icon: parseStr(m['icon']), value: _int(m['value']), percentile: _int(m['percentile']))
+            Strength(
+                label: parseStr(m['label']) ?? '',
+                icon: parseStr(m['icon']),
+                value: _int(m['value']),
+                percentile: _int(m['percentile']))
       ];
     } catch (_) {
       return const [];
@@ -442,29 +550,39 @@ class ProgressionRepository {
   }
 }
 
-final progressionRepositoryProvider =
-    Provider<ProgressionRepository>((ref) => ProgressionRepository(ref.watch(dioProvider)));
+final progressionRepositoryProvider = Provider<ProgressionRepository>(
+    (ref) => ProgressionRepository(ref.watch(dioProvider)));
 
-final yourWeekProvider = FutureProvider.autoDispose<YourWeek?>((ref) => ref.watch(progressionRepositoryProvider).week());
+final yourWeekProvider = FutureProvider.autoDispose<YourWeek?>(
+    (ref) => ref.watch(progressionRepositoryProvider).week());
 
-final myProgressionProvider =
-    FutureProvider.autoDispose<MyProgression?>((ref) => ref.watch(progressionRepositoryProvider).me());
+final myProgressionProvider = FutureProvider.autoDispose<MyProgression?>(
+    (ref) => ref.watch(progressionRepositoryProvider).me());
 
-final identityProvider = FutureProvider.autoDispose
-    .family<Identity?, String>((ref, userId) => ref.watch(progressionRepositoryProvider).identity(userId));
+final identityProvider = FutureProvider.autoDispose.family<Identity?, String>(
+    (ref, userId) => ref.watch(progressionRepositoryProvider).identity(userId));
 
 final matchSummaryProvider = FutureProvider.autoDispose
-    .family<MatchSummary, String>((ref, gameId) => ref.watch(progressionRepositoryProvider).game(gameId));
+    .family<MatchSummary, String>(
+        (ref, gameId) => ref.watch(progressionRepositoryProvider).game(gameId));
 
-typedef BoardKey = ({String board, String? groupId, String? categoryId, String? seasonId});
+typedef BoardKey = ({
+  String board,
+  String? groupId,
+  String? categoryId,
+  String? seasonId
+});
 
-final boardProvider = FutureProvider.autoDispose.family<Board, BoardKey>((ref, k) => ref
-    .watch(progressionRepositoryProvider)
-    .board(k.board, groupId: k.groupId, categoryId: k.categoryId, seasonId: k.seasonId));
+final boardProvider = FutureProvider.autoDispose.family<Board, BoardKey>(
+    (ref, k) => ref.watch(progressionRepositoryProvider).board(k.board,
+        groupId: k.groupId, categoryId: k.categoryId, seasonId: k.seasonId));
 
 final groupProgressionProvider = FutureProvider.autoDispose
-    .family<GroupProgression?, String>((ref, groupId) => ref.watch(progressionRepositoryProvider).group(groupId));
+    .family<GroupProgression?, String>((ref, groupId) =>
+        ref.watch(progressionRepositoryProvider).group(groupId));
 
 final strengthsProvider = FutureProvider.autoDispose
-    .family<List<Strength>, ({String userId, String categoryId})>(
-        (ref, k) => ref.watch(progressionRepositoryProvider).strengths(k.userId, k.categoryId));
+    .family<List<Strength>, ({String userId, String categoryId})>((ref, k) =>
+        ref
+            .watch(progressionRepositoryProvider)
+            .strengths(k.userId, k.categoryId));

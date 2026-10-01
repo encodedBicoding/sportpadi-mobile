@@ -3,7 +3,8 @@ import 'package:sportpadi_mobile/shared/format/parse.dart';
 
 /// A small profile embedded in squad rows.
 class SquadProfile {
-  const SquadProfile({required this.displayName, this.username, this.avatarUrl});
+  const SquadProfile(
+      {required this.displayName, this.username, this.avatarUrl});
   final String displayName;
   final String? username;
   final String? avatarUrl;
@@ -76,7 +77,11 @@ class SquadPlayer {
 
 /// A roster member who hasn't been called yet (for the call-up picker).
 class UncalledPlayer {
-  const UncalledPlayer({required this.playerId, this.positions = const [], this.jerseyNumber, this.profile});
+  const UncalledPlayer(
+      {required this.playerId,
+      this.positions = const [],
+      this.jerseyNumber,
+      this.profile});
   final String playerId;
   final List<String> positions;
   final int? jerseyNumber;
@@ -91,7 +96,8 @@ class UncalledPlayer {
 }
 
 class SquadGame {
-  const SquadGame({required this.id, required this.status, required this.teams});
+  const SquadGame(
+      {required this.id, required this.status, required this.teams});
   final String id;
   final String status;
   final List<({String name, int score, String? result})> teams;
@@ -115,7 +121,8 @@ class SquadGame {
 /// The tournament-scoped team profile (tournamentSquads.get).
 /// Another approved team in the same tournament.
 class SquadOpponent {
-  const SquadOpponent({required this.id, required this.name, this.logoUrl, this.role});
+  const SquadOpponent(
+      {required this.id, required this.name, this.logoUrl, this.role});
   final String id;
   final String name;
   final String? logoUrl;
@@ -220,10 +227,15 @@ class TournamentSquad {
   final String? myOtherTeamName;
   final List<SquadGame> games;
 
-  String get kind => mode == 'league' ? 'League' : mode == 'multi_team' ? 'Tournament' : 'Friendly';
+  String get kind => mode == 'league'
+      ? 'League'
+      : mode == 'multi_team'
+          ? 'Tournament'
+          : 'Friendly';
   List<SquadPlayer> get accepted => squad.where((p) => p.accepted).toList();
   List<SquadPlayer> get pending => squad.where((p) => p.pending).toList();
-  List<SquadPlayer> get notPlaying => squad.where((p) => !p.accepted && !p.pending).toList();
+  List<SquadPlayer> get notPlaying =>
+      squad.where((p) => !p.accepted && !p.pending).toList();
   bool get needsFormation => formationConfig['needsFormation'] == true;
   int get maxStarters => parseInt(formationConfig['maxStarters']) ?? 11;
   bool get isOver => eventStatus == 'completed' || eventStatus == 'cancelled';
@@ -240,10 +252,16 @@ class TournamentSquad {
   String get whenLabel => when.line;
 
   factory TournamentSquad.fromJson(Map<String, dynamic> j) {
-    final team = j['team'] is Map ? Map<String, dynamic>.from(j['team'] as Map) : const <String, dynamic>{};
-    final event = j['event'] is Map ? Map<String, dynamic>.from(j['event'] as Map) : const <String, dynamic>{};
+    final team = j['team'] is Map
+        ? Map<String, dynamic>.from(j['team'] as Map)
+        : const <String, dynamic>{};
+    final event = j['event'] is Map
+        ? Map<String, dynamic>.from(j['event'] as Map)
+        : const <String, dynamic>{};
     final cat = event['category'];
-    final formation = j['formation'] is Map ? Map<String, dynamic>.from(j['formation'] as Map) : const <String, dynamic>{};
+    final formation = j['formation'] is Map
+        ? Map<String, dynamic>.from(j['formation'] as Map)
+        : const <String, dynamic>{};
     final me = j['me'];
     final other = j['myOtherTeam'];
     return TournamentSquad(
@@ -281,16 +299,27 @@ class TournamentSquad {
       mode: parseStr(j['mode']) ?? 'friendly',
       kickedOff: j['kickedOff'] == true,
       formationName: parseStr(formation['name']),
-      formationConfig: formation['config'] is Map ? Map<String, dynamic>.from(formation['config'] as Map) : const {},
+      formationConfig: formation['config'] is Map
+          ? Map<String, dynamic>.from(formation['config'] as Map)
+          : const {},
       canManage: j['canManage'] == true,
       coaches: j['coaches'] is List
-          ? [for (final c in j['coaches'] as List) if (SquadProfile.from(c) != null) SquadProfile.from(c)!]
+          ? [
+              for (final c in j['coaches'] as List)
+                if (SquadProfile.from(c) != null) SquadProfile.from(c)!
+            ]
           : const [],
       squad: j['squad'] is List
-          ? [for (final s in j['squad'] as List) SquadPlayer.fromJson(Map<String, dynamic>.from(s as Map))]
+          ? [
+              for (final s in j['squad'] as List)
+                SquadPlayer.fromJson(Map<String, dynamic>.from(s as Map))
+            ]
           : const [],
       uncalled: j['uncalled'] is List
-          ? [for (final u in j['uncalled'] as List) UncalledPlayer.fromJson(Map<String, dynamic>.from(u as Map))]
+          ? [
+              for (final u in j['uncalled'] as List)
+                UncalledPlayer.fromJson(Map<String, dynamic>.from(u as Map))
+            ]
           : const [],
       mySquadId: me is Map ? parseStr(me['squadId']) : null,
       myStatus: me is Map ? parseStr(me['status']) : null,
@@ -298,7 +327,10 @@ class TournamentSquad {
       myCalledByName: me is Map ? parseStr(me['calledByName']) : null,
       myOtherTeamName: other is Map ? parseStr(other['name']) : null,
       games: j['games'] is List
-          ? [for (final g in j['games'] as List) SquadGame.fromJson(Map<String, dynamic>.from(g as Map))]
+          ? [
+              for (final g in j['games'] as List)
+                SquadGame.fromJson(Map<String, dynamic>.from(g as Map))
+            ]
           : const [],
     );
   }
@@ -414,10 +446,16 @@ class MyCalls {
   final List<SquadCall> accepted;
   factory MyCalls.fromJson(Map<String, dynamic> j) => MyCalls(
         pending: j['pending'] is List
-            ? [for (final c in j['pending'] as List) SquadCall.fromJson(Map<String, dynamic>.from(c as Map))]
+            ? [
+                for (final c in j['pending'] as List)
+                  SquadCall.fromJson(Map<String, dynamic>.from(c as Map))
+              ]
             : const [],
         accepted: j['accepted'] is List
-            ? [for (final c in j['accepted'] as List) SquadCall.fromJson(Map<String, dynamic>.from(c as Map))]
+            ? [
+                for (final c in j['accepted'] as List)
+                  SquadCall.fromJson(Map<String, dynamic>.from(c as Map))
+              ]
             : const [],
       );
 }
@@ -456,10 +494,16 @@ class TeamTournamentEntry {
   final String? hostGroupId;
   final String? categoryName;
   final String? categoryEmoji;
-  String get kind => mode == 'league' ? 'League' : mode == 'multi_team' ? 'Tournament' : 'Friendly';
+  String get kind => mode == 'league'
+      ? 'League'
+      : mode == 'multi_team'
+          ? 'Tournament'
+          : 'Friendly';
 
   factory TeamTournamentEntry.fromJson(Map<String, dynamic> j) {
-    final e = j['event'] is Map ? Map<String, dynamic>.from(j['event'] as Map) : const <String, dynamic>{};
+    final e = j['event'] is Map
+        ? Map<String, dynamic>.from(j['event'] as Map)
+        : const <String, dynamic>{};
     final cat = e['category'];
     return TeamTournamentEntry(
       tournamentTeamId: (j['tournamentTeamId'] ?? '') as String,

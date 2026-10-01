@@ -30,8 +30,9 @@ class _PastEventsSectionState extends State<PastEventsSection> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final all = widget.events;
-    final shown =
-        _expanded || all.length <= _collapsed ? all : all.sublist(0, _collapsed);
+    final shown = _expanded || all.length <= _collapsed
+        ? all
+        : all.sublist(0, _collapsed);
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -110,10 +111,7 @@ class _PastEventsSectionState extends State<PastEventsSection> {
                   child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                            _expanded
-                                ? 'Show less'
-                                : 'Show all ${all.length}',
+                        Text(_expanded ? 'Show less' : 'Show all ${all.length}',
                             style: TextStyle(
                                 color: p.greenText,
                                 fontSize: 13,
@@ -146,8 +144,18 @@ class _PastRow extends StatelessWidget {
     final e = event;
     final d = e.eventDate?.toUtc();
     const mo = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC'
     ];
     final t = e.isTournament;
 
@@ -200,24 +208,21 @@ class _PastRow extends StatelessWidget {
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${e.categoryEmoji != null ? '${e.categoryEmoji} ' : ''}${e.title}',
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(
+                '${e.categoryEmoji != null ? '${e.categoryEmoji} ' : ''}${e.title}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700),
+              ),
+              if (sub.isNotEmpty)
+                Text(sub,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: p.ink,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700),
-                  ),
-                  if (sub.isNotEmpty)
-                    Text(sub,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: p.muted, fontSize: 12)),
-                ]),
+                    style: TextStyle(color: p.muted, fontSize: 12)),
+            ]),
           ),
           const SizedBox(width: 8),
           Container(

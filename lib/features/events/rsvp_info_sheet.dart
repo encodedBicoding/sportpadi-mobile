@@ -16,7 +16,8 @@ class RsvpInfoSheet extends StatefulWidget {
 
   /// Show it unless the player asked not to see it again.
   static Future<void> maybeShow(BuildContext context) async {
-    _dismissed ??= (await _storage.read(key: _key).catchError((_) => null)) == '1';
+    _dismissed ??=
+        (await _storage.read(key: _key).catchError((_) => null)) == '1';
     if (_dismissed == true || !context.mounted) return;
     await showSpSheet<void>(
       context,
@@ -50,15 +51,25 @@ class _RsvpInfoSheetState extends State<RsvpInfoSheet> {
             Container(
               width: 30,
               height: 30,
-              decoration: BoxDecoration(color: p.accent.withAlpha(26), shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                  color: p.accent.withAlpha(26), shape: BoxShape.circle),
               child: Icon(icon, size: 16, color: p.accent),
             ),
             const SizedBox(width: 10),
-            Expanded(child: Text(text, style: TextStyle(color: p.ink, fontSize: 13.5))),
-            Text(xp, style: TextStyle(color: p.accent, fontSize: 12.5, fontWeight: FontWeight.w800)),
+            Expanded(
+                child:
+                    Text(text, style: TextStyle(color: p.ink, fontSize: 13.5))),
+            Text(xp,
+                style: TextStyle(
+                    color: p.accent,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800)),
           ]),
         );
-    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+    return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           const SpSheetHeader(
             icon: Icons.event_available_rounded,
             title: "You've RSVP'd",
@@ -68,14 +79,21 @@ class _RsvpInfoSheetState extends State<RsvpInfoSheet> {
           ),
           const SizedBox(height: 14),
           Text('SHOW UP AND EARN',
-              style: TextStyle(color: p.muted, fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 1.1)),
+              style: TextStyle(
+                  color: p.muted,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.1)),
           const SizedBox(height: 4),
           row(Icons.auto_awesome_rounded, 'For your RSVP', '+10 XP'),
           row(Icons.qr_code_scanner_rounded, 'Check in at the venue', '+25 XP'),
-          row(Icons.timer_outlined, 'Check in 10+ minutes before kick-off', '+10 XP'),
-          row(Icons.local_fire_department_rounded, 'Keep your weekly streak going', '🔥'),
+          row(Icons.timer_outlined, 'Check in 10+ minutes before kick-off',
+              '+10 XP'),
+          row(Icons.local_fire_department_rounded,
+              'Keep your weekly streak going', '🔥'),
           const SizedBox(height: 6),
-          Text('RSVP\'d within 24 hours of kick-off? Showing up also earns Last-minute hero.',
+          Text(
+              'RSVP\'d within 24 hours of kick-off? Showing up also earns Last-minute hero.',
               style: TextStyle(color: p.muted, fontSize: 11.5)),
           const SizedBox(height: 10),
           CheckboxListTile(
@@ -84,7 +102,8 @@ class _RsvpInfoSheetState extends State<RsvpInfoSheet> {
             dense: true,
             contentPadding: EdgeInsets.zero,
             controlAffinity: ListTileControlAffinity.leading,
-            title: Text("Don't show this again", style: TextStyle(color: p.muted, fontSize: 12.5)),
+            title: Text("Don't show this again",
+                style: TextStyle(color: p.muted, fontSize: 12.5)),
           ),
           const SizedBox(height: 4),
           FilledButton(onPressed: _close, child: const Text('Got it')),

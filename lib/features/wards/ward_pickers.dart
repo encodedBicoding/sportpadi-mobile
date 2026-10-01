@@ -180,7 +180,8 @@ class _PersonSwitchRow extends StatelessWidget {
         WardAvatar(name: avatarName, url: avatarUrl, size: 40),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -460,9 +461,10 @@ class CheckinOutcome {
   }
 
   factory CheckinOutcome.failed(
-          {required String name, required bool isMe, required String message}) =>
-      CheckinOutcome(
-          name: name, isMe: isMe, status: 'error', message: message);
+          {required String name,
+          required bool isMe,
+          required String message}) =>
+      CheckinOutcome(name: name, isMe: isMe, status: 'error', message: message);
 }
 
 /// What the results sheet was closed with.
@@ -558,8 +560,7 @@ class _CheckinResultsSheetState extends ConsumerState<_CheckinResultsSheet> {
         child: SpButton(
           label: 'See fines',
           icon: Icons.receipt_long_outlined,
-          onTap: () =>
-              Navigator.of(context).pop(CheckinSheetAction.openFines),
+          onTap: () => Navigator.of(context).pop(CheckinSheetAction.openFines),
         ),
       );
     }
@@ -597,9 +598,8 @@ class _CheckinResultsSheetState extends ConsumerState<_CheckinResultsSheet> {
               : noneOk
                   ? 'Nobody was checked in'
                   : 'Some check-ins need attention',
-          subtitle: allOk
-              ? 'Have a great game.'
-              : 'Here is how each check-in went.',
+          subtitle:
+              allOk ? 'Have a great game.' : 'Here is how each check-in went.',
         ),
         SpListCard(children: [
           for (var i = 0; i < results.length; i++)
@@ -625,17 +625,16 @@ class _CheckinResultsSheetState extends ConsumerState<_CheckinResultsSheet> {
                 Navigator.of(context).pop(CheckinSheetAction.scanAgain),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 13),
-              child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.qr_code_scanner_rounded, size: 18, color: p.ink),
-                    const SizedBox(width: 7),
-                    Text('Scan another code',
-                        style: TextStyle(
-                            color: p.ink,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700)),
-                  ]),
+              child:
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Icons.qr_code_scanner_rounded, size: 18, color: p.ink),
+                const SizedBox(width: 7),
+                Text('Scan another code',
+                    style: TextStyle(
+                        color: p.ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700)),
+              ]),
             ),
           ),
         ),
@@ -666,7 +665,8 @@ class _ResultRow extends StatelessWidget {
         SpIconTile(icon, bg: bg, fg: fg, size: 38, iconSize: 19),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Flexible(
                 child: Text(o.name,

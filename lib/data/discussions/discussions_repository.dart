@@ -29,8 +29,7 @@ class DiscussionsRepository {
     }
   }
 
-  Future<Map<String, dynamic>> _post(
-      Map<String, dynamic> body, String fallback,
+  Future<Map<String, dynamic>> _post(Map<String, dynamic> body, String fallback,
       {String path = _path}) async {
     try {
       final res = await _dio.post(path, data: body);
@@ -50,8 +49,8 @@ class DiscussionsRepository {
 
   /// Where I can read and post in [groupId].
   Future<DiscussionSpaces> spaces(String groupId) async {
-    final d = await _get({'view': 'spaces', 'groupId': groupId},
-        "Couldn't load discussions.");
+    final d = await _get(
+        {'view': 'spaces', 'groupId': groupId}, "Couldn't load discussions.");
     return DiscussionSpaces.fromJson(d);
   }
 
@@ -135,12 +134,15 @@ class DiscussionsRepository {
   /// Comment on a discussion, or reply to [parentId]; returns its id.
   Future<String> comment(String discussionId,
       {required String body, String? parentId, String? viaWardId}) async {
-    final r = await _act(discussionId, {
-      'action': 'comment',
-      'body': body,
-      if (parentId != null) 'parentId': parentId,
-      if (viaWardId != null) 'viaWardId': viaWardId,
-    }, "Couldn't post your comment.");
+    final r = await _act(
+        discussionId,
+        {
+          'action': 'comment',
+          'body': body,
+          if (parentId != null) 'parentId': parentId,
+          if (viaWardId != null) 'viaWardId': viaWardId,
+        },
+        "Couldn't post your comment.");
     return parseStr(r['id']) ?? '';
   }
 
@@ -149,12 +151,15 @@ class DiscussionsRepository {
   /// OP: edit the title, body or flair.
   Future<void> update(String id,
       {String? title, String? body, String? flair}) async {
-    await _act(id, {
-      'action': 'update',
-      if (title != null) 'title': title,
-      if (body != null) 'body': body,
-      if (flair != null) 'flair': flair,
-    }, "Couldn't save your changes.");
+    await _act(
+        id,
+        {
+          'action': 'update',
+          if (title != null) 'title': title,
+          if (body != null) 'body': body,
+          if (flair != null) 'flair': flair,
+        },
+        "Couldn't save your changes.");
   }
 
   /// OP or a moderator: remove it.
@@ -170,23 +175,29 @@ class DiscussionsRepository {
 
   /// Moderators: pin and / or lock.
   Future<void> moderate(String id, {bool? pinned, bool? locked}) async {
-    await _act(id, {
-      'action': 'moderate',
-      if (pinned != null) 'pinned': pinned,
-      if (locked != null) 'locked': locked,
-    }, "Couldn't update the discussion.");
+    await _act(
+        id,
+        {
+          'action': 'moderate',
+          if (pinned != null) 'pinned': pinned,
+          if (locked != null) 'locked': locked,
+        },
+        "Couldn't update the discussion.");
   }
 
   /// Upvote (1) or clear (0) my vote on the discussion, or on one of
   /// its comments ([commentId]). Returns the new score and my vote.
   Future<({int score, int myVote})> vote(String discussionId,
       {String? commentId, required int value}) async {
-    final r = await _act(discussionId, {
-      'action': 'vote',
-      'type': commentId == null ? 'discussion' : 'comment',
-      if (commentId != null) 'targetId': commentId,
-      'value': value,
-    }, "Couldn't save your vote.");
+    final r = await _act(
+        discussionId,
+        {
+          'action': 'vote',
+          'type': commentId == null ? 'discussion' : 'comment',
+          if (commentId != null) 'targetId': commentId,
+          'value': value,
+        },
+        "Couldn't save your vote.");
     return (
       score: parseInt(r['score']) ?? 0,
       myVote: (parseInt(r['myVote']) ?? value).clamp(-1, 1),
@@ -197,13 +208,15 @@ class DiscussionsRepository {
 
   Future<void> editComment(String discussionId, String commentId,
       {required String body}) async {
-    await _act(discussionId,
+    await _act(
+        discussionId,
         {'action': 'edit-comment', 'commentId': commentId, 'body': body},
         "Couldn't save your comment.");
   }
 
   Future<void> deleteComment(String discussionId, String commentId) async {
-    await _act(discussionId,
+    await _act(
+        discussionId,
         {'action': 'delete-comment', 'commentId': commentId},
         "Couldn't remove the comment.");
   }
@@ -212,13 +225,16 @@ class DiscussionsRepository {
   /// true when I had already reported it (and it's still open).
   Future<bool> report(String discussionId,
       {String? commentId, required String reason, String? details}) async {
-    final r = await _act(discussionId, {
-      'action': 'report',
-      if (commentId != null) 'commentId': commentId,
-      'reason': reason,
-      if (details != null && details.trim().isNotEmpty)
-        'details': details.trim(),
-    }, "Couldn't send the report.");
+    final r = await _act(
+        discussionId,
+        {
+          'action': 'report',
+          if (commentId != null) 'commentId': commentId,
+          'reason': reason,
+          if (details != null && details.trim().isNotEmpty)
+            'details': details.trim(),
+        },
+        "Couldn't send the report.");
     return r['alreadyReported'] == true;
   }
 }
@@ -266,12 +282,12 @@ class DiscussionListController
       if (change != null) _apply(change);
     });
     return _repo.list(
-          groupId: arg.groupId,
-          space: arg.space,
-          sort: arg.sort,
-          flair: arg.flair,
-          status: arg.status,
-        );
+      groupId: arg.groupId,
+      space: arg.space,
+      sort: arg.sort,
+      flair: arg.flair,
+      status: arg.status,
+    );
   }
 
   void _apply(DiscussionChange c) {
@@ -279,10 +295,7 @@ class DiscussionListController
     if (current == null || !current.items.any((i) => i.id == c.id)) return;
     state = AsyncData(current.copyWith(items: [
       for (final i in current.items)
-        if (i.id != c.id)
-          i
-        else if (!c.removed)
-          c.applyTo(i)
+        if (i.id != c.id) i else if (!c.removed) c.applyTo(i)
     ]));
   }
 
@@ -330,8 +343,8 @@ class DiscussionListController
     if (item == null) return;
     final before = item;
     final value = nextDiscussionVote(before.myVote, pressed);
-    void put(int score, int myVote) => _apply(
-        DiscussionChange(id: id, score: score, myVote: myVote));
+    void put(int score, int myVote) =>
+        _apply(DiscussionChange(id: id, score: score, myVote: myVote));
     put(before.score - before.myVote + value, value);
     try {
       final r = await _repo.vote(id, value: value);
@@ -376,10 +389,7 @@ class MyDiscussionsController
     if (current == null || !current.items.any((i) => i.id == c.id)) return;
     state = AsyncData(current.copyWith(items: [
       for (final i in current.items)
-        if (i.id != c.id)
-          i
-        else if (!c.removed)
-          c.applyTo(i)
+        if (i.id != c.id) i else if (!c.removed) c.applyTo(i)
     ]));
   }
 
@@ -419,8 +429,8 @@ typedef DiscussionThreadKey = ({String id, String sort});
 /// One discussion and its comments. Votes and new comments show at once and
 /// are reconciled with the server; every change is broadcast through
 /// [discussionChangeProvider] so lists on screen follow.
-class DiscussionController
-    extends AutoDisposeFamilyAsyncNotifier<DiscussionThread, DiscussionThreadKey> {
+class DiscussionController extends AutoDisposeFamilyAsyncNotifier<
+    DiscussionThread, DiscussionThreadKey> {
   bool _reloading = false;
   int _localSeq = 0;
 
@@ -474,8 +484,7 @@ class DiscussionController
     final d = state.valueOrNull?.discussion;
     if (d == null) return;
     final value = nextDiscussionVote(d.myVote, pressed);
-    _setDiscussion(
-        d.copyWith(score: d.score - d.myVote + value, myVote: value),
+    _setDiscussion(d.copyWith(score: d.score - d.myVote + value, myVote: value),
         broadcast: false);
     try {
       final r = await _repo.vote(_id, value: value);
@@ -493,18 +502,19 @@ class DiscussionController
     }
   }
 
-  void _patchComment(String id, DiscussionComment Function(DiscussionComment) f) {
+  void _patchComment(
+      String id, DiscussionComment Function(DiscussionComment) f) {
     final t = state.valueOrNull;
     if (t == null) return;
-    state = AsyncData(t.copyWith(comments: [
-      for (final c in t.comments) c.id == id ? f(c) : c
-    ]));
+    state = AsyncData(t.copyWith(
+        comments: [for (final c in t.comments) c.id == id ? f(c) : c]));
   }
 
   /// ▲ / ▼ on a comment.
   Future<void> voteComment(String commentId, int pressed) async {
     DiscussionComment? c;
-    for (final x in state.valueOrNull?.comments ?? const <DiscussionComment>[]) {
+    for (final x
+        in state.valueOrNull?.comments ?? const <DiscussionComment>[]) {
       if (x.id == commentId) c = x;
     }
     if (c == null || c.deleted || c.pending) return;
@@ -554,7 +564,8 @@ class DiscussionController
     state = AsyncData(t.copyWith(
       discussion: d.copyWith(commentCount: d.commentCount + 1),
       // Newest-first sorts show it on top; otherwise at the end.
-      comments: arg.sort == 'new' ? [local, ...t.comments] : [...t.comments, local],
+      comments:
+          arg.sort == 'new' ? [local, ...t.comments] : [...t.comments, local],
     ));
     try {
       await _repo.comment(_id,

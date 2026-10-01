@@ -12,13 +12,18 @@ class MembersRepository {
   /// One page of members (infinite scroll), or — with [all] — the WHOLE
   /// roster. Pickers that must offer every member (game officiants) pass
   /// all: true; a page would silently hide members past the first 18.
+  /// [q] searches name / @username on the server (paged the same way).
   Future<MembersPage> forGroup(String groupId,
-      {int? cursor, bool all = false}) async {
+      {int? cursor, bool all = false, String? q}) async {
     try {
+      final query = q?.trim() ?? '';
       final res = await _dio.get('/api/mobile/groups/$groupId/members',
           queryParameters: all
               ? {'all': 1}
-              : (cursor != null ? {'cursor': cursor} : null));
+              : {
+                  if (cursor != null) 'cursor': cursor,
+                  if (query.isNotEmpty) 'q': query,
+                });
       return MembersPage.fromJson(Map<String, dynamic>.from(res.data as Map));
     } catch (e) {
       throw apiError(e, fallback: 'Could not load members.');
@@ -71,9 +76,10 @@ final groupMembersProvider = FutureProvider.autoDispose
 /// this so they match the web (groups.membersWithProfiles) and the server's
 /// own rule: ANY admin or member of the group may officiate.
 final groupAllMembersProvider = FutureProvider.autoDispose
-    .family<List<GroupMemberItem>, String>((ref, groupId) async =>
-        (await ref.watch(membersRepositoryProvider).forGroup(groupId, all: true))
-            .items);
+    .family<List<GroupMemberItem>, String>((ref, groupId) async => (await ref
+            .watch(membersRepositoryProvider)
+            .forGroup(groupId, all: true))
+        .items);
 
 final groupFollowersProvider = FutureProvider.autoDispose
     .family<List<GroupMemberItem>, String>((ref, groupId) =>

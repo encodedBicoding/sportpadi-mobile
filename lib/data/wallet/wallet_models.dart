@@ -75,7 +75,8 @@ class OnboardingProgress {
     this.onboardingUrl,
     this.walletStatus,
   });
-  final String step; // provide_details | verify_identity | under_review | ready | rejected
+  final String
+      step; // provide_details | verify_identity | under_review | ready | rejected
   final bool actionNeeded;
   final List<OnboardingItem> due;
   final List<OnboardingItem> pending;
@@ -129,6 +130,7 @@ class WithdrawalPolicy {
   });
   final int maturationDays;
   final int heldMinor;
+
   /// Locked by requests still awaiting approval (not yet debited).
   final int pendingApprovalMinor;
   final int withdrawableMinor;
@@ -145,11 +147,14 @@ class WithdrawalPolicy {
 
   /// Payment provider powering this wallet (`stripe`, `paystack`, `flutterwave`).
   final String? providerName;
+
   /// What the provider reports as settled and payable right now (null = unknown).
   final int? providerAvailableMinor;
+
   /// min(withdrawable on SportPadi, provider-available). Null when the server
   /// didn't send it (older API) — falls back to [withdrawableMinor].
   final int? payableNowMinor;
+
   /// Matured on SportPadi but still settling with the provider.
   final int settlingAtProviderMinor;
 
@@ -282,7 +287,8 @@ class WalletOverview {
       collectedMinor: parseInt(summary['collected']) ?? 0,
       ticketCount: parseInt(summary['count']) ?? 0,
       policy: j['policy'] is Map
-          ? WithdrawalPolicy.fromJson(Map<String, dynamic>.from(j['policy'] as Map))
+          ? WithdrawalPolicy.fromJson(
+              Map<String, dynamic>.from(j['policy'] as Map))
           : null,
       progress: j['progress'] is Map
           ? OnboardingProgress.fromJson(
@@ -293,7 +299,8 @@ class WalletOverview {
 }
 
 class Person {
-  const Person({required this.id, this.displayName, this.username, this.avatarUrl});
+  const Person(
+      {required this.id, this.displayName, this.username, this.avatarUrl});
   final String id;
   final String? displayName;
   final String? username;
@@ -311,13 +318,18 @@ class Person {
 
 class WithdrawalApproval {
   const WithdrawalApproval(
-      {required this.decision, required this.approverId, this.approver, this.note, this.createdAt});
+      {required this.decision,
+      required this.approverId,
+      this.approver,
+      this.note,
+      this.createdAt});
   final String decision; // approved | rejected
   final String approverId;
   final Person? approver;
   final String? note;
   final DateTime? createdAt;
-  factory WithdrawalApproval.fromJson(Map<String, dynamic> j) => WithdrawalApproval(
+  factory WithdrawalApproval.fromJson(Map<String, dynamic> j) =>
+      WithdrawalApproval(
         decision: parseStr(j['decision']) ?? '',
         approverId: parseStr(j['approverId']) ?? '',
         approver: Person.fromJson(j['approver']),
@@ -327,7 +339,8 @@ class WithdrawalApproval {
 }
 
 class WithdrawalEvent {
-  const WithdrawalEvent({required this.type, this.actor, this.note, this.createdAt});
+  const WithdrawalEvent(
+      {required this.type, this.actor, this.note, this.createdAt});
   final String type;
   final Person? actor;
   final String? note;
@@ -364,7 +377,8 @@ class Withdrawal {
   final int netAmount;
   final String currency;
   final int currencyExponent;
-  final String status; // pending_approval | approved | rejected | processing | paid | failed | cancelled
+  final String
+      status; // pending_approval | approved | rejected | processing | paid | failed | cancelled
   final String reference;
   final String requestedById;
   final Person? requestedBy;
@@ -391,7 +405,8 @@ class Withdrawal {
         approvals: j['approvals'] is List
             ? [
                 for (final a in j['approvals'] as List)
-                  WithdrawalApproval.fromJson(Map<String, dynamic>.from(a as Map)),
+                  WithdrawalApproval.fromJson(
+                      Map<String, dynamic>.from(a as Map)),
               ]
             : const [],
         events: j['events'] is List
@@ -445,7 +460,8 @@ class WithdrawalsPage {
   const WithdrawalsPage({required this.viewerId, required this.withdrawals});
   final String? viewerId;
   final List<Withdrawal> withdrawals;
-  List<Withdrawal> get pending => withdrawals.where((w) => w.pendingApproval).toList();
+  List<Withdrawal> get pending =>
+      withdrawals.where((w) => w.pendingApproval).toList();
 
   factory WithdrawalsPage.fromJson(Map<String, dynamic> j) => WithdrawalsPage(
         viewerId: parseStr(j['viewerId']),
@@ -489,9 +505,12 @@ class FeeSetting {
   bool get groupPays => bearer == 'group';
 
   factory FeeSetting.fromJson(Map<String, dynamic> j) {
-    final ex = j['example'] is Map ? Map<String, dynamic>.from(j['example'] as Map) : const <String, dynamic>{};
-    Map<String, dynamic> side(String k) =>
-        ex[k] is Map ? Map<String, dynamic>.from(ex[k] as Map) : const <String, dynamic>{};
+    final ex = j['example'] is Map
+        ? Map<String, dynamic>.from(j['example'] as Map)
+        : const <String, dynamic>{};
+    Map<String, dynamic> side(String k) => ex[k] is Map
+        ? Map<String, dynamic>.from(ex[k] as Map)
+        : const <String, dynamic>{};
     final b = side('buyer'), g = side('group');
     return FeeSetting(
       bearer: parseStr(j['bearer']) == 'group' ? 'group' : 'buyer',

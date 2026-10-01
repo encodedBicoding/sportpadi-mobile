@@ -338,50 +338,47 @@ class StatTileGrid extends StatelessWidget {
               color: p.surface2,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: [
-                    if (f.icon != null) ...[
-                      Text(f.icon!, style: const TextStyle(fontSize: 13)),
-                      const SizedBox(width: 5),
-                    ],
-                    Expanded(
-                      child: Text(f.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: p.muted,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600)),
-                    ),
-                  ]),
-                  const SizedBox(height: 4),
-                  Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Expanded(
-                          child: Text('${countOf(counts, f.key)}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  color: p.ink,
-                                  fontSize: 22,
-                                  height: 1.1,
-                                  fontWeight: FontWeight.w800,
-                                  fontFeatures: tabularFigures)),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 2),
-                          child: Text(
-                              '${perGame(countOf(counts, f.key), games)} / game',
-                              style: TextStyle(
-                                  color: p.muted,
-                                  fontSize: 11,
-                                  fontFeatures: tabularFigures)),
-                        ),
-                      ]),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                if (f.icon != null) ...[
+                  Text(f.icon!, style: const TextStyle(fontSize: 13)),
+                  const SizedBox(width: 5),
+                ],
+                Expanded(
+                  child: Text(f.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: p.muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600)),
+                ),
+              ]),
+              const SizedBox(height: 4),
+              Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Expanded(
+                  child: Text('${countOf(counts, f.key)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 22,
+                          height: 1.1,
+                          fontWeight: FontWeight.w800,
+                          fontFeatures: tabularFigures)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Text(
+                      '${perGame(countOf(counts, f.key), games)} / game',
+                      style: TextStyle(
+                          color: p.muted,
+                          fontSize: 11,
+                          fontFeatures: tabularFigures)),
+                ),
+              ]),
+            ]),
           ),
       ]);
     });
@@ -492,8 +489,7 @@ class SegmentBar extends StatelessWidget {
                 for (var i = 0; i < shown.length; i++) ...[
                   if (i > 0) const SizedBox(width: 2),
                   Expanded(
-                      flex: shown[i].$1,
-                      child: ColoredBox(color: shown[i].$2)),
+                      flex: shown[i].$1, child: ColoredBox(color: shown[i].$2)),
                 ],
               ]),
       ),
@@ -545,7 +541,9 @@ class LegendLine extends StatelessWidget {
           child: Text(total > 0 ? '${(value * 100 / total).round()}%' : '—',
               textAlign: TextAlign.right,
               style: TextStyle(
-                  color: p.muted, fontSize: 12.5, fontFeatures: tabularFigures)),
+                  color: p.muted,
+                  fontSize: 12.5,
+                  fontFeatures: tabularFigures)),
         ),
       ]),
     );
@@ -555,7 +553,10 @@ class LegendLine extends StatelessWidget {
 /// "● Aces 24" — an inline legend item.
 class LegendItem extends StatelessWidget {
   const LegendItem(
-      {super.key, required this.color, required this.label, required this.value});
+      {super.key,
+      required this.color,
+      required this.label,
+      required this.value});
   final Color color;
   final String label;
   final String value;
@@ -581,7 +582,9 @@ class LegendItem extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w600, fontFeatures: tabularFigures),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              fontFeatures: tabularFigures),
         ),
       ),
     ]);
@@ -593,9 +596,9 @@ class ResultsOnlyNote extends StatelessWidget {
   const ResultsOnlyNote({super.key});
 
   @override
-  Widget build(BuildContext context) => Text(
-      'This sport keeps results only — no individual stats.',
-      style: TextStyle(color: context.palette.muted, fontSize: 12.5));
+  Widget build(BuildContext context) =>
+      Text('This sport keeps results only — no individual stats.',
+          style: TextStyle(color: context.palette.muted, fontSize: 12.5));
 }
 
 /// The colour a streak chip reads in.

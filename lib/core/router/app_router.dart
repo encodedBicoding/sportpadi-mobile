@@ -84,7 +84,8 @@ class _AuthRefresh extends ChangeNotifier {
       final wasIn = prev?.valueOrNull?.isAuthenticated ?? false;
       final isIn = next.valueOrNull?.isAuthenticated ?? false;
       if (wasIn && !isIn) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => router?.go('/home'));
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) => router?.go('/home'));
       }
     });
   }
@@ -194,7 +195,9 @@ final routerProvider = Provider<GoRouter>((ref) {
             ClaimAccountScreen(token: st.pathParameters['token']!),
       ),
       GoRoute(path: '/home', builder: (_, __) => const _HomeGate()),
-      GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
+      GoRoute(
+          path: '/notifications',
+          builder: (_, __) => const NotificationsScreen()),
       // Inbox: announcements (Messaging 1) and messages (Messaging 2).
       // Announcement pushes deep-link to /inbox/announcements/<id>, message
       // pushes to /inbox/messages/<id>; /inbox?tab=messages opens Messages.
@@ -214,10 +217,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       // Gamification (docs/gamification/phase-2.md).
       GoRoute(path: '/progress', builder: (_, __) => const ProgressScreen()),
-      GoRoute(path: '/leaderboards', builder: (_, __) => const LeaderboardsScreen()),
+      GoRoute(
+          path: '/leaderboards',
+          builder: (_, __) => const LeaderboardsScreen()),
       GoRoute(
         path: '/games/:id/summary',
-        builder: (_, st) => MatchSummaryScreen(gameId: st.pathParameters['id']!),
+        builder: (_, st) =>
+            MatchSummaryScreen(gameId: st.pathParameters['id']!),
       ),
       // Officiant mode: the timekeeper's locked-in, full-screen clock.
       GoRoute(
@@ -277,7 +283,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/teams/:id/formation',
-        builder: (_, s) => FormationBoardScreen(teamId: s.pathParameters['id']!),
+        builder: (_, s) =>
+            FormationBoardScreen(teamId: s.pathParameters['id']!),
       ),
       GoRoute(
         path: '/groups/:id/new-event',
@@ -285,8 +292,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, s) => CreateEventScreen(
             groupId: s.pathParameters['id']!,
             initialTeamIds: [
-              for (final id
-                  in (s.uri.queryParameters['team'] ?? '').split(','))
+              for (final id in (s.uri.queryParameters['team'] ?? '').split(','))
                 if (id.trim().isNotEmpty) id.trim()
             ]),
       ),
@@ -298,7 +304,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/groups/:id/new-tournament',
-        builder: (_, s) => CreateTournamentScreen(groupId: s.pathParameters['id']!),
+        builder: (_, s) =>
+            CreateTournamentScreen(groupId: s.pathParameters['id']!),
       ),
       // Announcements for staff: compose (optionally aimed at a team or an
       // event) and the sent list with seen counts.
@@ -351,7 +358,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/groups/:id/invites',
-        builder: (_, s) => TournamentInvitesScreen(groupId: s.pathParameters['id']!),
+        builder: (_, s) =>
+            TournamentInvitesScreen(groupId: s.pathParameters['id']!),
       ),
       GoRoute(path: '/scan', builder: (_, __) => const ScanScreen()),
       GoRoute(path: '/tickets', builder: (_, __) => const MyTicketsScreen()),
@@ -376,16 +384,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/profile/records/:categoryId',
         builder: (_, st) => SportRecordScreen(
-          userId:
-              ref.read(authControllerProvider).valueOrNull?.user?.id ?? '',
+          userId: ref.read(authControllerProvider).valueOrNull?.user?.id ?? '',
           categoryId: st.pathParameters['categoryId']!,
           isMe: true,
         ),
       ),
       // Wards (players a guardian manages). Co-guardian invite notifications
       // link to /profile/wards.
-      GoRoute(
-          path: '/profile/wards', builder: (_, __) => const WardsScreen()),
+      GoRoute(path: '/profile/wards', builder: (_, __) => const WardsScreen()),
       GoRoute(
         path: '/profile/wards/:id',
         builder: (_, st) => WardDetailScreen(wardId: st.pathParameters['id']!),
@@ -406,7 +412,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/groups/:id/wallet',
-        builder: (_, st) => GroupWalletScreen(groupId: st.pathParameters['id']!),
+        builder: (_, st) =>
+            GroupWalletScreen(groupId: st.pathParameters['id']!),
       ),
       GoRoute(
         path: '/groups/:id/wallet/withdrawals',
@@ -415,7 +422,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/groups/:id/tickets',
-        builder: (_, st) => GroupTicketsScreen(groupId: st.pathParameters['id']!),
+        builder: (_, st) =>
+            GroupTicketsScreen(groupId: st.pathParameters['id']!),
       ),
       GoRoute(
         path: '/groups/:id/fines',

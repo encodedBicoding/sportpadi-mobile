@@ -61,9 +61,14 @@ class MyPrivacy {
     this.searchable = false,
     this.supervisedUntil,
     this.guardians = const [],
+    this.profilePrivate = false,
   });
 
   final bool applies;
+
+  /// Everyone else ([applies] false): their public profile is private —
+  /// others see name, @username and photo, and that it's private.
+  final bool profilePrivate;
 
   /// private | groups | public
   final String visibility;
@@ -78,6 +83,7 @@ class MyPrivacy {
         visibility: parseStr(j['visibility']) ?? 'private',
         searchable: j['searchable'] == true,
         supervisedUntil: parseStr(j['supervisedUntil']),
+        profilePrivate: j['profilePrivate'] == true,
         guardians: j['guardians'] is List
             ? [
                 for (final g in j['guardians'] as List)
@@ -132,8 +138,7 @@ class SportCategory {
         fields: j['statSchema'] is List
             ? [
                 for (final f in j['statSchema'] as List)
-                  if (f is Map)
-                    StatField.fromJson(Map<String, dynamic>.from(f))
+                  if (f is Map) StatField.fromJson(Map<String, dynamic>.from(f))
               ]
             : const [],
       );

@@ -13,6 +13,7 @@ import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/features/progression/progression_screens.dart';
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
+import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 
 /// Group leaderboard — rankings from completed games (web /leaderboard page):
 /// per sport category (switcher chips, soccer default), points (3/1/0),
@@ -74,12 +75,11 @@ class _GroupLeaderboardScreenState
           break;
         }
       }
-      _categoryId = parseStr((soccer ?? (cats.isNotEmpty ? cats.first : null))
-              ?['id']) ??
-          _categoryId;
+      _categoryId =
+          parseStr((soccer ?? (cats.isNotEmpty ? cats.first : null))?['id']) ??
+              _categoryId;
     }
-    final board = ref.watch(groupLeaderboardProvider(
-        _boardKey));
+    final board = ref.watch(groupLeaderboardProvider(_boardKey));
     final group = ref.watch(groupProvider(groupId)).valueOrNull;
     final me = ref.watch(meProvider).valueOrNull?.userId;
 
@@ -159,8 +159,8 @@ class _GroupLeaderboardScreenState
                       shape: const StadiumBorder(),
                       child: InkWell(
                         customBorder: const StadiumBorder(),
-                        onTap: () => setState(
-                            () => _categoryId = parseStr(c['id'])),
+                        onTap: () =>
+                            setState(() => _categoryId = parseStr(c['id'])),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 13, vertical: 8),
@@ -209,8 +209,7 @@ class _GroupLeaderboardScreenState
                         child: Text(
                           b.label,
                           style: TextStyle(
-                              color:
-                                  _ageBand == b.key ? p.greenText : p.ink,
+                              color: _ageBand == b.key ? p.greenText : p.ink,
                               fontSize: 12.5,
                               fontWeight: _ageBand == b.key
                                   ? FontWeight.w700
@@ -238,8 +237,8 @@ class _GroupLeaderboardScreenState
             const SizedBox(height: 10),
             SpButton(
                 label: 'Retry',
-                onTap: () => ref.invalidate(groupLeaderboardProvider(
-                    _boardKey))),
+                onTap: () =>
+                    ref.invalidate(groupLeaderboardProvider(_boardKey))),
           ]),
         ),
         data: (rows) {
@@ -280,7 +279,10 @@ class _GroupLeaderboardScreenState
           }
           final toggle = SpSegmented(
             options: const ['Ranking', 'Full table'],
-            icons: const [Icons.format_list_numbered_rounded, Icons.table_chart_outlined],
+            icons: const [
+              Icons.format_list_numbered_rounded,
+              Icons.table_chart_outlined
+            ],
             index: _view,
             onChanged: (i) => setState(() => _view = i),
           );
@@ -307,7 +309,8 @@ class _GroupLeaderboardScreenState
                   const SizedBox(height: 10),
                   Text(
                     'Tap MP, Pts, G or A to sort. MP matches · W wins · D draws · L losses · Pts points (3 a win, 1 a draw) · G goals · A assists · OG own goals · YC/RC cards. Arrows show movement since the last session.',
-                    style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.45),
+                    style:
+                        TextStyle(color: p.muted, fontSize: 11.5, height: 1.45),
                   ),
                 ]);
           }
@@ -346,9 +349,8 @@ class _GroupLeaderboardScreenState
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
-          onRefresh: () async => ref.refresh(groupLeaderboardProvider(
-                  _boardKey)
-              .future),
+          onRefresh: () async =>
+              ref.refresh(groupLeaderboardProvider(_boardKey).future),
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
             children: children,
@@ -384,9 +386,8 @@ class _GroupLeaderboardScreenState
             itemBuilder: (_) => [
               PopupMenuItem<String?>(
                 value: null,
-                child: Text(current != null
-                    ? '${current.name} (current)'
-                    : 'All time'),
+                child: Text(
+                    current != null ? '${current.name} (current)' : 'All time'),
               ),
               for (final s in seasons.where((s) => s.id != current?.id))
                 PopupMenuItem<String?>(value: s.id, child: Text(s.name)),
@@ -435,13 +436,21 @@ class _GroupLeaderboardScreenState
       builder: (ctx) => AlertDialog(
         title: const Text('Start a new season'),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('The boards start fresh from now. The current season is kept; nobody loses XP or level.'),
+          const Text(
+              'The boards start fresh from now. The current season is kept; nobody loses XP or level.'),
           const SizedBox(height: 12),
-          TextField(controller: ctrl, maxLength: 60, decoration: const InputDecoration(labelText: 'Name')),
+          TextField(
+              controller: ctrl,
+              maxLength: 60,
+              decoration: const InputDecoration(labelText: 'Name')),
         ]),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Start')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Start')),
         ],
       ),
     );
@@ -450,11 +459,14 @@ class _GroupLeaderboardScreenState
     if (ok != true || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await ref.read(progressionRepositoryProvider).startSeason(groupId, name.isEmpty ? 'Season $n' : name);
+      await ref
+          .read(progressionRepositoryProvider)
+          .startSeason(groupId, name.isEmpty ? 'Season $n' : name);
       setState(() => _seasonId = null);
       ref.invalidate(groupProgressionProvider(groupId));
       ref.invalidate(boardProvider);
-      messenger.showSnackBar(SnackBar(content: Text('${name.isEmpty ? 'Season $n' : name} has started')));
+      messenger.showSnackBar(SnackBar(
+          content: Text('${name.isEmpty ? 'Season $n' : name} has started')));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
     }
@@ -464,74 +476,78 @@ class _GroupLeaderboardScreenState
       {bool mine = false}) {
     final p = context.palette;
     final headline = leaderboardHeadline(r);
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 2),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-      decoration: BoxDecoration(
-        // Highlight the viewer's own row so they spot themselves instantly.
-        color: mine ? p.accentTint : null,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(children: [
-        SizedBox(
-          width: 34,
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('$rank',
-                    style: TextStyle(
-                        color: mine ? p.greenText : p.muted,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800)),
-                _Move(move: r.move, isNew: r.isNew),
-              ]),
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => openPlayerProfile(context, ref, r.playerId),
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        decoration: BoxDecoration(
+          // Highlight the viewer's own row so they spot themselves instantly.
+          color: mine ? p.accentTint : null,
+          borderRadius: BorderRadius.circular(16),
         ),
-        ClipOval(
-          child: Crest(logoUrl: r.avatarUrl, label: r.displayName, size: 38),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(children: [
-                Flexible(
-                  child: Text(mine ? 'You' : r.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+        child: Row(children: [
+          SizedBox(
+            width: 34,
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('$rank',
                       style: TextStyle(
-                          color: p.ink,
+                          color: mine ? p.greenText : p.muted,
                           fontSize: 14,
-                          fontWeight:
-                              mine ? FontWeight.w800 : FontWeight.w700)),
-                ),
-                if (r.isWard) ...[
-                  const SizedBox(width: 6),
-                  const WardBadge(),
-                ],
-              ]),
-              Text(
-                [
-                  '${r.wins}-${r.draws}-${r.losses}',
-                  '${r.games} game${r.games == 1 ? '' : 's'}',
-                  ...headline,
-                ].join(' · '),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: p.muted, fontSize: 12),
-              ),
-            ],
+                          fontWeight: FontWeight.w800)),
+                  _Move(move: r.move, isNew: r.isNew),
+                ]),
           ),
-        ),
-        const SizedBox(width: 8),
-        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text('${r.points}',
-              style: TextStyle(
-                  color: p.ink, fontSize: 17, fontWeight: FontWeight.w800)),
-          Text('pts', style: TextStyle(color: p.muted, fontSize: 10.5)),
+          ClipOval(
+            child: Crest(logoUrl: r.avatarUrl, label: r.displayName, size: 38),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Flexible(
+                    child: Text(mine ? 'You' : r.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 14,
+                            fontWeight:
+                                mine ? FontWeight.w800 : FontWeight.w700)),
+                  ),
+                  if (r.isWard) ...[
+                    const SizedBox(width: 6),
+                    const WardBadge(),
+                  ],
+                ]),
+                Text(
+                  [
+                    '${r.wins}-${r.draws}-${r.losses}',
+                    '${r.games} game${r.games == 1 ? '' : 's'}',
+                    ...headline,
+                  ].join(' · '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: p.muted, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Text('${r.points}',
+                style: TextStyle(
+                    color: p.ink, fontSize: 17, fontWeight: FontWeight.w800)),
+            Text('pts', style: TextStyle(color: p.muted, fontSize: 10.5)),
+          ]),
         ]),
-      ]),
+      ),
     );
   }
 }
@@ -577,63 +593,69 @@ class _Podium extends StatelessWidget {
               : p.line;
       final head = leaderboardHeadline(r, max: 1);
       return Expanded(
-        child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-          // A gold crown on the leader.
-          if (first) ...[
-            const _Crown(width: 30),
-            const SizedBox(height: 3),
-          ],
-          Container(
-            padding: const EdgeInsets.all(2.5),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: ring, width: 2.5),
+        child: PlayerTap(
+          userId: r.playerId,
+          borderRadius: 20,
+          child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+            // A gold crown on the leader.
+            if (first) ...[
+              const _Crown(width: 30),
+              const SizedBox(height: 3),
+            ],
+            Container(
+              padding: const EdgeInsets.all(2.5),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: ring, width: 2.5),
+              ),
+              child: ClipOval(
+                child: Crest(
+                    logoUrl: r.avatarUrl,
+                    label: r.displayName,
+                    size: first ? 58 : 46),
+              ),
             ),
-            child: ClipOval(
-              child: Crest(
-                  logoUrl: r.avatarUrl,
-                  label: r.displayName,
-                  size: first ? 58 : 46),
+            const SizedBox(height: 6),
+            Text(mine ? 'You' : r.displayName.split(' ').first,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: p.ink, fontSize: 13, fontWeight: FontWeight.w700)),
+            Text(head.isNotEmpty ? head.first : '${r.games} games',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: p.muted, fontSize: 11)),
+            if (r.move != null || r.isNew) ...[
+              const SizedBox(height: 3),
+              _Move(move: r.move, isNew: r.isNew),
+            ],
+            const SizedBox(height: 8),
+            Container(
+              height: h,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: first ? p.hero : p.surface,
+                borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20), bottom: Radius.circular(8)),
+                boxShadow: first ? null : cardShadow(context),
+              ),
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('$rank',
+                        style: TextStyle(
+                            color: first ? p.onHero : p.ink,
+                            fontSize: first ? 26 : 22,
+                            fontWeight: FontWeight.w800)),
+                    Text('${r.points} pts',
+                        style: TextStyle(
+                            color: first ? const Color(0xFF6EDC9E) : p.muted,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700)),
+                  ]),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(mine ? 'You' : r.displayName.split(' ').first,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  color: p.ink, fontSize: 13, fontWeight: FontWeight.w700)),
-          Text(head.isNotEmpty ? head.first : '${r.games} games',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: p.muted, fontSize: 11)),
-          if (r.move != null || r.isNew) ...[
-            const SizedBox(height: 3),
-            _Move(move: r.move, isNew: r.isNew),
-          ],
-          const SizedBox(height: 8),
-          Container(
-            height: h,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: first ? p.hero : p.surface,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(20), bottom: Radius.circular(8)),
-              boxShadow: first ? null : cardShadow(context),
-            ),
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Text('$rank',
-                  style: TextStyle(
-                      color: first ? p.onHero : p.ink,
-                      fontSize: first ? 26 : 22,
-                      fontWeight: FontWeight.w800)),
-              Text('${r.points} pts',
-                  style: TextStyle(
-                      color: first ? const Color(0xFF6EDC9E) : p.muted,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700)),
-            ]),
-          ),
-        ]),
+          ]),
+        ),
       );
     }
 
@@ -734,7 +756,10 @@ class _Move extends StatelessWidget {
             size: 18, color: c),
         Text('${m.abs()}',
             style: TextStyle(
-                color: c, fontSize: 11, fontWeight: FontWeight.w800, height: 1)),
+                color: c,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                height: 1)),
       ]),
     );
   }
@@ -750,23 +775,40 @@ class _MyMovement extends StatelessWidget {
     final p = context.palette;
     final m = row.move ?? 0;
     final (icon, bg, fg, title) = row.isNew
-        ? (Icons.fiber_new_rounded, p.orangeTint, p.orangeInk,
-            "You're on the board")
+        ? (
+            Icons.fiber_new_rounded,
+            p.orangeTint,
+            p.orangeInk,
+            "You're on the board"
+          )
         : m > 0
-            ? (Icons.trending_up_rounded, p.accentTint, p.greenText,
-                'You moved up $m')
+            ? (
+                Icons.trending_up_rounded,
+                p.accentTint,
+                p.greenText,
+                'You moved up $m'
+              )
             : m < 0
-                ? (Icons.trending_down_rounded, p.liveTint, p.danger,
-                    'You dropped ${-m} place${m == -1 ? '' : 's'}')
-                : (Icons.trending_flat_rounded, p.surface2, p.ink,
-                    'You held your place');
+                ? (
+                    Icons.trending_down_rounded,
+                    p.liveTint,
+                    p.danger,
+                    'You dropped ${-m} place${m == -1 ? '' : 's'}'
+                  )
+                : (
+                    Icons.trending_flat_rounded,
+                    p.surface2,
+                    p.ink,
+                    'You held your place'
+                  );
     return GlassCard(
       padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
       child: Row(children: [
         SpIconTile(icon, bg: bg, fg: fg, size: 42),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(title,
                 style: TextStyle(
                     color: p.ink, fontSize: 15, fontWeight: FontWeight.w800)),
@@ -832,8 +874,12 @@ class _FullTable extends StatelessWidget {
         ('reds', 'RC', 'Red cards'),
       ])
         if (rows.any((r) => (r.tallies[k] ?? 0) > 0))
-          (l, t, (r) => r.tallies[k] ?? 0,
-              (k == 'goals' || k == 'assists') ? k : null),
+          (
+            l,
+            t,
+            (r) => r.tallies[k] ?? 0,
+            (k == 'goals' || k == 'assists') ? k : null
+          ),
     ];
     final sorted = [...rows]..sort((a, b) {
         final diff = _stat(b, sortKey) - _stat(a, sortKey);
@@ -850,11 +896,13 @@ class _FullTable extends StatelessWidget {
     // Movement is by points, so it only makes sense on the points order.
     final showMove = sortKey == 'points' && desc;
 
-    Widget head(String label, {String? key, TextAlign align = TextAlign.center, double? width}) {
+    Widget head(String label,
+        {String? key, TextAlign align = TextAlign.center, double? width}) {
       final active = key != null && key == sortKey;
       final text = Row(
-        mainAxisAlignment:
-            align == TextAlign.left ? MainAxisAlignment.start : MainAxisAlignment.center,
+        mainAxisAlignment: align == TextAlign.left
+            ? MainAxisAlignment.start
+            : MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(label.toUpperCase(),
@@ -866,7 +914,9 @@ class _FullTable extends StatelessWidget {
           if (key != null)
             Icon(
                 active
-                    ? (desc ? Icons.arrow_drop_down_rounded : Icons.arrow_drop_up_rounded)
+                    ? (desc
+                        ? Icons.arrow_drop_down_rounded
+                        : Icons.arrow_drop_up_rounded)
                     : Icons.unfold_more_rounded,
                 size: active ? 18 : 13,
                 color: active ? p.ink : p.muted.withAlpha(120)),
@@ -877,7 +927,8 @@ class _FullTable extends StatelessWidget {
         child: Container(
           width: width,
           height: _headH,
-          alignment: align == TextAlign.left ? Alignment.centerLeft : Alignment.center,
+          alignment:
+              align == TextAlign.left ? Alignment.centerLeft : Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 8),
           color: p.surface2,
           child: text,
@@ -894,7 +945,8 @@ class _FullTable extends StatelessWidget {
                 height: 24,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                    color: n == 1 ? p.orange : p.surface2, shape: BoxShape.circle),
+                    color: n == 1 ? p.orange : p.surface2,
+                    shape: BoxShape.circle),
                 child: Text('$n',
                     style: TextStyle(
                         color: n == 1 ? Colors.white : p.ink,
@@ -903,7 +955,9 @@ class _FullTable extends StatelessWidget {
               )
             : Text('$n',
                 style: TextStyle(
-                    color: p.muted, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                    color: p.muted,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700)),
         if (showMove) _Move(move: r.move, isNew: r.isNew),
       ]);
     }
@@ -934,53 +988,59 @@ class _FullTable extends StatelessWidget {
               Expanded(child: head('Player', align: TextAlign.left)),
             ]),
             for (var i = 0; i < sorted.length; i++)
-              Container(
-                height: _rowH,
-                decoration: BoxDecoration(
-                  color: sorted[i].playerId == me ? p.accentTint : p.surface,
-                  border: Border(
-                    top: BorderSide(color: p.surface2),
-                    left: BorderSide(
-                        color: sorted[i].playerId == me ? p.accent : Colors.transparent,
-                        width: 3),
-                  ),
-                ),
-                child: Row(children: [
-                  SizedBox(width: 39, child: rankCell(i + 1, sorted[i])),
-                  ClipOval(
-                    child: Crest(
-                        logoUrl: sorted[i].avatarUrl,
-                        label: sorted[i].displayName,
-                        size: 28),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                            sorted[i].playerId == me
-                                ? 'You'
-                                : sorted[i].displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: p.ink,
-                                fontSize: 13,
-                                fontWeight: sorted[i].playerId == me
-                                    ? FontWeight.w800
-                                    : FontWeight.w600)),
-                        if ((sorted[i].username ?? '').isNotEmpty)
-                          Text('@${sorted[i].username}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: p.muted, fontSize: 11)),
-                      ],
+              PlayerTap(
+                userId: sorted[i].playerId,
+                borderRadius: 0,
+                child: Container(
+                  height: _rowH,
+                  decoration: BoxDecoration(
+                    color: sorted[i].playerId == me ? p.accentTint : p.surface,
+                    border: Border(
+                      top: BorderSide(color: p.surface2),
+                      left: BorderSide(
+                          color: sorted[i].playerId == me
+                              ? p.accent
+                              : Colors.transparent,
+                          width: 3),
                     ),
                   ),
-                  const SizedBox(width: 6),
-                ]),
+                  child: Row(children: [
+                    SizedBox(width: 39, child: rankCell(i + 1, sorted[i])),
+                    ClipOval(
+                      child: Crest(
+                          logoUrl: sorted[i].avatarUrl,
+                          label: sorted[i].displayName,
+                          size: 28),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                              sorted[i].playerId == me
+                                  ? 'You'
+                                  : sorted[i].displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: p.ink,
+                                  fontSize: 13,
+                                  fontWeight: sorted[i].playerId == me
+                                      ? FontWeight.w800
+                                      : FontWeight.w600)),
+                          if ((sorted[i].username ?? '').isNotEmpty)
+                            Text('@${sorted[i].username}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: p.muted, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                  ]),
+                ),
               ),
           ]),
         ),
@@ -988,7 +1048,8 @@ class _FullTable extends StatelessWidget {
         Expanded(
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 for (final c in cols) head(c.$1, key: c.$4, width: 48),
               ]),
@@ -1004,9 +1065,10 @@ class _FullTable extends StatelessWidget {
                       Container(
                         width: 48,
                         alignment: Alignment.center,
-                        color: c.$4 != null && c.$4 == sortKey && r.playerId != me
-                            ? p.surface2.withAlpha(110)
-                            : null,
+                        color:
+                            c.$4 != null && c.$4 == sortKey && r.playerId != me
+                                ? p.surface2.withAlpha(110)
+                                : null,
                         child: Text('${c.$3(r)}',
                             style: TextStyle(
                                 color: p.ink,
@@ -1014,7 +1076,9 @@ class _FullTable extends StatelessWidget {
                                 fontWeight: c.$1 == 'Pts'
                                     ? FontWeight.w800
                                     : FontWeight.w500,
-                                fontFeatures: const [FontFeature.tabularFigures()])),
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures()
+                                ])),
                       ),
                   ]),
                 ),

@@ -17,10 +17,12 @@ class CreateTournamentScreen extends ConsumerStatefulWidget {
   const CreateTournamentScreen({super.key, required this.groupId});
   final String groupId;
   @override
-  ConsumerState<CreateTournamentScreen> createState() => _CreateTournamentScreenState();
+  ConsumerState<CreateTournamentScreen> createState() =>
+      _CreateTournamentScreenState();
 }
 
-class _CreateTournamentScreenState extends ConsumerState<CreateTournamentScreen> {
+class _CreateTournamentScreenState
+    extends ConsumerState<CreateTournamentScreen> {
   final _title = TextEditingController();
   final _search = TextEditingController();
   final _fee = TextEditingController();
@@ -84,11 +86,15 @@ class _CreateTournamentScreenState extends ConsumerState<CreateTournamentScreen>
   }
 
   Future<void> _submit() async {
-    if (_title.text.trim().isEmpty) return setState(() => _error = 'Add a title');
+    if (_title.text.trim().isEmpty) {
+      return setState(() => _error = 'Add a title');
+    }
     if (_categoryId == null) return setState(() => _error = 'Pick a sport');
     if (_date == null) return setState(() => _error = 'Pick a date');
     if (_hostTeamId == null) return setState(() => _error = 'Choose your team');
-    if (!_isMulti && _guests.isEmpty) return setState(() => _error = 'Invite an opponent');
+    if (!_isMulti && _guests.isEmpty) {
+      return setState(() => _error = 'Invite an opponent');
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -99,7 +105,8 @@ class _CreateTournamentScreenState extends ConsumerState<CreateTournamentScreen>
         'categoryId': _categoryId,
         'title': _title.text.trim(),
         'mode': _mode,
-        'eventDate': DateTime.utc(_date!.year, _date!.month, _date!.day).toIso8601String(),
+        'eventDate': DateTime.utc(_date!.year, _date!.month, _date!.day)
+            .toIso8601String(),
         'hostTeamId': _hostTeamId,
         'guestTeamId': _isMulti ? null : _guests.first.id,
         'guestTeamIds': _isMulti ? _guests.map((g) => g.id).toList() : null,
@@ -126,11 +133,14 @@ class _CreateTournamentScreenState extends ConsumerState<CreateTournamentScreen>
     final p = context.palette;
     final teams = ref.watch(groupTeamsProvider(widget.groupId));
     final hostTeams = teams.maybeWhen(
-      data: (list) => list.where((t) => _categoryId == null || t.categoryId == _categoryId).toList(),
+      data: (list) => list
+          .where((t) => _categoryId == null || t.categoryId == _categoryId)
+          .toList(),
       orElse: () => const <TeamSummary>[],
     );
     return Scaffold(
-      appBar: AppBar(leading: const SpLeading(), title: const Text('New tournament')),
+      appBar: AppBar(
+          leading: const SpLeading(), title: const Text('New tournament')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -162,7 +172,9 @@ class _CreateTournamentScreenState extends ConsumerState<CreateTournamentScreen>
             },
             child: InputDecorator(
               decoration: const InputDecoration(labelText: 'Date'),
-              child: Text(_date == null ? 'Choose' : DateFormat('EEE, d MMM yyyy').format(_date!)),
+              child: Text(_date == null
+                  ? 'Choose'
+                  : DateFormat('EEE, d MMM yyyy').format(_date!)),
             ),
           ),
           const SizedBox(height: 16),
@@ -178,10 +190,12 @@ class _CreateTournamentScreenState extends ConsumerState<CreateTournamentScreen>
             }),
           ),
           const SizedBox(height: 16),
-          Text('Your team (host)', style: TextStyle(color: p.muted, fontSize: 12)),
+          Text('Your team (host)',
+              style: TextStyle(color: p.muted, fontSize: 12)),
           const SizedBox(height: 6),
           if (_categoryId == null)
-            Text('Pick a sport first.', style: TextStyle(color: p.muted, fontSize: 13))
+            Text('Pick a sport first.',
+                style: TextStyle(color: p.muted, fontSize: 13))
           else if (hostTeams.isEmpty)
             Text('You have no team for this sport yet.',
                 style: TextStyle(color: p.muted, fontSize: 13))
@@ -227,12 +241,15 @@ class _CreateTournamentScreenState extends ConsumerState<CreateTournamentScreen>
                   ? const Padding(
                       padding: EdgeInsets.all(12),
                       child: SizedBox(
-                          height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2)))
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2)))
                   : const Icon(Icons.search_rounded),
             ),
             onChanged: _runSearch,
           ),
-          for (final r in _results.where((r) => !_guests.any((g) => g.id == r.id)))
+          for (final r
+              in _results.where((r) => !_guests.any((g) => g.id == r.id)))
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Crest(
@@ -262,24 +279,31 @@ class _CreateTournamentScreenState extends ConsumerState<CreateTournamentScreen>
               Text('Max teams', style: TextStyle(color: p.muted, fontSize: 12)),
               const Spacer(),
               IconButton(
-                onPressed: () => setState(() => _maxTeams = (_maxTeams - 1).clamp(2, 32)),
+                onPressed: () =>
+                    setState(() => _maxTeams = (_maxTeams - 1).clamp(2, 32)),
                 icon: const Icon(Icons.remove_circle_outline_rounded),
               ),
-              Text('$_maxTeams', style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text('$_maxTeams',
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
               IconButton(
-                onPressed: () => setState(() => _maxTeams = (_maxTeams + 1).clamp(2, 32)),
+                onPressed: () =>
+                    setState(() => _maxTeams = (_maxTeams + 1).clamp(2, 32)),
                 icon: const Icon(Icons.add_circle_outline_rounded),
               ),
             ]),
           ],
           Builder(builder: (context) {
-            final wallet = ref.watch(groupWalletProvider(widget.groupId)).valueOrNull;
-            if (wallet == null || !wallet.active) return const SizedBox.shrink();
+            final wallet =
+                ref.watch(groupWalletProvider(widget.groupId)).valueOrNull;
+            if (wallet == null || !wallet.active) {
+              return const SizedBox.shrink();
+            }
             return Padding(
               padding: const EdgeInsets.only(top: 16),
               child: TextField(
                 controller: _fee,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   labelText: 'Entry fee (optional)',
                   prefixText: '${wallet.currency ?? ''} ',
@@ -297,8 +321,10 @@ class _CreateTournamentScreenState extends ConsumerState<CreateTournamentScreen>
             onPressed: _busy ? null : _submit,
             child: _busy
                 ? const SizedBox(
-                    height: 20, width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white))
                 : const Text('Create & invite'),
           ),
         ],

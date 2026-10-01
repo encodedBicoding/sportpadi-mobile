@@ -31,23 +31,30 @@ class ServedAd {
   });
   final String id;
   final String slotId;
+
   /// Empty when a message has no picture.
   final String imageUrl;
+
   /// https://… or one of our own paths ("/groups/…").
   final String clickUrl;
   final String? altText;
   final String? advertiserName;
+
   /// Owner-entered size, e.g. "728x90", "300x250" or "responsive".
   final String? size;
+
   /// sponsored | promo
   final String kind;
   final String? title;
   final String? body;
   final String? ctaLabel;
+
   /// green | orange | blue | ink — the panel colour when there's no image.
   final String? accent;
+
   /// Closing it hides it for good (otherwise it can come back).
   final bool hideOnDismiss;
+
   /// Report views? False when the ad doesn't record impressions and no cap
   /// counts views — then nothing is sent.
   final bool logViews;
@@ -104,11 +111,13 @@ class ServedSlot {
 class AdsRepository {
   AdsRepository(this._dio, {required this.anonId});
   final Dio _dio;
+
   /// This install's random id (used only while signed out, for caps like
   /// "show twice"). Null when signed in — the server uses the account.
   final Future<String?> Function() anonId;
 
   static String? _version;
+
   /// The app's version ("1.4.0"), so messages about newer features only
   /// reach apps that have them.
   static Future<String?> appVersion() async {
@@ -119,11 +128,13 @@ class AdsRepository {
     return _version;
   }
 
-  static String get _os => defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
+  static String get _os =>
+      defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
 
   /// What each slot picked for this viewer. [popup]: of the pop-up slots,
   /// only the best one with something to show ([keys] may be empty = all).
-  Future<List<ServedSlot>> serveSlots(List<String> keys, {bool popup = false}) async {
+  Future<List<ServedSlot>> serveSlots(List<String> keys,
+      {bool popup = false}) async {
     try {
       final anon = await anonId();
       final v = await appVersion();
@@ -245,7 +256,9 @@ final adsRepositoryProvider = Provider<AdsRepository>((ref) => AdsRepository(
       ref.watch(dioProvider),
       anonId: () async {
         // Signed in: the server knows who it is.
-        if (ref.read(authControllerProvider).valueOrNull?.user != null) return null;
+        if (ref.read(authControllerProvider).valueOrNull?.user != null) {
+          return null;
+        }
         try {
           return await ref.read(pushServiceProvider).deviceId();
         } catch (_) {

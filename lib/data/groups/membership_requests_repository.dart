@@ -20,8 +20,8 @@ class MembershipRequestsRepository {
   Future<List<MembershipRequestItem>> list(String groupId,
       {String status = 'pending'}) async {
     try {
-      final res = await _dio
-          .get(_path(groupId), queryParameters: {'status': status});
+      final res =
+          await _dio.get(_path(groupId), queryParameters: {'status': status});
       final data = res.data;
       final list = data is List ? data : const [];
       return [
@@ -37,8 +37,8 @@ class MembershipRequestsRepository {
   /// Pending requests, for the owner's badge (0 for everyone else).
   Future<int> pendingCount(String groupId) async {
     try {
-      final res = await _dio
-          .get(_path(groupId), queryParameters: {'view': 'count'});
+      final res =
+          await _dio.get(_path(groupId), queryParameters: {'view': 'count'});
       final data = res.data;
       final n = data is Map ? data['pending'] : null;
       return n is num ? n.toInt() : 0;
@@ -94,12 +94,11 @@ typedef MembershipRequestsKey = ({String groupId, String status});
 /// The owner's membership requests for one status. Invalidate the family
 /// (`ref.invalidate(membershipRequestsProvider)`) after a decision.
 final membershipRequestsProvider = FutureProvider.autoDispose
-    .family<List<MembershipRequestItem>, MembershipRequestsKey>((ref, k) =>
-        ref
-            .watch(membershipRequestsRepositoryProvider)
-            .list(k.groupId, status: k.status));
+    .family<List<MembershipRequestItem>, MembershipRequestsKey>((ref, k) => ref
+        .watch(membershipRequestsRepositoryProvider)
+        .list(k.groupId, status: k.status));
 
 /// Pending requests waiting on the owner (0 for everyone else).
-final membershipRequestCountProvider =
-    FutureProvider.autoDispose.family<int, String>((ref, groupId) =>
+final membershipRequestCountProvider = FutureProvider.autoDispose
+    .family<int, String>((ref, groupId) =>
         ref.watch(membershipRequestsRepositoryProvider).pendingCount(groupId));

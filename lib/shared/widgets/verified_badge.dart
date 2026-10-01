@@ -42,22 +42,26 @@ class VerifiedBadgeButton extends StatelessWidget {
   final String? groupName;
 
   void _explain(BuildContext context) {
-    final who = (groupName ?? '').trim().isEmpty ? 'This group' : groupName!.trim();
+    final who =
+        (groupName ?? '').trim().isEmpty ? 'This group' : groupName!.trim();
     showSpSheet<void>(
       context,
       builder: (ctx) {
         final p = ctx.palette;
         Widget point(String t) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 3),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              child:
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Padding(
                   padding: EdgeInsets.only(top: 1),
-                  child: Icon(Icons.check_rounded, size: 15, color: kVerifiedGold),
+                  child:
+                      Icon(Icons.check_rounded, size: 15, color: kVerifiedGold),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                     child: Text(t,
-                        style: TextStyle(color: p.ink, fontSize: 12.5, height: 1.35))),
+                        style: TextStyle(
+                            color: p.ink, fontSize: 12.5, height: 1.35))),
               ]),
             );
         return Column(mainAxisSize: MainAxisSize.min, children: [
@@ -75,7 +79,8 @@ class VerifiedBadgeButton extends StatelessWidget {
           const SizedBox(height: 14),
           Text('Verified by SportPadi',
               textAlign: TextAlign.center,
-              style: TextStyle(color: p.ink, fontSize: 18, fontWeight: FontWeight.w800)),
+              style: TextStyle(
+                  color: p.ink, fontSize: 18, fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
           Text(
             'A stamp of genuineness and authenticity. SportPadi has confirmed that $who is the real group it says it is.',
@@ -89,8 +94,10 @@ class VerifiedBadgeButton extends StatelessWidget {
             decoration: BoxDecoration(
                 color: p.surface2, borderRadius: BorderRadius.circular(16)),
             child: Column(children: [
-              point('Given only by SportPadi, after checking the group is who it claims to be.'),
-              point("It can't be bought and has nothing to do with the group's plan."),
+              point(
+                  'Given only by SportPadi, after checking the group is who it claims to be.'),
+              point(
+                  "It can't be bought and has nothing to do with the group's plan."),
               point("It's removed if a group stops being genuine."),
             ]),
           ),

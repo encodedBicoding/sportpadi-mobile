@@ -10,7 +10,8 @@ import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
 /// "Lv 3 · Starter  🔥 4" — the compact identity on player pages and cards.
 class LevelBadge extends StatelessWidget {
-  const LevelBadge({super.key, required this.level, required this.title, this.streak});
+  const LevelBadge(
+      {super.key, required this.level, required this.title, this.streak});
   final int level;
   final String title;
   final int? streak;
@@ -27,11 +28,14 @@ class LevelBadge extends StatelessWidget {
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Text('Lv $level · $title',
-            style: TextStyle(color: p.accent, fontSize: 11, fontWeight: FontWeight.w700)),
+            style: TextStyle(
+                color: p.accent, fontSize: 11, fontWeight: FontWeight.w700)),
         if ((streak ?? 0) > 0) ...[
           const SizedBox(width: 6),
           Icon(Icons.local_fire_department_rounded, size: 13, color: p.amber),
-          Text('${streak!}', style: TextStyle(color: p.amber, fontSize: 11, fontWeight: FontWeight.w700)),
+          Text('${streak!}',
+              style: TextStyle(
+                  color: p.amber, fontSize: 11, fontWeight: FontWeight.w700)),
         ],
       ]),
     );
@@ -61,7 +65,9 @@ class XpBar extends StatelessWidget {
       if (xp != null) ...[
         const SizedBox(height: 4),
         Text(
-          nextLevelXp != null ? '$xp XP · ${nextLevelXp! - xp!} to next level' : '$xp XP · max level',
+          nextLevelXp != null
+              ? '$xp XP · ${nextLevelXp! - xp!} to next level'
+              : '$xp XP · max level',
           style: TextStyle(color: p.muted, fontSize: 11),
         ),
       ],
@@ -95,11 +101,15 @@ class StreakPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.local_fire_department_rounded, size: 14, color: on ? p.orange : p.muted),
+        Icon(Icons.local_fire_department_rounded,
+            size: 14, color: on ? p.orange : p.muted),
         const SizedBox(width: 4),
         Text(
           text,
-          style: TextStyle(color: on ? p.orangeInk : p.muted, fontSize: 12, fontWeight: FontWeight.w700),
+          style: TextStyle(
+              color: on ? p.orangeInk : p.muted,
+              fontSize: 12,
+              fontWeight: FontWeight.w700),
         ),
       ]),
     );
@@ -144,7 +154,10 @@ class ProgressRing extends StatelessWidget {
           child!
         else if (label != null)
           Text(label!,
-              style: TextStyle(color: p.ink, fontSize: size * 0.27, fontWeight: FontWeight.w800)),
+              style: TextStyle(
+                  color: p.ink,
+                  fontSize: size * 0.27,
+                  fontWeight: FontWeight.w800)),
       ]),
     );
   }
@@ -165,7 +178,9 @@ class YourWeekCard extends ConsumerWidget {
     final q = d.quests;
     final daysLeft = q?.endsAt == null
         ? null
-        : (q!.endsAt!.difference(DateTime.now()).inHours / 24).ceil().clamp(0, 7);
+        : (q!.endsAt!.difference(DateTime.now()).inHours / 24)
+            .ceil()
+            .clamp(0, 7);
     final done = q?.completed ?? 0;
     final needed = q?.needed ?? 3;
     final left = (needed - done).clamp(0, needed);
@@ -179,7 +194,8 @@ class YourWeekCard extends ConsumerWidget {
       child: GlassCard(
         onTap: () => context.push('/progress'),
         padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
             ProgressRing(
               value: q == null ? d.progress : (needed == 0 ? 0 : done / needed),
@@ -187,15 +203,20 @@ class YourWeekCard extends ConsumerWidget {
             ),
             const SizedBox(width: 14),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Your week',
-                    style: TextStyle(color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 2),
-                Text(subtitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: p.muted, fontSize: 12.5)),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Your week',
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: p.muted, fontSize: 12.5)),
+                  ]),
             ),
             const SizedBox(width: 8),
             StreakPill(streak: d.streak, compact: true),
@@ -216,7 +237,8 @@ class YourWeekCard extends ConsumerWidget {
                     ),
                     child: Row(children: [
                       if (qq.done) ...[
-                        Icon(Icons.check_rounded, size: 15, color: p.accentDeep),
+                        Icon(Icons.check_rounded,
+                            size: 15, color: p.accentDeep),
                         const SizedBox(width: 5),
                       ],
                       Expanded(
@@ -230,7 +252,10 @@ class YourWeekCard extends ConsumerWidget {
                       ),
                       if (!qq.done)
                         Text('${qq.progress}/${qq.target}',
-                            style: TextStyle(color: p.muted, fontSize: 11.5, fontWeight: FontWeight.w600)),
+                            style: TextStyle(
+                                color: p.muted,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600)),
                     ]),
                   ),
               ]);
@@ -241,30 +266,43 @@ class YourWeekCard extends ConsumerWidget {
             for (final m in q.missions)
               Container(
                 margin: const EdgeInsets.only(bottom: 6),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                 decoration: BoxDecoration(
                   color: p.orangeTint,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(children: [
-                  Icon(m.done ? Icons.check_circle_rounded : Icons.rocket_launch_outlined,
-                      size: 16, color: m.done ? p.accentDeep : p.orangeInk),
+                  Icon(
+                      m.done
+                          ? Icons.check_circle_rounded
+                          : Icons.rocket_launch_outlined,
+                      size: 16,
+                      color: m.done ? p.accentDeep : p.orangeInk),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(m.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
-                      Text(
-                        '${m.progress}/${m.target}'
-                        '${m.endsAt != null ? ' · ends ${m.endsAt!.day}/${m.endsAt!.month}' : ''}',
-                        style: TextStyle(color: p.muted, fontSize: 11.5),
-                      ),
-                    ]),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(m.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: p.ink,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600)),
+                          Text(
+                            '${m.progress}/${m.target}'
+                            '${m.endsAt != null ? ' · ends ${m.endsAt!.day}/${m.endsAt!.month}' : ''}',
+                            style: TextStyle(color: p.muted, fontSize: 11.5),
+                          ),
+                        ]),
                   ),
                   Text('+${m.xp} XP',
-                      style: TextStyle(color: p.orangeInk, fontSize: 12, fontWeight: FontWeight.w800)),
+                      style: TextStyle(
+                          color: p.orangeInk,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800)),
                 ]),
               ),
           ],
@@ -277,7 +315,10 @@ class YourWeekCard extends ConsumerWidget {
                 child: Text('Next unlock: ${d.next!.title}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                    style: TextStyle(
+                        color: p.ink,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600)),
               ),
               Text('${d.next!.current}/${d.next!.target}',
                   style: TextStyle(color: p.muted, fontSize: 12)),
@@ -293,7 +334,8 @@ class YourWeekCard extends ConsumerWidget {
 /// per-sport levels, "Your game" for the selected sport, and the top three
 /// achievements with a way into the full grid.
 class ProfileProgressionSection extends ConsumerWidget {
-  const ProfileProgressionSection({super.key, this.userId, this.categoryId, this.categoryNames = const {}});
+  const ProfileProgressionSection(
+      {super.key, this.userId, this.categoryId, this.categoryNames = const {}});
   final String? userId;
   final String? categoryId;
   final Map<String, String> categoryNames;
@@ -304,7 +346,11 @@ class ProfileProgressionSection extends ConsumerWidget {
     final d = ref.watch(myProgressionProvider).valueOrNull;
     if (d == null) return const SizedBox.shrink();
     final strengths = (userId != null && categoryId != null)
-        ? ref.watch(strengthsProvider((userId: userId!, categoryId: categoryId!))).valueOrNull ?? const <Strength>[]
+        ? ref
+                .watch(strengthsProvider(
+                    (userId: userId!, categoryId: categoryId!)))
+                .valueOrNull ??
+            const <Strength>[]
         : const <Strength>[];
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
@@ -319,11 +365,18 @@ class ProfileProgressionSection extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(d.isPublic ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                    size: 13, color: p.muted),
+                Icon(
+                    d.isPublic
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    size: 13,
+                    color: p.muted),
                 const SizedBox(width: 4),
                 Text(d.isPublic ? 'XP public' : 'XP private',
-                    style: TextStyle(color: p.muted, fontSize: 11.5, fontWeight: FontWeight.w500)),
+                    style: TextStyle(
+                        color: p.muted,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500)),
               ]),
             ),
           ),
@@ -331,18 +384,32 @@ class ProfileProgressionSection extends ConsumerWidget {
           InkWell(
             onTap: () => context.push('/leaderboards'),
             child: Text('Leaderboards',
-                style: TextStyle(color: p.accent, fontSize: 12, fontWeight: FontWeight.w700)),
+                style: TextStyle(
+                    color: p.accent,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700)),
           ),
         ]),
         const SizedBox(height: 8),
         GlassCard(
           onTap: () => context.push('/progress'),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Row(children: [
               Expanded(
                 child: Text.rich(TextSpan(children: [
-                  TextSpan(text: d.title, style: TextStyle(color: p.ink, fontSize: 20, fontWeight: FontWeight.w800)),
-                  TextSpan(text: '  · Level ${d.level}', style: TextStyle(color: p.muted, fontSize: 13, fontWeight: FontWeight.w600)),
+                  TextSpan(
+                      text: d.title,
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800)),
+                  TextSpan(
+                      text: '  · Level ${d.level}',
+                      style: TextStyle(
+                          color: p.muted,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600)),
                 ])),
               ),
               StreakPill(streak: d.weekly),
@@ -354,10 +421,13 @@ class ProfileProgressionSection extends ConsumerWidget {
               Wrap(spacing: 6, runSpacing: 6, children: [
                 for (final c in d.categories)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(99), border: Border.all(color: p.line)),
-                    child: Text('${categoryNames[c.categoryId] ?? 'Sport'}: ${c.title}',
+                        borderRadius: BorderRadius.circular(99),
+                        border: Border.all(color: p.line)),
+                    child: Text(
+                        '${categoryNames[c.categoryId] ?? 'Sport'}: ${c.title}',
                         style: TextStyle(color: p.ink, fontSize: 11)),
                   ),
               ]),
@@ -367,47 +437,67 @@ class ProfileProgressionSection extends ConsumerWidget {
         if (strengths.isNotEmpty) ...[
           const SizedBox(height: 10),
           GlassCard(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text('Your game', style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              for (final s in strengths)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                    Row(children: [
-                      Expanded(
-                        child: Text('${s.icon != null ? '${s.icon} ' : ''}${s.label}',
-                            style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w600)),
-                      ),
-                      Text('${s.value} · top ${(100 - s.percentile).clamp(1, 100)}%',
-                          style: TextStyle(color: p.muted, fontSize: 11.5)),
-                    ]),
-                    const SizedBox(height: 4),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(99),
-                      child: LinearProgressIndicator(
-                        value: (s.percentile.clamp(4, 100)) / 100,
-                        minHeight: 5,
-                        backgroundColor: p.line,
-                        valueColor: AlwaysStoppedAnimation(p.accent),
-                      ),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Your game',
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                  for (final s in strengths)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(children: [
+                              Expanded(
+                                child: Text(
+                                    '${s.icon != null ? '${s.icon} ' : ''}${s.label}',
+                                    style: TextStyle(
+                                        color: p.ink,
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600)),
+                              ),
+                              Text(
+                                  '${s.value} · top ${(100 - s.percentile).clamp(1, 100)}%',
+                                  style: TextStyle(
+                                      color: p.muted, fontSize: 11.5)),
+                            ]),
+                            const SizedBox(height: 4),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(99),
+                              child: LinearProgressIndicator(
+                                value: (s.percentile.clamp(4, 100)) / 100,
+                                minHeight: 5,
+                                backgroundColor: p.line,
+                                valueColor: AlwaysStoppedAnimation(p.accent),
+                              ),
+                            ),
+                          ]),
                     ),
-                  ]),
-                ),
-              const SizedBox(height: 4),
-              Text('Compared with everyone who plays this sport on SportPadi.',
-                  style: TextStyle(color: p.muted, fontSize: 10.5)),
-            ]),
+                  const SizedBox(height: 4),
+                  Text(
+                      'Compared with everyone who plays this sport on SportPadi.',
+                      style: TextStyle(color: p.muted, fontSize: 10.5)),
+                ]),
           ),
         ],
         const SizedBox(height: 10),
         GlassCard(
           onTap: () => context.push('/progress'),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Row(children: [
               Expanded(
-                child: Text('Achievements · ${d.unlocked.length}/${d.catalogue.length}',
-                    style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
+                child: Text(
+                    'Achievements · ${d.unlocked.length}/${d.catalogue.length}',
+                    style: TextStyle(
+                        color: p.ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700)),
               ),
               Icon(Icons.chevron_right_rounded, color: p.muted),
             ]),
@@ -424,7 +514,10 @@ class ProfileProgressionSection extends ConsumerWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(a.title,
-                          style: TextStyle(color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
+                          style: TextStyle(
+                              color: p.ink,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600)),
                     ),
                   ]),
                 ),
@@ -452,15 +545,21 @@ class FramedAvatar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final id = userId == null ? null : ref.watch(identityProvider(userId!)).valueOrNull;
+    final id = userId == null
+        ? null
+        : ref.watch(identityProvider(userId!)).valueOrNull;
     final c = id == null ? null : frameColor(id.frame);
     if (c == null) return child;
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: c, width: id!.frame == 'gold' || id.frame == 'legend' ? 3 : 2),
-        boxShadow: id.frame == 'legend' ? [BoxShadow(color: c.withAlpha(110), blurRadius: 14)] : null,
+        border: Border.all(
+            color: c,
+            width: id!.frame == 'gold' || id.frame == 'legend' ? 3 : 2),
+        boxShadow: id.frame == 'legend'
+            ? [BoxShadow(color: c.withAlpha(110), blurRadius: 14)]
+            : null,
       ),
       child: child,
     );
@@ -480,7 +579,9 @@ class GroupReputationCard extends ConsumerWidget {
     Widget stat(IconData icon, String n, String label) => Expanded(
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: p.line)),
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: p.line)),
             child: Column(children: [
               Icon(icon, size: 15, color: p.accent),
               const SizedBox(height: 2),
@@ -491,17 +592,32 @@ class GroupReputationCard extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: GlassCard(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('GROUP LEVEL',
-                    style: TextStyle(color: p.muted, fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 1.1)),
-                Text('Level ${d.level}', style: TextStyle(color: p.ink, fontSize: 18, fontWeight: FontWeight.w800)),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('GROUP LEVEL',
+                        style: TextStyle(
+                            color: p.muted,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.1)),
+                    Text('Level ${d.level}',
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800)),
+                  ]),
             ),
             if (d.weeklyStreak > 0)
-              StreakPill(streak: Streak(current: d.weeklyStreak, best: d.weeklyStreak, paused: false)),
+              StreakPill(
+                  streak: Streak(
+                      current: d.weeklyStreak,
+                      best: d.weeklyStreak,
+                      paused: false)),
           ]),
           const SizedBox(height: 8),
           XpBar(progress: d.progress),
@@ -518,13 +634,15 @@ class GroupReputationCard extends ConsumerWidget {
             Wrap(spacing: 6, runSpacing: 6, children: [
               for (final a in d.achievements)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: p.accent.withAlpha(20),
                     borderRadius: BorderRadius.circular(99),
                     border: Border.all(color: p.accent.withAlpha(80)),
                   ),
-                  child: Text('✓ $a', style: TextStyle(color: p.ink, fontSize: 11)),
+                  child: Text('✓ $a',
+                      style: TextStyle(color: p.ink, fontSize: 11)),
                 ),
             ]),
           ],

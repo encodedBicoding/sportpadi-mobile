@@ -93,10 +93,11 @@ class EventSummary {
               : null),
       description: parseStr(j['description']),
       distanceMiles: parseDouble(j['distanceMiles']),
-      groupId: parseStr(j['groupId']) ??
-          (grp is Map ? parseStr(grp['id']) : null),
+      groupId:
+          parseStr(j['groupId']) ?? (grp is Map ? parseStr(grp['id']) : null),
       reasons: [
-        for (final r in (j['reasons'] is List ? j['reasons'] as List : const []))
+        for (final r
+            in (j['reasons'] is List ? j['reasons'] as List : const []))
           if (parseStr(r) != null) parseStr(r)!
       ],
       forWards: [
@@ -128,9 +129,8 @@ List<AudienceTeam> parseAudienceTeams(dynamic v) => [
     ].where((t) => t.id.isNotEmpty).toList();
 
 /// "For U12 Lions" / "For U12 Lions, U14 Hawks" — null for whole-group events.
-String? audienceLabel(List<AudienceTeam> teams) => teams.isEmpty
-    ? null
-    : 'For ${teams.map((t) => t.name).join(', ')}';
+String? audienceLabel(List<AudienceTeam> teams) =>
+    teams.isEmpty ? null : 'For ${teams.map((t) => t.name).join(', ')}';
 
 /// A ward a feed event is for: `{ userId, name }` (name is the first name).
 class WardTag {
@@ -270,10 +270,12 @@ class EventDetail {
   final bool myCheckedIn;
   // Server truth: past its end time (or end of its day) in the VENUE's zone.
   final bool? hasEnded;
+
   /// When it really runs (server `calendar`), for "Add to calendar". Null on
   /// older servers.
   final DateTime? calendarStart;
   final DateTime? calendarEnd;
+
   /// No start time: a whole-day event (start/end are that UTC date and the next).
   final bool calendarAllDay;
   final bool myInterested;
@@ -290,12 +292,14 @@ class EventDetail {
   final int? typicalAttendance;
   final String? groupName;
   final String? groupImageUrl;
+
   /// The hosting group carries the gold verification badge.
   final bool groupVerified;
   final double? locationLat;
   final double? locationLng;
   final String flowType; // team_match | attendance
-  final int? maxTeamsPerGame; // 2 = VS sports (soccer): explicit home/away pickers
+  final int?
+      maxTeamsPerGame; // 2 = VS sports (soccer): explicit home/away pickers
   final bool isTournament;
   // Host-group entitlements (web: groups.entitlements) — gate late pool,
   // game creation and smart-shuffle copy.
@@ -332,14 +336,22 @@ class EventDetail {
       canManage: j['canManage'] == true,
       myCheckedIn: j['myCheckedIn'] == true,
       hasEnded: j['hasEnded'] is bool ? j['hasEnded'] as bool : null,
-      calendarStart: j['calendar'] is Map ? parseDate((j['calendar'] as Map)['startsAt']) : null,
-      calendarEnd: j['calendar'] is Map ? parseDate((j['calendar'] as Map)['endsAt']) : null,
-      calendarAllDay: j['calendar'] is Map && (j['calendar'] as Map)['allDay'] == true,
+      calendarStart: j['calendar'] is Map
+          ? parseDate((j['calendar'] as Map)['startsAt'])
+          : null,
+      calendarEnd: j['calendar'] is Map
+          ? parseDate((j['calendar'] as Map)['endsAt'])
+          : null,
+      calendarAllDay:
+          j['calendar'] is Map && (j['calendar'] as Map)['allDay'] == true,
       myInterested: j['myInterested'] == true,
       interestCount: parseInt(j['interestCount']) ?? 0,
       attendeeCount: parseInt(j['attendeeCount']) ?? 0,
       attendees: rawAtt is List
-          ? [for (final e in rawAtt) Attendee.fromJson(Map<String, dynamic>.from(e as Map))]
+          ? [
+              for (final e in rawAtt)
+                Attendee.fromJson(Map<String, dynamic>.from(e as Map))
+            ]
           : const [],
       interestedPeople: j['interestedPeople'] is List
           ? [

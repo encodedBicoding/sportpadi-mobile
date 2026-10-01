@@ -47,10 +47,13 @@ class WalletTips {
 
   String? walletStatus(String? s) => switch (s) {
         'active' => 'Live — sales and withdrawals are on.',
-        'pending' => 'Set up but not live yet — $prov is still verifying the account.',
-        'frozen' || 'paused' =>
+        'pending' =>
+          'Set up but not live yet — $prov is still verifying the account.',
+        'frozen' ||
+        'paused' =>
           'Paused — records stay visible; sales and withdrawals are on hold.',
-        'inactive' => 'Not activated yet — connect a bank account to start collecting.',
+        'inactive' =>
+          'Not activated yet — connect a bank account to start collecting.',
         _ => null,
       };
 

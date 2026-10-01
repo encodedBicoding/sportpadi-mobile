@@ -167,8 +167,7 @@ class RecentGameRow extends StatelessWidget {
         ]),
       SportFamily.padel => TextSpan(children: [
           TextSpan(
-              text: score,
-              style: const TextStyle(fontWeight: FontWeight.w800)),
+              text: score, style: const TextStyle(fontWeight: FontWeight.w800)),
           TextSpan(
               text: ' · $usName',
               style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -178,21 +177,20 @@ class RecentGameRow extends StatelessWidget {
                 style: TextStyle(color: p.muted, fontWeight: FontWeight.w600)),
         ]),
       SportFamily.soccer => TextSpan(children: [
+          TextSpan(
+              text: usName,
+              style: const TextStyle(fontWeight: FontWeight.w800)),
+          TextSpan(
+              text: them == null ? '  $usScore' : '  $usScore – $themScore  ',
+              style: const TextStyle(fontWeight: FontWeight.w800)),
+          if (them != null)
             TextSpan(
-                text: usName,
-                style: const TextStyle(fontWeight: FontWeight.w800)),
-            TextSpan(
-                text: them == null ? '  $usScore' : '  $usScore – $themScore  ',
-                style: const TextStyle(fontWeight: FontWeight.w800)),
-            if (them != null)
-              TextSpan(
-                  text: themName ?? 'Opponent',
-                  style: TextStyle(color: p.muted, fontWeight: FontWeight.w600)),
-          ]),
+                text: themName ?? 'Opponent',
+                style: TextStyle(color: p.muted, fontWeight: FontWeight.w600)),
+        ]),
       _ => TextSpan(children: [
           TextSpan(
-              text: score,
-              style: const TextStyle(fontWeight: FontWeight.w800)),
+              text: score, style: const TextStyle(fontWeight: FontWeight.w800)),
           TextSpan(
               text: '  ${vs ?? usName}',
               style: TextStyle(
@@ -333,7 +331,9 @@ class RecentGameRow extends StatelessWidget {
         TextSpan(children: [
           for (var i = 0; i < parts.length; i++) ...[
             if (i > 0)
-              TextSpan(text: '  ·  ', style: TextStyle(color: p.muted.withAlpha(120))),
+              TextSpan(
+                  text: '  ·  ',
+                  style: TextStyle(color: p.muted.withAlpha(120))),
             TextSpan(
                 text: '${parts[i].$1}',
                 style: TextStyle(color: p.ink, fontWeight: FontWeight.w800)),

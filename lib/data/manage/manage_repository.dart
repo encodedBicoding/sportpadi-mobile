@@ -15,7 +15,10 @@ class ManageRepository {
     try {
       final res = await _dio.get('/api/mobile/categories');
       final list = res.data is List ? res.data as List : const [];
-      return [for (final e in list) Category.fromJson(Map<String, dynamic>.from(e as Map))];
+      return [
+        for (final e in list)
+          Category.fromJson(Map<String, dynamic>.from(e as Map))
+      ];
     } catch (e) {
       throw apiError(e, fallback: 'Could not load sports.');
     }
@@ -30,16 +33,19 @@ class ManageRepository {
     }
   }
 
-  Future<Map<String, dynamic>> createTeam(String groupId, Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> createTeam(
+      String groupId, Map<String, dynamic> body) async {
     try {
-      final res = await _dio.post('/api/mobile/groups/$groupId/teams', data: body);
+      final res =
+          await _dio.post('/api/mobile/groups/$groupId/teams', data: body);
       return res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {};
     } catch (e) {
       throw apiError(e, fallback: 'Could not create the team.');
     }
   }
 
-  Future<Map<String, dynamic>> createTournament(Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> createTournament(
+      Map<String, dynamic> body) async {
     try {
       final res = await _dio.post('/api/mobile/tournaments', data: body);
       return res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {};
@@ -52,7 +58,10 @@ class ManageRepository {
     try {
       final res = await _dio.get('/api/mobile/teams/$teamId/eligible-members');
       final list = res.data is List ? res.data as List : const [];
-      return [for (final e in list) SimpleUser.fromJson(Map<String, dynamic>.from(e as Map))];
+      return [
+        for (final e in list)
+          SimpleUser.fromJson(Map<String, dynamic>.from(e as Map))
+      ];
     } catch (e) {
       throw apiError(e, fallback: 'Could not load members.');
     }
@@ -133,7 +142,8 @@ class ManageRepository {
 
   Future<void> setCaptain(String teamId, String? playerId) async {
     try {
-      await _dio.post('/api/mobile/teams/$teamId/captain', data: {'playerId': playerId});
+      await _dio.post('/api/mobile/teams/$teamId/captain',
+          data: {'playerId': playerId});
     } catch (e) {
       throw apiError(e, fallback: 'Could not set the captain.');
     }
@@ -151,7 +161,10 @@ class ManageRepository {
         if (excludeGroupId != null) 'excludeGroupId': excludeGroupId,
       });
       final list = res.data is List ? res.data as List : const [];
-      return [for (final e in list) TeamSummary.fromJson(Map<String, dynamic>.from(e as Map))];
+      return [
+        for (final e in list)
+          TeamSummary.fromJson(Map<String, dynamic>.from(e as Map))
+      ];
     } catch (e) {
       throw apiError(e, fallback: 'Could not search teams.');
     }
@@ -159,9 +172,13 @@ class ManageRepository {
 
   Future<List<TournamentInvite>> invites(String groupId) async {
     try {
-      final res = await _dio.get('/api/mobile/groups/$groupId/tournament-invites');
+      final res =
+          await _dio.get('/api/mobile/groups/$groupId/tournament-invites');
       final list = res.data is List ? res.data as List : const [];
-      return [for (final e in list) TournamentInvite.fromJson(Map<String, dynamic>.from(e as Map))];
+      return [
+        for (final e in list)
+          TournamentInvite.fromJson(Map<String, dynamic>.from(e as Map))
+      ];
     } catch (e) {
       throw apiError(e, fallback: 'Could not load invites.');
     }
@@ -247,8 +264,8 @@ class ManageRepository {
   }
 }
 
-final manageRepositoryProvider =
-    Provider<ManageRepository>((ref) => ManageRepository(ref.watch(dioProvider)));
+final manageRepositoryProvider = Provider<ManageRepository>(
+    (ref) => ManageRepository(ref.watch(dioProvider)));
 
 /// Tournament invitations waiting on the signed-in user.
 final myTournamentInvitesProvider =
@@ -256,22 +273,22 @@ final myTournamentInvitesProvider =
   return ref.watch(manageRepositoryProvider).myInvites();
 });
 
-final categoriesProvider =
-    FutureProvider<List<Category>>((ref) => ref.watch(manageRepositoryProvider).categories());
+final categoriesProvider = FutureProvider<List<Category>>(
+    (ref) => ref.watch(manageRepositoryProvider).categories());
 
-final eligibleMembersProvider =
-    FutureProvider.autoDispose.family<List<SimpleUser>, String>(
-        (ref, teamId) => ref.watch(manageRepositoryProvider).eligibleMembers(teamId));
+final eligibleMembersProvider = FutureProvider.autoDispose
+    .family<List<SimpleUser>, String>((ref, teamId) =>
+        ref.watch(manageRepositoryProvider).eligibleMembers(teamId));
 
 /// Admin: wards invited onto a team, waiting for a guardian's answer.
-final teamWardInvitesProvider =
-    FutureProvider.autoDispose.family<List<TeamWardInvite>, String>(
-        (ref, teamId) => ref.watch(manageRepositoryProvider).wardInvites(teamId));
+final teamWardInvitesProvider = FutureProvider.autoDispose
+    .family<List<TeamWardInvite>, String>((ref, teamId) =>
+        ref.watch(manageRepositoryProvider).wardInvites(teamId));
 
-final groupWalletProvider =
-    FutureProvider.autoDispose.family<WalletStatus, String>(
-        (ref, groupId) => ref.watch(manageRepositoryProvider).walletStatus(groupId));
+final groupWalletProvider = FutureProvider.autoDispose
+    .family<WalletStatus, String>((ref, groupId) =>
+        ref.watch(manageRepositoryProvider).walletStatus(groupId));
 
-final groupInvitesProvider =
-    FutureProvider.autoDispose.family<List<TournamentInvite>, String>(
+final groupInvitesProvider = FutureProvider.autoDispose
+    .family<List<TournamentInvite>, String>(
         (ref, groupId) => ref.watch(manageRepositoryProvider).invites(groupId));

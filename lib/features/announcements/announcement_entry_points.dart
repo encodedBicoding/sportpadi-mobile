@@ -28,8 +28,8 @@ class PinnedAnnouncements extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final list = ref
-            .watch(pinnedAnnouncementsProvider(
-                (groupId: groupId, teamId: teamId)))
+            .watch(
+                pinnedAnnouncementsProvider((groupId: groupId, teamId: teamId)))
             .valueOrNull ??
         const <AnnouncementItem>[];
     if (list.isEmpty) return const SizedBox.shrink();
@@ -64,8 +64,8 @@ class GroupPinnedAnnouncementsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final list = ref
-            .watch(pinnedAnnouncementsProvider(
-                (groupId: groupId, teamId: teamId)))
+            .watch(
+                pinnedAnnouncementsProvider((groupId: groupId, teamId: teamId)))
             .valueOrNull ??
         const <AnnouncementItem>[];
     if (list.isEmpty) return const SizedBox.shrink();
@@ -109,17 +109,16 @@ class EventAnnounceCard extends ConsumerWidget {
               bg: p.accentTint, fg: p.greenText, size: 40, iconSize: 20),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Message participants',
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700)),
-                  Text("An announcement to who's going or checked in",
-                      style: TextStyle(color: p.muted, fontSize: 12)),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Message participants',
+                  style: TextStyle(
+                      color: p.ink,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700)),
+              Text("An announcement to who's going or checked in",
+                  style: TextStyle(color: p.muted, fontSize: 12)),
+            ]),
           ),
           Icon(Icons.chevron_right_rounded, color: p.muted),
         ]),
@@ -144,9 +143,7 @@ class GroupAnnouncementsButton extends ConsumerWidget {
             ?.contains(groupId) ??
         false;
     return SpRoundButton(
-      icon: muted
-          ? Icons.notifications_off_outlined
-          : Icons.campaign_outlined,
+      icon: muted ? Icons.notifications_off_outlined : Icons.campaign_outlined,
       tooltip: 'Announcements',
       onTap: () => showGroupAnnouncementsSheet(context,
           groupId: groupId, groupName: groupName),
@@ -220,8 +217,7 @@ class _GroupAnnouncementsSheetState
     } catch (e) {
       if (!mounted) return;
       setState(() => _muted = !v);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -243,8 +239,8 @@ class _GroupAnnouncementsSheetState
         ref.watch(announcementComposerProvider(widget.groupId)).valueOrNull;
     final teamId = widget.teamId;
     // Staff tools: the group's staff here; a team's admins and coaches there.
-    final canCompose = composer != null &&
-        (teamId == null || composer.canAddressTeam(teamId));
+    final canCompose =
+        composer != null && (teamId == null || composer.canAddressTeam(teamId));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -335,8 +331,8 @@ class _AnnouncementPreferencesCardState
   Future<void> _set(NotificationPreference cur,
       {bool? push, bool? email}) async {
     final container = ProviderScope.containerOf(context, listen: false);
-    setState(() => _pending[cur.category] =
-        cur.copyWith(push: push, email: email));
+    setState(
+        () => _pending[cur.category] = cur.copyWith(push: push, email: email));
     try {
       await ref
           .read(announcementsRepositoryProvider)
@@ -345,8 +341,7 @@ class _AnnouncementPreferencesCardState
     } catch (e) {
       if (!mounted) return;
       setState(() => _pending.remove(cur.category));
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
   }
 
@@ -369,8 +364,7 @@ class _AnnouncementPreferencesCardState
                   child: const Text('Retry'),
                 ),
               ])
-            : Text('Loading…',
-                style: TextStyle(color: p.muted, fontSize: 13)),
+            : Text('Loading…', style: TextStyle(color: p.muted, fontSize: 13)),
       );
     }
     NotificationPreference prefFor(String c) =>
@@ -441,8 +435,7 @@ class _EventNotificationsCardState
     } catch (e) {
       if (!mounted) return;
       setState(() => _pending = null);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
   }
 
@@ -452,8 +445,7 @@ class _EventNotificationsCardState
     final list = ref.watch(notificationPreferencesProvider).valueOrNull;
     final saved = list
             ?.firstWhere((x) => x.category == 'events',
-                orElse: () =>
-                    const NotificationPreference(category: 'events'))
+                orElse: () => const NotificationPreference(category: 'events'))
             .push ??
         true;
     return GlassCard(

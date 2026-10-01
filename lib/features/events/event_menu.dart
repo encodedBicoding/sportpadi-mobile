@@ -29,6 +29,7 @@ import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 class EventMenuButton extends ConsumerWidget {
   const EventMenuButton({super.key, required this.event, this.onPhotos});
   final EventDetail event;
+
   /// Organizers: opens the photo manager (owned by the event screen).
   final VoidCallback? onPhotos;
 
@@ -37,8 +38,9 @@ class EventMenuButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Warm both up so the menu opens with its hints ready.
-    final reminders =
-        _upcoming ? ref.watch(eventRemindersProvider(event.id)).valueOrNull : null;
+    final reminders = _upcoming
+        ? ref.watch(eventRemindersProvider(event.id)).valueOrNull
+        : null;
     if (event.canManage && event.groupId != null) {
       ref.watch(announcementComposerProvider(event.groupId!));
     }
@@ -59,8 +61,9 @@ class EventMenuButton extends ConsumerWidget {
     final signedIn =
         ref.read(authControllerProvider).valueOrNull?.isAuthenticated ?? false;
     final manage = event.canManage;
-    final reminders =
-        _upcoming ? ref.read(eventRemindersProvider(event.id)).valueOrNull : null;
+    final reminders = _upcoming
+        ? ref.read(eventRemindersProvider(event.id)).valueOrNull
+        : null;
     final hasReminders = (reminders?.slots.isNotEmpty ?? false);
     final showReminders = _upcoming && (manage || hasReminders);
     final composer = manage && event.groupId != null
@@ -76,7 +79,10 @@ class EventMenuButton extends ConsumerWidget {
                 ? 'Off for this event'
                 : (reminders.labels.isNotEmpty
                         ? reminders.labels
-                        : [for (final s in reminders.slots) '${kReminderSlots[s] ?? s} before'])
+                        : [
+                            for (final s in reminders.slots)
+                              '${kReminderSlots[s] ?? s} before'
+                          ])
                     .join(', ');
 
     final picked = await showSpSheet<String>(
@@ -124,7 +130,9 @@ class EventMenuButton extends ConsumerWidget {
             _Row(
               icon: Icons.event_available_outlined,
               title: 'Add to calendar',
-              hint: event.isPrivate ? 'Google Calendar' : 'Google, Apple, Outlook',
+              hint: event.isPrivate
+                  ? 'Google Calendar'
+                  : 'Google, Apple, Outlook',
               onTap: () => Navigator.of(ctx).pop('calendar'),
             ),
         ],
@@ -135,14 +143,18 @@ class EventMenuButton extends ConsumerWidget {
       case 'message':
         await showSpSheet<void>(context,
             builder: (_) => _MessageSheet(
-                groupId: event.groupId!, eventId: event.id, eventTitle: event.title));
+                groupId: event.groupId!,
+                eventId: event.id,
+                eventTitle: event.title));
       case 'reminders':
         await showSpSheet<void>(context,
-            builder: (_) => _RemindersSheet(eventId: event.id, canEdit: manage));
+            builder: (_) =>
+                _RemindersSheet(eventId: event.id, canEdit: manage));
       case 'photos':
         onPhotos?.call();
       case 'calendar':
-        await showSpSheet<void>(context, builder: (_) => _CalendarSheet(event: event));
+        await showSpSheet<void>(context,
+            builder: (_) => _CalendarSheet(event: event));
     }
   }
 }
@@ -164,7 +176,11 @@ class _Label extends StatelessWidget {
 }
 
 class _Row extends StatelessWidget {
-  const _Row({required this.icon, required this.title, this.hint, required this.onTap});
+  const _Row(
+      {required this.icon,
+      required this.title,
+      this.hint,
+      required this.onTap});
   final IconData icon;
   final String title;
   final String? hint;
@@ -182,14 +198,19 @@ class _Row extends StatelessWidget {
           SpIconTile(icon, size: 40, iconSize: 20, fg: p.ink),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(title,
-                  style: TextStyle(color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700)),
+                  style: TextStyle(
+                      color: p.ink,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700)),
               if (hint != null)
                 Text(hint!,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: p.muted, fontSize: 12, height: 1.3)),
+                    style:
+                        TextStyle(color: p.muted, fontSize: 12, height: 1.3)),
             ]),
           ),
           Icon(Icons.chevron_right_rounded, color: p.muted),
@@ -202,7 +223,8 @@ class _Row extends StatelessWidget {
 // ── Message participants ───────────────────────────────────────────────────
 
 class _MessageSheet extends ConsumerStatefulWidget {
-  const _MessageSheet({required this.groupId, required this.eventId, required this.eventTitle});
+  const _MessageSheet(
+      {required this.groupId, required this.eventId, required this.eventTitle});
   final String groupId;
   final String eventId;
   final String eventTitle;
@@ -220,6 +242,7 @@ class _MessageSheetState extends ConsumerState<_MessageSheet> {
   bool _busy = false;
   AudiencePreview? _reach;
   int _reachFor = -1;
+
   /// The count failed — still let them send (the server checks anyway).
   bool _reachFailed = false;
 
@@ -267,13 +290,13 @@ class _MessageSheetState extends ConsumerState<_MessageSheet> {
     setState(() => _busy = true);
     try {
       final r = await ref.read(announcementsRepositoryProvider).send(
-            groupId: widget.groupId,
-            audience: _audience,
-            title: _title.text.trim(),
-            body: _body.text.trim(),
-            urgent: _urgent && urgentAllowed,
-            link: (type: 'event', id: widget.eventId),
-          );
+        groupId: widget.groupId,
+        audience: _audience,
+        title: _title.text.trim(),
+        body: _body.text.trim(),
+        urgent: _urgent && urgentAllowed,
+        link: (type: 'event', id: widget.eventId),
+      );
       nav.pop();
       messenger.showSnackBar(SnackBar(
           content: Text(
@@ -287,8 +310,10 @@ class _MessageSheetState extends ConsumerState<_MessageSheet> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final quota =
-        ref.watch(announcementComposerProvider(widget.groupId)).valueOrNull?.urgent;
+    final quota = ref
+        .watch(announcementComposerProvider(widget.groupId))
+        .valueOrNull
+        ?.urgent;
     final urgentAllowed = quota?.canSend ?? false;
     final reach = _reachFor == _scope ? _reach : null;
     final canSend = !_busy &&
@@ -319,11 +344,11 @@ class _MessageSheetState extends ConsumerState<_MessageSheet> {
           _reachFailed
               ? "Couldn't count who it reaches — you can still send it."
               : reach == null
-              ? 'Counting…'
-              : reach.people == 0
-                  ? 'Nobody here can receive it yet.'
-                  : 'Reaches ${reach.people} ${reach.people == 1 ? 'person' : 'people'}'
-                      '${reach.wards > 0 ? ' (${reach.wards} through their guardians)' : ''}',
+                  ? 'Counting…'
+                  : reach.people == 0
+                      ? 'Nobody here can receive it yet.'
+                      : 'Reaches ${reach.people} ${reach.people == 1 ? 'person' : 'people'}'
+                          '${reach.wards > 0 ? ' (${reach.wards} through their guardians)' : ''}',
           style: TextStyle(color: p.muted, fontSize: 12),
         ),
         const SizedBox(height: 12),
@@ -348,8 +373,11 @@ class _MessageSheetState extends ConsumerState<_MessageSheet> {
         SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
           value: _urgent && urgentAllowed,
-          onChanged: _busy || !urgentAllowed ? null : (v) => setState(() => _urgent = v),
-          title: const Text('Urgent', style: TextStyle(fontWeight: FontWeight.w700)),
+          onChanged: _busy || !urgentAllowed
+              ? null
+              : (v) => setState(() => _urgent = v),
+          title: const Text('Urgent',
+              style: TextStyle(fontWeight: FontWeight.w700)),
           subtitle: Text(
               quota == null
                   ? 'Pushes past quiet settings'
@@ -379,7 +407,8 @@ class _MessageSheetState extends ConsumerState<_MessageSheet> {
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.send_rounded, size: 18),
             label: const Text('Send'),
           ),
@@ -438,7 +467,8 @@ class _RemindersSheetState extends ConsumerState<_RemindersSheet> {
           .updateEvent(widget.eventId, {'reminders': orderReminderSlots(edit)});
       container.invalidate(eventRemindersProvider(widget.eventId));
       if (mounted) nav.pop();
-      messenger.showSnackBar(const SnackBar(content: Text('Reminder schedule saved')));
+      messenger.showSnackBar(
+          const SnackBar(content: Text('Reminder schedule saved')));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
       if (mounted) setState(() => _busy = false);
@@ -467,7 +497,8 @@ class _RemindersSheetState extends ConsumerState<_RemindersSheet> {
         Padding(
           padding: const EdgeInsets.all(24),
           child: async.hasError
-              ? Text("Couldn't load the reminders.", style: TextStyle(color: p.muted))
+              ? Text("Couldn't load the reminders.",
+                  style: TextStyle(color: p.muted))
               : const CircularProgressIndicator(),
         ),
       ]);
@@ -500,7 +531,9 @@ class _RemindersSheetState extends ConsumerState<_RemindersSheet> {
               child: Row(children: [
                 Icon(Icons.check_rounded, size: 18, color: p.greenText),
                 const SizedBox(width: 10),
-                Expanded(child: Text(l, style: TextStyle(color: p.ink, fontSize: 13.5))),
+                Expanded(
+                    child: Text(l,
+                        style: TextStyle(color: p.ink, fontSize: 13.5))),
               ]),
             ),
         if (signedIn && r.slots.isNotEmpty) ...[
@@ -509,9 +542,12 @@ class _RemindersSheetState extends ConsumerState<_RemindersSheet> {
             contentPadding: EdgeInsets.zero,
             value: !r.muted,
             onChanged: _busy ? null : (on) => _mute(!on),
-            title: const Text('Remind me', style: TextStyle(fontWeight: FontWeight.w700)),
+            title: const Text('Remind me',
+                style: TextStyle(fontWeight: FontWeight.w700)),
             subtitle: Text(
-                r.muted ? 'Off for this event — only for you' : 'On — turn off just for you',
+                r.muted
+                    ? 'Off for this event — only for you'
+                    : 'On — turn off just for you',
                 style: TextStyle(color: p.muted, fontSize: 12)),
           ),
         ],
@@ -550,7 +586,9 @@ class _CalendarSheet extends ConsumerWidget {
     final u = d.toUtc();
     String two(int n) => n.toString().padLeft(2, '0');
     final date = '${u.year}${two(u.month)}${two(u.day)}';
-    return allDay ? date : '${date}T${two(u.hour)}${two(u.minute)}${two(u.second)}Z';
+    return allDay
+        ? date
+        : '${date}T${two(u.hour)}${two(u.minute)}${two(u.second)}Z';
   }
 
   Future<void> _go(BuildContext context, String url) async {
@@ -580,7 +618,8 @@ class _CalendarSheet extends ConsumerWidget {
     // it's only offered for public events.
     final ics = '$base/api/events/${Uri.encodeComponent(event.slug)}/calendar';
 
-    Widget row(IconData icon, Color bg, Color fg, String title, String? sub, String url) =>
+    Widget row(IconData icon, Color bg, Color fg, String title, String? sub,
+            String url) =>
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: GlassCard(
@@ -590,11 +629,18 @@ class _CalendarSheet extends ConsumerWidget {
               SpIconTile(icon, bg: bg, fg: fg, size: 38, iconSize: 19),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(title,
-                      style: TextStyle(color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700)),
-                  if (sub != null) Text(sub, style: TextStyle(color: p.muted, fontSize: 12)),
-                ]),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: TextStyle(
+                              color: p.ink,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w700)),
+                      if (sub != null)
+                        Text(sub,
+                            style: TextStyle(color: p.muted, fontSize: 12)),
+                    ]),
               ),
               Icon(Icons.open_in_new_rounded, size: 18, color: p.muted),
             ]),
@@ -612,10 +658,11 @@ class _CalendarSheet extends ConsumerWidget {
           title: 'Add to calendar',
           subtitle: event.title,
         ),
-        row(Icons.event_rounded, p.accentTint, p.greenText, 'Google Calendar', null, google),
+        row(Icons.event_rounded, p.accentTint, p.greenText, 'Google Calendar',
+            null, google),
         if (!event.isPrivate)
-          row(Icons.calendar_month_outlined, p.surface2, p.ink, 'Apple, Outlook & others',
-              'Opens an .ics file', ics),
+          row(Icons.calendar_month_outlined, p.surface2, p.ink,
+              'Apple, Outlook & others', 'Opens an .ics file', ics),
       ],
     );
   }

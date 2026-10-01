@@ -201,8 +201,7 @@ class _DiscussionNotificationsCardState
     } catch (e) {
       if (!mounted) return;
       setState(() => _pending = null);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
   }
 

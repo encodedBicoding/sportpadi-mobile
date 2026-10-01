@@ -33,7 +33,8 @@ class GlassCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(24),
-      child: InkWell(borderRadius: BorderRadius.circular(24), onTap: onTap, child: card),
+      child: InkWell(
+          borderRadius: BorderRadius.circular(24), onTap: onTap, child: card),
     );
   }
 }
@@ -71,8 +72,13 @@ class SpBadge extends StatelessWidget {
         color: tone == null ? p.surface2 : c.withAlpha(34),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        if (icon != null) ...[Icon(icon, size: 12, color: c), const SizedBox(width: 4)],
-        Text(label, style: TextStyle(color: c, fontSize: 11.5, fontWeight: FontWeight.w700)),
+        if (icon != null) ...[
+          Icon(icon, size: 12, color: c),
+          const SizedBox(width: 4)
+        ],
+        Text(label,
+            style: TextStyle(
+                color: c, fontSize: 11.5, fontWeight: FontWeight.w700)),
       ]),
     );
   }
@@ -175,8 +181,8 @@ class SpButton extends StatelessWidget {
         child: Padding(
           // Tighter sides when stretched: an expanded button often shares a
           // row with others, and its label must never push past its edge.
-          padding: EdgeInsets.symmetric(
-              horizontal: expand ? 12 : 20, vertical: 13),
+          padding:
+              EdgeInsets.symmetric(horizontal: expand ? 12 : 20, vertical: 13),
           child: Row(
             mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -245,9 +251,13 @@ class SpSegmented extends StatelessWidget {
     required this.index,
     required this.onChanged,
     this.icons,
+    this.badges,
   });
   final List<String> options;
   final List<IconData>? icons;
+  /// A count bubble after an option's label (e.g. invitations waiting);
+  /// null or 0 shows none.
+  final List<int?>? badges;
   final int index;
   final ValueChanged<int> onChanged;
 
@@ -282,27 +292,45 @@ class SpSegmented extends StatelessWidget {
                         ]
                       : null,
                 ),
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (icons != null && i < icons!.length) ...[
-                        Icon(icons![i],
-                            size: 15,
-                            color: i == index ? p.ink : p.muted),
-                        const SizedBox(width: 5),
-                      ],
-                      Flexible(
-                        child: Text(options[i],
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: i == index ? p.ink : p.muted,
-                                fontSize: 13,
-                                fontWeight: i == index
-                                    ? FontWeight.w700
-                                    : FontWeight.w600)),
-                      ),
-                    ]),
+                child:
+                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  if (icons != null && i < icons!.length) ...[
+                    Icon(icons![i],
+                        size: 15, color: i == index ? p.ink : p.muted),
+                    const SizedBox(width: 5),
+                  ],
+                  Flexible(
+                    child: Text(options[i],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: i == index ? p.ink : p.muted,
+                            fontSize: 13,
+                            fontWeight: i == index
+                                ? FontWeight.w700
+                                : FontWeight.w600)),
+                  ),
+                  if (badges != null &&
+                      i < badges!.length &&
+                      (badges![i] ?? 0) > 0) ...[
+                    const SizedBox(width: 5),
+                    Container(
+                      constraints:
+                          const BoxConstraints(minWidth: 18, minHeight: 18),
+                      padding: const EdgeInsets.symmetric(horizontal: 5),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                          color: p.orange,
+                          borderRadius: BorderRadius.circular(99)),
+                      child: Text(
+                          badges![i]! > 99 ? '99+' : '${badges![i]}',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800)),
+                    ),
+                  ],
+                ]),
               ),
             ),
           ),
@@ -338,9 +366,7 @@ class SpSectionTitle extends StatelessWidget {
               color: p.surface2, borderRadius: BorderRadius.circular(999)),
           child: Text('$count',
               style: TextStyle(
-                  color: p.muted,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700)),
+                  color: p.muted, fontSize: 11.5, fontWeight: FontWeight.w700)),
         ),
       ],
       const Spacer(),

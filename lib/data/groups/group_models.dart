@@ -322,8 +322,10 @@ class GroupOverview {
   final bool walletExists;
   final bool walletFrozen;
   final String? walletStatus;
+
   /// provide_details | verify_identity | under_review | ready | rejected
   final String? walletOnboardingStep;
+
   /// The payment provider (Stripe) is waiting on the admin to finish a step.
   final bool walletActionNeeded;
   final int outstandingCount;
@@ -333,20 +335,19 @@ class GroupOverview {
 
   bool get showWalletCard => canUseWallet || walletExists;
   bool get showUnlockBanner => !canUseWallet && !walletExists;
-  bool get walletPendingSetup => walletExists && walletStatus != 'active' && walletStatus != 'frozen';
-  bool get walletUnderReview => walletPendingSetup && walletOnboardingStep == 'under_review';
+  bool get walletPendingSetup =>
+      walletExists && walletStatus != 'active' && walletStatus != 'frozen';
+  bool get walletUnderReview =>
+      walletPendingSetup && walletOnboardingStep == 'under_review';
 
   factory GroupOverview.fromJson(Map<String, dynamic> j) {
     final usage = j['checkInUsage'];
     final wallet = j['wallet'];
     final out = j['outstanding'];
     return GroupOverview(
-      checkinUsed:
-          usage is Map ? (usage['used'] as num?)?.toInt() : null,
-      checkinLimit:
-          usage is Map ? (usage['limit'] as num?)?.toInt() : null,
-      checkinUnlimited:
-          usage is Map ? usage['unlimited'] != false : true,
+      checkinUsed: usage is Map ? (usage['used'] as num?)?.toInt() : null,
+      checkinLimit: usage is Map ? (usage['limit'] as num?)?.toInt() : null,
+      checkinUnlimited: usage is Map ? usage['unlimited'] != false : true,
       canUseWallet: j['canUseWallet'] == true,
       canCreateTournaments: j['canCreateTournaments'] == true,
       walletExists: wallet is Map && wallet['exists'] == true,
@@ -356,14 +357,75 @@ class GroupOverview {
           wallet is Map ? wallet['onboardingStep'] as String? : null,
       walletActionNeeded:
           wallet is Map && wallet['onboardingActionNeeded'] == true,
-      outstandingCount:
-          out is Map ? (out['count'] as num?)?.toInt() ?? 0 : 0,
+      outstandingCount: out is Map ? (out['count'] as num?)?.toInt() ?? 0 : 0,
       outstandingTotalMinor:
           out is Map ? (out['totalMinor'] as num?)?.toInt() ?? 0 : 0,
-      outstandingCurrency:
-          out is Map ? (out['currency'] as String? ?? '') : '',
+      outstandingCurrency: out is Map ? (out['currency'] as String? ?? '') : '',
       outstandingExponent:
           out is Map ? (out['currencyExponent'] as num?)?.toInt() ?? 2 : 2,
     );
   }
+}
+
+/// An invitation to join a group, sent to me by one of its admins
+/// (groups.myInvitations).
+class GroupInvitation {
+  const GroupInvitation({
+    required this.id,
+    required this.groupId,
+    required this.groupName,
+    this.groupImageUrl,
+    this.groupDescription,
+    this.verified = false,
+    this.memberCount,
+    this.invitedAt,
+    this.inviterName,
+  });
+  final String id;
+  final String groupId;
+  final String groupName;
+  final String? groupImageUrl;
+  final String? groupDescription;
+  final bool verified;
+  final int? memberCount;
+  /// When they (last) invited me.
+  final DateTime? invitedAt;
+  /// The admin who invited me.
+  final String? inviterName;
+
+  factory GroupInvitation.fromJson(Map<String, dynamic> j) {
+    final g = j['group'] is Map ? Map<String, dynamic>.from(j['group'] as Map) : const <String, dynamic>{};
+    final by = j['invitedBy'] is Map ? Map<String, dynamic>.from(j['invitedBy'] as Map) : null;
+    final badge = parseStr(g['verificationBadge']);
+    return GroupInvitation(
+      id: (j['id'] ?? '') as String,
+      groupId: (g['id'] ?? '') as String,
+      groupName: (g['name'] as String?) ?? 'A group',
+      groupImageUrl: g['imageUrl'] as String?,
+      groupDescription: g['description'] as String?,
+      verified: badge != null && badge != 'none',
+      memberCount: parseInt(g['memberCount']),
+      invitedAt: parseDate(j['invitedAt']),
+      inviterName: by == null ? null : parseStr(by['displayName']),
+    );
+  }
+}
+
+/// One page of my invitations (scroll-paged), and how many are waiting.
+class InvitationsPage {
+  const InvitationsPage({required this.items, this.nextCursor, this.total = 0});
+  final List<GroupInvitation> items;
+  final int? nextCursor;
+  final int total;
+
+  factory InvitationsPage.fromJson(Map<String, dynamic> j) => InvitationsPage(
+        items: j['items'] is List
+            ? [
+                for (final e in j['items'] as List)
+                  if (e is Map) GroupInvitation.fromJson(Map<String, dynamic>.from(e)),
+              ]
+            : const [],
+        nextCursor: parseInt(j['nextCursor']),
+        total: parseInt(j['total']) ?? 0,
+      );
 }

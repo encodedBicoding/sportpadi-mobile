@@ -13,6 +13,7 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 
 class _MemberEdit {
   const _MemberEdit(this.positions, this.jersey, this.starter);
@@ -29,7 +30,8 @@ class ManageRosterScreen extends ConsumerWidget {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  Future<void> _add(BuildContext context, WidgetRef ref, TeamDetail team) async {
+  Future<void> _add(
+      BuildContext context, WidgetRef ref, TeamDetail team) async {
     final picked = await showSpSheet<SimpleUser>(
       context,
       scrollable: false,
@@ -66,7 +68,8 @@ class ManageRosterScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _edit(BuildContext context, WidgetRef ref, TeamDetail team, TeamMember m) async {
+  Future<void> _edit(BuildContext context, WidgetRef ref, TeamDetail team,
+      TeamMember m) async {
     final edit = await showSpSheet<_MemberEdit>(
       context,
       builder: (_) => _MemberSheet(
@@ -105,24 +108,32 @@ class ManageRosterScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _captain(BuildContext context, WidgetRef ref, TeamMember m) async {
+  Future<void> _captain(
+      BuildContext context, WidgetRef ref, TeamMember m) async {
     try {
-      await ref.read(manageRepositoryProvider).setCaptain(teamId, m.isCaptain ? null : m.playerId);
+      await ref
+          .read(manageRepositoryProvider)
+          .setCaptain(teamId, m.isCaptain ? null : m.playerId);
       ref.invalidate(teamDetailProvider(teamId));
     } on ApiException catch (e) {
       if (context.mounted) _snack(context, e.message);
     }
   }
 
-  Future<void> _remove(BuildContext context, WidgetRef ref, TeamMember m) async {
+  Future<void> _remove(
+      BuildContext context, WidgetRef ref, TeamMember m) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Remove player?'),
         content: Text('Remove ${m.displayName} from the team?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Remove')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Remove')),
         ],
       ),
     );
@@ -144,7 +155,8 @@ class ManageRosterScreen extends ConsumerWidget {
         ref.watch(teamWardInvitesProvider(teamId)).valueOrNull ?? const [];
     final p = context.palette;
     return Scaffold(
-      appBar: AppBar(leading: const SpLeading(), title: const Text('Manage squad')),
+      appBar:
+          AppBar(leading: const SpLeading(), title: const Text('Manage squad')),
       floatingActionButton: team.maybeWhen(
         data: (t) => FloatingActionButton.extended(
           onPressed: () => _add(context, ref, t),
@@ -199,51 +211,56 @@ class ManageRosterScreen extends ConsumerWidget {
       BuildContext context, WidgetRef ref, TeamDetail t, TeamMember m) {
     final p = context.palette;
     return GlassCard(
-                padding: const EdgeInsets.all(10),
-                child: Row(children: [
-                  Crest(logoUrl: m.avatarUrl, label: m.displayName, size: 40),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Row(children: [
-                        Flexible(
-                          child: Text(m.displayName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                        ),
-                        if (m.isCaptain) ...[
-                          const SizedBox(width: 6),
-                          Icon(Icons.star_rounded, size: 15, color: p.amber),
-                        ],
-                        if (m.isWard) ...[
-                          const SizedBox(width: 6),
-                          const WardBadge(),
-                        ],
-                      ]),
-                      Text([
-                        m.isStarter ? 'Starter' : 'Sub',
-                        if (m.positions.isNotEmpty) m.positions.join(' · '),
-                        if (m.jerseyNumber != null) '#${m.jerseyNumber}',
-                      ].join('  ·  '), style: TextStyle(color: p.muted, fontSize: 12)),
-                    ]),
-                  ),
-                  PopupMenuButton<String>(
-                    onSelected: (v) {
-                      if (v == 'edit') _edit(context, ref, t, m);
-                      if (v == 'captain') _captain(context, ref, m);
-                      if (v == 'remove') _remove(context, ref, m);
-                    },
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                      PopupMenuItem(
-                          value: 'captain',
-                          child: Text(m.isCaptain ? 'Remove captain' : 'Make captain')),
-                      const PopupMenuItem(value: 'remove', child: Text('Remove')),
-                    ],
-                  ),
-                ]),
-              );
+      padding: const EdgeInsets.all(10),
+      onTap: () => openPlayerProfile(context, ref, m.playerId),
+      child: Row(children: [
+        Crest(logoUrl: m.avatarUrl, label: m.displayName, size: 40),
+        const SizedBox(width: 12),
+        Expanded(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Flexible(
+                child: Text(m.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 14)),
+              ),
+              if (m.isCaptain) ...[
+                const SizedBox(width: 6),
+                Icon(Icons.star_rounded, size: 15, color: p.amber),
+              ],
+              if (m.isWard) ...[
+                const SizedBox(width: 6),
+                const WardBadge(),
+              ],
+            ]),
+            Text(
+                [
+                  m.isStarter ? 'Starter' : 'Sub',
+                  if (m.positions.isNotEmpty) m.positions.join(' · '),
+                  if (m.jerseyNumber != null) '#${m.jerseyNumber}',
+                ].join('  ·  '),
+                style: TextStyle(color: p.muted, fontSize: 12)),
+          ]),
+        ),
+        PopupMenuButton<String>(
+          onSelected: (v) {
+            if (v == 'edit') _edit(context, ref, t, m);
+            if (v == 'captain') _captain(context, ref, m);
+            if (v == 'remove') _remove(context, ref, m);
+          },
+          itemBuilder: (_) => [
+            const PopupMenuItem(value: 'edit', child: Text('Edit')),
+            PopupMenuItem(
+                value: 'captain',
+                child: Text(m.isCaptain ? 'Remove captain' : 'Make captain')),
+            const PopupMenuItem(value: 'remove', child: Text('Remove')),
+          ],
+        ),
+      ]),
+    );
   }
 }
 
@@ -270,7 +287,8 @@ class _WaitingRow extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Flexible(
                 child: Text(invite.displayName,
@@ -303,58 +321,63 @@ class _EligiblePicker extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final eligible = ref.watch(eligibleMembersProvider(teamId));
     return Column(
-        children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: SpSheetHeader(
-              icon: Icons.person_add_alt_1_outlined,
-              title: 'Add a group member',
-              subtitle: 'Pick who joins the team, then set their position.',
-            ),
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: SpSheetHeader(
+            icon: Icons.person_add_alt_1_outlined,
+            title: 'Add a group member',
+            subtitle: 'Pick who joins the team, then set their position.',
           ),
-          Expanded(
-            child: AsyncView(
-              value: eligible,
-              onRetry: () => ref.invalidate(eligibleMembersProvider(teamId)),
-              data: (list) => list.isEmpty
-                  ? const Center(child: Text('Everyone in the group is already on the team.'))
-                  : ListView.builder(
-                      itemCount: list.length,
-                      itemBuilder: (_, i) {
-                        final u = list[i];
-                        final sub = [
-                          if (u.username != null) '@${u.username}',
-                          if (u.isWard && !u.invitePending)
-                            'Their guardians will be asked',
-                        ].join(' · ');
-                        return ListTile(
-                          enabled: !u.invitePending,
-                          leading: Crest(logoUrl: u.avatarUrl, label: u.displayName, size: 38),
-                          title: Row(children: [
-                            Flexible(
-                              child: Text(u.displayName,
-                                  maxLines: 1, overflow: TextOverflow.ellipsis),
-                            ),
-                            if (u.isWard) ...[
-                              const SizedBox(width: 6),
-                              const WardBadge(),
-                            ],
-                          ]),
-                          subtitle: sub.isNotEmpty ? Text(sub) : null,
-                          trailing: u.invitePending
-                              ? const SpBadge('Invited',
-                                  icon: Icons.hourglass_top_rounded)
-                              : null,
-                          onTap: u.invitePending
-                              ? null
-                              : () => Navigator.pop(context, u),
-                        );
-                      },
-                    ),
-            ),
+        ),
+        Expanded(
+          child: AsyncView(
+            value: eligible,
+            onRetry: () => ref.invalidate(eligibleMembersProvider(teamId)),
+            data: (list) => list.isEmpty
+                ? const Center(
+                    child:
+                        Text('Everyone in the group is already on the team.'))
+                : ListView.builder(
+                    itemCount: list.length,
+                    itemBuilder: (_, i) {
+                      final u = list[i];
+                      final sub = [
+                        if (u.username != null) '@${u.username}',
+                        if (u.isWard && !u.invitePending)
+                          'Their guardians will be asked',
+                      ].join(' · ');
+                      return ListTile(
+                        enabled: !u.invitePending,
+                        leading: Crest(
+                            logoUrl: u.avatarUrl,
+                            label: u.displayName,
+                            size: 38),
+                        title: Row(children: [
+                          Flexible(
+                            child: Text(u.displayName,
+                                maxLines: 1, overflow: TextOverflow.ellipsis),
+                          ),
+                          if (u.isWard) ...[
+                            const SizedBox(width: 6),
+                            const WardBadge(),
+                          ],
+                        ]),
+                        subtitle: sub.isNotEmpty ? Text(sub) : null,
+                        trailing: u.invitePending
+                            ? const SpBadge('Invited',
+                                icon: Icons.hourglass_top_rounded)
+                            : null,
+                        onTap: u.invitePending
+                            ? null
+                            : () => Navigator.pop(context, u),
+                      );
+                    },
+                  ),
           ),
-        ],
-      );
+        ),
+      ],
+    );
   }
 }
 
@@ -401,59 +424,61 @@ class _MemberSheetState extends State<_MemberSheet> {
   @override
   Widget build(BuildContext context) {
     return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SpSheetHeader(
-            icon: Icons.badge_outlined,
-            title: widget.title,
-            subtitle: 'Position, shirt number and starting spot.',
-          ),
-          if (widget.options.isNotEmpty) ...[
-            const Text('Positions (up to 3)', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final o in widget.options)
-                  FilterChip(
-                    label: Text(o),
-                    selected: _positions.contains(o),
-                    onSelected: (_) => _toggle(o),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
-          TextField(
-            controller: _jersey,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Jersey number (optional)'),
-          ),
-          const SizedBox(height: 4),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Starter'),
-            value: _starter,
-            onChanged: (v) => setState(() => _starter = v),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () => Navigator.pop(
-                context,
-                _MemberEdit(
-                  _positions.toList(),
-                  int.tryParse(_jersey.text.trim()),
-                  _starter,
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SpSheetHeader(
+          icon: Icons.badge_outlined,
+          title: widget.title,
+          subtitle: 'Position, shirt number and starting spot.',
+        ),
+        if (widget.options.isNotEmpty) ...[
+          const Text('Positions (up to 3)',
+              style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final o in widget.options)
+                FilterChip(
+                  label: Text(o),
+                  selected: _positions.contains(o),
+                  onSelected: (_) => _toggle(o),
                 ),
-              ),
-              child: const Text('Save'),
-            ),
+            ],
           ),
+          const SizedBox(height: 16),
         ],
-      );
+        TextField(
+          controller: _jersey,
+          keyboardType: TextInputType.number,
+          decoration:
+              const InputDecoration(labelText: 'Jersey number (optional)'),
+        ),
+        const SizedBox(height: 4),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Starter'),
+          value: _starter,
+          onChanged: (v) => setState(() => _starter = v),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: () => Navigator.pop(
+              context,
+              _MemberEdit(
+                _positions.toList(),
+                int.tryParse(_jersey.text.trim()),
+                _starter,
+              ),
+            ),
+            child: const Text('Save'),
+          ),
+        ),
+      ],
+    );
   }
 }

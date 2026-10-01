@@ -107,7 +107,8 @@ LinkTarget resolveLink(String? url) {
   if (m != null) return _route('/groups/${m[1]}/tournaments/${m[2]}');
 
   // ── Group money + admin pages ─────────────────────────────────────────────
-  m = RegExp(r'^/groups/([^/]+)/wallet/(approvals|withdrawals)').firstMatch(path);
+  m = RegExp(r'^/groups/([^/]+)/wallet/(approvals|withdrawals)')
+      .firstMatch(path);
   if (m != null) return _route('/groups/${m[1]}/wallet/withdrawals');
   m = RegExp(r'^/groups/([^/]+)/wallet').firstMatch(path);
   if (m != null) return _route('/groups/${m[1]}/wallet');
@@ -269,7 +270,9 @@ LinkTarget resolveLink(String? url) {
     return _tab(HomeTab.browse);
   }
   if (RegExp(r'^/groups/?$').hasMatch(path)) return _tab(HomeTab.groups);
-  if (path == '/' || path.startsWith('/dashboard') || path.startsWith('/home')) {
+  if (path == '/' ||
+      path.startsWith('/dashboard') ||
+      path.startsWith('/home')) {
     return _tab(HomeTab.home);
   }
 

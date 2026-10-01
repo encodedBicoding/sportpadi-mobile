@@ -109,7 +109,8 @@ class _DeadLink extends StatelessWidget {
       title: title,
       onClose: onClose,
       card: _Card(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Container(
               width: 40,
@@ -123,7 +124,8 @@ class _DeadLink extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(body,
-                  style: TextStyle(color: p.muted, fontSize: 13.5, height: 1.45)),
+                  style:
+                      TextStyle(color: p.muted, fontSize: 13.5, height: 1.45)),
             ),
           ]),
           const SizedBox(height: 18),
@@ -238,7 +240,8 @@ class _ClaimFormState extends ConsumerState<_ClaimForm> {
     if (ready != null) {
       return AuthScaffold(
         eyebrow: 'All set',
-        title: name == null ? 'The account is ready' : "$name's account is ready",
+        title:
+            name == null ? 'The account is ready' : "$name's account is ready",
         onClose: widget.onClose,
         card: _Card(
           child:
@@ -250,8 +253,7 @@ class _ClaimFormState extends ConsumerState<_ClaimForm> {
               style: TextStyle(color: p.muted, fontSize: 13.5, height: 1.45),
             ),
             const SizedBox(height: 18),
-            AuthPrimaryButton(
-                label: 'Done', onTap: () => context.go('/home')),
+            AuthPrimaryButton(label: 'Done', onTap: () => context.go('/home')),
           ]),
         ),
       );

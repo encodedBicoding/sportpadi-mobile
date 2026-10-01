@@ -103,8 +103,10 @@ class AppPalette {
 extension WardColorsX on AppPalette {
   bool get _dark => bg.computeLuminance() < 0.2;
   Color get ward => _dark ? const Color(0xFF9580FF) : const Color(0xFF7C5CFF);
-  Color get wardTint => _dark ? const Color(0xFF262046) : const Color(0xFFEFEBFF);
-  Color get wardInk => _dark ? const Color(0xFFC4B5FF) : const Color(0xFF5A3FD6);
+  Color get wardTint =>
+      _dark ? const Color(0xFF262046) : const Color(0xFFEFEBFF);
+  Color get wardInk =>
+      _dark ? const Color(0xFFC4B5FF) : const Color(0xFF5A3FD6);
 }
 
 /// Convenience access to the active palette from a [BuildContext].
@@ -120,6 +122,11 @@ List<BoxShadow> cardShadow(BuildContext context) =>
     Theme.of(context).brightness == Brightness.dark
         ? const []
         : const [
-            BoxShadow(color: Color(0x0D0E1411), blurRadius: 2, offset: Offset(0, 1)),
-            BoxShadow(color: Color(0x1F0E1411), blurRadius: 28, spreadRadius: -18, offset: Offset(0, 12)),
+            BoxShadow(
+                color: Color(0x0D0E1411), blurRadius: 2, offset: Offset(0, 1)),
+            BoxShadow(
+                color: Color(0x1F0E1411),
+                blurRadius: 28,
+                spreadRadius: -18,
+                offset: Offset(0, 12)),
           ];

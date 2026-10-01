@@ -9,23 +9,96 @@ import 'package:sportpadi_mobile/data/wards/ward_models.dart'
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
-/// Settings → Profile privacy, for a player who took over their account
+/// Settings → Profile privacy. For a player who took over their account
 /// under 18 (Wards 3): who can see their profile and whether search finds
-/// them, while a guardian still supervises. Takes no space for everyone
-/// else (the server says `applies: false`).
+/// them, while a guardian still supervises. Everyone else (the server says
+/// `applies: false`): one switch — a private profile.
 class ProfilePrivacySection extends ConsumerWidget {
   const ProfilePrivacySection({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final privacy = ref.watch(myPrivacyProvider).valueOrNull;
-    if (privacy == null || !privacy.applies) return const SizedBox.shrink();
+    if (privacy == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         const Eyebrow('Profile privacy'),
         const SizedBox(height: 8),
-        _PrivacyCard(privacy: privacy),
+        privacy.applies
+            ? _PrivacyCard(privacy: privacy)
+            : _PrivateProfileCard(privacy: privacy),
+      ]),
+    );
+  }
+}
+
+/// One switch: a private profile. Others who tap your name see your name,
+/// @username and photo, and that it's private — not your records, groups or
+/// posts. Public until you turn it on.
+class _PrivateProfileCard extends ConsumerStatefulWidget {
+  const _PrivateProfileCard({required this.privacy});
+  final MyPrivacy privacy;
+
+  @override
+  ConsumerState<_PrivateProfileCard> createState() =>
+      _PrivateProfileCardState();
+}
+
+class _PrivateProfileCardState extends ConsumerState<_PrivateProfileCard> {
+  late bool _private = widget.privacy.profilePrivate;
+  bool _busy = false;
+
+  @override
+  void didUpdateWidget(covariant _PrivateProfileCard old) {
+    super.didUpdateWidget(old);
+    if (_busy || identical(old.privacy, widget.privacy)) return;
+    _private = widget.privacy.profilePrivate;
+  }
+
+  Future<void> _set(bool v) async {
+    if (_busy) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final was = _private;
+    setState(() {
+      _busy = true;
+      _private = v;
+    });
+    try {
+      await ref.read(profileRepositoryProvider).setMyPrivacy(profilePrivate: v);
+      if (mounted) ref.invalidate(myPrivacyProvider);
+      messenger.showSnackBar(SnackBar(
+          content:
+              Text(v ? 'Your profile is private' : 'Your profile is public')));
+    } catch (e) {
+      if (mounted) setState(() => _private = was);
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return GlassCard(
+      child: Row(children: [
+        Expanded(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Private profile',
+                style: TextStyle(
+                    color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 3),
+            Text(
+                _private
+                    ? 'Others see your name, @username and photo, and that your profile is private — not your records, groups or posts.'
+                    : 'Anyone who taps your name sees your records, groups and posts. Turn on to keep them to yourself.',
+                style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.35)),
+          ]),
+        ),
+        const SizedBox(width: 10),
+        Switch.adaptive(value: _private, onChanged: _busy ? null : _set),
       ]),
     );
   }
@@ -75,8 +148,7 @@ class _PrivacyCardState extends ConsumerState<_PrivacyCard> {
         _visibility = prevVisibility;
         _searchable = prevSearchable;
       });
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -123,17 +195,14 @@ class _PrivacyCardState extends ConsumerState<_PrivacyCard> {
         Divider(height: 26, thickness: 1, color: p.surface2),
         Row(children: [
           Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Show me in search',
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600)),
-                  Text('Let people find you by name.',
-                      style: TextStyle(color: p.muted, fontSize: 12)),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Show me in search',
+                  style: TextStyle(
+                      color: p.ink, fontSize: 14, fontWeight: FontWeight.w600)),
+              Text('Let people find you by name.',
+                  style: TextStyle(color: p.muted, fontSize: 12)),
+            ]),
           ),
           Switch(
             value: _searchable,

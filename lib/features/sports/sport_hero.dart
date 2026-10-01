@@ -57,12 +57,11 @@ class SportHero extends StatelessWidget {
     final att = attendanceOf(category);
     final checkIns = statInt(att['checkIns']);
     final heads = headlineFor(family, tally, fields, attendance: att);
-    final line = recordLineFor(family, tally,
-        streak: streakOf(recent), attendance: att);
+    final line =
+        recordLineFor(family, tally, streak: streakOf(recent), attendance: att);
     // Hikes and runs lead with check-ins; every other sport with games.
-    final showNumbers = isAttendanceDesign(family)
-        ? games > 0 || checkIns > 0
-        : games > 0;
+    final showNumbers =
+        isAttendanceDesign(family) ? games > 0 || checkIns > 0 : games > 0;
     final canPop = context.canPop();
 
     Widget linePill(String text) => Container(
@@ -103,7 +102,11 @@ class SportHero extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0x33000000), Color(0x00000000), Color(0x52000000)],
+                colors: [
+                  Color(0x33000000),
+                  Color(0x00000000),
+                  Color(0x52000000)
+                ],
                 stops: [0, 0.4, 1],
               ),
             ),
@@ -111,159 +114,158 @@ class SportHero extends StatelessWidget {
         ),
         Padding(
           padding: EdgeInsets.fromLTRB(16, top + 8, 16, 22),
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  _GlassButton(
-                    icon: canPop
-                        ? Icons.arrow_back_ios_new_rounded
-                        : Icons.home_outlined,
-                    tooltip: canPop ? 'Back' : 'Home',
-                    onTap: () => _back(context),
-                  ),
-                  if (onViewAsOthers != null) ...[
-                    const SizedBox(width: 12),
-                    // Flush right, and free to shrink (ellipsis) on narrow
-                    // screens.
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: _GlassPill(
-                          icon: Icons.visibility_outlined,
-                          label: 'View as others see it',
-                          onTap: onViewAsOthers!,
-                        ),
-                      ),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              _GlassButton(
+                icon: canPop
+                    ? Icons.arrow_back_ios_new_rounded
+                    : Icons.home_outlined,
+                tooltip: canPop ? 'Back' : 'Home',
+                onTap: () => _back(context),
+              ),
+              if (onViewAsOthers != null) ...[
+                const SizedBox(width: 12),
+                // Flush right, and free to shrink (ellipsis) on narrow
+                // screens.
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: _GlassPill(
+                      icon: Icons.visibility_outlined,
+                      label: 'View as others see it',
+                      onTap: onViewAsOthers!,
                     ),
-                  ],
-                ]),
-                const SizedBox(height: 20),
-                Row(children: [
-                  Container(
-                    width: 54,
-                    height: 54,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: sportHeroPill,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0x1FFFFFFF)),
-                    ),
-                    child: Text(emoji, style: const TextStyle(fontSize: 28)),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: sportHeroInk,
-                                  fontSize: 26,
-                                  height: 1.1,
-                                  letterSpacing: -0.4,
-                                  fontWeight: FontWeight.w800)),
-                          const SizedBox(height: 6),
-                          GestureDetector(
-                            onTap: onPlayerTap,
-                            child: Row(mainAxisSize: MainAxisSize.min, children: [
-                              Container(
-                                padding: const EdgeInsets.all(1.5),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: t.accent, width: 1.5),
-                                ),
-                                child: ClipOval(
-                                  child: Crest(
-                                      logoUrl: avatarUrl,
-                                      label: playerName,
-                                      size: 22),
-                                ),
-                              ),
-                              const SizedBox(width: 7),
-                              Flexible(
-                                child: Text(playerName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        color: sportHeroMuted,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600)),
-                              ),
-                            ]),
+                ),
+              ],
+            ]),
+            const SizedBox(height: 20),
+            Row(children: [
+              Container(
+                width: 54,
+                height: 54,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: sportHeroPill,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0x1FFFFFFF)),
+                ),
+                child: Text(emoji, style: const TextStyle(fontSize: 28)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: sportHeroInk,
+                              fontSize: 26,
+                              height: 1.1,
+                              letterSpacing: -0.4,
+                              fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 6),
+                      GestureDetector(
+                        onTap: onPlayerTap,
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Container(
+                            padding: const EdgeInsets.all(1.5),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: t.accent, width: 1.5),
+                            ),
+                            child: ClipOval(
+                              child: Crest(
+                                  logoUrl: avatarUrl,
+                                  label: playerName,
+                                  size: 22),
+                            ),
+                          ),
+                          const SizedBox(width: 7),
+                          Flexible(
+                            child: Text(playerName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    color: sportHeroMuted,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600)),
                           ),
                         ]),
-                  ),
-                ]),
-                if (setup.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  Wrap(spacing: 6, runSpacing: 6, children: [
-                    for (final f in setup)
-                      if (parseStr(f['value']) != null) _SetupPill(field: f),
-                  ]),
-                ],
-                const SizedBox(height: 22),
-                if (showNumbers) ...[
-                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    for (var i = 0; i < heads.length; i++)
-                      Expanded(
-                        child: Container(
-                          padding: EdgeInsets.only(left: i == 0 ? 0 : 12),
-                          decoration: i == 0
-                              ? null
-                              : const BoxDecoration(
-                                  border: Border(
-                                      left: BorderSide(color: Color(0x29FFFFFF)))),
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(heads[i].$1,
-                                      maxLines: 1,
-                                      style: TextStyle(
-                                          color: i == 0 ? t.accent : sportHeroInk,
-                                          fontSize: 32,
-                                          height: 1,
-                                          letterSpacing: -0.8,
-                                          fontWeight: FontWeight.w800,
-                                          fontFeatures: tabularFigures)),
-                                ),
-                                const SizedBox(height: 7),
-                                Text(heads[i].$2.toUpperCase(),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        color: sportHeroMuted,
-                                        fontSize: 10.5,
-                                        letterSpacing: 1.1,
-                                        fontWeight: FontWeight.w700)),
-                              ]),
-                        ),
                       ),
-                  ]),
-                  const SizedBox(height: 16),
-                  linePill(line),
-                ] else ...[
-                  Text(
-                      isAttendanceDesign(family)
-                          ? 'No $name outings on record yet.'
-                          : 'No $name games on record yet.',
-                      style: const TextStyle(
-                          color: sportHeroMuted,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600)),
-                  // Check-ins but no games yet (a club night, a session).
-                  if (checkIns > 0) ...[
-                    const SizedBox(height: 12),
-                    linePill(attendanceSummary(family, att)),
-                  ],
-                ],
+                    ]),
+              ),
+            ]),
+            if (setup.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Wrap(spacing: 6, runSpacing: 6, children: [
+                for (final f in setup)
+                  if (parseStr(f['value']) != null) _SetupPill(field: f),
               ]),
+            ],
+            const SizedBox(height: 22),
+            if (showNumbers) ...[
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                for (var i = 0; i < heads.length; i++)
+                  Expanded(
+                    child: Container(
+                      padding: EdgeInsets.only(left: i == 0 ? 0 : 12),
+                      decoration: i == 0
+                          ? null
+                          : const BoxDecoration(
+                              border: Border(
+                                  left: BorderSide(color: Color(0x29FFFFFF)))),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(heads[i].$1,
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                      color: i == 0 ? t.accent : sportHeroInk,
+                                      fontSize: 32,
+                                      height: 1,
+                                      letterSpacing: -0.8,
+                                      fontWeight: FontWeight.w800,
+                                      fontFeatures: tabularFigures)),
+                            ),
+                            const SizedBox(height: 7),
+                            Text(heads[i].$2.toUpperCase(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    color: sportHeroMuted,
+                                    fontSize: 10.5,
+                                    letterSpacing: 1.1,
+                                    fontWeight: FontWeight.w700)),
+                          ]),
+                    ),
+                  ),
+              ]),
+              const SizedBox(height: 16),
+              linePill(line),
+            ] else ...[
+              Text(
+                  isAttendanceDesign(family)
+                      ? 'No $name outings on record yet.'
+                      : 'No $name games on record yet.',
+                  style: const TextStyle(
+                      color: sportHeroMuted,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600)),
+              // Check-ins but no games yet (a club night, a session).
+              if (checkIns > 0) ...[
+                const SizedBox(height: 12),
+                linePill(attendanceSummary(family, att)),
+              ],
+            ],
+          ]),
         ),
       ]),
     );
@@ -278,8 +280,8 @@ class _SetupPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width - 32),
+      constraints:
+          BoxConstraints(maxWidth: MediaQuery.of(context).size.width - 32),
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
       decoration: BoxDecoration(
         color: sportHeroPill,

@@ -107,8 +107,7 @@ class _MarkingsPainter extends CustomPainter {
     canvas.drawRect(box(3, 3, 94, 94), line);
     canvas.drawLine(Offset(sx(3), sy(50)), Offset(sx(97), sy(50)), line);
     canvas.drawOval(box(41, 41, 18, 18), line);
-    canvas.drawCircle(
-        Offset(sx(50), sy(50)), 1.6, Paint()..color = line.color);
+    canvas.drawCircle(Offset(sx(50), sy(50)), 1.6, Paint()..color = line.color);
     // bottom (own) box + goal area
     canvas.drawRect(box(30, 88, 40, 9), line);
     canvas.drawRect(box(40, 94, 20, 3), line);
@@ -220,7 +219,8 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
       final TeamDetail t;
       if (widget.eventId != null) {
         final sq = await ref.read(
-            tournamentSquadProvider('${widget.eventId}|${widget.teamId}').future);
+            tournamentSquadProvider('${widget.eventId}|${widget.teamId}')
+                .future);
         _tournamentTeamId = sq.tournamentTeamId;
         t = _fromSquad(sq);
       } else {
@@ -300,19 +300,19 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
       final ttId = _tournamentTeamId;
       if (eventId == null || ttId == null) return; // legacy view is read-only
       await ref.read(tournamentsRepositoryProvider).setSquadFormation(
-            eventId,
-            ttId,
-            formationName: _formationName,
-            placements: [
-              for (final pl in placements)
-                {
-                  'squadId': pl['memberId'],
-                  'isStarter': pl['isStarter'],
-                  'posX': pl['posX'],
-                  'posY': pl['posY'],
-                },
-            ],
-          );
+        eventId,
+        ttId,
+        formationName: _formationName,
+        placements: [
+          for (final pl in placements)
+            {
+              'squadId': pl['memberId'],
+              'isStarter': pl['isStarter'],
+              'posX': pl['posX'],
+              'posY': pl['posY'],
+            },
+        ],
+      );
       ref.invalidate(tournamentSquadProvider('$eventId|${widget.teamId}'));
       if (mounted) {
         setState(() {
@@ -345,45 +345,37 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
     final choice = await showSpSheet<String>(
       context,
       builder: (ctx) => Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(m.displayName,
-                  style: TextStyle(
-                      color: p.ink,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              ListTile(
-                dense: true,
-                leading: Icon(Icons.group_outlined,
-                    size: 20, color: p.muted),
-                title: Text('Bench',
-                    style: TextStyle(color: p.ink, fontSize: 14)),
-                onTap: () => Navigator.pop(ctx, 'bench'),
-              ),
-              ListTile(
-                dense: true,
-                leading: Icon(Icons.login_rounded,
-                    size: 20, color: p.muted),
-                title: Text('Sub',
-                    style: TextStyle(color: p.ink, fontSize: 14)),
-                subtitle: Text('Bring a bench player on in this spot',
-                    style: TextStyle(color: p.muted, fontSize: 11)),
-                onTap: () => Navigator.pop(ctx, 'sub'),
-              ),
-              ListTile(
-                dense: true,
-                leading: Icon(Icons.swap_horiz_rounded,
-                    size: 20, color: p.muted),
-                title: Text('Swap',
-                    style: TextStyle(color: p.ink, fontSize: 14)),
-                subtitle: Text('Switch positions with a pitch player',
-                    style: TextStyle(color: p.muted, fontSize: 11)),
-                onTap: () => Navigator.pop(ctx, 'swap'),
-              ),
-            ],
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(m.displayName,
+              style: TextStyle(
+                  color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 12),
+          ListTile(
+            dense: true,
+            leading: Icon(Icons.group_outlined, size: 20, color: p.muted),
+            title: Text('Bench', style: TextStyle(color: p.ink, fontSize: 14)),
+            onTap: () => Navigator.pop(ctx, 'bench'),
           ),
+          ListTile(
+            dense: true,
+            leading: Icon(Icons.login_rounded, size: 20, color: p.muted),
+            title: Text('Sub', style: TextStyle(color: p.ink, fontSize: 14)),
+            subtitle: Text('Bring a bench player on in this spot',
+                style: TextStyle(color: p.muted, fontSize: 11)),
+            onTap: () => Navigator.pop(ctx, 'sub'),
+          ),
+          ListTile(
+            dense: true,
+            leading: Icon(Icons.swap_horiz_rounded, size: 20, color: p.muted),
+            title: Text('Swap', style: TextStyle(color: p.ink, fontSize: 14)),
+            subtitle: Text('Switch positions with a pitch player',
+                style: TextStyle(color: p.muted, fontSize: 11)),
+            onTap: () => Navigator.pop(ctx, 'swap'),
+          ),
+        ],
+      ),
     );
     if (!mounted) return;
     if (choice == 'bench') {
@@ -439,31 +431,28 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
     final targetId = await showSpSheet<String>(
       context,
       builder: (ctx) => Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                  '${fromBench ? 'Sub' : 'Swap'} ${source.displayName}',
-                  style: TextStyle(
-                      color: p.ink,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800)),
-              header(fromBench
-                  ? 'From the bench — takes their spot'
-                  : 'On the pitch — switch positions'),
-              if (candidates.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                      fromBench
-                          ? 'The bench is empty.'
-                          : 'No other players on the pitch.',
-                      style: TextStyle(color: p.muted, fontSize: 12)),
-                )
-              else
-                for (final x in candidates) row(ctx, x),
-            ],
-          ),
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${fromBench ? 'Sub' : 'Swap'} ${source.displayName}',
+              style: TextStyle(
+                  color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
+          header(fromBench
+              ? 'From the bench — takes their spot'
+              : 'On the pitch — switch positions'),
+          if (candidates.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                  fromBench
+                      ? 'The bench is empty.'
+                      : 'No other players on the pitch.',
+                  style: TextStyle(color: p.muted, fontSize: 12)),
+            )
+          else
+            for (final x in candidates) row(ctx, x),
+        ],
+      ),
     );
     if (targetId == null || !mounted) return;
     final src = _pos[source.memberId];
@@ -492,8 +481,8 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
   void _toPitch(String id) {
     final max = _team?.formation.maxStarters ?? 11;
     if (_starterCount >= max) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('At most $max on the field.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('At most $max on the field.')));
       return;
     }
     // Position-aware placement (web): first open lattice slot, never on top
@@ -526,9 +515,8 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
         .expand((f) => f.slots)
         .toList();
     if (slots.isEmpty) return;
-    final starters = team.members
-        .where((m) => _pos[m.memberId]?.starter == true)
-        .toList();
+    final starters =
+        team.members.where((m) => _pos[m.memberId]?.starter == true).toList();
     final remaining = starters.map((m) => m.memberId).toSet();
     final byId = {for (final m in starters) m.memberId: m};
     final cap = [slots.length, team.formation.maxStarters, starters.length]
@@ -578,21 +566,22 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
     final team = _team;
     if (team == null) {
       return Scaffold(
-        appBar: AppBar(leading: const SpLeading(), title: const Text('Formation')),
+        appBar:
+            AppBar(leading: const SpLeading(), title: const Text('Formation')),
         body: Center(child: Text(_error ?? 'Could not load the team.')),
       );
     }
     if (!team.formation.needsFormation) {
       return Scaffold(
-        appBar: AppBar(leading: const SpLeading(), title: const Text('Formation')),
+        appBar:
+            AppBar(leading: const SpLeading(), title: const Text('Formation')),
         body: const Center(child: Text('This sport has no formation board.')),
       );
     }
     final surface = team.formation.surface;
     final forms = team.formation.formations;
-    final bench = team.members
-        .where((m) => _pos[m.memberId]?.starter != true)
-        .toList();
+    final bench =
+        team.members.where((m) => _pos[m.memberId]?.starter != true).toList();
     final tokenColor = _hex(team.kitPrimary, const Color(0xFF16A34A));
     final tokenText = _hex(team.kitSecondary, Colors.white);
 
@@ -601,135 +590,133 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
       body: SafeArea(
         bottom: false,
         child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
-        children: [
-          SpHeader(title: 'Formation', subtitle: team.name),
-          const SizedBox(height: 16),
-          // Header row — how full the pitch is, the shape switcher, saved.
-          Row(children: [
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                        '$_starterCount/${team.formation.maxStarters}',
-                        style: TextStyle(
-                            color: p.ink,
-                            fontSize: 22,
-                            height: 1.1,
-                            fontWeight: FontWeight.w800)),
-                    Text('on the pitch',
-                        style: TextStyle(color: p.muted, fontSize: 12)),
-                  ]),
-            ),
-            if (!_readOnly && forms.isNotEmpty) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: p.surface,
-                  borderRadius: BorderRadius.circular(999),
-                  boxShadow: cardShadow(context),
-                ),
-                child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _formationName,
-                  hint: Text('Formation…',
-                      style: TextStyle(color: p.muted, fontSize: 12)),
-                  style: TextStyle(
-                      color: p.ink,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600),
-                  items: [
-                    for (final f in forms)
-                      DropdownMenuItem(value: f.name, child: Text(f.name))
-                  ],
-                  onChanged: (v) {
-                    if (v != null) _applyFormation(v);
-                  },
-                ),
-              ),
-              ),
-              const SizedBox(width: 10),
-            ],
-            if (!_readOnly)
-              Row(children: [
-                if (_saving || _dirty)
-                  const SizedBox(
-                      height: 13,
-                      width: 13,
-                      child: CircularProgressIndicator(strokeWidth: 2))
-                else
-                  Icon(Icons.check_rounded, size: 15, color: p.accent),
-                const SizedBox(width: 4),
-                Text(_saving || _dirty ? 'Saving…' : 'Saved',
-                    style: TextStyle(color: p.muted, fontSize: 12)),
-              ]),
-          ]),
-          const SizedBox(height: 10),
-
-          // The pitch/court/diamond — surface picked by the sport category.
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 384),
-              child: AspectRatio(
-                aspectRatio: 68 / 100,
-                child: LayoutBuilder(builder: (context, box) {
-                  final w = box.maxWidth;
-                  final h = box.maxHeight;
-                  return Container(
-                    clipBehavior: Clip.antiAlias,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(26),
-                    ),
-                    child: Stack(children: [
-                      const Positioned.fill(
-                          child:
-                              CustomPaint(painter: _StripesPainter())),
-                      Positioned.fill(
-                          child: CustomPaint(
-                              painter: _MarkingsPainter(surface))),
-                      for (final m in team.members)
-                        if (_pos[m.memberId]?.starter == true)
-                          _token(context, m, w, h, tokenColor, tokenText),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
+          children: [
+            SpHeader(title: 'Formation', subtitle: team.name),
+            const SizedBox(height: 16),
+            // Header row — how full the pitch is, the shape switcher, saved.
+            Row(children: [
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('$_starterCount/${team.formation.maxStarters}',
+                          style: TextStyle(
+                              color: p.ink,
+                              fontSize: 22,
+                              height: 1.1,
+                              fontWeight: FontWeight.w800)),
+                      Text('on the pitch',
+                          style: TextStyle(color: p.muted, fontSize: 12)),
                     ]),
-                  );
-                }),
+              ),
+              if (!_readOnly && forms.isNotEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: p.surface,
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: cardShadow(context),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _formationName,
+                      hint: Text('Formation…',
+                          style: TextStyle(color: p.muted, fontSize: 12)),
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600),
+                      items: [
+                        for (final f in forms)
+                          DropdownMenuItem(value: f.name, child: Text(f.name))
+                      ],
+                      onChanged: (v) {
+                        if (v != null) _applyFormation(v);
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
+              if (!_readOnly)
+                Row(children: [
+                  if (_saving || _dirty)
+                    const SizedBox(
+                        height: 13,
+                        width: 13,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                  else
+                    Icon(Icons.check_rounded, size: 15, color: p.accent),
+                  const SizedBox(width: 4),
+                  Text(_saving || _dirty ? 'Saving…' : 'Saved',
+                      style: TextStyle(color: p.muted, fontSize: 12)),
+                ]),
+            ]),
+            const SizedBox(height: 10),
+
+            // The pitch/court/diamond — surface picked by the sport category.
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 384),
+                child: AspectRatio(
+                  aspectRatio: 68 / 100,
+                  child: LayoutBuilder(builder: (context, box) {
+                    final w = box.maxWidth;
+                    final h = box.maxHeight;
+                    return Container(
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(26),
+                      ),
+                      child: Stack(children: [
+                        const Positioned.fill(
+                            child: CustomPaint(painter: _StripesPainter())),
+                        Positioned.fill(
+                            child: CustomPaint(
+                                painter: _MarkingsPainter(surface))),
+                        for (final m in team.members)
+                          if (_pos[m.memberId]?.starter == true)
+                            _token(context, m, w, h, tokenColor, tokenText),
+                      ]),
+                    );
+                  }),
+                ),
               ),
             ),
-          ),
 
-          // Bench — web: pill chips, tap to field.
-          const SizedBox(height: 14),
-          Row(children: [
-            Icon(Icons.group_outlined, size: 14, color: p.muted),
-            const SizedBox(width: 5),
-            Text('BENCH (${bench.length})',
-                style: TextStyle(
-                    color: p.muted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.6)),
-          ]),
-          const SizedBox(height: 8),
-          if (bench.isEmpty)
-            Text("Everyone's on the field.",
-                style: TextStyle(color: p.muted, fontSize: 12))
-          else
-            Wrap(spacing: 6, runSpacing: 6, children: [
-              for (final m in bench)
-                _benchChip(context, m, tokenColor, tokenText),
+            // Bench — web: pill chips, tap to field.
+            const SizedBox(height: 14),
+            Row(children: [
+              Icon(Icons.group_outlined, size: 14, color: p.muted),
+              const SizedBox(width: 5),
+              Text('BENCH (${bench.length})',
+                  style: TextStyle(
+                      color: p.muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6)),
             ]),
-          if (!_readOnly) ...[
             const SizedBox(height: 8),
-            Text(
-              surface == 'pitch' || surface == null
-                  ? 'Tap a bench player to field them, drag tokens to position, tap × to bench or substitute.'
-                  : 'Tap to field, drag to position, × to bench or substitute.',
-              style: TextStyle(color: p.muted, fontSize: 11),
-            ),
+            if (bench.isEmpty)
+              Text("Everyone's on the field.",
+                  style: TextStyle(color: p.muted, fontSize: 12))
+            else
+              Wrap(spacing: 6, runSpacing: 6, children: [
+                for (final m in bench)
+                  _benchChip(context, m, tokenColor, tokenText),
+              ]),
+            if (!_readOnly) ...[
+              const SizedBox(height: 8),
+              Text(
+                surface == 'pitch' || surface == null
+                    ? 'Tap a bench player to field them, drag tokens to position, tap × to bench or substitute.'
+                    : 'Tap to field, drag to position, × to bench or substitute.',
+                style: TextStyle(color: p.muted, fontSize: 11),
+              ),
+            ],
           ],
-        ],
-      ),
+        ),
       ),
     );
   }
@@ -759,8 +746,7 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
                 });
                 _dirty = true;
                 _debounce?.cancel();
-                _debounce =
-                    Timer(const Duration(milliseconds: 600), _save);
+                _debounce = Timer(const Duration(milliseconds: 600), _save);
               },
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           SizedBox(
@@ -827,8 +813,7 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
                         color: context.palette.surface,
                         shape: BoxShape.circle,
                         boxShadow: const [
-                          BoxShadow(
-                              color: Colors.black26, blurRadius: 3),
+                          BoxShadow(color: Colors.black26, blurRadius: 3),
                         ],
                       ),
                       child: Icon(Icons.close,
@@ -841,8 +826,7 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
           const SizedBox(height: 1),
           Container(
             constraints: const BoxConstraints(maxWidth: groupW),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
             decoration: BoxDecoration(
               color: const Color.fromRGBO(0, 0, 0, 0.45),
               borderRadius: BorderRadius.circular(4),
@@ -863,8 +847,8 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
   }
 
   /// Bench pill — mini kit token + first name + position (web chip).
-  Widget _benchChip(BuildContext context, TeamMember m, Color tokenColor,
-      Color tokenText) {
+  Widget _benchChip(
+      BuildContext context, TeamMember m, Color tokenColor, Color tokenText) {
     final p = context.palette;
     return Material(
       color: p.surface,

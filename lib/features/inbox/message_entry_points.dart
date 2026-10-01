@@ -62,8 +62,7 @@ class GroupMessagesSection extends ConsumerWidget {
         _QuietButton(
           label: 'Message coach',
           icon: Icons.sports_rounded,
-          onTap: () =>
-              run((c) => showMessageStartSheet(c, groupId: groupId)),
+          onTap: () => run((c) => showMessageStartSheet(c, groupId: groupId)),
         ),
     ];
     final staffButtons = <Widget>[
@@ -131,12 +130,12 @@ Future<void> contactGroupAdmins(BuildContext context, StartOptions o,
             for (final c in entries)
               ListTile(
                 leading: Icon(
-                    c.isMe ? Icons.person_outline_rounded
+                    c.isMe
+                        ? Icons.person_outline_rounded
                         : Icons.child_care_rounded,
                     color: c.isMe ? p.ink : p.wardInk),
                 title: Text(c.isMe ? 'Me' : 'About ${c.name}'),
-                trailing:
-                    Icon(Icons.chevron_right_rounded, color: p.muted),
+                trailing: Icon(Icons.chevron_right_rounded, color: p.muted),
                 onTap: () => Navigator.of(ctx).pop(c),
               ),
           ]),
@@ -321,15 +320,14 @@ class _TeamPlayerPickerSheet extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Text('No players you can message on this team yet.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: p.muted)),
+                textAlign: TextAlign.center, style: TextStyle(color: p.muted)),
           )
         else
           SpListCard(children: [
             for (final m in players)
               ListTile(
-                leading: WardAvatar(
-                    name: m.displayName, url: m.avatarUrl, size: 36),
+                leading:
+                    WardAvatar(name: m.displayName, url: m.avatarUrl, size: 36),
                 title: Row(children: [
                   Flexible(
                     child: Text(m.displayName,
@@ -379,8 +377,8 @@ class MessageMemberButton extends ConsumerWidget {
     return IconButton(
       tooltip: isWard ? "Message $name's guardians" : 'Message $name',
       visualDensity: VisualDensity.compact,
-      icon: Icon(Icons.chat_bubble_outline_rounded,
-          size: 19, color: p.greenText),
+      icon:
+          Icon(Icons.chat_bubble_outline_rounded, size: 19, color: p.greenText),
       onPressed: () => composeFirstMessage(
         context,
         MessageTarget.member(
@@ -469,8 +467,7 @@ class _MessageNotificationsCardState
     } catch (e) {
       if (!mounted) return;
       setState(() => _pending = null);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
   }
 

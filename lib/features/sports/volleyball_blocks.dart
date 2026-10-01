@@ -21,24 +21,26 @@ class VolleyballRecord extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final w = nums.wins, d = nums.draws, l = nums.losses;
-    Widget big(String v, String label, Color c, CrossAxisAlignment a) =>
-        Column(crossAxisAlignment: a, mainAxisSize: MainAxisSize.min, children: [
-          Text(v,
-              style: TextStyle(
-                  color: c,
-                  fontSize: 40,
-                  height: 1,
-                  letterSpacing: -1,
-                  fontWeight: FontWeight.w900,
-                  fontFeatures: tabularFigures)),
-          const SizedBox(height: 4),
-          Text(label.toUpperCase(),
-              style: TextStyle(
-                  color: p.muted,
-                  fontSize: 10.5,
-                  letterSpacing: 1.4,
-                  fontWeight: FontWeight.w800)),
-        ]);
+    Widget big(String v, String label, Color c, CrossAxisAlignment a) => Column(
+            crossAxisAlignment: a,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(v,
+                  style: TextStyle(
+                      color: c,
+                      fontSize: 40,
+                      height: 1,
+                      letterSpacing: -1,
+                      fontWeight: FontWeight.w900,
+                      fontFeatures: tabularFigures)),
+              const SizedBox(height: 4),
+              Text(label.toUpperCase(),
+                  style: TextStyle(
+                      color: p.muted,
+                      fontSize: 10.5,
+                      letterSpacing: 1.4,
+                      fontWeight: FontWeight.w800)),
+            ]);
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -51,8 +53,7 @@ class VolleyballRecord extends StatelessWidget {
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     fontFeatures: tabularFigures)),
-            Text('win rate',
-                style: TextStyle(color: p.muted, fontSize: 11)),
+            Text('win rate', style: TextStyle(color: p.muted, fontSize: 11)),
           ]),
         ),
         big('$l', 'Lost', p.danger, CrossAxisAlignment.end),
@@ -65,14 +66,16 @@ class VolleyballRecord extends StatelessWidget {
           child: w + d + l == 0
               ? ColoredBox(color: p.surface2)
               : Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  if (w > 0) Expanded(flex: w, child: ColoredBox(color: p.accent)),
+                  if (w > 0)
+                    Expanded(flex: w, child: ColoredBox(color: p.accent)),
                   if (w > 0 && d + l > 0) const SizedBox(width: 3),
                   if (d > 0)
                     Expanded(
                         flex: d,
                         child: const ColoredBox(color: Color(0xFF9CA3AF))),
                   if (d > 0 && l > 0) const SizedBox(width: 3),
-                  if (l > 0) Expanded(flex: l, child: ColoredBox(color: p.danger)),
+                  if (l > 0)
+                    Expanded(flex: l, child: ColoredBox(color: p.danger)),
                 ]),
         ),
       ),
@@ -151,7 +154,9 @@ class VolleyballStats extends StatelessWidget {
             Expanded(
               child: Text(s.$1,
                   style: TextStyle(
-                      color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      color: p.ink,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600)),
             ),
             Text('${s.$2}',
                 style: TextStyle(

@@ -152,10 +152,14 @@ class AnnouncementItem {
   bool get isPinned =>
       pinnedUntil != null && pinnedUntil!.isAfter(DateTime.now());
 
-  List<AnnouncementAttachment> get images =>
-      [for (final a in attachments) if (!a.isPdf && a.url.isNotEmpty) a];
-  List<AnnouncementAttachment> get pdfs =>
-      [for (final a in attachments) if (a.isPdf && a.url.isNotEmpty) a];
+  List<AnnouncementAttachment> get images => [
+        for (final a in attachments)
+          if (!a.isPdf && a.url.isNotEmpty) a
+      ];
+  List<AnnouncementAttachment> get pdfs => [
+        for (final a in attachments)
+          if (a.isPdf && a.url.isNotEmpty) a
+      ];
 
   /// "Admin", "Coach", "Organiser".
   String get roleLabel => switch (senderRole) {
@@ -165,9 +169,8 @@ class AnnouncementItem {
       };
 
   /// "For Tobi, Zara" on a guardian's copy; null otherwise.
-  String? get wardsLabel => forWards.isEmpty
-      ? null
-      : 'For ${forWards.map((w) => w.name).join(', ')}';
+  String? get wardsLabel =>
+      forWards.isEmpty ? null : 'For ${forWards.map((w) => w.name).join(', ')}';
 
   AnnouncementItem copyWith({DateTime? seenAt, DateTime? ackedAt}) =>
       AnnouncementItem(
@@ -547,7 +550,10 @@ class AnnouncementAudience {
 /// How many people an audience reaches.
 class AudiencePreview {
   const AudiencePreview(
-      {this.people = 0, this.wards = 0, this.guardians = 0, this.deliveries = 0});
+      {this.people = 0,
+      this.wards = 0,
+      this.guardians = 0,
+      this.deliveries = 0});
   final int people;
   final int wards;
   final int guardians;

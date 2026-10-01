@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
-import 'package:sportpadi_mobile/core/router/app_router.dart' show safeRedirectTarget;
+import 'package:sportpadi_mobile/core/router/app_router.dart'
+    show safeRedirectTarget;
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/auth/auth_scaffold.dart';
@@ -76,7 +77,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     try {
       final ctrl = ref.read(authControllerProvider.notifier);
       if (_isSignUp) {
-        await ctrl.signUp(_name.text.trim(), _email.text.trim(), _password.text);
+        await ctrl.signUp(
+            _name.text.trim(), _email.text.trim(), _password.text);
       } else {
         await ctrl.signIn(_email.text.trim(), _password.text);
       }
@@ -195,7 +197,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     label: 'Password',
                     icon: Icons.lock_outline_rounded,
                     suffix: IconButton(
-                      tooltip: _showPassword ? 'Hide password' : 'Show password',
+                      tooltip:
+                          _showPassword ? 'Hide password' : 'Show password',
                       icon: Icon(
                           _showPassword
                               ? Icons.visibility_off_outlined

@@ -195,9 +195,7 @@ class _OutstandingTicketsScreenState
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                          color: c.next
-                                              ? p.greenText
-                                              : p.muted,
+                                          color: c.next ? p.greenText : p.muted,
                                           fontSize: 11.5,
                                           fontWeight: c.next
                                               ? FontWeight.w700

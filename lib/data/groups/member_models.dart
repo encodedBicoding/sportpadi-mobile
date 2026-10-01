@@ -19,8 +19,10 @@ class GroupMemberItem {
   final String? username;
   final String? avatarUrl;
   final String? role;
+
   /// Followers list only: already a member of the group (can't be promoted).
   final bool isMember;
+
   /// Followers list only: when they followed.
   final DateTime? createdAt;
 

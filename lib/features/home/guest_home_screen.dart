@@ -146,8 +146,8 @@ class _GuestHomeScreenState extends ConsumerState<GuestHomeScreen> {
                   color: dark ? p.onHero.withAlpha(26) : p.accentTint,
                   borderRadius: BorderRadius.circular(13),
                 ),
-                child: Icon(icon,
-                    size: 20, color: dark ? p.accent : p.accentDeep),
+                child:
+                    Icon(icon, size: 20, color: dark ? p.accent : p.accentDeep),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -184,7 +184,8 @@ class _GuestHeader extends StatelessWidget {
       padding: const EdgeInsets.only(top: 4),
       child: Row(children: [
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(greeting,
                 style: TextStyle(
                     color: p.muted, fontSize: 13, fontWeight: FontWeight.w500)),
@@ -270,8 +271,7 @@ class _CalendarStandIn extends StatelessWidget {
           for (var i = 0; i < 7; i++) ...[
             if (i > 0) const SizedBox(width: 6),
             Expanded(
-              child: _DayCell(
-                  day: today.add(Duration(days: i)), today: i == 0),
+              child: _DayCell(day: today.add(Duration(days: i)), today: i == 0),
             ),
           ],
         ]),
@@ -427,9 +427,10 @@ class _JoinCard extends StatelessWidget {
         const SizedBox(height: 16),
         perk(Icons.sports_soccer_rounded, 'Join games and check in with a QR'),
         perk(Icons.groups_rounded, 'Follow groups and see their calendar'),
-        perk(Icons.confirmation_num_outlined, 'Buy tickets for you and friends'),
-        perk(Icons.emoji_events_outlined,
-            'Keep your record, level and streaks'),
+        perk(
+            Icons.confirmation_num_outlined, 'Buy tickets for you and friends'),
+        perk(
+            Icons.emoji_events_outlined, 'Keep your record, level and streaks'),
         const SizedBox(height: 6),
         Material(
           color: Colors.white,
@@ -523,7 +524,8 @@ class _LocationCard extends ConsumerWidget {
             iconSize: 21),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(title,
                 style: TextStyle(
                     color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700)),

@@ -21,6 +21,7 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 
 /// One conversation (docs B4/B5/B8): staff on one side, a member — or a
 /// ward's guardians — on the other. Polls every few seconds while open and
@@ -144,8 +145,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
       if (_scroll.hasClients) {
         // ignore: discarded_futures
         _scroll.animateTo(0,
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOut);
+            duration: const Duration(milliseconds: 220), curve: Curves.easeOut);
       }
     } catch (e) {
       _snack('$e');
@@ -344,9 +344,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
                 SpSheetHeader(
                   icon: Icons.text_fields_rounded,
                   title: m.senderName,
-                  subtitle: m.createdAt == null
-                      ? null
-                      : fmtInstant(m.createdAt),
+                  subtitle:
+                      m.createdAt == null ? null : fmtInstant(m.createdAt),
                 ),
                 LinkifiedText(
                   m.body,
@@ -444,8 +443,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
             if (c.canClose)
               const PopupMenuItem(
                   value: 'close', child: Text('Close conversation')),
-            PopupMenuItem(
-                value: 'group', child: Text('Open ${c.group.name}')),
+            PopupMenuItem(value: 'group', child: Text('Open ${c.group.name}')),
           ];
     return Scaffold(
       backgroundColor: p.bg,
@@ -677,8 +675,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : Icon(Icons.send_rounded,
-                        size: 20,
-                        color: _canSend ? Colors.white : p.muted),
+                        size: 20, color: _canSend ? Colors.white : p.muted),
               ),
             ),
           ),
@@ -870,8 +867,8 @@ class _Bubble extends StatelessWidget {
                           width: 104,
                           height: 104,
                           color: p.surface2,
-                          child: Icon(Icons.broken_image_outlined,
-                              color: p.muted),
+                          child:
+                              Icon(Icons.broken_image_outlined, color: p.muted),
                         ),
                       ),
                     ),
@@ -898,16 +895,20 @@ class _Bubble extends StatelessWidget {
           if (showName)
             Padding(
               padding: const EdgeInsets.only(left: 6, right: 6, bottom: 3),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                WardAvatar(
-                    name: m.senderName, url: m.senderAvatarUrl, size: 18),
-                const SizedBox(width: 6),
-                Text(m.senderName,
-                    style: TextStyle(
-                        color: p.muted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700)),
-              ]),
+              // Tap the sender to open their profile.
+              child: PlayerTap(
+                userId: m.senderId,
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  WardAvatar(
+                      name: m.senderName, url: m.senderAvatarUrl, size: 18),
+                  const SizedBox(width: 6),
+                  Text(m.senderName,
+                      style: TextStyle(
+                          color: p.muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700)),
+                ]),
+              ),
             ),
           GestureDetector(
             onLongPress: m.deleted ? null : onLongPress,
@@ -929,8 +930,8 @@ class _Bubble extends StatelessWidget {
           if (time.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(left: 6, right: 6, top: 2),
-              child: Text(time,
-                  style: TextStyle(color: p.muted, fontSize: 10.5)),
+              child:
+                  Text(time, style: TextStyle(color: p.muted, fontSize: 10.5)),
             ),
         ],
       ),

@@ -102,7 +102,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
         'groupId': widget.groupId,
         'eventDate': DateTime.utc(_date!.year, _date!.month, _date!.day)
             .toIso8601String(),
-        'locationName': _location.text.trim().isEmpty ? null : _location.text.trim(),
+        'locationName':
+            _location.text.trim().isEmpty ? null : _location.text.trim(),
         'description':
             _description.text.trim().isEmpty ? null : _description.text.trim(),
         'startTime': _start != null ? _hhmm(_start!) : null,
@@ -171,7 +172,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     final o = options.valueOrNull;
     final forTeams = _isForTeams(o);
     return Scaffold(
-      appBar: AppBar(leading: const SpLeading(), title: const Text('New event')),
+      appBar:
+          AppBar(leading: const SpLeading(), title: const Text('New event')),
       body: Form(
         key: _form,
         child: ListView(
@@ -198,14 +200,19 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             TextFormField(
               controller: _title,
               decoration: const InputDecoration(labelText: 'Title'),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Add a title' : null,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Add a title' : null,
             ),
             const SizedBox(height: 14),
-            CategoryDropdown(value: _categoryId, onChanged: (v) => setState(() => _categoryId = v)),
+            CategoryDropdown(
+                value: _categoryId,
+                onChanged: (v) => setState(() => _categoryId = v)),
             const SizedBox(height: 14),
             _PickerTile(
               label: 'Date',
-              value: _date == null ? 'Choose' : DateFormat('EEE, d MMM yyyy').format(_date!),
+              value: _date == null
+                  ? 'Choose'
+                  : DateFormat('EEE, d MMM yyyy').format(_date!),
               onTap: () async {
                 final now = DateTime.now();
                 final d = await showDatePicker(
@@ -224,7 +231,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                   value: _start == null ? 'Optional' : _start!.format(context),
                   onTap: () async {
                     final t = await showTimePicker(
-                        context: context, initialTime: _start ?? TimeOfDay.now());
+                        context: context,
+                        initialTime: _start ?? TimeOfDay.now());
                     if (t != null) setState(() => _start = t);
                   },
                 ),
@@ -245,13 +253,15 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             const SizedBox(height: 14),
             TextFormField(
               controller: _location,
-              decoration: const InputDecoration(labelText: 'Location (optional)'),
+              decoration:
+                  const InputDecoration(labelText: 'Location (optional)'),
             ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _description,
               maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Description (optional)'),
+              decoration:
+                  const InputDecoration(labelText: 'Description (optional)'),
             ),
             const SizedBox(height: 8),
             SwitchListTile(
@@ -280,8 +290,10 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
               onPressed: _busy ? null : _submit,
               child: _busy
                   ? const SizedBox(
-                      height: 20, width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
                   : const Text('Create event'),
             ),
           ],
@@ -292,7 +304,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
 }
 
 class _PickerTile extends StatelessWidget {
-  const _PickerTile({required this.label, required this.value, required this.onTap});
+  const _PickerTile(
+      {required this.label, required this.value, required this.onTap});
   final String label;
   final String value;
   final VoidCallback onTap;

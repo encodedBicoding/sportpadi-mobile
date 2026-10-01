@@ -124,7 +124,8 @@ class PushService {
         orElse: () => _channels.first);
   }
 
-  final FlutterLocalNotificationsPlugin _local = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _local =
+      FlutterLocalNotificationsPlugin();
   bool _localReady = false;
 
   /// The FCM token this device currently holds (for unregister and refresh).
@@ -159,7 +160,8 @@ class PushService {
   /// end to end, from a button.
   Future<({int devices, int ok, int failed, List<String> errors})>
       sendSelfTest() async {
-    final res = await _dio.post('/api/mobile/push-token', data: {'action': 'test'});
+    final res =
+        await _dio.post('/api/mobile/push-token', data: {'action': 'test'});
     final m = res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {};
     int n(dynamic v) => v is num ? v.toInt() : int.tryParse('$v') ?? 0;
     return (
@@ -311,12 +313,13 @@ class PushService {
       return false;
     }
     try {
-      final count = int.tryParse(await _storage.read(key: _kPromptCount) ?? '') ?? 0;
+      final count =
+          int.tryParse(await _storage.read(key: _kPromptCount) ?? '') ?? 0;
       if (count >= maxPrompts) return false;
       final last = int.tryParse(await _storage.read(key: _kLastPrompt) ?? '');
       if (last == null) return true;
-      final since = DateTime.now()
-          .difference(DateTime.fromMillisecondsSinceEpoch(last));
+      final since =
+          DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(last));
       return since >= reaskAfter;
     } catch (_) {
       return true;
@@ -325,7 +328,8 @@ class PushService {
 
   Future<void> markPrompted() async {
     try {
-      final count = int.tryParse(await _storage.read(key: _kPromptCount) ?? '') ?? 0;
+      final count =
+          int.tryParse(await _storage.read(key: _kPromptCount) ?? '') ?? 0;
       await _storage.write(
           key: _kLastPrompt,
           value: DateTime.now().millisecondsSinceEpoch.toString());
@@ -501,8 +505,8 @@ class PushService {
         // PresentationOptions), so nothing more to draw. Android: post it
         // ourselves; only if that fails does the in-app banner step in.
         if (Platform.isIOS) return;
-        final shown = await _showLocal(title, body, link,
-            channel: _channelFor(m.data));
+        final shown =
+            await _showLocal(title, body, link, channel: _channelFor(m.data));
         if (kDebugMode) debugPrint('[push] foreground local shown=$shown');
         if (shown) return;
         _onForeground?.call(PushAlert(title: title, body: body, url: link));

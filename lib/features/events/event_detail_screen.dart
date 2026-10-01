@@ -40,6 +40,7 @@ import 'package:sportpadi_mobile/core/referral/referral.dart';
 import 'package:sportpadi_mobile/features/events/rsvp_info_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 
 const _cancelRepeatingCopy =
     'Anyone who paid for a ticket gets the ticket price back automatically. '
@@ -134,8 +135,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   }
 
   Future<void> _checkBalanceSetup(String eventId) async {
-    final data =
-        await ref.read(eventsRepositoryProvider).balanceSetup(eventId);
+    final data = await ref.read(eventsRepositoryProvider).balanceSetup(eventId);
     if (!mounted || data == null) return;
     if (data['required'] != true) return;
     final field = data['field'];
@@ -233,8 +233,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                       'needs every player\'s ${label.toLowerCase()}. '
                       '${maxPicks == 1 ? 'Pick one' : 'Pick up to $maxPicks'} — '
                       'you can change this later from your profile.',
-                      style: TextStyle(
-                          color: p.muted, fontSize: 13, height: 1.45),
+                      style:
+                          TextStyle(color: p.muted, fontSize: 13, height: 1.45),
                     ),
                     const SizedBox(height: 14),
                     if (options.isNotEmpty)
@@ -403,9 +403,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                 icon: Icons.arrow_back_ios_new_rounded,
                 iconSize: 18,
                 tooltip: 'Back',
-                onTap: () => context.canPop()
-                    ? context.pop()
-                    : context.go('/home'),
+                onTap: () =>
+                    context.canPop() ? context.pop() : context.go('/home'),
               ),
             ),
         ]),
@@ -418,7 +417,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     final base = ref.read(appConfigProvider).apiBaseUrl;
     // Carries who shared it (gamification: community XP for bringing people).
     final me = ref.read(meProvider).valueOrNull?.userId;
-    Clipboard.setData(ClipboardData(text: withRef('$base/e/${e.slug}', me, 'event', e.id)));
+    Clipboard.setData(
+        ClipboardData(text: withRef('$base/e/${e.slug}', me, 'event', e.id)));
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('Link copied')));
   }
@@ -822,6 +822,7 @@ class _EventHero extends StatefulWidget {
   final EventDetail event;
   final VoidCallback onShare;
   final VoidCallback? onEdit;
+
   /// The "More" menu (EventMenuButton), beside Share.
   final Widget? menu;
 
@@ -910,9 +911,8 @@ class _EventHeroState extends State<_EventHero> {
                       width: i == _page ? 18 : 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: i == _page
-                            ? Colors.white
-                            : const Color(0x80FFFFFF),
+                        color:
+                            i == _page ? Colors.white : const Color(0x80FFFFFF),
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),
@@ -964,7 +964,8 @@ class _EventHeroState extends State<_EventHero> {
     ]);
   }
 
-  Widget _pill(String label, Color bg, Color fg, {IconData? icon, bool dot = false}) =>
+  Widget _pill(String label, Color bg, Color fg,
+          {IconData? icon, bool dot = false}) =>
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration:
@@ -1069,8 +1070,8 @@ class _EventHeroState extends State<_EventHero> {
                 Container(
                     width: 7,
                     height: 7,
-                    decoration: BoxDecoration(
-                        color: p.accent, shape: BoxShape.circle)),
+                    decoration:
+                        BoxDecoration(color: p.accent, shape: BoxShape.circle)),
                 const SizedBox(width: 7),
                 Flexible(
                   child: Text(e.groupName!,
@@ -1176,11 +1177,10 @@ class _CoverPitch extends CustomPainter {
     final r = Rect.fromLTWH(20, 20, size.width - 40, size.height - 40);
     canvas.drawRRect(
         RRect.fromRectAndRadius(r, const Radius.circular(8)), line);
-    canvas.drawLine(Offset(size.width / 2, r.top),
-        Offset(size.width / 2, r.bottom), line);
+    canvas.drawLine(
+        Offset(size.width / 2, r.top), Offset(size.width / 2, r.bottom), line);
     canvas.drawCircle(Offset(size.width / 2, size.height / 2), 34, line);
-    canvas.drawRect(
-        Rect.fromLTWH(r.left, size.height / 2 - 40, 44, 80), line);
+    canvas.drawRect(Rect.fromLTWH(r.left, size.height / 2 - 40, 44, 80), line);
     canvas.drawRect(
         Rect.fromLTWH(r.right - 44, size.height / 2 - 40, 44, 80), line);
   }
@@ -1270,8 +1270,8 @@ class _HostedByCardState extends ConsumerState<_HostedByCard> {
           Row(children: [
             InkWell(
               onTap: () => context.push('/groups/${widget.groupId}'),
-              child: Crest(
-                  logoUrl: widget.imageUrl, label: widget.name, size: 48),
+              child:
+                  Crest(logoUrl: widget.imageUrl, label: widget.name, size: 48),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1352,7 +1352,9 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      final going = await ref.read(eventsRepositoryProvider).toggleInterest(widget.event.id);
+      final going = await ref
+          .read(eventsRepositoryProvider)
+          .toggleInterest(widget.event.id);
       widget.onChanged();
       // Gamification is reactive (server-side, in the same request): an
       // RSVP moves "Your week", taking it back undoes it.
@@ -1448,27 +1450,27 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
         Material(
           color: bg,
           shape: StadiumBorder(
-              side: border != null ? BorderSide(color: border) : BorderSide.none),
+              side:
+                  border != null ? BorderSide(color: border) : BorderSide.none),
           child: InkWell(
             customBorder: const StadiumBorder(),
             onTap: onTap,
             child: SizedBox(
               height: 52,
-              child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(icon, size: 18, color: fg),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: fg,
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w700)),
-                    ),
-                  ]),
+              child:
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(icon, size: 18, color: fg),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: fg,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700)),
+                ),
+              ]),
             ),
           ),
         );
@@ -1507,9 +1509,8 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
                           ? 'Going: ${goingNames.join(', ')}'
                           : "RSVP — who's going?")
                       : (e.myInterested ? "You're going" : "RSVP — I'm in"),
-                  icon: going
-                      ? Icons.event_available_rounded
-                      : Icons.add_rounded,
+                  icon:
+                      going ? Icons.event_available_rounded : Icons.add_rounded,
                   bg: going ? p.accentTint : p.hero,
                   fg: going ? p.greenText : p.onHero,
                   onTap: _busy
@@ -1558,7 +1559,8 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
           ],
           if (open && hasWards) ...[
             const SizedBox(height: 2),
-            Text('Tap the RSVP button to choose who’s going — you and your wards.',
+            Text(
+                'Tap the RSVP button to choose who’s going — you and your wards.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 11.5)),
           ] else if (open && e.myInterested && !e.myCheckedIn) ...[
@@ -1641,44 +1643,44 @@ class _AssignTeamsCard extends StatelessWidget {
       builder: (ctx) {
         final p = ctx.palette;
         return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('How many teams?',
-                  style: TextStyle(
-                      color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 6),
-              Text(
-                  'Checked-in players are shuffled evenly and the event kicks off.',
-                  style: TextStyle(color: p.muted, fontSize: 12.5)),
-              const SizedBox(height: 14),
-              Wrap(spacing: 10, children: [
-                for (final n in [2, 3, 4, 5, 6])
-                  Material(
-                    color: p.surface,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('How many teams?',
+                style: TextStyle(
+                    color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            Text(
+                'Checked-in players are shuffled evenly and the event kicks off.',
+                style: TextStyle(color: p.muted, fontSize: 12.5)),
+            const SizedBox(height: 14),
+            Wrap(spacing: 10, children: [
+              for (final n in [2, 3, 4, 5, 6])
+                Material(
+                  color: p.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => Navigator.pop(ctx, n),
-                      child: Container(
-                        width: 48,
-                        height: 48,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: p.line),
-                        ),
-                        child: Text('$n',
-                            style: TextStyle(
-                                color: p.ink,
-                                fontSize: 17,
-                                fontWeight: FontWeight.w700)),
+                    onTap: () => Navigator.pop(ctx, n),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: p.line),
                       ),
+                      child: Text('$n',
+                          style: TextStyle(
+                              color: p.ink,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700)),
                     ),
                   ),
-              ]),
-            ],
-          );
+                ),
+            ]),
+          ],
+        );
       },
     );
   }
@@ -1900,7 +1902,8 @@ class _GamesTab extends ConsumerWidget {
                 ]),
                 const SizedBox(height: 10),
                 const Row(children: [
-                  _NextStepChip(icon: Icons.timer_outlined, label: 'Live score'),
+                  _NextStepChip(
+                      icon: Icons.timer_outlined, label: 'Live score'),
                   SizedBox(width: 6),
                   _NextStepChip(icon: Icons.bar_chart_rounded, label: 'Stats'),
                   SizedBox(width: 6),
@@ -2041,8 +2044,14 @@ class _GamesTab extends ConsumerWidget {
     final isVb = isVolleyballSport(event.categoryName, event.categoryEmoji);
     var vbRules = const VolleyballRules();
     const palette = [
-      '#22C55E', '#3B82F6', '#EAB308', '#EF4444',
-      '#8B5CF6', '#EC4899', '#F97316', '#14B8A6',
+      '#22C55E',
+      '#3B82F6',
+      '#EAB308',
+      '#EF4444',
+      '#8B5CF6',
+      '#EC4899',
+      '#F97316',
+      '#14B8A6',
     ];
     // Officiant candidates — same rule as web and as the server's own
     // validation: a group event offers the group's FULL roster (any admin or
@@ -2074,7 +2083,7 @@ class _GamesTab extends ConsumerWidget {
       for (final c in candidates)
         if (!c.isWard) c
     ]..sort((a, b) =>
-          a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()));
+        a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()));
     if (!context.mounted) return;
 
     Color hexColor(String? hex) {
@@ -2097,13 +2106,12 @@ class _GamesTab extends ConsumerWidget {
               ? homeId != null && awayId != null && homeId != awayId
               : selected.length >= 2;
 
-          Widget teamDropdown(String label, String? value,
-              ValueChanged<String?> onChanged) {
+          Widget teamDropdown(
+              String label, String? value, ValueChanged<String?> onChanged) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: TextStyle(color: p.muted, fontSize: 11.5)),
+                Text(label, style: TextStyle(color: p.muted, fontSize: 11.5)),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
                   key: ValueKey('$label-$value'),
@@ -2134,8 +2142,7 @@ class _GamesTab extends ConsumerWidget {
                           Flexible(
                             child: Text(t.name,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    color: p.ink, fontSize: 13.5)),
+                                style: TextStyle(color: p.ink, fontSize: 13.5)),
                           ),
                         ]),
                       ),
@@ -2147,8 +2154,8 @@ class _GamesTab extends ConsumerWidget {
           }
 
           return Container(
-            constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(ctx).size.height * 0.9),
+            constraints:
+                BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.9),
             decoration: BoxDecoration(
               color: p.bg,
               borderRadius:
@@ -2178,15 +2185,13 @@ class _GamesTab extends ConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: Text('Pick two different teams.',
-                            style: TextStyle(
-                                color: p.danger, fontSize: 11.5)),
+                            style: TextStyle(color: p.danger, fontSize: 11.5)),
                       ),
                     CheckboxListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       value: useHomeAway,
-                      onChanged: (v) =>
-                          setSheet(() => useHomeAway = v == true),
+                      onChanged: (v) => setSheet(() => useHomeAway = v == true),
                       title: Text('Use Home & Away',
                           style: TextStyle(color: p.ink, fontSize: 14)),
                     ),
@@ -2214,8 +2219,7 @@ class _GamesTab extends ConsumerWidget {
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                     value: uniqueColors,
-                    onChanged: (v) =>
-                        setSheet(() => uniqueColors = v == true),
+                    onChanged: (v) => setSheet(() => uniqueColors = v == true),
                     title: Text('Use unique team colors',
                         style: TextStyle(color: p.ink, fontSize: 14)),
                   ),
@@ -2235,12 +2239,10 @@ class _GamesTab extends ConsumerWidget {
                           children: [
                             for (final tid in pickedIds()) ...[
                               Builder(builder: (_) {
-                                final t = teams
-                                    .where((x) => x.id == tid)
-                                    .toList();
-                                final name = t.isNotEmpty
-                                    ? t.first.name
-                                    : 'Team';
+                                final t =
+                                    teams.where((x) => x.id == tid).toList();
+                                final name =
+                                    t.isNotEmpty ? t.first.name : 'Team';
                                 return Text(name,
                                     style: TextStyle(
                                         color: p.ink,
@@ -2253,10 +2255,9 @@ class _GamesTab extends ConsumerWidget {
                                 children: [
                                   for (final c in palette)
                                     InkWell(
-                                      onTap: () => setSheet(
-                                          () => colorMap[tid] = c),
-                                      borderRadius:
-                                          BorderRadius.circular(99),
+                                      onTap: () =>
+                                          setSheet(() => colorMap[tid] = c),
+                                      borderRadius: BorderRadius.circular(99),
                                       child: Container(
                                         width: 26,
                                         height: 26,
@@ -2278,8 +2279,8 @@ class _GamesTab extends ConsumerWidget {
                             ],
                             Text(
                                 "Overrides each team's default color for this game only.",
-                                style: TextStyle(
-                                    color: p.muted, fontSize: 10.5)),
+                                style:
+                                    TextStyle(color: p.muted, fontSize: 10.5)),
                           ],
                         ),
                       ),
@@ -2295,37 +2296,36 @@ class _GamesTab extends ConsumerWidget {
                       onChanged: (v) => setSheet(() => vbRules = v),
                     )
                   else ...[
-                  Row(children: [
-                    Expanded(
-                      child: Text('Duration (minutes, optional)',
-                          style:
-                              TextStyle(color: p.muted, fontSize: 12.5)),
-                    ),
-                    SizedBox(
-                      width: 76,
-                      child: TextField(
-                        controller: duration,
-                        keyboardType: TextInputType.number,
-                        textInputAction: TextInputAction.done,
-                        style: TextStyle(color: p.ink, fontSize: 13.5),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          hintText: '90',
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 8),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: p.line)),
+                    Row(children: [
+                      Expanded(
+                        child: Text('Duration (minutes, optional)',
+                            style: TextStyle(color: p.muted, fontSize: 12.5)),
+                      ),
+                      SizedBox(
+                        width: 76,
+                        child: TextField(
+                          controller: duration,
+                          keyboardType: TextInputType.number,
+                          textInputAction: TextInputAction.done,
+                          style: TextStyle(color: p.ink, fontSize: 13.5),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            hintText: '90',
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 8),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: p.line)),
+                          ),
                         ),
                       ),
+                    ]),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text(
+                          'A reference length — the live match clock counts up and stoppage time is added during the game.',
+                          style: TextStyle(color: p.muted, fontSize: 10.5)),
                     ),
-                  ]),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 3),
-                    child: Text(
-                        'A reference length — the live match clock counts up and stoppage time is added during the game.',
-                        style: TextStyle(color: p.muted, fontSize: 10.5)),
-                  ),
                   ],
                   ...[
                     CheckboxListTile(
@@ -2352,15 +2352,14 @@ class _GamesTab extends ConsumerWidget {
                     if (useOfficiants && candidates.isNotEmpty) ...[
                       if (candidates.length > 4)
                         TextField(
-                          onChanged: (v) =>
-                              setSheet(() => officiantQuery = v),
+                          onChanged: (v) => setSheet(() => officiantQuery = v),
                           textInputAction: TextInputAction.done,
                           style: TextStyle(color: p.ink, fontSize: 13),
                           decoration: InputDecoration(
                             isDense: true,
                             hintText: 'Search by name or @handle',
-                            prefixIcon: const Icon(Icons.search_rounded,
-                                size: 18),
+                            prefixIcon:
+                                const Icon(Icons.search_rounded, size: 18),
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 8),
                             border: OutlineInputBorder(
@@ -2407,8 +2406,7 @@ class _GamesTab extends ConsumerWidget {
                   SpButton(
                     label: 'Create game',
                     expand: true,
-                    onTap:
-                        canCreate ? () => Navigator.pop(ctx, true) : null,
+                    onTap: canCreate ? () => Navigator.pop(ctx, true) : null,
                   ),
                 ],
               ),
@@ -2423,7 +2421,8 @@ class _GamesTab extends ConsumerWidget {
       final gameId = await ref.read(eventsRepositoryProvider).createGame(
             event.id,
             ids,
-            durationMinutes: isBb || isVb ? null : int.tryParse(duration.text.trim()),
+            durationMinutes:
+                isBb || isVb ? null : int.tryParse(duration.text.trim()),
             basketball: isBb ? bbRules.toJson() : null,
             volleyball: isVb ? vbRules.toJson() : null,
             homeTeamId: vsMode && useHomeAway ? homeId : null,
@@ -2474,14 +2473,14 @@ class _TeamsTab extends ConsumerWidget {
       for (final t in teams)
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
-          child: _teamBox(context, t, p,
-              mine: meId != null &&
-                  t.players.any((x) => x.userId == meId)),
+          child: _teamBox(context, ref, t, p,
+              mine: meId != null && t.players.any((x) => x.userId == meId)),
         ),
     ]);
   }
 
-  Widget _teamBox(BuildContext context, EventTeam t, AppPalette p,
+  Widget _teamBox(
+      BuildContext context, WidgetRef ref, EventTeam t, AppPalette p,
       {bool mine = false}) {
     final color = _color(t.color, p);
     final starters = t.players.where((x) => !x.isSub).length;
@@ -2490,14 +2489,14 @@ class _TeamsTab extends ConsumerWidget {
       decoration: BoxDecoration(
         color: p.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: mine ? p.accent : p.line, width: mine ? 1.6 : 1),
+        border:
+            Border.all(color: mine ? p.accent : p.line, width: mine ? 1.6 : 1),
       ),
       clipBehavior: Clip.antiAlias,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _openRoster(context, t, color),
+          onTap: () => _openRoster(context, ref, t, color),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2619,7 +2618,8 @@ class _TeamsTab extends ConsumerWidget {
     );
   }
 
-  void _openRoster(BuildContext context, EventTeam t, Color color) {
+  void _openRoster(
+      BuildContext context, WidgetRef ref, EventTeam t, Color color) {
     final p = context.palette;
     showSpSheet<void>(
       context,
@@ -2666,6 +2666,11 @@ class _TeamsTab extends ConsumerWidget {
                     title: Text(x.displayName,
                         style: TextStyle(color: p.ink, fontSize: 14)),
                     trailing: x.isSub ? const _RosterTag(text: 'SUB') : null,
+                    onTap: () {
+                      // Close the roster, then open their profile.
+                      Navigator.of(ctx).pop();
+                      openPlayerProfile(context, ref, x.userId);
+                    },
                   ),
               ]),
             ),
@@ -2715,24 +2720,28 @@ class _InterestedList extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           child: Wrap(spacing: 6, runSpacing: 6, children: [
             for (final x in people)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-                decoration: BoxDecoration(
-                  color: p.accentTint,
-                  borderRadius: BorderRadius.circular(999),
+              PlayerTap(
+                userId: x.userId,
+                borderRadius: 999,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: p.accentTint,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text(x.displayName,
+                        style: TextStyle(
+                            color: p.greenText,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600)),
+                    if (x.isWard) ...[
+                      const SizedBox(width: 5),
+                      const WardBadge(),
+                    ],
+                  ]),
                 ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Text(x.displayName,
-                      style: TextStyle(
-                          color: p.greenText,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600)),
-                  if (x.isWard) ...[
-                    const SizedBox(width: 5),
-                    const WardBadge(),
-                  ],
-                ]),
               ),
           ]),
         ),
@@ -2774,59 +2783,65 @@ class _CheckinsList extends ConsumerWidget {
         else
           SpListCard(children: [
             for (var i = 0; i < e.attendees.length; i++)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                child: Row(children: [
-                  SizedBox(
-                    width: 24,
-                    child: Text('${i + 1}',
-                        style: TextStyle(
-                            color: p.muted,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w800)),
-                  ),
-                  ClipOval(
-                    child: Crest(
-                        logoUrl: e.attendees[i].avatarUrl,
-                        label: e.attendees[i].displayName,
-                        size: 38),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(children: [
-                          Flexible(
-                            child: Text(e.attendees[i].displayName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    color: p.ink,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600)),
-                          ),
-                          if (e.attendees[i].isWard) ...[
-                            const SizedBox(width: 6),
-                            const WardBadge(),
-                          ],
-                        ]),
-                        if (e.attendees[i].checkedInAt != null)
-                          Text('Checked in ${timeAgo(e.attendees[i].checkedInAt)}',
-                              style: TextStyle(color: p.muted, fontSize: 12)),
-                      ],
+              InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: () =>
+                    openPlayerProfile(context, ref, e.attendees[i].userId),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  child: Row(children: [
+                    SizedBox(
+                      width: 24,
+                      child: Text('${i + 1}',
+                          style: TextStyle(
+                              color: p.muted,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800)),
                     ),
-                  ),
-                  if (canEdit)
-                    IconButton(
-                      tooltip: 'Check out',
-                      onPressed: () => _checkOut(context, ref,
-                          e.attendees[i].userId, e.attendees[i].displayName),
-                      icon: Icon(Icons.person_remove_outlined,
-                          size: 19, color: p.muted),
+                    ClipOval(
+                      child: Crest(
+                          logoUrl: e.attendees[i].avatarUrl,
+                          label: e.attendees[i].displayName,
+                          size: 38),
                     ),
-                ]),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            Flexible(
+                              child: Text(e.attendees[i].displayName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      color: p.ink,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600)),
+                            ),
+                            if (e.attendees[i].isWard) ...[
+                              const SizedBox(width: 6),
+                              const WardBadge(),
+                            ],
+                          ]),
+                          if (e.attendees[i].checkedInAt != null)
+                            Text(
+                                'Checked in ${timeAgo(e.attendees[i].checkedInAt)}',
+                                style: TextStyle(color: p.muted, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    if (canEdit)
+                      IconButton(
+                        tooltip: 'Check out',
+                        onPressed: () => _checkOut(context, ref,
+                            e.attendees[i].userId, e.attendees[i].displayName),
+                        icon: Icon(Icons.person_remove_outlined,
+                            size: 19, color: p.muted),
+                      ),
+                  ]),
+                ),
               ),
           ]),
       ],
@@ -2916,9 +2931,8 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
 
   Future<void> _loadReminders() async {
     try {
-      final r = await ref
-          .read(eventsRepositoryProvider)
-          .reminders(widget.event.id);
+      final r =
+          await ref.read(eventsRepositoryProvider).reminders(widget.event.id);
       if (!mounted) return;
       final slots = orderReminderSlots(r.slots);
       setState(() {
@@ -3382,6 +3396,7 @@ class _PoolSection extends ConsumerWidget {
             padding: const EdgeInsets.only(bottom: 8),
             child: GlassCard(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              onTap: () => openPlayerProfile(context, ref, x.userId),
               child: Row(children: [
                 ClipOval(
                   child: Crest(
@@ -3448,28 +3463,28 @@ class _PoolSection extends ConsumerWidget {
     final teamId = await showSpSheet<String>(
       context,
       builder: (ctx) => Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Add ${x.displayName} to…',
-                style: TextStyle(
-                    color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 10),
-            for (final t in teams)
-              ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text(t.name, style: TextStyle(color: p.ink)),
-                subtitle: Text('${t.players.length} players',
-                    style: TextStyle(color: p.muted, fontSize: 11.5)),
-                onTap: () => Navigator.pop(ctx, t.id),
-              ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, 'AUTO'),
-              child: const Text('Auto-slot (best fit)'),
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Add ${x.displayName} to…',
+              style: TextStyle(
+                  color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
+          for (final t in teams)
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: Text(t.name, style: TextStyle(color: p.ink)),
+              subtitle: Text('${t.players.length} players',
+                  style: TextStyle(color: p.muted, fontSize: 11.5)),
+              onTap: () => Navigator.pop(ctx, t.id),
             ),
-          ],
-        ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'AUTO'),
+            child: const Text('Auto-slot (best fit)'),
+          ),
+        ],
+      ),
     );
     if (teamId == null) return;
     try {
@@ -3562,24 +3577,24 @@ class _PhotoManagerState extends ConsumerState<_PhotoManager> {
     showSpSheet<void>(
       context,
       builder: (ctx) => Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(
-            leading: Icon(Icons.star_outline_rounded, color: p.accent),
-            title: const Text('Set as cover'),
-            onTap: () {
-              Navigator.pop(ctx);
-              _save(e.images, url);
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.delete_outline_rounded, color: p.danger),
-            title: const Text('Remove photo'),
-            onTap: () {
-              Navigator.pop(ctx);
-              final next = e.images.where((x) => x != url).toList();
-              _save(next, e.thumbnailUrl == url ? null : e.thumbnailUrl);
-            },
-          ),
-        ]),
+        ListTile(
+          leading: Icon(Icons.star_outline_rounded, color: p.accent),
+          title: const Text('Set as cover'),
+          onTap: () {
+            Navigator.pop(ctx);
+            _save(e.images, url);
+          },
+        ),
+        ListTile(
+          leading: Icon(Icons.delete_outline_rounded, color: p.danger),
+          title: const Text('Remove photo'),
+          onTap: () {
+            Navigator.pop(ctx);
+            final next = e.images.where((x) => x != url).toList();
+            _save(next, e.thumbnailUrl == url ? null : e.thumbnailUrl);
+          },
+        ),
+      ]),
     );
   }
 
@@ -3978,7 +3993,6 @@ class _PinnedTabs extends SliverPersistentHeaderDelegate {
       oldDelegate.child != child;
 }
 
-
 /// Organizer card on a cancelled event: shows tickets still awaiting refund
 /// and retries the sweep. Retrying is safe — the server claims each charge
 /// and uses provider idempotency keys, so nobody can be refunded twice.
@@ -4061,7 +4075,6 @@ class _RefundRetryCardState extends ConsumerState<_RefundRetryCard> {
     );
   }
 }
-
 
 /// One small "what you get" chip under the start-the-match card.
 class _NextStepChip extends StatelessWidget {

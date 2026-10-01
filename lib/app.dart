@@ -50,7 +50,8 @@ class SportpadiApp extends ConsumerWidget {
             statusBarBrightness: dark ? Brightness.dark : Brightness.light,
             systemNavigationBarColor: p.bg,
             systemNavigationBarDividerColor: p.bg,
-            systemNavigationBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+            systemNavigationBarIconBrightness:
+                dark ? Brightness.light : Brightness.dark,
           ),
           child: ExcludeSemantics(
             child: AppOpenAdHost(

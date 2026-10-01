@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
-import 'package:sportpadi_mobile/data/payments/payment_models.dart' show formatMoney;
+import 'package:sportpadi_mobile/data/payments/payment_models.dart'
+    show formatMoney;
 import 'package:sportpadi_mobile/data/wallet/wallet_models.dart';
 import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
@@ -13,7 +14,8 @@ import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 /// tournament entry fees (web twin: components/groups/FeeBearerCard.tsx).
 /// Buyers pay by default; once chosen it locks and only support can reset it.
 class FeeBearerCard extends ConsumerStatefulWidget {
-  const FeeBearerCard({super.key, required this.groupId, this.disabled = false});
+  const FeeBearerCard(
+      {super.key, required this.groupId, this.disabled = false});
   final String groupId;
   final bool disabled;
 
@@ -30,8 +32,10 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
     'group': 'The group pays the fees',
   };
   static const _blurbs = {
-    'buyer': 'Fees are added on top of your price at checkout. You receive the full price.',
-    'group': 'Buyers see and pay exactly your price. Fees come out of what you receive.',
+    'buyer':
+        'Fees are added on top of your price at checkout. You receive the full price.',
+    'group':
+        'Buyers see and pay exactly your price. Fees come out of what you receive.',
   };
 
   Future<void> _confirm(FeeSetting s, String bearer) async {
@@ -43,11 +47,13 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SpSheetHeader(
-            icon: bearer == 'group' ? Icons.groups_rounded : Icons.person_rounded,
+            icon:
+                bearer == 'group' ? Icons.groups_rounded : Icons.person_rounded,
             title: '${_titles[bearer]}?',
             subtitle: 'A one-time choice',
           ),
-          Text(_blurbs[bearer]!, style: TextStyle(color: p.muted, fontSize: 13, height: 1.45)),
+          Text(_blurbs[bearer]!,
+              style: TextStyle(color: p.muted, fontSize: 13, height: 1.45)),
           const SizedBox(height: 8),
           Text(
             'This applies to every new ticket, fine and tournament payment. Payments already made keep the setting they were made under.',
@@ -56,7 +62,11 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
           const SizedBox(height: 8),
           Text(
             "You can only choose once. To change it later you'll need to contact ${s.supportEmail}.",
-            style: TextStyle(color: p.ink, fontSize: 13, height: 1.45, fontWeight: FontWeight.w700),
+            style: TextStyle(
+                color: p.ink,
+                fontSize: 13,
+                height: 1.45,
+                fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 16),
           SpButton(
@@ -77,9 +87,12 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
     setState(() => _saving = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await ref.read(walletRepositoryProvider).setFeeBearer(widget.groupId, bearer);
+      await ref
+          .read(walletRepositoryProvider)
+          .setFeeBearer(widget.groupId, bearer);
       messenger.showSnackBar(const SnackBar(
-          content: Text('Saved — this now applies to tickets, fines and tournament fees.')));
+          content: Text(
+              'Saved — this now applies to tickets, fines and tournament fees.')));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
     } finally {
@@ -99,9 +112,13 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
       if (async.isLoading) {
         return GlassCard(
           child: Row(children: [
-            const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+            const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2)),
             const SizedBox(width: 10),
-            Text('Loading fee setting…', style: TextStyle(color: p.muted, fontSize: 13)),
+            Text('Loading fee setting…',
+                style: TextStyle(color: p.muted, fontSize: 13)),
           ]),
         );
       }
@@ -129,51 +146,71 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: on ? p.accent : p.line, width: on ? 2 : 1),
+                border: Border.all(
+                    color: on ? p.accent : p.line, width: on ? 2 : 1),
               ),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Icon(key == 'group' ? Icons.groups_rounded : Icons.person_rounded,
-                      size: 18, color: p.ink),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(_titles[key]!,
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Icon(
+                          key == 'group'
+                              ? Icons.groups_rounded
+                              : Icons.person_rounded,
+                          size: 18,
+                          color: p.ink),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(_titles[key]!,
+                            style: TextStyle(
+                                color: p.ink,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w800)),
+                      ),
+                      Icon(
+                          on
+                              ? Icons.check_circle_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          size: 20,
+                          color: on ? p.accent : p.muted),
+                    ]),
+                    const SizedBox(height: 4),
+                    Text(_blurbs[key]!,
                         style: TextStyle(
-                            color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w800)),
-                  ),
-                  Icon(on ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                      size: 20, color: on ? p.accent : p.muted),
-                ]),
-                const SizedBox(height: 4),
-                Text(_blurbs[key]!,
-                    style: TextStyle(color: p.muted, fontSize: 12, height: 1.35)),
-                const SizedBox(height: 10),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(
-                      color: p.surface2, borderRadius: BorderRadius.circular(12)),
-                  child: Text.rich(
-                    TextSpan(
-                      style: TextStyle(color: p.ink, fontSize: 11.5, height: 1.35),
-                      children: [
-                        const TextSpan(text: 'A '),
+                            color: p.muted, fontSize: 12, height: 1.35)),
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                          color: p.surface2,
+                          borderRadius: BorderRadius.circular(12)),
+                      child: Text.rich(
                         TextSpan(
-                            text: money(s.examplePrice),
-                            style: const TextStyle(fontWeight: FontWeight.w800)),
-                        const TextSpan(text: ' ticket: buyer pays '),
-                        TextSpan(
-                            text: money(pays),
-                            style: const TextStyle(fontWeight: FontWeight.w800)),
-                        const TextSpan(text: ' · you receive '),
-                        TextSpan(
-                            text: money(gets),
-                            style: const TextStyle(fontWeight: FontWeight.w800)),
-                      ],
+                          style: TextStyle(
+                              color: p.ink, fontSize: 11.5, height: 1.35),
+                          children: [
+                            const TextSpan(text: 'A '),
+                            TextSpan(
+                                text: money(s.examplePrice),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w800)),
+                            const TextSpan(text: ' ticket: buyer pays '),
+                            TextSpan(
+                                text: money(pays),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w800)),
+                            const TextSpan(text: ' · you receive '),
+                            TextSpan(
+                                text: money(gets),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w800)),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ]),
+                  ]),
             ),
           ),
         ),
@@ -184,9 +221,11 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Who pays the fees?',
-                  style: TextStyle(color: p.ink, fontSize: 15, fontWeight: FontWeight.w800)),
+                  style: TextStyle(
+                      color: p.ink, fontSize: 15, fontWeight: FontWeight.w800)),
               const SizedBox(height: 2),
               Text(
                 "Applies to tickets, fines and tournament entry fees. SportPadi's fee is the same either way — this only decides who covers it.",
@@ -209,28 +248,35 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
             Icon(Icons.mail_outline_rounded, size: 15, color: p.muted),
             const SizedBox(width: 6),
             Expanded(
-              child: Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
-                Text(
-                  '${s.setAt != null ? 'Set on ${_date(s.setAt!)}. ' : ''}To change it, contact ',
-                  style: TextStyle(color: p.muted, fontSize: 12),
-                ),
-                GestureDetector(
-                  onTap: () => launchUrl(Uri.parse('mailto:${s.supportEmail}')),
-                  child: Text(s.supportEmail,
-                      style: TextStyle(
-                          color: p.greenText, fontSize: 12, fontWeight: FontWeight.w700)),
-                ),
-              ]),
+              child: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      '${s.setAt != null ? 'Set on ${_date(s.setAt!)}. ' : ''}To change it, contact ',
+                      style: TextStyle(color: p.muted, fontSize: 12),
+                    ),
+                    GestureDetector(
+                      onTap: () =>
+                          launchUrl(Uri.parse('mailto:${s.supportEmail}')),
+                      child: Text(s.supportEmail,
+                          style: TextStyle(
+                              color: p.greenText,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                  ]),
             ),
           ])
         else ...[
-          Text('Until you choose, buyers pay the fees. You can only set this once.',
+          Text(
+              'Until you choose, buyers pay the fees. You can only set this once.',
               style: TextStyle(color: p.muted, fontSize: 12)),
           const SizedBox(height: 10),
           SpButton(
             label: _saving ? 'Saving…' : 'Save choice',
             expand: true,
-            onTap: widget.disabled || _saving ? null : () => _confirm(s, selected),
+            onTap:
+                widget.disabled || _saving ? null : () => _confirm(s, selected),
           ),
         ],
       ]),
@@ -238,7 +284,20 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
   }
 
   static String _date(DateTime d) {
-    const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const m = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
     final l = d.toLocal();
     return '${l.day} ${m[l.month - 1]} ${l.year}';
   }

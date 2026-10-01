@@ -138,14 +138,16 @@ class Scorecard extends StatelessWidget {
             TableRow(
               decoration: i.isOdd ? BoxDecoration(color: p.surface2) : null,
               children: [
-                if (labelled) cell((rows[i].$1 ?? '').toUpperCase(), labelStyle),
+                if (labelled)
+                  cell((rows[i].$1 ?? '').toUpperCase(), labelStyle),
                 for (final v in rows[i].$2)
                   cell(
                       v,
                       TextStyle(
                           color: p.ink,
                           fontSize: big ? 22 : 16,
-                          fontWeight: i == 0 ? FontWeight.w800 : FontWeight.w600,
+                          fontWeight:
+                              i == 0 ? FontWeight.w800 : FontWeight.w600,
                           fontFeatures: tabularFigures)),
               ],
             ),

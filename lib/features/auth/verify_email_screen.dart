@@ -24,7 +24,8 @@ class VerifyEmailScreen extends ConsumerStatefulWidget {
 }
 
 class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
-  final _controllers = List.generate(_otpLength, (_) => TextEditingController());
+  final _controllers =
+      List.generate(_otpLength, (_) => TextEditingController());
   final _nodes = List.generate(_otpLength, (_) => FocusNode());
   bool _sending = false;
   bool _verifying = false;
@@ -172,7 +173,8 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
           borderRadius: BorderRadius.circular(28),
           boxShadow: cardShadow(context),
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
             SpIconTile(Icons.mark_email_unread_outlined,
                 bg: p.accentTint, fg: p.greenText, size: 40, iconSize: 20),
@@ -180,9 +182,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
             Expanded(
               child: Text('Enter your code',
                   style: TextStyle(
-                      color: p.ink,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800)),
+                      color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
             ),
           ]),
           const SizedBox(height: 18),

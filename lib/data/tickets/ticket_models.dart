@@ -72,7 +72,10 @@ class ManagedTicket {
   /// fresh ticket row runs the next cycle.
   bool get isEndedCycle {
     final until = validUntil;
-    return !isActive && isRecurring && until != null && until.isBefore(DateTime.now());
+    return !isActive &&
+        isRecurring &&
+        until != null &&
+        until.isBefore(DateTime.now());
   }
 
   bool get soldOut => capacity != null && soldCount >= capacity!;
@@ -83,8 +86,11 @@ class ManagedTicket {
           : '$soldCount/$capacity sold';
 
   factory ManagedTicket.fromJson(Map<String, dynamic> j) {
-    final ev = j['event'] is Map ? Map<String, dynamic>.from(j['event'] as Map) : null;
-    final count = j['_count'] is Map ? Map<String, dynamic>.from(j['_count'] as Map) : null;
+    final ev =
+        j['event'] is Map ? Map<String, dynamic>.from(j['event'] as Map) : null;
+    final count = j['_count'] is Map
+        ? Map<String, dynamic>.from(j['_count'] as Map)
+        : null;
     return ManagedTicket(
       id: (j['id'] ?? '') as String,
       groupId: (j['groupId'] ?? '') as String,
@@ -151,30 +157,40 @@ class TicketSale {
   final String? periodKey;
   final DateTime? paidAt;
   final DateTime? redeemedAt;
+
   /// An admin has put this payment right against the provider at least once.
   final bool reconciled;
+
   /// What the group receives — the price, or the price less the fees when the
   /// group paid them. Null from older servers (use [amount]).
   final int? groupShare;
+
   /// Who covered the fees on this sale: 'buyer' | 'group'.
   final String feeBearer;
+
   /// SportPadi's processing fee on this sale (non-refundable).
   final int? platformFee;
+
   /// Who took the money: stripe | paystack | flutterwave — null when the
   /// ticket was issued outside SportPadi.
   final String? provider;
+
   /// The admin can refund this purchase from here (paid, provider-paid, not
   /// used up). [refundBlocked] says why not.
   final bool canRefund;
   final String? refundBlocked;
+
   /// When a recurring purchase was used up (its cycle ended).
   final DateTime? expiredAt;
+
   /// Why the last refund attempt failed, if it did (the sale is still paid).
   final String? refundFailReason;
+
   /// Partial refunds: how much of the price has been given back so far. A
   /// partly refunded sale is still 'paid' and its ticket still valid.
   final int refundedMinor;
   final int? _refundableMinor;
+
   /// What can still be refunded (the price less what's been refunded; the fee
   /// never is). Older servers don't send it — fall back to the whole price.
   int get refundableMinor =>
@@ -239,12 +255,14 @@ class PaymentCheck {
   final String paymentId;
   final String code;
   final String ourStatus;
+
   /// in_sync | out_of_sync | needs_attention | no_provider | error
   final String verdict;
   final String headline;
   final List<String> details;
   final String? providerLabel;
   final String? providerStatus;
+
   /// mark_refunded | mark_paid | mark_failed — null when nothing to apply.
   final String? action;
   final String? actionLabel;
@@ -252,9 +270,15 @@ class PaymentCheck {
   final List<String> coveredCodes;
 
   factory PaymentCheck.fromJson(Map<String, dynamic> j) {
-    final insp = j['inspection'] is Map ? Map<String, dynamic>.from(j['inspection'] as Map) : null;
-    List<String> strs(dynamic v) =>
-        v is List ? [for (final x in v) if (x is String) x] : const <String>[];
+    final insp = j['inspection'] is Map
+        ? Map<String, dynamic>.from(j['inspection'] as Map)
+        : null;
+    List<String> strs(dynamic v) => v is List
+        ? [
+            for (final x in v)
+              if (x is String) x
+          ]
+        : const <String>[];
     return PaymentCheck(
       paymentId: parseStr(j['paymentId']) ?? '',
       code: parseStr(j['code']) ?? '',

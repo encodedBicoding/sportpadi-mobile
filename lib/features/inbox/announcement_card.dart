@@ -152,21 +152,20 @@ class AnnouncementCard extends StatelessWidget {
           Crest(logoUrl: a.groupImageUrl, label: a.groupName, size: 36),
           const SizedBox(width: 10),
           Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(a.groupName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700)),
-                  Text(who,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: p.muted, fontSize: 11.5)),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(a.groupName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: p.ink,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700)),
+              Text(who,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: p.muted, fontSize: 11.5)),
+            ]),
           ),
           const SizedBox(width: 8),
           if (a.isPinned) ...[
@@ -260,26 +259,23 @@ class PinnedAnnouncementTile extends StatelessWidget {
             size: 17, color: a.isUrgent ? p.danger : p.greenText),
         const SizedBox(width: 10),
         Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(a.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: p.ink,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700)),
-                Text(
-                    [
-                      if (a.isUrgent) 'Urgent',
-                      a.senderName,
-                      fmtRelative(a.createdAt),
-                    ].where((s) => s.isNotEmpty).join(' · '),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: p.muted, fontSize: 11.5)),
-              ]),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(a.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
+            Text(
+                [
+                  if (a.isUrgent) 'Urgent',
+                  a.senderName,
+                  fmtRelative(a.createdAt),
+                ].where((s) => s.isNotEmpty).join(' · '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: p.muted, fontSize: 11.5)),
+          ]),
         ),
         Icon(Icons.chevron_right_rounded, size: 18, color: p.muted),
       ]),

@@ -73,111 +73,112 @@ class _MyFinesScreenState extends ConsumerState<MyFinesScreen> {
           ),
           Expanded(
             child: RefreshIndicator(
-          onRefresh: () async => ref.refresh(myFinesProvider.future),
-          child: AsyncView(
-            value: fines,
-            onRetry: () => ref.invalidate(myFinesProvider),
-            data: (list) {
-              final shown = list.where((f) => f.status == _filter).toList();
-              return ListView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
-                children: [
-                  // What you owe right now.
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: open.isEmpty ? p.accentTint : p.hero,
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                    child: Row(children: [
-                      Expanded(
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(open.isEmpty ? 'All clear' : 'You owe',
-                                  style: TextStyle(
-                                      color: open.isEmpty
-                                          ? p.greenText
-                                          : p.heroMuted,
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 4),
-                              Text(
-                                  open.isEmpty
-                                      ? 'No unpaid fines'
-                                      : owed ??
-                                          '${open.length} unpaid fines',
-                                  style: TextStyle(
-                                      color: open.isEmpty ? p.ink : p.onHero,
-                                      fontSize: open.isEmpty ? 20 : 30,
-                                      letterSpacing: -0.5,
-                                      fontWeight: FontWeight.w800)),
-                              if (open.isNotEmpty)
-                                Text(
-                                    '${open.length} unpaid fine${open.length == 1 ? '' : 's'}',
-                                    style: const TextStyle(
-                                        color: Color(0xFFFFB57D),
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w600)),
-                              if (open.isEmpty)
-                                Text('Keep it that way.',
-                                    style: TextStyle(
-                                        color: p.muted, fontSize: 12.5)),
-                            ]),
+              onRefresh: () async => ref.refresh(myFinesProvider.future),
+              child: AsyncView(
+                value: fines,
+                onRetry: () => ref.invalidate(myFinesProvider),
+                data: (list) {
+                  final shown = list.where((f) => f.status == _filter).toList();
+                  return ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
+                    children: [
+                      // What you owe right now.
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: open.isEmpty ? p.accentTint : p.hero,
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                        child: Row(children: [
+                          Expanded(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(open.isEmpty ? 'All clear' : 'You owe',
+                                      style: TextStyle(
+                                          color: open.isEmpty
+                                              ? p.greenText
+                                              : p.heroMuted,
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w600)),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                      open.isEmpty
+                                          ? 'No unpaid fines'
+                                          : owed ??
+                                              '${open.length} unpaid fines',
+                                      style: TextStyle(
+                                          color:
+                                              open.isEmpty ? p.ink : p.onHero,
+                                          fontSize: open.isEmpty ? 20 : 30,
+                                          letterSpacing: -0.5,
+                                          fontWeight: FontWeight.w800)),
+                                  if (open.isNotEmpty)
+                                    Text(
+                                        '${open.length} unpaid fine${open.length == 1 ? '' : 's'}',
+                                        style: const TextStyle(
+                                            color: Color(0xFFFFB57D),
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w600)),
+                                  if (open.isEmpty)
+                                    Text('Keep it that way.',
+                                        style: TextStyle(
+                                            color: p.muted, fontSize: 12.5)),
+                                ]),
+                          ),
+                          SpIconTile(
+                            open.isEmpty
+                                ? Icons.verified_rounded
+                                : Icons.error_outline_rounded,
+                            bg: open.isEmpty
+                                ? p.surface
+                                : p.onHero.withAlpha(24),
+                            fg: open.isEmpty
+                                ? p.greenText
+                                : const Color(0xFFFFB57D),
+                            size: 52,
+                            iconSize: 26,
+                          ),
+                        ]),
                       ),
-                      SpIconTile(
-                        open.isEmpty
-                            ? Icons.verified_rounded
-                            : Icons.error_outline_rounded,
-                        bg: open.isEmpty
-                            ? p.surface
-                            : p.onHero.withAlpha(24),
-                        fg: open.isEmpty
-                            ? p.greenText
-                            : const Color(0xFFFFB57D),
-                        size: 52,
-                        iconSize: 26,
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        height: 38,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            chip('active', 'Unpaid', count('active')),
+                            chip('paid', 'Paid', count('paid')),
+                            chip('pardoned', 'Pardoned', count('pardoned')),
+                          ],
+                        ),
                       ),
-                    ]),
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    height: 38,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: [
-                        chip('active', 'Unpaid', count('active')),
-                        chip('paid', 'Paid', count('paid')),
-                        chip('pardoned', 'Pardoned', count('pardoned')),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  if (shown.isEmpty)
-                    GlassCard(
-                      padding: const EdgeInsets.all(22),
-                      child: Column(children: [
-                        const SpIconTile(Icons.inbox_outlined,
-                            size: 50, iconSize: 24),
-                        const SizedBox(height: 10),
-                        Text(
-                            _filter == 'active'
-                                ? 'Nothing to pay.'
-                                : _filter == 'paid'
-                                    ? 'No paid fines yet.'
-                                    : 'No pardoned fines.',
-                            style: TextStyle(color: p.muted, fontSize: 13)),
-                      ]),
-                    )
-                  else
-                    for (final f in shown) ...[
-                      _FineRow(fine: f),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
+                      if (shown.isEmpty)
+                        GlassCard(
+                          padding: const EdgeInsets.all(22),
+                          child: Column(children: [
+                            const SpIconTile(Icons.inbox_outlined,
+                                size: 50, iconSize: 24),
+                            const SizedBox(height: 10),
+                            Text(
+                                _filter == 'active'
+                                    ? 'Nothing to pay.'
+                                    : _filter == 'paid'
+                                        ? 'No paid fines yet.'
+                                        : 'No pardoned fines.',
+                                style: TextStyle(color: p.muted, fontSize: 13)),
+                          ]),
+                        )
+                      else
+                        for (final f in shown) ...[
+                          _FineRow(fine: f),
+                          const SizedBox(height: 12),
+                        ],
                     ],
-                ],
-              );
-            },
-          ),
+                  );
+                },
+              ),
             ),
           ),
         ]),

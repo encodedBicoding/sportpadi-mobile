@@ -28,8 +28,7 @@ final myGroupAkasProvider =
 });
 
 /// Set — or clear — the name you go by in one group.
-Future<String?> setGroupAka(
-    WidgetRef ref, String groupId, String? aka) async {
+Future<String?> setGroupAka(WidgetRef ref, String groupId, String? aka) async {
   try {
     final res = await ref.read(dioProvider).post(
       '/api/mobile/me/group-aka',
@@ -94,8 +93,7 @@ class _AkaCardState extends ConsumerState<AkaCard> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
   }
 
@@ -198,8 +196,8 @@ class _AkaCardState extends ConsumerState<AkaCard> {
                   expand: true,
                   onTap: _saving
                       ? null
-                      : () => _save(
-                          _c.text.trim().isEmpty ? null : _c.text.trim()),
+                      : () =>
+                          _save(_c.text.trim().isEmpty ? null : _c.text.trim()),
                 ),
               ),
               const SizedBox(width: 8),

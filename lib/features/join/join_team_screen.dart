@@ -58,7 +58,8 @@ class _JoinTeamScreenState extends ConsumerState<JoinTeamScreen> {
         ref.watch(authControllerProvider).value?.isAuthenticated ?? false;
     final p = context.palette;
     return Scaffold(
-      appBar: AppBar(leading: const SpLeading(), title: const Text('Join team')),
+      appBar:
+          AppBar(leading: const SpLeading(), title: const Text('Join team')),
       body: AsyncView(
         value: info,
         onRetry: () => ref.invalidate(teamJoinInfoProvider(widget.teamId)),

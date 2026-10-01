@@ -153,7 +153,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   Widget _formCard(AppPalette p) => Form(
         key: _form,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
             SpIconTile(Icons.lock_reset_rounded,
                 bg: p.accentTint, fg: p.greenText, size: 40, iconSize: 20),
@@ -161,9 +162,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             Expanded(
               child: Text('Where should we send it?',
                   style: TextStyle(
-                      color: p.ink,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800)),
+                      color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
             ),
           ]),
           const SizedBox(height: 16),
@@ -177,9 +176,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             onFieldSubmitted: (_) => _send(),
             decoration: authInput(context,
                 label: 'Email', icon: Icons.mail_outline_rounded),
-            validator: (v) => (v == null || !v.contains('@'))
-                ? 'Enter a valid email'
-                : null,
+            validator: (v) =>
+                (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
           ),
           if (_error != null) ...[
             const SizedBox(height: 14),
@@ -215,8 +213,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               child: Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(text,
-                    style: TextStyle(
-                        color: p.ink, fontSize: 14, height: 1.35)),
+                    style: TextStyle(color: p.ink, fontSize: 14, height: 1.35)),
               ),
             ),
           ]),
@@ -236,7 +233,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       ]),
       const SizedBox(height: 16),
       step(1, 'Open the email from SportPadi.'),
-      step(2, 'Tap "Set a new password" and choose one — at least 8 characters.'),
+      step(2,
+          'Tap "Set a new password" and choose one — at least 8 characters.'),
       step(3, 'Come back here and sign in with it.'),
       Padding(
         padding: const EdgeInsets.only(bottom: 16),

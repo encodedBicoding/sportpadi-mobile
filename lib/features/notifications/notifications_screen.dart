@@ -44,29 +44,69 @@ String? notificationKindLabel(AppNotification n) =>
   }
   final k = '${n.type} ${n.title}'.toLowerCase();
   bool has(List<String> words) => words.any(k.contains);
-  if (has(['achievement', 'unlocked', 'badge', 'xp', 'level', 'streak', 'quest'])) {
+  if (has(
+      ['achievement', 'unlocked', 'badge', 'xp', 'level', 'streak', 'quest'])) {
     return (icon: Icons.star_rounded, bg: p.hero, fg: const Color(0xFF6EDC9E));
   }
-  if (has(['tournament', 'league', 'invite', 'call-up', 'call up', 'squad', 'fixture'])) {
-    return (icon: Icons.emoji_events_outlined, bg: p.orangeTint, fg: p.orangeInk);
+  if (has([
+    'tournament',
+    'league',
+    'invite',
+    'call-up',
+    'call up',
+    'squad',
+    'fixture'
+  ])) {
+    return (
+      icon: Icons.emoji_events_outlined,
+      bg: p.orangeTint,
+      fg: p.orangeInk
+    );
   }
-  if (has(['officiant', 'officiat', 'called in', 'timekeeper', 'referee', 'scorer'])) {
+  if (has([
+    'officiant',
+    'officiat',
+    'called in',
+    'timekeeper',
+    'referee',
+    'scorer'
+  ])) {
     return (icon: Icons.timer_outlined, bg: p.accentTint, fg: p.greenText);
   }
   if (has(['fine', 'penalty'])) {
-    return (icon: Icons.error_outline_rounded, bg: p.orangeTint, fg: p.orangeInk);
+    return (
+      icon: Icons.error_outline_rounded,
+      bg: p.orangeTint,
+      fg: p.orangeInk
+    );
   }
   if (has(['refund', 'failed', 'cancel', 'abandon', 'void'])) {
     return (icon: Icons.event_busy_outlined, bg: p.liveTint, fg: p.danger);
   }
-  if (has(['wallet', 'withdraw', 'payout', 'topup', 'top-up', 'clearing', 'onboarding'])) {
-    return (icon: Icons.account_balance_wallet_outlined, bg: p.surface2, fg: p.muted);
+  if (has([
+    'wallet',
+    'withdraw',
+    'payout',
+    'topup',
+    'top-up',
+    'clearing',
+    'onboarding'
+  ])) {
+    return (
+      icon: Icons.account_balance_wallet_outlined,
+      bg: p.surface2,
+      fg: p.muted
+    );
   }
   if (has(['ticket', 'paid', 'payment', 'receipt', 'purchase'])) {
     return (icon: Icons.confirmation_num_outlined, bg: p.surface2, fg: p.muted);
   }
   if (has(['goal', 'match', 'game', 'score', 'result', 'full time', 'kick'])) {
-    return (icon: Icons.sports_soccer_rounded, bg: p.accentTint, fg: p.greenText);
+    return (
+      icon: Icons.sports_soccer_rounded,
+      bg: p.accentTint,
+      fg: p.greenText
+    );
   }
   if (has(['check', 'rsvp'])) {
     return (icon: Icons.how_to_reg_outlined, bg: p.accentTint, fg: p.greenText);
@@ -275,7 +315,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                         color: p.ink,
                         fontSize: 14,
                         height: 1.3,
-                        fontWeight: n.read ? FontWeight.w600 : FontWeight.w700)),
+                        fontWeight:
+                            n.read ? FontWeight.w600 : FontWeight.w700)),
                 if (preview.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
@@ -346,7 +387,8 @@ class NotificationDetailScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               children: [
                 SpHeader(
-                    title: isSportPadiNews(n) ? 'SportPadi news' : 'Notification'),
+                    title:
+                        isSportPadiNews(n) ? 'SportPadi news' : 'Notification'),
                 const SizedBox(height: 18),
                 GlassCard(
                   padding: const EdgeInsets.all(20),

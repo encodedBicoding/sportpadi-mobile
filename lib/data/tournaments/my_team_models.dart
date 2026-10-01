@@ -54,8 +54,7 @@ class MyTeamCard {
   int get total => live + upcoming + invited + past + callUps;
 
   String get subtitle => [
-        if (categoryName != null)
-          '${categoryEmoji ?? ''} $categoryName'.trim(),
+        if (categoryName != null) '${categoryEmoji ?? ''} $categoryName'.trim(),
         if (groupName != null) groupName!,
       ].join(' · ');
 

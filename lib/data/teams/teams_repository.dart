@@ -27,8 +27,9 @@ class TeamsRepository {
   Future<TeamAllowance> allowance(String groupId) async {
     try {
       final res = await _dio.get('/api/mobile/groups/$groupId/teams/allowance');
-      return TeamAllowance.fromJson(
-          res.data is Map ? Map<String, dynamic>.from(res.data as Map) : const {});
+      return TeamAllowance.fromJson(res.data is Map
+          ? Map<String, dynamic>.from(res.data as Map)
+          : const {});
     } catch (e) {
       throw apiError(e, fallback: 'Could not check your team allowance.');
     }
@@ -37,10 +38,10 @@ class TeamsRepository {
   /// "Who's it for?" options for a new/edited event in [groupId].
   Future<EventAudienceOptions> eventAudiences(String groupId) async {
     try {
-      final res =
-          await _dio.get('/api/mobile/groups/$groupId/event-audiences');
-      return EventAudienceOptions.fromJson(
-          res.data is Map ? Map<String, dynamic>.from(res.data as Map) : const {});
+      final res = await _dio.get('/api/mobile/groups/$groupId/event-audiences');
+      return EventAudienceOptions.fromJson(res.data is Map
+          ? Map<String, dynamic>.from(res.data as Map)
+          : const {});
     } catch (e) {
       throw apiError(e, fallback: 'Could not load your teams.');
     }
@@ -119,7 +120,6 @@ class TeamsRepository {
   }
 }
 
-
 final teamsRepositoryProvider =
     Provider<TeamsRepository>((ref) => TeamsRepository(ref.watch(dioProvider)));
 
@@ -128,8 +128,8 @@ final groupTeamsProvider = FutureProvider.autoDispose
         (ref, groupId) => ref.watch(teamsRepositoryProvider).forGroup(groupId));
 
 final teamAllowanceProvider = FutureProvider.autoDispose
-    .family<TeamAllowance, String>(
-        (ref, groupId) => ref.watch(teamsRepositoryProvider).allowance(groupId));
+    .family<TeamAllowance, String>((ref, groupId) =>
+        ref.watch(teamsRepositoryProvider).allowance(groupId));
 
 /// What events this viewer may create in a group — whole group (admins)
 /// and/or the teams they coach. See [EventAudienceOptions].
@@ -146,8 +146,8 @@ final teamCoachesProvider = FutureProvider.autoDispose
         (ref, teamId) => ref.watch(teamsRepositoryProvider).coaches(teamId));
 
 final teamGamesProvider = FutureProvider.autoDispose
-    .family<List<TeamGame>, String>(
-        (ref, teamId) => ref.watch(teamsRepositoryProvider).recentGames(teamId));
+    .family<List<TeamGame>, String>((ref, teamId) =>
+        ref.watch(teamsRepositoryProvider).recentGames(teamId));
 
 final teamStatsProvider = FutureProvider.autoDispose.family<TeamStats, String>(
     (ref, teamId) => ref.watch(teamsRepositoryProvider).stats(teamId));

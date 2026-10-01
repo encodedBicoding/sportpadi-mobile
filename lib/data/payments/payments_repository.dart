@@ -34,8 +34,7 @@ class PaymentsRepository {
     try {
       final res = await _dio.get('/api/mobile/payments',
           queryParameters: {'view': 'event', 'eventId': eventId});
-      return EventTickets.fromJson(
-          Map<String, dynamic>.from(res.data as Map));
+      return EventTickets.fromJson(Map<String, dynamic>.from(res.data as Map));
     } catch (e) {
       throw apiError(e, fallback: 'Could not load tickets.');
     }
@@ -106,8 +105,8 @@ class PaymentsRepository {
   /// an exact email address.
   Future<List<RecipientUser>> searchRecipients(String q) async {
     try {
-      final res = await _dio
-          .get('/api/mobile/users/search', queryParameters: {'q': q});
+      final res =
+          await _dio.get('/api/mobile/users/search', queryParameters: {'q': q});
       final list = res.data is List ? res.data as List : const [];
       return [
         for (final u in list)

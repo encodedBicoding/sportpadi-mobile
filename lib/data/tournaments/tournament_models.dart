@@ -59,7 +59,6 @@ class TournamentSummary {
   }
 }
 
-
 /// One line on the "My tournaments" tab: a tournament one of my teams is in.
 class MyTournamentGame {
   const MyTournamentGame({
@@ -146,7 +145,8 @@ class MyTournamentEntry {
         games: j['games'] is List
             ? [
                 for (final g in j['games'] as List)
-                  MyTournamentGame.fromJson(Map<String, dynamic>.from(g as Map)),
+                  MyTournamentGame.fromJson(
+                      Map<String, dynamic>.from(g as Map)),
               ]
             : const [],
       );

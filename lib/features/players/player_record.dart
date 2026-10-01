@@ -165,7 +165,8 @@ class CategoryControl extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text("Showing $first's ${parseStr(current['name']) ?? 'sport'} record — switch sport any time.",
+        Text(
+            "Showing $first's ${parseStr(current['name']) ?? 'sport'} record — switch sport any time.",
             style: TextStyle(color: p.muted, fontSize: 12, height: 1.4)),
       ]),
     );
@@ -216,7 +217,10 @@ class SportSetup extends StatelessWidget {
       storageKey: 'setup',
       title:
           '${parseStr(category['emoji']) ?? ''} ${parseStr(category['name']) ?? 'Sport'} profile',
-      summary: fields.map((f) => parseStr(f['value']) ?? '').where((v) => v.isNotEmpty).join(' · '),
+      summary: fields
+          .map((f) => parseStr(f['value']) ?? '')
+          .where((v) => v.isNotEmpty)
+          .join(' · '),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         for (final f in fields)
           Padding(
@@ -271,6 +275,7 @@ class ScopeBlock extends StatelessWidget {
   final SportFamily family;
   final bool accent;
   final Map<String, dynamic> rank;
+
   /// Which remembered fold state this card shares (defaults: local /
   /// tournament by `accent`).
   final String? collapseKey;
@@ -344,8 +349,7 @@ class TournamentList extends StatelessWidget {
                         '/groups/${t['hostGroupId']}/tournaments/${t['eventId']}/teams/${t['teamId']}')
                     : null,
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
               child: Row(children: [
                 Container(
                   width: 42,
@@ -477,8 +481,8 @@ class _CollapsibleStatCardState extends State<CollapsibleStatCard> {
               child: AnimatedRotation(
                 turns: _open ? 0 : -0.25,
                 duration: const Duration(milliseconds: 150),
-                child: Icon(Icons.expand_more_rounded,
-                    size: 20, color: p.muted),
+                child:
+                    Icon(Icons.expand_more_rounded, size: 20, color: p.muted),
               ),
             ),
           ]),
@@ -498,7 +502,6 @@ class _CollapsibleStatCardState extends State<CollapsibleStatCard> {
     );
   }
 }
-
 
 // ── 2026 record-page pieces ─────────────────────────────────────────────────
 // Shared by the three "record in …" pages (event, group, tournament) so they
@@ -593,113 +596,110 @@ class RecordHero extends StatelessWidget {
 
   Widget _content(AppPalette p, Color accent, bool painted) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          InkWell(
-            onTap: onPlayerTap,
-            customBorder: const CircleBorder(),
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: accent, width: 2),
-              ),
-              child: ClipOval(
-                child: Crest(
-                    logoUrl: avatarUrl,
-                    label: name.split(' ').first,
-                    size: 40),
-              ),
+      Row(children: [
+        InkWell(
+          onTap: onPlayerTap,
+          customBorder: const CircleBorder(),
+          child: Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: accent, width: 2),
+            ),
+            child: ClipOval(
+              child: Crest(
+                  logoUrl: avatarUrl, label: name.split(' ').first, size: 40),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: p.onHero,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700)),
-                  Text(nameSub ?? 'View profile',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: p.heroMuted, fontSize: 12)),
-                ]),
-          ),
-          if (status != null)
-            recordHeroPill(
-                status!,
-                statusLive ? const Color(0xFFE02424) : p.onHero.withAlpha(28),
-                p.onHero),
-        ]),
-        const SizedBox(height: 16),
-        if (eyebrow != null && eyebrow!.isNotEmpty) ...[
-          Text(eyebrow!.toUpperCase(),
-              style: TextStyle(
-                  color: accent,
-                  fontSize: 11,
-                  letterSpacing: 1.4,
-                  fontWeight: FontWeight.w700)),
-          const SizedBox(height: 4),
-        ],
-        Text(title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: p.onHero,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700)),
+                Text(nameSub ?? 'View profile',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: p.heroMuted, fontSize: 12)),
+              ]),
+        ),
+        if (status != null)
+          recordHeroPill(
+              status!,
+              statusLive ? const Color(0xFFE02424) : p.onHero.withAlpha(28),
+              p.onHero),
+      ]),
+      const SizedBox(height: 16),
+      if (eyebrow != null && eyebrow!.isNotEmpty) ...[
+        Text(eyebrow!.toUpperCase(),
             style: TextStyle(
-                color: p.onHero,
-                fontSize: 20,
-                height: 1.25,
-                fontWeight: FontWeight.w800)),
-        if (meta != null && meta!.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(meta!,
-              style:
-                  TextStyle(color: p.heroMuted, fontSize: 12.5, height: 1.4)),
-        ],
-        if (stats.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Row(children: [
-            for (var i = 0; i < stats.length; i++)
-              Expanded(
-                child: Container(
-                  margin: EdgeInsets.only(left: i == 0 ? 0 : 8),
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
-                  decoration: BoxDecoration(
-                    color: painted
-                        ? const Color(0x38000000)
-                        : p.onHero.withAlpha(18),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Column(children: [
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(stats[i].$1,
-                          maxLines: 1,
-                          style: TextStyle(
-                              color: i == 0 ? accent : p.onHero,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800)),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(stats[i].$2,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: p.heroMuted, fontSize: 11)),
-                  ]),
+                color: accent,
+                fontSize: 11,
+                letterSpacing: 1.4,
+                fontWeight: FontWeight.w700)),
+        const SizedBox(height: 4),
+      ],
+      Text(title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+              color: p.onHero,
+              fontSize: 20,
+              height: 1.25,
+              fontWeight: FontWeight.w800)),
+      if (meta != null && meta!.isNotEmpty) ...[
+        const SizedBox(height: 4),
+        Text(meta!,
+            style: TextStyle(color: p.heroMuted, fontSize: 12.5, height: 1.4)),
+      ],
+      if (stats.isNotEmpty) ...[
+        const SizedBox(height: 16),
+        Row(children: [
+          for (var i = 0; i < stats.length; i++)
+            Expanded(
+              child: Container(
+                margin: EdgeInsets.only(left: i == 0 ? 0 : 8),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+                decoration: BoxDecoration(
+                  color: painted
+                      ? const Color(0x38000000)
+                      : p.onHero.withAlpha(18),
+                  borderRadius: BorderRadius.circular(18),
                 ),
+                child: Column(children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(stats[i].$1,
+                        maxLines: 1,
+                        style: TextStyle(
+                            color: i == 0 ? accent : p.onHero,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800)),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(stats[i].$2,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: p.heroMuted, fontSize: 11)),
+                ]),
               ),
-          ]),
-        ],
-        if (pills.isNotEmpty) ...[
-          const SizedBox(height: 14),
-          Wrap(spacing: 8, runSpacing: 8, children: pills),
-        ],
-      ]);
+            ),
+        ]),
+      ],
+      if (pills.isNotEmpty) ...[
+        const SizedBox(height: 14),
+        Wrap(spacing: 8, runSpacing: 8, children: pills),
+      ],
+    ]);
   }
 }
 
