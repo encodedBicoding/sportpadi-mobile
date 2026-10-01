@@ -30,6 +30,31 @@ class ProfileRepository {
     }
   }
 
+  /// Profile privacy while I'm supervised (claimed under 18). `applies` is
+  /// false for everyone else.
+  Future<MyPrivacy> myPrivacy() async {
+    try {
+      final res = await _dio.get('/api/mobile/me/privacy');
+      return MyPrivacy.fromJson(res.data is Map
+          ? Map<String, dynamic>.from(res.data as Map)
+          : const <String, dynamic>{});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load your privacy settings.');
+    }
+  }
+
+  /// Change who sees my profile and/or whether search finds me.
+  Future<void> setMyPrivacy({String? visibility, bool? searchable}) async {
+    try {
+      await _dio.post('/api/mobile/me/privacy', data: {
+        if (visibility != null) 'visibility': visibility,
+        if (searchable != null) 'searchable': searchable,
+      });
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not save your privacy settings.');
+    }
+  }
+
   /// Categories + my saved sport setups, for the My Sports editor.
   Future<SportsSetup> sports() async {
     try {
@@ -154,3 +179,6 @@ final sportsSetupProvider = FutureProvider.autoDispose<SportsSetup>(
 
 final attendedEventsProvider = FutureProvider.autoDispose<List<EventSummary>>(
     (ref) => ref.watch(profileRepositoryProvider).attendedEvents());
+
+final myPrivacyProvider = FutureProvider.autoDispose<MyPrivacy>(
+    (ref) => ref.watch(profileRepositoryProvider).myPrivacy());

@@ -118,6 +118,36 @@ class WalletRepository {
       throw apiError(e, fallback: 'Could not continue setup.');
     }
   }
+
+  /// Who pays the fees (one-time group setting) with a worked example.
+  Future<FeeSetting> feeSetting(String groupId) async {
+    try {
+      final res = await _dio.get(_path(groupId), queryParameters: {'view': 'fees'});
+      return FeeSetting.fromJson(Map<String, dynamic>.from(res.data as Map));
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load the fee setting.');
+    }
+  }
+
+  /// Choose who pays the fees — once. Support resets it.
+  Future<void> setFeeBearer(String groupId, String bearer) async {
+    try {
+      await _dio.post(_path(groupId), data: {'action': 'fee-bearer', 'bearer': bearer});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not save the fee setting.');
+    }
+  }
+
+  /// What buyers pay and the group receives for [priceMinor].
+  Future<FeeQuote> feeQuote(String groupId, int priceMinor) async {
+    try {
+      final res = await _dio.get(_path(groupId),
+          queryParameters: {'view': 'fee-quote', 'price': priceMinor});
+      return FeeQuote.fromJson(Map<String, dynamic>.from(res.data as Map));
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not work out the fees.');
+    }
+  }
 }
 
 final walletRepositoryProvider =
@@ -134,3 +164,7 @@ final walletWithdrawalsProvider = FutureProvider.autoDispose
 final walletLedgerProvider = FutureProvider.autoDispose
     .family<List<LedgerEntry>, String>(
         (ref, groupId) => ref.watch(walletRepositoryProvider).ledger(groupId));
+
+final feeSettingProvider = FutureProvider.autoDispose
+    .family<FeeSetting, String>(
+        (ref, groupId) => ref.watch(walletRepositoryProvider).feeSetting(groupId));

@@ -57,6 +57,73 @@ class PushService {
   /// shade. The in-app banner stays as the fallback for when the system one
   /// can't be shown (notifications denied, or the plugin failed to start).
   static const _channelId = 'sportpadi_high';
+
+  /// Messaging channels (docs/design/wards-and-messaging.md B6), one per kind
+  /// so each can be tuned in system settings. Ids match MainActivity (which
+  /// creates them first) and the server's android.notification.channel_id.
+  /// Importance and sound only apply when a channel is first created.
+  static const _chAnnouncements = 'announcements';
+  static const _chAnnouncementsUrgent = 'announcements_urgent';
+  static const _chMessages = 'messages';
+  static const _chActivity = 'activity';
+
+  static const _channels = <AndroidNotificationChannel>[
+    AndroidNotificationChannel(
+      _channelId,
+      'SportPadi',
+      description: 'Game reminders, team news and updates',
+      importance: Importance.high,
+    ),
+    AndroidNotificationChannel(
+      _chAnnouncements,
+      'Announcements',
+      description: 'News from your groups, teams and event organisers',
+      importance: Importance.high,
+    ),
+    AndroidNotificationChannel(
+      _chAnnouncementsUrgent,
+      'Urgent announcements',
+      description:
+          'Time-critical news from your groups — sound and a heads-up alert',
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+    ),
+    AndroidNotificationChannel(
+      _chMessages,
+      'Messages',
+      description: 'Conversations with your coaches and group staff',
+      importance: Importance.high,
+    ),
+    AndroidNotificationChannel(
+      _chActivity,
+      'Activity',
+      description: 'Check-ins, results, invites, payments and SportPadi news',
+      importance: Importance.defaultImportance,
+    ),
+  ];
+
+  /// The Android channel a push belongs on, from its data payload:
+  /// `category` (announcement · message · activity) and `urgent` ("1"/"0").
+  /// Anything else stays on the long-standing general channel.
+  static AndroidNotificationChannel _channelFor(Map<String, dynamic> data) {
+    final category = data['category'];
+    final String id;
+    if (category == 'announcement') {
+      id = '${data['urgent']}' == '1'
+          ? _chAnnouncementsUrgent
+          : _chAnnouncements;
+    } else if (category == 'message') {
+      id = _chMessages;
+    } else if (category == 'activity') {
+      id = _chActivity;
+    } else {
+      id = _channelId;
+    }
+    return _channels.firstWhere((c) => c.id == id,
+        orElse: () => _channels.first);
+  }
+
   final FlutterLocalNotificationsPlugin _local = FlutterLocalNotificationsPlugin();
   bool _localReady = false;
 
@@ -69,7 +136,12 @@ class PushService {
   /// server-side) the next sign-in on the same device saw "same token as
   /// before" and never re-registered. That device then got nothing.
   String? _sentToken;
-  void Function()? _onMessage;
+  void Function(Map<String, dynamic> data)? _onMessage;
+
+  /// The conversation on screen right now (set by the thread while it's
+  /// open). A foreground message push for it isn't posted as a banner — the
+  /// thread just refreshes.
+  String? activeConversationId;
   void Function(String? url)? _onOpened;
   void Function(PushAlert alert)? _onForeground;
 
@@ -146,7 +218,7 @@ class PushService {
   /// THIS device is verified — created if missing, re-pointed if the device
   /// previously belonged to someone else — on every launch and resume.
   Future<AuthorizationStatus?> init({
-    void Function()? onMessage,
+    void Function(Map<String, dynamic> data)? onMessage,
     void Function(String? url)? onOpened,
     void Function(PushAlert alert)? onForeground,
   }) async {
@@ -293,17 +365,13 @@ class PushService {
         _onOpened?.call(launch?.notificationResponse?.payload);
       }
       if (Platform.isAndroid) {
-        // Idempotent; MainActivity creates it too. Must match the id the
+        // Idempotent; MainActivity creates them too. Must match the ids the
         // server sends and the manifest's default channel.
-        await _local
-            .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>()
-            ?.createNotificationChannel(const AndroidNotificationChannel(
-              _channelId,
-              'SportPadi',
-              description: 'Game reminders, team news and updates',
-              importance: Importance.high,
-            ));
+        final android = _local.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+        for (final channel in _channels) {
+          await android?.createNotificationChannel(channel);
+        }
       }
       _localReady = true;
     } catch (e) {
@@ -313,7 +381,10 @@ class PushService {
 
   /// Post a foreground push as a system notification (Android). Returns
   /// false when it couldn't, so the caller can fall back to the in-app banner.
-  Future<bool> _showLocal(String title, String? body, String? url) async {
+  Future<bool> _showLocal(String title, String? body, String? url,
+      {AndroidNotificationChannel? channel}) async {
+    final ch = channel ?? _channels.first;
+    final high = ch.importance == Importance.high;
     // A failed first init (e.g. Firebase came up before the plugin's
     // resources) is not permanent — try once more before giving up.
     if (!_localReady) await _initLocal();
@@ -324,13 +395,13 @@ class PushService {
         DateTime.now().millisecondsSinceEpoch.remainder(1 << 31),
         title,
         body,
-        const NotificationDetails(
+        NotificationDetails(
           android: AndroidNotificationDetails(
-            _channelId,
-            'SportPadi',
-            channelDescription: 'Game reminders, team news and updates',
-            importance: Importance.high,
-            priority: Priority.high,
+            ch.id,
+            ch.name,
+            channelDescription: ch.description,
+            importance: ch.importance,
+            priority: high ? Priority.high : Priority.defaultPriority,
             icon: 'ic_stat_sportpadi',
           ),
         ),
@@ -406,7 +477,7 @@ class PushService {
       // badge/feed AND hand the app an alert to render itself. Without this a
       // push that lands while someone is using the app is invisible.
       FirebaseMessaging.onMessage.listen((m) async {
-        _onMessage?.call();
+        _onMessage?.call(m.data);
         final n = m.notification;
         final title = n?.title ?? (m.data['title'] as String?);
         final body = n?.body ?? (m.data['body'] as String?);
@@ -416,13 +487,22 @@ class PushService {
               'localReady=$_localReady');
         }
         if (title == null || title.isEmpty) return;
+        // A message in the thread that's already open: it refreshes in
+        // place (see the onMessage hook), so no banner on top of it.
+        final open = activeConversationId;
+        if (m.data['category'] == 'message' &&
+            open != null &&
+            m.data['conversationId'] == open) {
+          return;
+        }
         final url = m.data['url'];
         final link = url is String && url.isNotEmpty ? url : null;
         // iOS: the OS is presenting it (see setForegroundNotification-
         // PresentationOptions), so nothing more to draw. Android: post it
         // ourselves; only if that fails does the in-app banner step in.
         if (Platform.isIOS) return;
-        final shown = await _showLocal(title, body, link);
+        final shown = await _showLocal(title, body, link,
+            channel: _channelFor(m.data));
         if (kDebugMode) debugPrint('[push] foreground local shown=$shown');
         if (shown) return;
         _onForeground?.call(PushAlert(title: title, body: body, url: link));
@@ -430,7 +510,7 @@ class PushService {
       // Tapped a push while the app was in the background → refresh + open
       // the notification's destination.
       FirebaseMessaging.onMessageOpenedApp.listen((m) {
-        _onMessage?.call();
+        _onMessage?.call(m.data);
         final url = m.data['url'];
         _onOpened?.call(url is String ? url : null);
       });

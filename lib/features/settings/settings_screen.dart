@@ -8,7 +8,12 @@ import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/features/settings/profile_privacy_card.dart';
 import 'package:sportpadi_mobile/features/settings/push_notifications_card.dart';
+import 'package:sportpadi_mobile/features/settings/timezone_card.dart';
+import 'package:sportpadi_mobile/features/settings/activity_notifications_card.dart';
+import 'package:sportpadi_mobile/features/announcements/announcement_entry_points.dart'
+    show AnnouncementPreferencesCard;
 import 'package:sportpadi_mobile/features/progression/progression_screens.dart';
 
 /// Settings — mirrors the web settings page: editable profile (display name,
@@ -171,16 +176,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 18),
 
+          // ── Profile privacy: only while a guardian supervises me (claimed
+          //    my account under 18) — nothing for everyone else ──
+          const ProfilePrivacySection(),
+
           // ── Appearance: follow the phone, or force light / dark ──
           const Eyebrow('Appearance'),
           const SizedBox(height: 8),
           const _AppearanceCard(),
           const SizedBox(height: 18),
 
-          // ── Notifications: can this device receive pushes? (tap to fix) ──
+          // ── Time zone: the clock every message / notification stamp uses ──
+          const Eyebrow('Time zone'),
+          const SizedBox(height: 8),
+          const TimezoneCard(),
+          const SizedBox(height: 18),
+
+          // ── Notifications: can this device receive pushes? (tap to fix),
+          //    then one card of switches for messages, discussions, events ──
           const Eyebrow('Notifications'),
           const SizedBox(height: 8),
           const PushNotificationsCard(),
+          const SizedBox(height: 10),
+          const ActivityNotificationsCard(),
+          const SizedBox(height: 18),
+
+          // ── Announcements: push / email for normal and urgent ones ──
+          const Eyebrow('Announcements'),
+          const SizedBox(height: 8),
+          const AnnouncementPreferencesCard(),
           const SizedBox(height: 18),
 
           // ── Progress: XP / streak visibility ──

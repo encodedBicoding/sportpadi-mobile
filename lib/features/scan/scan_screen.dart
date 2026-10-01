@@ -8,6 +8,11 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 import 'package:sportpadi_mobile/data/tickets/tickets_repository.dart';
+import 'package:sportpadi_mobile/data/wards/ward_models.dart';
+import 'package:sportpadi_mobile/data/wards/wards_repository.dart';
+import 'package:sportpadi_mobile/features/wards/ward_pickers.dart';
+import 'package:sportpadi_mobile/shared/format/instant.dart' show fmtInstant;
+import 'package:sportpadi_mobile/shared/format/parse.dart' show parseDate;
 import 'package:sportpadi_mobile/shared/widgets/sheet_scroll.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
@@ -79,10 +84,24 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         if (!mounted) return;
         await _showRedeemResult(res);
       } else {
-        // An event's check-in QR — self check-in (player flow).
-        final res = await ref.read(eventsRepositoryProvider).checkInByQr(raw);
+        // An event's check-in QR — self check-in (player flow). Guardians
+        // first say who's checking in: themselves and/or their wards (A8).
+        final wards = await _myWards();
         if (!mounted) return;
-        await _showCheckInResult(res);
+        if (wards.isEmpty) {
+          final res =
+              await ref.read(eventsRepositoryProvider).checkInByQr(raw);
+          if (!mounted) return;
+          await _showCheckInResult(res);
+        } else if (!await _checkInSeveral(raw, wards)) {
+          // "Who's checking in?" was dismissed: close the camera, so the
+          // same QR (still in view) doesn't pop the sheet straight back up.
+          if (!mounted) return;
+          setState(() => _handling = false);
+          _lastCode = null;
+          _closeScanner();
+          return;
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -97,6 +116,82 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     setState(() => _handling = false);
     _lastCode = null;
     if (_scanning) await _controller.start();
+  }
+
+  /// My wards, or none when the list can't be loaded — a failed lookup must
+  /// never block my own check-in. The screen keeps [myWardsProvider] warm
+  /// (see build), so this is normally the cached value, not a round-trip.
+  Future<List<Ward>> _myWards() async {
+    final cached = ref.read(myWardsProvider).valueOrNull;
+    if (cached != null) return cached.wards;
+    try {
+      return (await ref.read(wardsRepositoryProvider).mine()).wards;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// Guardian flow: pick who's checking in, then check each person in one
+  /// after the other and show how each went. "Me only" goes through the
+  /// original single-person flow ([_showCheckInResult]: the organiser CTA,
+  /// the reward, the progress refresh). Returns false when the picker was
+  /// dismissed without a choice.
+  Future<bool> _checkInSeveral(String qrCode, List<Ward> wards) async {
+    final who = await showWhoIsCheckingInSheet(context, wards: wards);
+    if (!mounted) return true;
+    if (who == null || who.isEmpty) return false;
+    final repo = ref.read(eventsRepositoryProvider);
+    if (who.length == 1 && who.first.id == null) {
+      final res = await repo.checkInByQr(qrCode);
+      if (!mounted) return true;
+      await _showCheckInResult(res);
+      return true;
+    }
+    final results = <CheckinOutcome>[];
+    Map<String, dynamic>? mine;
+    for (final person in who) {
+      final isMe = person.id == null;
+      try {
+        final res = await repo.checkInByQr(qrCode, forPlayerId: person.id);
+        if (isMe) mine = res;
+        results.add(
+            CheckinOutcome.fromResult(res, name: person.name, isMe: isMe));
+      } catch (e) {
+        results.add(CheckinOutcome.failed(
+            name: person.name,
+            isMe: isMe,
+            message: '$e'.replaceFirst('Exception: ', '')));
+      }
+    }
+    if (!mounted) return true;
+    // Refresh whatever event screens (and Home) are behind the scanner.
+    ref.invalidate(eventDetailProvider);
+    ref.invalidate(myFeedProvider);
+    // My own check-in's reward moves "Your week" — same rule as the
+    // single-person flow.
+    final myReward = mine != null && mine['status'] == 'checked_in' &&
+            mine['reward'] is Map
+        ? Map<String, dynamic>.from(mine['reward'] as Map)
+        : null;
+    if (myReward != null && ((myReward['xp'] as num?)?.toInt() ?? 0) > 0) {
+      ref.invalidate(yourWeekProvider);
+      ref.invalidate(myProgressionProvider);
+    }
+    if (results.any((r) => r.ok)) HapticFeedback.mediumImpact();
+    final action = await showCheckinResultsSheet(context, results: results);
+    if (!mounted) return true;
+    switch (action) {
+      case CheckinSheetAction.done:
+        context.pop();
+      case CheckinSheetAction.openFines:
+        // A ward's fine blocked them: their guardian pays it on Fines. Close
+        // the camera first so it doesn't keep scanning underneath.
+        _closeScanner();
+        context.push('/fines');
+      case CheckinSheetAction.scanAgain:
+        break;
+    }
+    return true;
   }
 
   Future<void> _showRedeemResult(Map<String, dynamic> res) async {
@@ -120,6 +215,18 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         head: 'Already used',
         body:
             '$title${when != null ? '\nScanned earlier at ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(when))}.' : ''}',
+      );
+      return;
+    }
+    if (reason == 'expired') {
+      // A recurring ticket from a cycle that has rolled over (used up).
+      final ended = parseDate(res['expiredAt']);
+      await _showSheet(
+        tone: _Tone.warning,
+        head: 'Expired — from a cycle that has ended',
+        body: ended != null
+            ? '$title\nCycle ended ${fmtInstant(ended)} — they need the current one.'
+            : '$title\nThey need the current cycle\'s ticket.',
       );
       return;
     }
@@ -242,6 +349,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    // Keep my wards warm, so a scan knows at once whether to ask
+    // "Who's checking in?" (no extra round-trip per scan).
+    ref.watch(myWardsProvider);
     return _scanning ? _camera(p) : _landing(p);
   }
 

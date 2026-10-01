@@ -7,6 +7,8 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
 import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
+import 'package:sportpadi_mobile/features/games/basketball_widgets.dart';
+import 'package:sportpadi_mobile/features/games/volleyball_widgets.dart';
 import 'package:sportpadi_mobile/features/games/game_screen.dart'
     show activityMinute;
 import 'package:sportpadi_mobile/features/games/stoppage_pad.dart';
@@ -97,7 +99,8 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
     final etAdded = lc?.hasExtraPhases ?? false;
     final drawOption = lc != null &&
         ((lc.drawResolutions.contains('extra_time') && !etAdded) ||
-            lc.drawResolutions.contains('penalties'));
+            lc.drawResolutions.contains('penalties') ||
+            lc.drawResolutions.contains('overtime'));
     final awaitingDraw =
         g.isLive && regulationDone && g.isDrawn && drawOption && !pensAdded;
     var maxScored = 0;
@@ -172,7 +175,11 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
           // -- Scheduled: kickoff ------------------------------------------
           if (g.isScheduled && canTime)
             SpButton(
-              label: 'Kick off',
+              label: g.isBasketball
+                  ? 'Tip off'
+                  : g.isVolleyball
+                      ? 'First serve'
+                      : 'Kick off',
               icon: Icons.play_arrow_rounded,
               expand: true,
               onTap: _busy ? null : () => _run(() => repo.start(widget.gameId)),
@@ -257,7 +264,32 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                     ),
                 ],
               ),
-              if (showPlay && canScore) ...[
+              if (showPlay && canScore && g.isBasketball) ...[
+                const SizedBox(height: 12),
+                const Eyebrow('Record — tap a player'),
+                const SizedBox(height: 8),
+                BasketballScorePad(
+                  game: g,
+                  busy: _busy,
+                  onRecord: _recordBb,
+                  onSub: _substituteFlow,
+                  onShotShort: canTime && g.basketball?.shotClock != null
+                      ? () => _run(() => repo.shotClock(widget.gameId, short: true))
+                      : null,
+                ),
+              ],
+              if (showPlay && canScore && g.isVolleyball) ...[
+                const SizedBox(height: 12),
+                const Eyebrow('Record — tap a player'),
+                const SizedBox(height: 8),
+                VolleyballScorePad(
+                  game: g,
+                  busy: _busy,
+                  onRecord: _recordBb,
+                  onSub: _substituteFlow,
+                ),
+              ],
+              if (showPlay && canScore && !g.isBasketball && !g.isVolleyball) ...[
                 const SizedBox(height: 12),
                 const Eyebrow('Record'),
                 const SizedBox(height: 8),
@@ -286,7 +318,11 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
             if (showComplete && canTime) ...[
               const SizedBox(height: 4),
               SpButton(
-                label: 'Complete match',
+                label: g.isBasketball
+                    ? 'End game'
+                    : g.isVolleyball
+                        ? 'End match'
+                        : 'Complete match',
                 icon: Icons.check_rounded,
                 expand: true,
                 onTap:
@@ -306,6 +342,21 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
               style: TextStyle(color: p.muted, fontSize: 11.5),
             ),
             const SizedBox(height: 8),
+            if (g.isBasketball)
+              BasketballScorePad(
+                game: g,
+                busy: _busy,
+                amend: true,
+                onRecord: _recordBb,
+              )
+            else if (g.isVolleyball)
+              VolleyballScorePad(
+                game: g,
+                busy: _busy,
+                amend: true,
+                onRecord: _recordBb,
+              )
+            else
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -324,6 +375,22 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
       ),
     );
   }
+
+  /// Player-first score pad (basketball / volleyball) → one recorded activity.
+  Future<void> _recordBb({
+    required String teamId,
+    required String type,
+    required String playerId,
+    String? relatedPlayerId,
+  }) =>
+      _run(() => repo.addActivity(
+            widget.gameId,
+            teamId: teamId,
+            type: type,
+            playerId: playerId,
+            relatedPlayerId: relatedPlayerId,
+            minute: activityMinute(g),
+          ));
 
   // -- Record an activity (web dialog flow: team → player → assist) --------
 

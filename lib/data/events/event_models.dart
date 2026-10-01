@@ -24,6 +24,8 @@ class EventSummary {
     this.isLive = false,
     this.groupId,
     this.reasons = const [],
+    this.forWards = const [],
+    this.audienceTeams = const [],
   });
 
   final String id;
@@ -58,6 +60,12 @@ class EventSummary {
   /// populated by the suggestions feed; empty everywhere else.
   final List<String> reasons;
 
+  /// Which of my wards this event is on my feed for ("Ward · Tobi").
+  final List<WardTag> forWards;
+
+  /// Team event: the teams it's for (empty = the whole group).
+  final List<AudienceTeam> audienceTeams;
+
   factory EventSummary.fromJson(Map<String, dynamic> j) {
     final cat = j['category'];
     final grp = j['group'];
@@ -91,8 +99,82 @@ class EventSummary {
         for (final r in (j['reasons'] is List ? j['reasons'] as List : const []))
           if (parseStr(r) != null) parseStr(r)!
       ],
+      forWards: [
+        for (final w
+            in (j['forWards'] is List ? j['forWards'] as List : const []))
+          if (w is Map) WardTag.fromJson(Map<String, dynamic>.from(w))
+      ],
+      audienceTeams: parseAudienceTeams(j['audienceTeams']),
     );
   }
+}
+
+/// A team a team event is for: `{ id, name }`.
+class AudienceTeam {
+  const AudienceTeam({required this.id, required this.name});
+  final String id;
+  final String name;
+
+  factory AudienceTeam.fromJson(Map<String, dynamic> j) => AudienceTeam(
+        id: parseStr(j['id']) ?? '',
+        name: parseStr(j['name']) ?? 'Team',
+      );
+}
+
+/// Tolerant `audienceTeams` parse — anything but a list of maps is "none".
+List<AudienceTeam> parseAudienceTeams(dynamic v) => [
+      for (final t in (v is List ? v : const []))
+        if (t is Map) AudienceTeam.fromJson(Map<String, dynamic>.from(t))
+    ].where((t) => t.id.isNotEmpty).toList();
+
+/// "For U12 Lions" / "For U12 Lions, U14 Hawks" — null for whole-group events.
+String? audienceLabel(List<AudienceTeam> teams) => teams.isEmpty
+    ? null
+    : 'For ${teams.map((t) => t.name).join(', ')}';
+
+/// A ward a feed event is for: `{ userId, name }` (name is the first name).
+class WardTag {
+  const WardTag({required this.userId, required this.name});
+  final String userId;
+  final String name;
+
+  factory WardTag.fromJson(Map<String, dynamic> j) => WardTag(
+        userId: parseStr(j['userId']) ?? '',
+        name: parseStr(j['name']) ?? 'Ward',
+      );
+}
+
+/// One of my wards as seen from an event (guardians only): whether they've
+/// RSVP'd and whether they're checked in.
+class EventWard {
+  const EventWard({
+    required this.userId,
+    required this.displayName,
+    this.avatarUrl,
+    this.age,
+    this.interested = false,
+    this.checkedIn = false,
+  });
+  final String userId;
+  final String displayName;
+  final String? avatarUrl;
+  final int? age;
+  final bool interested;
+  final bool checkedIn;
+
+  String get firstName {
+    final parts = displayName.trim().split(RegExp(r'\s+'));
+    return parts.isEmpty || parts.first.isEmpty ? displayName : parts.first;
+  }
+
+  factory EventWard.fromJson(Map<String, dynamic> j) => EventWard(
+        userId: parseStr(j['userId']) ?? '',
+        displayName: parseStr(j['displayName']) ?? 'Player',
+        avatarUrl: parseStr(j['avatarUrl']),
+        age: parseInt(j['age']),
+        interested: j['interested'] == true,
+        checkedIn: j['checkedIn'] == true,
+      );
 }
 
 class Attendee {
@@ -102,12 +184,18 @@ class Attendee {
     this.username,
     this.avatarUrl,
     this.checkedInAt,
+    this.isWard = false,
   });
   final String userId;
   final String displayName;
+
+  /// Null when there's none to show (limited wards come back with "").
   final String? username;
   final String? avatarUrl;
   final DateTime? checkedInAt;
+
+  /// A ward (a player a guardian runs).
+  final bool isWard;
 
   factory Attendee.fromJson(Map<String, dynamic> j) => Attendee(
         userId: (j['userId'] ?? '') as String,
@@ -115,6 +203,7 @@ class Attendee {
         username: parseStr(j['username']),
         avatarUrl: parseStr(j['avatarUrl']),
         checkedInAt: parseDate(j['checkedInAt']),
+        isWard: j['isWard'] == true,
       );
 }
 
@@ -135,6 +224,9 @@ class EventDetail {
     this.canManage = false,
     this.myCheckedIn = false,
     this.hasEnded,
+    this.calendarStart,
+    this.calendarEnd,
+    this.calendarAllDay = false,
     this.myInterested = false,
     this.interestCount = 0,
     this.attendeeCount = 0,
@@ -158,6 +250,8 @@ class EventDetail {
     this.hasLatePool = false,
     this.canCreateGames = false,
     this.smartShuffle = false,
+    this.myWards = const [],
+    this.audienceTeams = const [],
   });
 
   final String id;
@@ -176,6 +270,12 @@ class EventDetail {
   final bool myCheckedIn;
   // Server truth: past its end time (or end of its day) in the VENUE's zone.
   final bool? hasEnded;
+  /// When it really runs (server `calendar`), for "Add to calendar". Null on
+  /// older servers.
+  final DateTime? calendarStart;
+  final DateTime? calendarEnd;
+  /// No start time: a whole-day event (start/end are that UTC date and the next).
+  final bool calendarAllDay;
   final bool myInterested;
   final int interestCount;
   final int attendeeCount;
@@ -203,6 +303,12 @@ class EventDetail {
   final bool canCreateGames;
   final bool smartShuffle;
 
+  /// Guardians only: each of my wards' RSVP / check-in for this event.
+  final List<EventWard> myWards;
+
+  /// Team event: the teams it's for (empty = the whole group).
+  final List<AudienceTeam> audienceTeams;
+
   bool get isTeamFlow => flowType == 'team_match';
   bool get repeats => recurrence.isNotEmpty && recurrence != 'once';
 
@@ -226,6 +332,9 @@ class EventDetail {
       canManage: j['canManage'] == true,
       myCheckedIn: j['myCheckedIn'] == true,
       hasEnded: j['hasEnded'] is bool ? j['hasEnded'] as bool : null,
+      calendarStart: j['calendar'] is Map ? parseDate((j['calendar'] as Map)['startsAt']) : null,
+      calendarEnd: j['calendar'] is Map ? parseDate((j['calendar'] as Map)['endsAt']) : null,
+      calendarAllDay: j['calendar'] is Map && (j['calendar'] as Map)['allDay'] == true,
       myInterested: j['myInterested'] == true,
       interestCount: parseInt(j['interestCount']) ?? 0,
       attendeeCount: parseInt(j['attendeeCount']) ?? 0,
@@ -262,6 +371,12 @@ class EventDetail {
           (j['features'] as Map)['LOCAL_GAME_STATS'] == true,
       smartShuffle: j['features'] is Map &&
           (j['features'] as Map)['SMART_TEAM_SHUFFLE'] == true,
+      myWards: [
+        for (final w
+            in (j['myWards'] is List ? j['myWards'] as List : const []))
+          if (w is Map) EventWard.fromJson(Map<String, dynamic>.from(w))
+      ],
+      audienceTeams: parseAudienceTeams(j['audienceTeams']),
     );
   }
 }
@@ -333,5 +448,33 @@ class PoolPlayer {
         avatarUrl: parseStr(j['avatarUrl']),
         checkedInAt: parseDate(j['checkedInAt']),
         positions: parseStrList(j['positions']),
+      );
+}
+
+/// An event's reminder schedule (`?view=reminders`): the slots in effect
+/// (`d5` `d3` `d2` `d1` `h2`, farthest first; empty = none), their labels,
+/// and whether the signed-in viewer muted this event's reminders.
+class EventReminders {
+  const EventReminders({
+    this.slots = const [],
+    this.labels = const [],
+    this.isDefault = true,
+    this.defaultSlots = const ['d2', 'h2'],
+    this.muted = false,
+  });
+  final List<String> slots;
+  final List<String> labels;
+  final bool isDefault;
+  final List<String> defaultSlots;
+  final bool muted;
+
+  factory EventReminders.fromJson(Map<String, dynamic> j) => EventReminders(
+        slots: parseStrList(j['slots']),
+        labels: parseStrList(j['labels']),
+        isDefault: j['isDefault'] != false,
+        defaultSlots: j['defaultSlots'] is List
+            ? parseStrList(j['defaultSlots'])
+            : const ['d2', 'h2'],
+        muted: j['muted'] == true,
       );
 }

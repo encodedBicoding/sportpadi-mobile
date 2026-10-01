@@ -12,10 +12,15 @@ class PaymentsRepository {
   PaymentsRepository(this._dio);
   final Dio _dio;
 
-  Future<OutstandingSummary> outstanding(String groupId) async {
+  /// What I — or, with [forPlayerId], one of my wards — still owe a group.
+  Future<OutstandingSummary> outstanding(String groupId,
+      {String? forPlayerId}) async {
     try {
-      final res = await _dio.get('/api/mobile/payments',
-          queryParameters: {'view': 'outstanding', 'groupId': groupId});
+      final res = await _dio.get('/api/mobile/payments', queryParameters: {
+        'view': 'outstanding',
+        'groupId': groupId,
+        if (forPlayerId != null) 'forPlayerId': forPlayerId,
+      });
       return OutstandingSummary.fromJson(
           Map<String, dynamic>.from(res.data as Map));
     } catch (e) {
@@ -47,6 +52,21 @@ class PaymentsRepository {
       ];
     } catch (e) {
       throw apiError(e, fallback: 'Could not load your tickets.');
+    }
+  }
+
+  /// One receipt by its code — mine, one I paid for, or one of my wards'
+  /// (`canPresent` says whether I may show its QR).
+  Future<MyTicket> receipt(String code) async {
+    try {
+      final res = await _dio.get('/api/mobile/payments',
+          queryParameters: {'view': 'receipt', 'code': code});
+      if (res.data is! Map) {
+        throw ApiException('Receipt not found.', statusCode: 404);
+      }
+      return MyTicket.fromJson(Map<String, dynamic>.from(res.data as Map));
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load this receipt.');
     }
   }
 
@@ -98,12 +118,16 @@ class PaymentsRepository {
     }
   }
 
-  /// Pay several of one group's tickets at once → (url, batchRef).
-  Future<({String url, String code})> startBulkCheckout(
-      List<String> ticketIds) async {
+  /// Pay several of one group's tickets at once → (url, batchRef). With
+  /// [forPlayerId] I pay for one of my wards: the ward holds the tickets.
+  Future<({String url, String code})> startBulkCheckout(List<String> ticketIds,
+      {String? forPlayerId}) async {
     try {
-      final res = await _dio.post('/api/mobile/payments',
-          data: {'action': 'checkout-bulk', 'ticketIds': ticketIds});
+      final res = await _dio.post('/api/mobile/payments', data: {
+        'action': 'checkout-bulk',
+        'ticketIds': ticketIds,
+        if (forPlayerId != null) 'forPlayerId': forPlayerId,
+      });
       final d = Map<String, dynamic>.from(res.data as Map);
       return (url: d['url'] as String, code: (d['batchRef'] ?? '') as String);
     } catch (e) {
@@ -140,9 +164,13 @@ class PaymentsRepository {
 final paymentsRepositoryProvider = Provider<PaymentsRepository>(
     (ref) => PaymentsRepository(ref.watch(dioProvider)));
 
+/// Whose outstanding tickets in which group (`forPlayerId` null = mine).
+typedef OutstandingKey = ({String groupId, String? forPlayerId});
+
 final outstandingTicketsProvider = FutureProvider.autoDispose
-    .family<OutstandingSummary, String>((ref, groupId) =>
-        ref.watch(paymentsRepositoryProvider).outstanding(groupId));
+    .family<OutstandingSummary, OutstandingKey>((ref, k) => ref
+        .watch(paymentsRepositoryProvider)
+        .outstanding(k.groupId, forPlayerId: k.forPlayerId));
 
 final eventTicketsProvider = FutureProvider.autoDispose
     .family<EventTickets, String>((ref, eventId) =>

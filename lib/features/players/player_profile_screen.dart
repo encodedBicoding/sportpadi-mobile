@@ -7,6 +7,8 @@ import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/players/player_record.dart';
+import 'package:sportpadi_mobile/features/sports/sport_record_card.dart';
+import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
@@ -14,21 +16,21 @@ import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
+import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
 
 /// Public player profile — the scout's view (web /players/[id] twin).
 ///
 /// The question this page exists to answer is "how well is this player doing in
-/// this sport", so the sport is the organising idea: pick one, and everything
-/// below is that sport's record. Sports and standings used to live in bottom
-/// sheets, which meant the one thing you came for took two taps — and the
-/// standings shown were per-group, so tournament form was invisible entirely.
-///
-/// Stats are only comparable inside a sport; nothing is summed across them.
+/// this sport", so each sport they've played gets its own card (Records) that
+/// opens that sport's record page — designed per sport
+/// (docs/design/sport-records.md). Stats are only comparable inside a sport;
+/// nothing is summed across them.
 ///
 /// 2026 design: dark pitch cover (back round button), identity card with the
 /// avatar on its edge (earned frame, @username copy pill, level badge,
-/// Sports / Groups / Tournaments tiles), the sport's record, then pill tabs.
+/// Sports / Groups / Tournaments tiles), Records, then pill tabs across all
+/// sports.
 
 final playerProfileProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>, String>((ref, userId) async {
@@ -43,9 +45,11 @@ final playerProfileProvider = FutureProvider.autoDispose
   }
 });
 
-/// The heavier half — per-category record and tournaments. Loaded separately so
-/// identity paints straight away.
-final playerStatsProvider = FutureProvider.autoDispose
+/// The heavier half — per-category record and tournaments
+/// (`{ categories, tournaments }`, design/sport-records.md §2). Loaded
+/// separately so identity paints straight away. Errors surface (a 403 is a
+/// private ward record) — the sport record pages need to tell them apart.
+final playerRecordsProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>, String>((ref, userId) async {
   try {
     final res =
@@ -53,8 +57,19 @@ final playerStatsProvider = FutureProvider.autoDispose
     return res.data is Map
         ? Map<String, dynamic>.from(res.data as Map)
         : <String, dynamic>{};
+  } catch (e) {
+    throw apiError(e, fallback: 'Could not load the record.');
+  }
+});
+
+/// [playerRecordsProvider] for the profile page, where the numbers are a
+/// bonus and never the whole page: a failure reads as "no numbers".
+final playerStatsProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>, String>((ref, userId) async {
+  try {
+    return await ref.watch(playerRecordsProvider(userId).future);
   } catch (_) {
-    return <String, dynamic>{}; // numbers are a bonus, never the whole page
+    return <String, dynamic>{};
   }
 });
 
@@ -70,7 +85,6 @@ class PlayerProfileScreen extends ConsumerStatefulWidget {
 
 class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
   int _tab = 0; // 0 groups, 1 tournaments, 2 posts
-  String? _catId;
 
   String get userId => widget.userId;
 
@@ -80,19 +94,18 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final data = ref.watch(playerProfileProvider(userId));
-    final stats = ref.watch(playerStatsProvider(userId)).valueOrNull;
+    // A ward whose guardians keep their profile private from this viewer:
+    // short name, no photo, no numbers — and the stats routes would refuse,
+    // so they're only asked for once the profile says it's open.
+    final restricted = data.valueOrNull?['restricted'] == true;
+    final stats = data.hasValue && !restricted
+        ? ref.watch(playerStatsProvider(userId)).valueOrNull
+        : null;
 
     final categories = listOf(stats?['categories']);
     final tournaments = listOf(stats?['tournaments']);
-    // The sport is a PAGE-LEVEL setting, not a widget's: once chosen, the
-    // record, the tournaments tab and the groups tab all narrow to it.
-    final selected = _catId ?? defaultCategoryId(categories);
-    final cat = categories.isEmpty
-        ? null
-        : categories.firstWhere(
-            (c) => parseStr(c['categoryId']) == selected,
-            orElse: () => categories.first,
-          );
+    // Every active category comes back; "Sports" counts the ones played.
+    final sportsPlayed = categories.where(hasPlayed).length;
 
     return Scaffold(
       backgroundColor: p.bg,
@@ -101,39 +114,39 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
           value: data,
           onRetry: () {
             ref.invalidate(playerProfileProvider(userId));
-            ref.invalidate(playerStatsProvider(userId));
+            ref.invalidate(playerRecordsProvider(userId));
           },
           data: (m) {
             final profile = mapOf(m['profile']);
-            final allGroups = listOf(m['groups']);
+            if (restricted) {
+              return RefreshIndicator(
+                onRefresh: () async =>
+                    ref.refresh(playerProfileProvider(userId).future),
+                child: ListView(
+                  padding: const EdgeInsets.only(bottom: 36),
+                  children: [
+                    _Hero(
+                      userId: userId,
+                      profile: profile,
+                      sports: 0,
+                      groups: 0,
+                      tournaments: 0,
+                      statsLoaded: false,
+                      restricted: true,
+                      onBack: _back,
+                    ),
+                  ],
+                ),
+              );
+            }
+            // No sport picker any more (2026 sport records): the tabs list
+            // everything, across all sports.
+            final groups = listOf(m['groups']);
             final posts = listOf(m['posts']);
-            // Everything below the picker is scoped to the chosen sport.
-            final catTournaments = cat == null
-                ? tournaments
-                : [
-                    for (final t in tournaments)
-                      if (parseStr(t['categoryId']) ==
-                          parseStr(cat['categoryId']))
-                        t
-                  ];
-            final sportGroupIds = <String>{
-              for (final g in listOf(cat?['groups']))
-                if (parseStr(g['id']) != null) parseStr(g['id'])!
-            };
-            // Groups they've actually played this sport in; when none, fall
-            // back to every group rather than showing an empty tab.
-            final groups = sportGroupIds.isEmpty
-                ? allGroups
-                : [
-                    for (final g in allGroups)
-                      if (sportGroupIds.contains(parseStr(g['id']))) g
-                  ];
-            final groupsAreFiltered = sportGroupIds.isNotEmpty;
-            final sportName = parseStr(cat?['name']);
 
             return RefreshIndicator(
               onRefresh: () async {
-                ref.invalidate(playerStatsProvider(userId));
+                ref.invalidate(playerRecordsProvider(userId));
                 return ref.refresh(playerProfileProvider(userId).future);
               },
               child: ListView(
@@ -142,8 +155,8 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                   _Hero(
                     userId: userId,
                     profile: profile,
-                    sports: categories.length,
-                    groups: allGroups.length,
+                    sports: sportsPlayed,
+                    groups: groups.length,
                     tournaments: tournaments.length,
                     statsLoaded: stats != null,
                     onBack: _back,
@@ -153,59 +166,13 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        SpSectionTitle(sportName == null
-                            ? 'Record'
-                            : '${parseStr(cat?['emoji']) ?? ''} $sportName record'
-                                .trim()),
-                        const SizedBox(height: 10),
-                        if (categories.isNotEmpty) ...[
-                          CategoryControl(
-                            categories: categories,
-                            selectedId: parseStr(cat?['categoryId']),
-                            onSelect: (id) => setState(() => _catId = id),
-                            playerName:
-                                parseStr(profile['displayName']) ?? 'Player',
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                        if (cat != null) ...[
-                          if (nothingOnRecord(cat))
-                            NothingOnRecord(
-                                sportName: sportName ?? 'this sport')
-                          else ...[
-                            SportSetup(category: cat),
-                            const SizedBox(height: 12),
-                            ScopeBlock(
-                              title:
-                                  '${parseStr(cat['emoji']) ?? ''} ${sportName ?? 'Sport'} · local group games',
-                              tally: mapOf(cat['local']),
-                              fields: listOf(cat['fields']),
-                              empty:
-                                  'No completed local games in this sport yet.',
-                            ),
-                            const SizedBox(height: 12),
-                            ScopeBlock(
-                              title:
-                                  '${parseStr(cat['emoji']) ?? ''} ${sportName ?? 'Sport'} · tournaments',
-                              tally: mapOf(cat['tournament']),
-                              fields: listOf(cat['fields']),
-                              accent: true,
-                              empty: 'No tournament games in this sport yet.',
-                            ),
-                          ],
-                        ] else if (stats != null)
-                          const _Empty(
-                            icon: Icons.emoji_events_outlined,
-                            title: 'No completed games yet',
-                            text:
-                                "Their record appears here once they've played a game that finished.",
-                          )
-                        else
-                          GlassCard(
-                            child: Text('Loading their record…',
-                                style:
-                                    TextStyle(color: p.muted, fontSize: 13)),
-                          ),
+                        // One sport card per sport played, each opening
+                        // that sport's own record page.
+                        PlayerRecordsSection(
+                          userId: userId,
+                          categories: categories,
+                          loaded: stats != null,
+                        ),
                         const SizedBox(height: 22),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
@@ -219,7 +186,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                             _PillTab(
                                 icon: Icons.emoji_events_outlined,
                                 label: 'Tournaments',
-                                count: catTournaments.length,
+                                count: tournaments.length,
                                 selected: _tab == 1,
                                 onTap: () => setState(() => _tab = 1)),
                             _PillTab(
@@ -232,12 +199,9 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                         ),
                         const SizedBox(height: 12),
                         if (_tab == 0)
-                          ..._groups(p, groups,
-                              note: groupsAreFiltered && cat != null
-                                  ? 'Groups they play ${sportName ?? 'this sport'} in.'
-                                  : null)
+                          ..._groups(p, groups)
                         else if (_tab == 1)
-                          ..._tournamentsTab(catTournaments, sport: sportName)
+                          ..._tournamentsTab(tournaments)
                         else
                           ..._posts(p, posts),
                       ],
@@ -266,19 +230,13 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
 
   // ── groups / tournaments / posts ──────────────────────────────────────
 
-  List<Widget> _groups(AppPalette p, List<Map<String, dynamic>> groups,
-      {String? note}) {
+  List<Widget> _groups(AppPalette p, List<Map<String, dynamic>> groups) {
     if (groups.isEmpty) {
       return const [
         _Empty(icon: Icons.groups_outlined, text: 'Not in any groups yet.'),
       ];
     }
     return [
-      if (note != null)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8, left: 4),
-          child: Text(note, style: TextStyle(color: p.muted, fontSize: 12)),
-        ),
       SpListCard(children: [
         for (final g in groups)
           // Opens THIS PLAYER's record in that group — a scout tapping a
@@ -373,15 +331,12 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
     ];
   }
 
-  List<Widget> _tournamentsTab(List<Map<String, dynamic>> rows,
-      {String? sport}) {
+  List<Widget> _tournamentsTab(List<Map<String, dynamic>> rows) {
     if (rows.isEmpty) {
-      return [
+      return const [
         _Empty(
           icon: Icons.emoji_events_outlined,
-          text: sport != null
-              ? 'No $sport tournaments yet.'
-              : 'No tournaments yet.',
+          text: 'No tournaments yet.',
         ),
       ];
     }
@@ -438,6 +393,7 @@ class _Hero extends ConsumerWidget {
     required this.tournaments,
     required this.statsLoaded,
     required this.onBack,
+    this.restricted = false,
   });
   final String userId;
   final Map<String, dynamic> profile;
@@ -447,6 +403,9 @@ class _Hero extends ConsumerWidget {
   final bool statsLoaded;
   final VoidCallback onBack;
 
+  /// A private ward: initials, short name and a lock — nothing else.
+  final bool restricted;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
@@ -455,10 +414,11 @@ class _Hero extends ConsumerWidget {
     const avatar = 104.0;
     const overlap = 34.0;
     final name = parseStr(profile['displayName']) ?? 'Player';
-    final username = parseStr(profile['username']);
+    final username = restricted ? null : parseStr(profile['username']);
     // Gamification identity: level (always public), streak (if the player
-    // made it public).
-    final id = ref.watch(identityProvider(userId)).valueOrNull;
+    // made it public). Not for a private ward.
+    final id =
+        restricted ? null : ref.watch(identityProvider(userId)).valueOrNull;
 
     return Stack(clipBehavior: Clip.none, children: [
       Positioned(
@@ -553,6 +513,12 @@ class _Hero extends ConsumerWidget {
               LevelBadge(
                   level: id.level, title: id.title, streak: id.weeklyStreak),
             ],
+            if (restricted) ...[
+              const SizedBox(height: 10),
+              const WardBadge(),
+              const SizedBox(height: 16),
+              const WardPrivateNote(),
+            ] else ...[
             // Positions / strong foot are per-sport: they live in the sport's
             // own card below, not up here as one fixed fact.
             const SizedBox(height: 16),
@@ -566,6 +532,7 @@ class _Hero extends ConsumerWidget {
                   label: 'Tournaments',
                   accent: true),
             ]),
+            ],
           ]),
         ),
       ),
@@ -588,16 +555,21 @@ class _Hero extends ConsumerWidget {
                     offset: Offset(0, 6)),
               ],
             ),
-            // Earned avatar frame (gamification status perk).
-            child: FramedAvatar(
-              userId: userId,
-              child: ClipOval(
-                child: Crest(
-                    logoUrl: parseStr(profile['avatarUrl']),
-                    label: name,
-                    size: avatar - 12),
-              ),
-            ),
+            // Earned avatar frame (gamification status perk). A private
+            // ward shows initials only.
+            child: restricted
+                ? ClipOval(
+                    child: Crest(label: name, size: avatar - 12),
+                  )
+                : FramedAvatar(
+                    userId: userId,
+                    child: ClipOval(
+                      child: Crest(
+                          logoUrl: parseStr(profile['avatarUrl']),
+                          label: name,
+                          size: avatar - 12),
+                    ),
+                  ),
           ),
         ),
       ),
@@ -740,9 +712,8 @@ class _PillTab extends StatelessWidget {
 }
 
 class _Empty extends StatelessWidget {
-  const _Empty({required this.icon, required this.text, this.title});
+  const _Empty({required this.icon, required this.text});
   final IconData icon;
-  final String? title;
   final String text;
 
   @override
@@ -752,13 +723,6 @@ class _Empty extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
       child: Column(children: [
         SpIconTile(icon, bg: p.surface2, fg: p.muted, size: 52, iconSize: 24),
-        if (title != null) ...[
-          const SizedBox(height: 12),
-          Text(title!,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: p.ink, fontSize: 15, fontWeight: FontWeight.w800)),
-        ],
         const SizedBox(height: 6),
         Text(text,
             textAlign: TextAlign.center,

@@ -1,4 +1,9 @@
 import '../../shared/format/parse.dart';
+import 'basketball_models.dart';
+import 'volleyball_models.dart';
+
+export 'basketball_models.dart';
+export 'volleyball_models.dart';
 
 /// One side in a game, with its live score.
 class GameTeam {
@@ -99,6 +104,7 @@ class GameActivity {
     required this.playerName,
     this.minute,
     this.phase,
+    this.clockLeft,
     this.relatedPlayerId,
     this.relatedPlayerName,
     this.jersey,
@@ -110,6 +116,9 @@ class GameActivity {
   final String playerName;
   final int? minute;
   final String? phase;
+
+  /// Seconds left on a count-down clock when it happened (basketball).
+  final int? clockLeft;
   final String? relatedPlayerId;
   final String? relatedPlayerName;
   final int? jersey;
@@ -122,6 +131,7 @@ class GameActivity {
         playerName: (j['playerName'] ?? 'Player') as String,
         minute: parseInt(j['minute']),
         phase: parseStr(j['phase']),
+        clockLeft: parseInt(j['clockLeft']),
         relatedPlayerId: parseStr(j['relatedPlayerId']),
         relatedPlayerName: parseStr(j['relatedPlayerName']),
         jersey: parseInt(j['jersey']),
@@ -404,8 +414,17 @@ class OfficiatingProfile {
     this.periodWord = 'period',
     this.tools = const ['pause', 'stoppage', 'complete'],
     this.scorerRecords = const [],
+    this.clockDirection = 'up',
+    this.completeLabel = 'Full time',
   });
   final String family;
+
+  /// 'down': the board shows time LEFT in the period (basketball quarters).
+  final String clockDirection;
+
+  /// What ending the game is called ("Full time", "End game").
+  final String completeLabel;
+  bool get countsDown => clockDirection == 'down';
   final String clock; // match | elapsed
   final int? lengthMinutes;
   final String pauseLabel;
@@ -440,6 +459,18 @@ class OfficiatingProfile {
             ]
           : const ['pause', 'complete'],
       scorerRecords: parseStrList(j['scorerRecords']),
+      clockDirection: parseStr(j['clockDirection']) ?? 'up',
+      completeLabel: () {
+        final tools = j['tools'];
+        if (tools is List) {
+          for (final t in tools) {
+            if (t is Map && t['id'] == 'complete' && t['label'] is String) {
+              return t['label'] as String;
+            }
+          }
+        }
+        return 'Full time';
+      }(),
     );
   }
 }
@@ -475,6 +506,8 @@ class GameDetail {
     this.officiating = const OfficiatingRights(),
     this.profile = const OfficiatingProfile(),
     this.durationMinutes,
+    this.basketball,
+    this.volleyball,
   });
 
   final String id;
@@ -516,6 +549,20 @@ class GameDetail {
 
   /// Scheduled length (non-phased games), null when not set.
   final int? durationMinutes;
+
+  /// Basketball games: rules, team fouls / bonus, box score.
+  final BasketballInfo? basketball;
+  bool get isBasketball => basketball != null;
+
+  /// Volleyball matches: sets, set points, timeouts, stat sheet.
+  final VolleyballInfo? volleyball;
+  bool get isVolleyball => volleyball != null;
+
+  /// Server time now, from the fetch's serverNow / fetchedAt anchor.
+  DateTime get serverClock {
+    final off = (serverNow != null && fetchedAt != null) ? serverNow!.difference(fetchedAt!) : Duration.zero;
+    return DateTime.now().add(off);
+  }
 
   bool get canTime => officiating.canTime;
   bool get canScore => officiating.canScore;
@@ -612,6 +659,8 @@ class GameDetail {
           fallback: j['canManage'] == true),
       profile: OfficiatingProfile.fromJson(j['officiatingProfile']),
       durationMinutes: duration,
+      basketball: BasketballInfo.fromJson(j['basketball']),
+      volleyball: VolleyballInfo.fromJson(j['volleyball']),
     );
   }
 }

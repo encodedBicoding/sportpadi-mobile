@@ -457,3 +457,78 @@ class WithdrawalsPage {
             : const [],
       );
 }
+
+/// Who pays the fees on the group's tickets, fines and tournament entry fees.
+/// Chosen once by the group ('buyer' until then); only support can reset it.
+class FeeSetting {
+  const FeeSetting({
+    required this.bearer,
+    required this.chosen,
+    required this.currency,
+    required this.currencyExponent,
+    required this.examplePrice,
+    required this.buyerPaysIfBuyer,
+    required this.groupGetsIfBuyer,
+    required this.buyerPaysIfGroup,
+    required this.groupGetsIfGroup,
+    required this.supportEmail,
+    this.setAt,
+  });
+  final String bearer; // buyer | group
+  final bool chosen;
+  final DateTime? setAt;
+  final String currency;
+  final int currencyExponent;
+  final int examplePrice;
+  final int buyerPaysIfBuyer;
+  final int groupGetsIfBuyer;
+  final int buyerPaysIfGroup;
+  final int groupGetsIfGroup;
+  final String supportEmail;
+
+  bool get groupPays => bearer == 'group';
+
+  factory FeeSetting.fromJson(Map<String, dynamic> j) {
+    final ex = j['example'] is Map ? Map<String, dynamic>.from(j['example'] as Map) : const <String, dynamic>{};
+    Map<String, dynamic> side(String k) =>
+        ex[k] is Map ? Map<String, dynamic>.from(ex[k] as Map) : const <String, dynamic>{};
+    final b = side('buyer'), g = side('group');
+    return FeeSetting(
+      bearer: parseStr(j['bearer']) == 'group' ? 'group' : 'buyer',
+      chosen: j['chosen'] == true,
+      setAt: parseDate(j['setAt']),
+      currency: parseStr(j['currency']) ?? '',
+      currencyExponent: parseInt(j['currencyExponent']) ?? 2,
+      examplePrice: parseInt(ex['price']) ?? 0,
+      buyerPaysIfBuyer: parseInt(b['buyerPays']) ?? 0,
+      groupGetsIfBuyer: parseInt(b['groupReceives']) ?? 0,
+      buyerPaysIfGroup: parseInt(g['buyerPays']) ?? 0,
+      groupGetsIfGroup: parseInt(g['groupReceives']) ?? 0,
+      supportEmail: parseStr(j['supportEmail']) ?? 'support@sportpadi.com',
+    );
+  }
+}
+
+/// "Buyers pay X · you receive Y" for a price, as checkout will split it.
+class FeeQuote {
+  const FeeQuote({
+    required this.bearer,
+    required this.priceMinor,
+    required this.buyerPaysMinor,
+    required this.groupReceivesMinor,
+    required this.tooLow,
+  });
+  final String bearer;
+  final int priceMinor;
+  final int buyerPaysMinor;
+  final int groupReceivesMinor;
+  final bool tooLow;
+
+  factory FeeQuote.fromJson(Map<String, dynamic> j) => FeeQuote(
+        bearer: parseStr(j['bearer']) == 'group' ? 'group' : 'buyer',
+        priceMinor: parseInt(j['priceMinor']) ?? 0,
+        buyerPaysMinor: parseInt(j['buyerPaysMinor']) ?? 0,
+        groupReceivesMinor: parseInt(j['groupReceivesMinor']) ?? 0,
+        tooLow: j['tooLow'] == true,
+      );
+}

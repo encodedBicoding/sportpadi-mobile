@@ -9,9 +9,13 @@ import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart' show myFeedProvider;
+import 'package:sportpadi_mobile/data/games/basketball_models.dart';
+import 'package:sportpadi_mobile/data/games/volleyball_models.dart';
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
+import 'package:sportpadi_mobile/features/games/basketball_widgets.dart';
+import 'package:sportpadi_mobile/features/games/volleyball_widgets.dart';
 import 'package:sportpadi_mobile/features/payments/checkout_flow.dart';
 import 'package:sportpadi_mobile/features/tournaments/live_scores_sync.dart';
 import 'package:sportpadi_mobile/features/tournaments/officiant_picker.dart';
@@ -806,13 +810,34 @@ class _MatchupCard extends ConsumerWidget {
                   small: true,
                   onTap: () async {
                     final messenger = ScaffoldMessenger.of(context);
+                    final ok = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Refund this entry fee?'),
+                        content: const Text(
+                            'The team gets its entry fee back to its original '
+                            'payment method, and your group returns it in full.\n\n'
+                            "SportPadi's processing fee is non-refundable — it "
+                            "isn't returned to either side."),
+                        actions: [
+                          TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Keep it')),
+                          TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('Refund')),
+                        ],
+                      ),
+                    );
+                    if (ok != true) return;
                     try {
                       await ref
                           .read(tournamentsRepositoryProvider)
                           .refundFee(eventId, guestRowId);
                       ref.invalidate(tournamentDetailProvider(eventId));
                       messenger.showSnackBar(const SnackBar(
-                          content: Text('Entry fee refunded')));
+                          content: Text(
+                              "Entry fee refunded — SportPadi's processing fee is non-refundable.")));
                     } catch (e) {
                       messenger
                           .showSnackBar(SnackBar(content: Text('$e')));
@@ -2105,9 +2130,12 @@ class _ManageRow extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Cancel this tournament?'),
         content: const Text(
-            'This cancels the tournament and its invitations. Any paid ticket '
-            'holders are automatically refunded to their original payment '
-            'method. This cannot be undone.'),
+            'This cancels the tournament and its invitations. Paid ticket '
+            'holders and paid entry fees are automatically refunded to their '
+            'original payment method. This cannot be undone.\n\n'
+            "SportPadi's processing fee is non-refundable: payers get the ticket "
+            'price or entry fee back, and if your group covers the fees, the '
+            "processing fee on each payment isn't returned to your group either."),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -2279,10 +2307,26 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
   bool _allowPenalties = true;
   List<PickedOfficiant> _officiants = const [];
   bool _saving = false;
+  // Basketball: quarters or first-to-N, and the foul rules.
+  BasketballRules _bb = const BasketballRules();
+  // Volleyball: one set, best of 3 or best of 5.
+  VolleyballRules _vb = const VolleyballRules();
+
+  bool get _isVb {
+    final c = widget.category;
+    if (c == null) return false;
+    return isVolleyballSport(parseStr(c['name']), parseStr(c['emoji']));
+  }
+
+  bool get _isBb {
+    final c = widget.category;
+    if (c == null) return false;
+    return isBasketballSport(parseStr(c['name']), parseStr(c['emoji']));
+  }
 
   bool get _isSoccer {
     final c = widget.category;
-    if (c == null) return false;
+    if (c == null || _isBb) return false;
     final emoji = parseStr(c['emoji']);
     final name = parseStr(c['name']) ?? '';
     return emoji == '⚽' ||
@@ -2354,6 +2398,8 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
               ? (int.tryParse(_extraHalf.text) ?? 15).clamp(1, 60)
               : null,
         },
+      if (_isBb) 'basketball': _bb.toJson(),
+      if (_isVb) 'volleyball': _vb.toJson(),
     };
     try {
       await ref
@@ -2502,6 +2548,20 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
             const SizedBox(height: 6),
             Text('Leave blank to show "TBD". You can set it anytime before kickoff.',
                 style: TextStyle(color: p.muted, fontSize: 11)),
+            if (_isBb) ...[
+              const SizedBox(height: 12),
+              BasketballFormatFields(
+                value: _bb,
+                onChanged: (v) => setState(() => _bb = v),
+              ),
+            ],
+            if (_isVb) ...[
+              const SizedBox(height: 12),
+              VolleyballFormatFields(
+                value: _vb,
+                onChanged: (v) => setState(() => _vb = v),
+              ),
+            ],
             if (_isSoccer) ...[
               const SizedBox(height: 12),
               Container(

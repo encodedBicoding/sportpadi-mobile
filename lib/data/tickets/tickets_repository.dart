@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/data/tickets/ticket_models.dart';
+import 'package:sportpadi_mobile/shared/format/parse.dart';
 
 /// Ticket SETUP for group admins — list/create/edit/hide/delete tickets and
 /// see who bought them. (Buying lives in PaymentsRepository.)
@@ -68,9 +69,34 @@ class TicketsRepository {
     }
   }
 
+  /// Refund ONE purchase through the provider it was paid with (group
+  /// admins): the ticket price goes back to the buyer; SportPadi's fee isn't
+  /// refunded; on a pay-all charge only this ticket is. Returns the amount
+  /// refunded, in minor units. 409 when a refund is already in progress.
+  /// [amountMinor] refunds only part of the price (the ticket stays valid);
+  /// omit it to refund everything still refundable.
+  Future<int> refundPayment(String groupId, String paymentId,
+      {String? reason, int? amountMinor}) async {
+    try {
+      final r = reason?.trim();
+      final res = await _dio.post(_path(groupId), data: {
+        'action': 'refund',
+        'paymentId': paymentId,
+        if (r != null && r.isNotEmpty) 'reason': r,
+        if (amountMinor != null && amountMinor > 0) 'amountMinor': amountMinor,
+      });
+      final m = res.data is Map ? Map<String, dynamic>.from(res.data as Map) : const <String, dynamic>{};
+      return parseInt(m['refundedMinor']) ?? 0;
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not refund this payment.');
+    }
+  }
+
   /// `body` uses the API's field names (title, price in minor units, kind,
   /// eventId, description, blocksCheckin, requiresValidation, recurrence,
-  /// salesStartAt/salesEndAt as ISO strings, capacity).
+  /// salesStartAt/salesEndAt as ISO strings, capacity; recurring tickets
+  /// also validFromDate "YYYY-MM-DD" + timezone, from which SportPadi sets the
+  /// validity). Recurrence can't change on [update] — don't send it there.
   Future<void> create(String groupId, Map<String, dynamic> body) async {
     try {
       await _dio.post(_path(groupId), data: {'action': 'create', ...body});
@@ -97,7 +123,9 @@ class TicketsRepository {
   }
 
   /// Organizer scans a holder's ticket QR at the gate. Returns
-  /// {ok, reason?, ticketTitle, redeemedAt?}; server checks group admin.
+  /// {ok, reason?, ticketTitle, redeemedAt?, expiredAt?}; reason is
+  /// unpaid | already | expired (a recurring ticket whose cycle ended). The
+  /// server checks group admin.
   Future<Map<String, dynamic>> redeem(String code) async {
     try {
       final res = await _dio

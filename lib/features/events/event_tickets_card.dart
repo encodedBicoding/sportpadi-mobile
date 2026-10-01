@@ -10,12 +10,14 @@ import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/features/payments/checkout_flow.dart';
 import 'package:sportpadi_mobile/features/payments/recipient_sheet.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
+import 'package:sportpadi_mobile/shared/format/ticket_validity.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
 const _recurrenceLabel = {
   'daily': 'per day',
   'weekly': 'per week',
   'monthly': 'per month',
+  'quarterly': 'per quarter',
   'yearly': 'per year',
 };
 
@@ -101,6 +103,9 @@ class _EventTicketsCardState extends ConsumerState<EventTicketsCard> {
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('$e')));
+        // e.g. "That cycle has ended — a new one is on sale. Reload to buy
+        // it.": reload so the new cycle's ticket shows.
+        ref.invalidate(eventTicketsProvider(widget.eventId));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -243,9 +248,14 @@ class _TicketRow extends StatelessWidget {
     final p = context.palette;
     final t = ticket;
     final rec = _recurrenceLabel[t.recurrence];
+    // A recurring ticket covers every occurrence during its cycle — a pass:
+    // "Monthly pass · valid Oct 1 – Oct 31" (how long it admits you).
+    final pass = passLabel(t.recurrence);
+    final valid = pass != null ? validityRange(t.validFrom, t.validUntil) : null;
     final meta = <String>[
       t.required ? 'Required to check in' : 'Optional',
       if (!t.eventSpecific) 'group pass',
+      if (valid != null) '$pass · valid $valid',
       if (t.soldLabel != null) t.soldLabel!,
       if (t.lowStock) 'only ${t.remaining ?? (t.capacity! - t.sold)} left',
       if (t.notOpenYet && t.salesStartAt != null)

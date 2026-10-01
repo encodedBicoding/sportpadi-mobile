@@ -114,12 +114,15 @@ class GroupsRepository {
     }
   }
 
+  /// The group's player board for one sport; [ageBand] is one of
+  /// `all | u12 | u16 | u18 | adults` (by date of birth).
   Future<List<LeaderboardRow>> leaderboard(String groupId,
-      {String? categoryId}) async {
+      {String? categoryId, String ageBand = 'all'}) async {
     try {
       final res = await _dio
           .get('/api/mobile/groups/$groupId/leaderboard', queryParameters: {
         if (categoryId != null) 'categoryId': categoryId,
+        if (ageBand != 'all') 'ageBand': ageBand,
       });
       final list = res.data is List ? res.data as List : const [];
       return [
@@ -136,6 +139,22 @@ class GroupsRepository {
       final res = await _dio.get('/api/mobile/groups/$groupId/overview');
       return GroupOverview.fromJson(
           Map<String, dynamic>.from(res.data as Map));
+    } on DioException catch (e) {
+      throw _err(e);
+    }
+  }
+
+  /// Badges for the group page's Talk tiles — or, with [teamId], the team
+  /// page's (only that team's announcements, coach threads and discussions).
+  Future<GroupTalkCounts> talkCounts(String groupId, {String? teamId}) async {
+    try {
+      final res = await _dio.get(
+        '/api/mobile/groups/$groupId/talk-counts',
+        queryParameters: {if (teamId != null) 'teamId': teamId},
+      );
+      return res.data is Map
+          ? GroupTalkCounts.fromJson(Map<String, dynamic>.from(res.data as Map))
+          : GroupTalkCounts.none;
     } on DioException catch (e) {
       throw _err(e);
     }
@@ -167,10 +186,10 @@ final groupsRepositoryProvider = Provider<GroupsRepository>(
     (ref) => GroupsRepository(ref.watch(dioProvider)));
 
 final groupLeaderboardProvider = FutureProvider.autoDispose.family<
-        List<LeaderboardRow>, ({String groupId, String? categoryId})>(
-    (ref, a) => ref
-        .watch(groupsRepositoryProvider)
-        .leaderboard(a.groupId, categoryId: a.categoryId));
+        List<LeaderboardRow>,
+        ({String groupId, String? categoryId, String ageBand})>(
+    (ref, a) => ref.watch(groupsRepositoryProvider).leaderboard(a.groupId,
+        categoryId: a.categoryId, ageBand: a.ageBand));
 
 /// Sport categories this group has completed games in (board switcher).
 final groupLeaderboardCategoriesProvider = FutureProvider.autoDispose
@@ -184,3 +203,19 @@ final groupLeaderboardCategoriesProvider = FutureProvider.autoDispose
 final groupOverviewProvider = FutureProvider.autoDispose
     .family<GroupOverview, String>((ref, groupId) =>
         ref.watch(groupsRepositoryProvider).overview(groupId));
+
+/// What's new for me in a group's Talk tiles (announcements, messages,
+/// discussions). The group page invalidates it on app resume, when it's back
+/// on top and when a Talk sheet closes.
+final groupTalkCountsProvider = FutureProvider.autoDispose
+    .family<GroupTalkCounts, String>((ref, groupId) =>
+        ref.watch(groupsRepositoryProvider).talkCounts(groupId));
+
+typedef TeamTalkKey = ({String groupId, String teamId});
+
+/// The team page's Talk badges: the same counts, for one team. Re-read like
+/// the group's — on resume, back on top, and when a Talk sheet closes.
+final teamTalkCountsProvider = FutureProvider.autoDispose
+    .family<GroupTalkCounts, TeamTalkKey>((ref, k) => ref
+        .watch(groupsRepositoryProvider)
+        .talkCounts(k.groupId, teamId: k.teamId));

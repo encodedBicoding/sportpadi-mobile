@@ -24,6 +24,29 @@ int _pow10(int e) {
   return v;
 }
 
+/// One of MY wards a ticket or fine belongs to (Wards 3): the guardian pays,
+/// the ward holds. Null on rows that are the viewer's own.
+class PaymentWardRef {
+  const PaymentWardRef({required this.userId, required this.displayName});
+  final String userId;
+  final String displayName;
+
+  String get firstName {
+    final parts = displayName.trim().split(RegExp(r'\s+'));
+    return parts.isEmpty || parts.first.isEmpty ? displayName : parts.first;
+  }
+
+  static PaymentWardRef? fromJson(dynamic v) {
+    if (v is! Map) return null;
+    final id = parseStr(v['userId']);
+    if (id == null) return null;
+    return PaymentWardRef(
+      userId: id,
+      displayName: parseStr(v['displayName']) ?? 'Your ward',
+    );
+  }
+}
+
 /// A ticket the viewer still owes a group.
 class OutstandingTicket {
   const OutstandingTicket({
@@ -34,6 +57,8 @@ class OutstandingTicket {
     this.mandatory = false,
     this.recurrence = 'once',
     this.eventTitle,
+    this.validFrom,
+    this.validUntil,
   });
   final String id;
   final String title;
@@ -42,6 +67,11 @@ class OutstandingTicket {
   final bool mandatory;
   final String recurrence;
   final String? eventTitle;
+
+  /// A recurring ticket's cycle (how long a purchase admits you). A NEXT
+  /// cycle already on presale has [validFrom] in the future.
+  final DateTime? validFrom;
+  final DateTime? validUntil;
 
   factory OutstandingTicket.fromJson(Map<String, dynamic> j) {
     final ev = j['event'];
@@ -53,6 +83,8 @@ class OutstandingTicket {
       mandatory: j['mandatory'] == true,
       recurrence: parseStr(j['recurrence']) ?? 'once',
       eventTitle: ev is Map ? parseStr(ev['title']) : null,
+      validFrom: parseDate(j['validFrom']),
+      validUntil: parseDate(j['validUntil']),
     );
   }
 }
@@ -106,6 +138,14 @@ class MyTicket {
     this.groupRelation,
     this.feeMinor = 0,
     this.redeemedAt,
+    this.forWard,
+    this.canPresent = true,
+    this.holderName,
+    this.status = 'paid',
+    this.expiredAt,
+    this.validFrom,
+    this.validUntil,
+    this.refundedMinor = 0,
   });
   final String id;
   final String code;
@@ -124,21 +164,55 @@ class MyTicket {
   final String? groupRelation;
   /// Platform fee paid on top of [amountMinor].
   final int feeMinor;
+  /// Given back so far. A partly refunded ticket is still 'paid' and valid.
+  final int refundedMinor;
   final DateTime? redeemedAt;
+
+  /// Held by one of my wards — I show its QR at the gate for them.
+  final PaymentWardRef? forWard;
+
+  /// This viewer may show the gate QR (the holder, or the holder's guardian).
+  /// Always true for "My purchases" rows; a receipt opened by a gift buyer is
+  /// false.
+  final bool canPresent;
+
+  /// Who holds the ticket (receipts only).
+  final String? holderName;
+
+  /// paid | pending | failed… (receipts; list rows are always paid).
+  final String status;
+
+  /// Set when a recurring ticket's cycle ended: the purchase is used up — it
+  /// no longer admits anyone and can't be refunded.
+  final DateTime? expiredAt;
+
+  /// The cycle this purchase covers (recurring tickets only).
+  final DateTime? validFrom;
+  final DateTime? validUntil;
 
   int get totalMinor => amountMinor + feeMinor;
 
+  /// Its cycle ended before it was scanned.
+  bool get usedUp => expiredAt != null && redeemedAt == null;
+
+  /// Show the QR: presentable, paid, and not used up.
+  bool get showsQr => canPresent && status == 'paid' && expiredAt == null;
+
+  /// `GET /api/mobile/payments?view=tickets` rows, and `view=receipt` (same
+  /// keys, plus `canPresent`, `holder`, `status` and a top-level exponent).
   factory MyTicket.fromJson(Map<String, dynamic> j) {
     final t = j['ticket'];
     final tm = t is Map ? t : const {};
     final grp = tm['group'];
     final ev = tm['event'];
     return MyTicket(
-      id: (j['id'] ?? '') as String,
-      code: (j['code'] ?? '') as String,
+      id: parseStr(j['id']) ?? '',
+      code: parseStr(j['code']) ?? '',
       amountMinor: parseInt(j['amount']) ?? 0,
       currency: parseStr(j['currency']) ?? parseStr(tm['currency']) ?? '',
-      currencyExponent: parseInt(tm['currencyExponent']) ?? 2,
+      currencyExponent: parseInt(tm['currencyExponent']) ??
+          parseInt(j['currencyExponent']) ??
+          2,
       title: parseStr(tm['title']) ?? 'Ticket',
       groupName: grp is Map ? parseStr(grp['name']) : null,
       eventTitle: ev is Map ? parseStr(ev['title']) : null,
@@ -151,6 +225,17 @@ class MyTicket {
       groupRelation: parseStr(j['groupRelation']),
       feeMinor: parseInt(j['platformFee']) ?? 0,
       redeemedAt: parseDate(j['redeemedAt']),
+      forWard: PaymentWardRef.fromJson(j['forWard']),
+      canPresent: j['canPresent'] is bool ? j['canPresent'] as bool : true,
+      holderName: j['holder'] is Map
+          ? parseStr((j['holder'] as Map)['displayName'])
+          : null,
+      status: parseStr(j['status']) ?? 'paid',
+      expiredAt: parseDate(j['expiredAt']),
+      // Top level on `view=tickets` rows, under `ticket` on receipts.
+      validFrom: parseDate(j['validFrom']) ?? parseDate(tm['validFrom']),
+      validUntil: parseDate(j['validUntil']) ?? parseDate(tm['validUntil']),
+      refundedMinor: parseInt(j['refundedMinor']) ?? 0,
     );
   }
 }
@@ -166,6 +251,7 @@ class Fine {
     required this.status, // active | pardoned | paid
     this.groupName,
     this.createdAt,
+    this.forWard,
   });
   final String id;
   final String title;
@@ -175,6 +261,9 @@ class Fine {
   final String status;
   final String? groupName;
   final DateTime? createdAt;
+
+  /// Issued to one of my wards — any of their guardians may pay it.
+  final PaymentWardRef? forWard;
 
   bool get isActive => status == 'active';
 
@@ -189,6 +278,7 @@ class Fine {
       status: parseStr(j['status']) ?? 'active',
       groupName: grp is Map ? parseStr(grp['name']) : null,
       createdAt: parseDate(j['createdAt']),
+      forWard: PaymentWardRef.fromJson(j['forWard']),
     );
   }
 }
@@ -219,6 +309,8 @@ class EventTicket {
     this.salesStartAt,
     this.salesEndAt,
     this.paymentCode,
+    this.validFrom,
+    this.validUntil,
   });
   final String id;
   final String title;
@@ -242,6 +334,10 @@ class EventTicket {
   final DateTime? salesStartAt;
   final DateTime? salesEndAt;
   final String? paymentCode;
+
+  /// A recurring ticket's current cycle — how long a purchase admits you.
+  final DateTime? validFrom;
+  final DateTime? validUntil;
 
   int get totalMinor => priceMinor + feeMinor;
 
@@ -283,6 +379,8 @@ class EventTicket {
         salesStartAt: parseDate(j['salesStartAt']),
         salesEndAt: parseDate(j['salesEndAt']),
         paymentCode: parseStr(j['paymentCode']),
+        validFrom: parseDate(j['validFrom']),
+        validUntil: parseDate(j['validUntil']),
       );
 }
 

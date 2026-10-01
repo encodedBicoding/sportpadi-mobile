@@ -9,8 +9,7 @@ import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart' show showSideMenu;
-import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart' show SideMenuButton;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
@@ -99,11 +98,7 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    SpRoundButton(
-                      icon: Icons.menu_rounded,
-                      tooltip: 'Menu',
-                      onTap: () => showSideMenu(context),
-                    ),
+                    const SideMenuButton(),
                   ]),
                   const SizedBox(height: 2),
                   Text('Your crews, and new ones to find.',

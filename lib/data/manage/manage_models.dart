@@ -19,17 +19,27 @@ class SimpleUser {
     required this.displayName,
     this.username,
     this.avatarUrl,
+    this.isWard = false,
+    this.invitePending = false,
   });
   final String userId;
   final String displayName;
   final String? username;
   final String? avatarUrl;
 
+  /// A ward (no login): adding them to a team invites their guardians.
+  final bool isWard;
+
+  /// A team invitation for this ward is already waiting on a guardian.
+  final bool invitePending;
+
   factory SimpleUser.fromJson(Map<String, dynamic> j) => SimpleUser(
         userId: (j['userId'] ?? j['id'] ?? '') as String,
         displayName: (j['displayName'] ?? 'Member') as String,
         username: parseStr(j['username']),
         avatarUrl: parseStr(j['avatarUrl']),
+        isWard: j['isWard'] == true,
+        invitePending: j['invitePending'] == true,
       );
 }
 

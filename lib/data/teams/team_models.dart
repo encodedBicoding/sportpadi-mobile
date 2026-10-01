@@ -45,6 +45,67 @@ class TeamSummary {
   }
 }
 
+/// "Who's it for?" options when creating/editing an event in a group
+/// (`GET /api/mobile/groups/:id/event-audiences`). Admins get every team and
+/// may make whole-group events ([canGeneral]); coaches get the teams they
+/// coach, and can only make events for those.
+class EventAudienceOptions {
+  const EventAudienceOptions({
+    this.isAdmin = false,
+    this.canGeneral = false,
+    this.teams = const [],
+  });
+  final bool isAdmin;
+  final bool canGeneral;
+  final List<AudienceTeamOption> teams;
+
+  /// May this viewer create an event at all (general or for a team)?
+  bool get canCreate => canGeneral || teams.isNotEmpty;
+
+  bool hasTeam(String teamId) => teams.any((t) => t.id == teamId);
+
+  factory EventAudienceOptions.fromJson(Map<String, dynamic> j) =>
+      EventAudienceOptions(
+        isAdmin: j['isAdmin'] == true,
+        canGeneral: j['canGeneral'] == true,
+        teams: [
+          for (final t in (j['teams'] is List ? j['teams'] as List : const []))
+            if (t is Map)
+              AudienceTeamOption.fromJson(Map<String, dynamic>.from(t))
+        ].where((t) => t.id.isNotEmpty).toList(),
+      );
+}
+
+/// A team an event can be aimed at.
+class AudienceTeamOption {
+  const AudienceTeamOption({
+    required this.id,
+    required this.name,
+    this.logoUrl,
+    this.grade,
+    this.categoryId,
+    this.players,
+  });
+  final String id;
+  final String name;
+  final String? logoUrl;
+  final String? grade; // kids | adults
+  final String? categoryId;
+  final int? players;
+
+  bool get isKids => grade == 'kids';
+
+  factory AudienceTeamOption.fromJson(Map<String, dynamic> j) =>
+      AudienceTeamOption(
+        id: parseStr(j['id']) ?? '',
+        name: parseStr(j['name']) ?? 'Team',
+        logoUrl: parseStr(j['logoUrl']),
+        grade: parseStr(j['grade']),
+        categoryId: parseStr(j['categoryId']),
+        players: parseInt(j['players']),
+      );
+}
+
 class FormationSlot {
   const FormationSlot(this.role, this.x, this.y);
   final String role;
@@ -122,6 +183,7 @@ class TeamMember {
     this.isCaptain = false,
     this.posX,
     this.posY,
+    this.isWard = false,
   });
 
   final String memberId;
@@ -135,6 +197,9 @@ class TeamMember {
   final bool isCaptain;
   final double? posX;
   final double? posY;
+
+  /// A ward (a player run by a guardian).
+  final bool isWard;
 
   factory TeamMember.fromJson(Map<String, dynamic> j, {String? captainPlayerId}) {
     final pid = (j['playerId'] ?? '') as String;
@@ -152,6 +217,7 @@ class TeamMember {
       isCaptain: captainPlayerId != null && pid == captainPlayerId,
       posX: parseDouble(j['posX']),
       posY: parseDouble(j['posY']),
+      isWard: j['isWard'] == true,
     );
   }
 }
@@ -362,6 +428,7 @@ class PlayerCard {
     this.setup = const [],
     this.appearances = 0,
     this.tallies = const [],
+    this.restricted = false,
   });
   final String playerId;
   final String displayName;
@@ -376,6 +443,10 @@ class PlayerCard {
   final List<({String label, String value})> setup;
   final int appearances;
   final List<({String type, String label, String? icon, int count})> tallies;
+
+  /// A ward whose guardians keep their card private from this viewer: the
+  /// name is short, and there's no username, photo, setup or tallies.
+  final bool restricted;
 
   factory PlayerCard.fromJson(Map<String, dynamic> j) => PlayerCard(
         playerId: (j['playerId'] ?? '') as String,
@@ -411,5 +482,78 @@ class PlayerCard {
                     )
               ]
             : const [],
+        restricted: j['restricted'] == true,
+      );
+}
+
+/// What `POST /api/mobile/teams/:id/members` did: a ward isn't added
+/// directly — their guardians get an invitation instead.
+class AddMemberResult {
+  const AddMemberResult({
+    this.pendingWardInvite = false,
+    this.inviteId,
+    this.alreadyInvited = false,
+    this.guardians = 0,
+    this.wardName,
+  });
+
+  final bool pendingWardInvite;
+  final String? inviteId;
+  final bool alreadyInvited;
+
+  /// How many guardians were asked.
+  final int guardians;
+  final String? wardName;
+
+  /// The snackbar line for a ward invitation (null for a direct add).
+  String? get wardMessage {
+    if (!pendingWardInvite) return null;
+    if (alreadyInvited) return 'Already invited — waiting for a guardian.';
+    final who = wardName ?? 'their';
+    final owner = wardName == null ? who : "$who's";
+    return 'Invitation sent to $owner guardian${guardians == 1 ? '' : 's'}.';
+  }
+
+  factory AddMemberResult.fromJson(Map<String, dynamic> j) => AddMemberResult(
+        pendingWardInvite: j['pendingWardInvite'] == true,
+        inviteId: parseStr(j['inviteId']),
+        alreadyInvited: j['alreadyInvited'] == true,
+        guardians: parseInt(j['guardians']) ?? 0,
+        wardName: parseStr(j['wardName']),
+      );
+}
+
+/// A ward invited onto a team, waiting for a guardian's answer (admin view,
+/// `GET /api/mobile/teams/:id/ward-invites`).
+class TeamWardInvite {
+  const TeamWardInvite({
+    required this.inviteId,
+    required this.wardId,
+    required this.displayName,
+    this.avatarUrl,
+    this.positions = const [],
+    this.jerseyNumber,
+    this.isStarter = false,
+    this.createdAt,
+  });
+
+  final String inviteId;
+  final String wardId;
+  final String displayName;
+  final String? avatarUrl;
+  final List<String> positions;
+  final int? jerseyNumber;
+  final bool isStarter;
+  final DateTime? createdAt;
+
+  factory TeamWardInvite.fromJson(Map<String, dynamic> j) => TeamWardInvite(
+        inviteId: parseStr(j['inviteId']) ?? '',
+        wardId: parseStr(j['wardId']) ?? '',
+        displayName: parseStr(j['displayName']) ?? 'Player',
+        avatarUrl: parseStr(j['avatarUrl']),
+        positions: parseStrList(j['positions']),
+        jerseyNumber: parseInt(j['jerseyNumber']),
+        isStarter: j['isStarter'] == true,
+        createdAt: parseDate(j['createdAt']),
       );
 }

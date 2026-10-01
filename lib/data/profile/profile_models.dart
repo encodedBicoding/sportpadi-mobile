@@ -36,6 +36,58 @@ class Profile {
       );
 }
 
+/// A guardian supervising me (`GET /api/mobile/me/privacy`).
+class PrivacyGuardian {
+  const PrivacyGuardian(
+      {required this.userId, required this.displayName, this.avatarUrl});
+  final String userId;
+  final String displayName;
+  final String? avatarUrl;
+
+  factory PrivacyGuardian.fromJson(Map<String, dynamic> j) => PrivacyGuardian(
+        userId: parseStr(j['userId']) ?? '',
+        displayName: parseStr(j['displayName']) ?? 'Your guardian',
+        avatarUrl: parseStr(j['avatarUrl']),
+      );
+}
+
+/// Profile privacy for a player who claimed their account under 18 (Wards
+/// 3): who sees their profile and whether search finds them, until
+/// [supervisedUntil]. [applies] is false for everyone else.
+class MyPrivacy {
+  const MyPrivacy({
+    this.applies = false,
+    this.visibility = 'private',
+    this.searchable = false,
+    this.supervisedUntil,
+    this.guardians = const [],
+  });
+
+  final bool applies;
+
+  /// private | groups | public
+  final String visibility;
+  final bool searchable;
+
+  /// Their 18th birthday, "YYYY-MM-DD" (a calendar date).
+  final String? supervisedUntil;
+  final List<PrivacyGuardian> guardians;
+
+  factory MyPrivacy.fromJson(Map<String, dynamic> j) => MyPrivacy(
+        applies: j['applies'] == true,
+        visibility: parseStr(j['visibility']) ?? 'private',
+        searchable: j['searchable'] == true,
+        supervisedUntil: parseStr(j['supervisedUntil']),
+        guardians: j['guardians'] is List
+            ? [
+                for (final g in j['guardians'] as List)
+                  if (g is Map)
+                    PrivacyGuardian.fromJson(Map<String, dynamic>.from(g))
+              ]
+            : const [],
+      );
+}
+
 /// One configurable stat field on a sport (from the category's statSchema).
 class StatField {
   const StatField({

@@ -54,6 +54,35 @@ Future<T?> showSpSheet<T>(
   );
 }
 
+/// How content that can sit either on a page or inside a sheet runs a
+/// navigation (or opens a follow-up sheet). Inside a sheet it closes the
+/// sheet first, then runs the action with a context that is still mounted
+/// (the page's), so a pushed route never lands underneath the sheet — see
+/// [closeSheetThen]. Widgets take it as an optional `launch`; null means
+/// "I'm on a page": run the action with my own context ([runFromSheet]).
+typedef SheetLaunch = void Function(void Function(BuildContext context) action);
+
+/// A [SheetLaunch] for content inside a [showSpSheet] sheet opened from
+/// [pageContext]: pops the sheet ([sheetContext] is any context inside it),
+/// then runs the action on the page.
+SheetLaunch closeSheetThen(BuildContext sheetContext, BuildContext pageContext) =>
+    (action) {
+      if (!sheetContext.mounted) return; // the sheet is already gone
+      Navigator.of(sheetContext).pop();
+      if (pageContext.mounted) action(pageContext);
+    };
+
+/// Runs [action] through [launch] when given (content inside a sheet), or
+/// straight away with [context] (content on a page).
+void runFromSheet(BuildContext context, SheetLaunch? launch,
+    void Function(BuildContext context) action) {
+  if (launch == null) {
+    action(context);
+  } else {
+    launch(action);
+  }
+}
+
 /// The frame [showSpSheet] draws around a sheet's content. Usable on its own
 /// for a `framed: false` sheet that still wants the standard look.
 class SpSheet extends StatelessWidget {

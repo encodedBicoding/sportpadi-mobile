@@ -11,6 +11,9 @@ import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
 import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
+import 'package:sportpadi_mobile/features/games/basketball_widgets.dart';
+import 'package:sportpadi_mobile/features/games/timeout_widgets.dart';
+import 'package:sportpadi_mobile/features/games/volleyball_widgets.dart';
 import 'package:sportpadi_mobile/features/games/stoppage_pad.dart';
 
 /// Officiant mode — one job, one screen.
@@ -278,11 +281,20 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
               ? ph.endedAt!
               : (ph.timer.pausedAt ?? now);
           final el = e.difference(s).inMilliseconds - ph.timer.pausedMs;
-          clockMs = ph.nominalOffset * 60000 + (el < 0 ? 0 : el);
+          final played = el < 0 ? 0 : el;
+          final left = ph.nominalMinutes! * 60000 - played + 999;
+          clockMs = prof.countsDown
+              // Basketball: time LEFT in the quarter, down to 0:00.
+              ? (left < 0 ? 0 : left)
+              : ph.nominalOffset * 60000 + played;
         } else {
-          clockMs = ph.nominalOffset * 60000;
+          clockMs = prof.countsDown
+              ? ph.nominalMinutes! * 60000
+              : ph.nominalOffset * 60000;
         }
-        targetMs = (ph.nominalOffset + ph.nominalMinutes!) * 60000;
+        targetMs = prof.countsDown
+            ? null
+            : (ph.nominalOffset + ph.nominalMinutes!) * 60000;
       }
     } else if (g.startedAt != null) {
       paused = g.timer.pausedAt != null;
@@ -306,9 +318,21 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
         g.isDrawn &&
         !pensAdded &&
         ((draws.contains('extra_time') && !etAdded) ||
-            draws.contains('penalties'));
+            draws.contains('penalties') ||
+            draws.contains('overtime'));
+    // Basketball: tip-off, team fouls, first-to-N winner.
+    final bb = g.basketball;
+    final targetWinner = bb?.targetWinnerTeamId == null
+        ? null
+        : g.teams.where((t) => t.teamId == bb!.targetWinnerTeamId).firstOrNull;
     final showFullTime =
         lc != null ? (g.isLive && regulationDone && !awaitingDraw) : g.isLive;
+    // Volleyball: sets instead of a clock that matters.
+    final vb = g.volleyball;
+    final vbPts = currentSetPoints(g);
+    final vbWinner = vb?.matchWinnerTeamId == null
+        ? null
+        : g.teams.where((t) => t.teamId == vb!.matchWinnerTeamId).firstOrNull;
 
     final a = g.teams.isNotEmpty ? g.teams[0] : null;
     final b = g.teams.length > 1 ? g.teams[1] : null;
@@ -379,12 +403,21 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                       style: const TextStyle(
                           color: _white, fontWeight: FontWeight.w700)),
                 ),
-                Text('${a.score}–${b.score}',
-                    style: const TextStyle(
-                        color: _white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
-                        fontFeatures: [FontFeature.tabularFigures()])),
+                Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(
+                      vbPts != null
+                          ? '${vbPts[a.teamId] ?? 0}–${vbPts[b.teamId] ?? 0}'
+                          : '${a.score}–${b.score}',
+                      style: const TextStyle(
+                          color: _white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          fontFeatures: [FontFeature.tabularFigures()])),
+                  if (vbPts != null && vb != null)
+                    Text('SET ${vb.currentSet} · SETS ${a.score}–${b.score}',
+                        style: const TextStyle(
+                            color: _dim, fontSize: 9.5, fontWeight: FontWeight.w800, letterSpacing: 0.8)),
+                ]),
                 Expanded(
                   child: Text(b.name,
                       maxLines: 1,
@@ -395,6 +428,9 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                 ),
               ]),
             ),
+          if (bb != null && !g.isScheduled && !over) TeamFoulsStrip(game: g),
+          if (vb != null && !g.isScheduled && a != null && b != null)
+            SetScoresStrip(game: g, order: [a.teamId, b.teamId]),
 
           // the clock
           Expanded(
@@ -405,12 +441,16 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                   (g.isScheduled
                           ? 'Ready'
                           : over
-                              ? 'Full time'
-                              : label.isNotEmpty
-                                  ? label
-                                  : prof.clock == 'elapsed'
-                                      ? 'Elapsed'
-                                      : 'Match time')
+                              ? (bb != null ? 'Final' : 'Full time')
+                              : bb != null && bb.rules.isTarget
+                                  ? 'First to ${bb.rules.targetScore}'
+                                  : vb != null
+                                      ? 'Set ${vb.currentSet} · ${paused ? 'break' : 'elapsed'}'
+                                      : label.isNotEmpty
+                                      ? label
+                                      : prof.clock == 'elapsed'
+                                          ? 'Elapsed'
+                                          : 'Match time')
                       .toUpperCase(),
                   style: const TextStyle(
                       color: _dim,
@@ -459,6 +499,16 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                         color: _white),
                   ],
                 ]),
+                if (bb?.shotClock != null && g.isLive) ...[
+                  const SizedBox(height: 10),
+                  ShotClockPanel(
+                    game: g,
+                    dark: true,
+                    large: true,
+                    busy: _busy,
+                    onReset: (short) => _run(() => _repo.shotClock(widget.gameId, short: short)),
+                  ),
+                ],
                 if (pensAdded && g.isLive) ...[
                   const SizedBox(height: 10),
                   const Text('Penalty shootout — the scorer records each kick.',
@@ -471,7 +521,11 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
           // controls
           if (g.isScheduled)
             _BigButton(
-              label: 'Kick off',
+              label: bb != null
+                  ? 'Tip off'
+                  : vb != null
+                      ? 'First serve'
+                      : 'Kick off',
               icon: Icons.play_arrow_rounded,
               color: _green,
               textColor: _bg,
@@ -479,6 +533,37 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
               fontSize: 26,
               onTap: _busy ? null : () => _run(() => _repo.start(widget.gameId)),
             ),
+          if ((bb != null || vb != null) && g.isLive) ...[
+            TimeoutBar(
+              game: g,
+              dark: true,
+              busy: _busy,
+              onAction: (teamId, action) => _run(() => _repo.timeout(widget.gameId, teamId, action)),
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (vb != null && g.isLive && vbWinner == null && vb.currentSetDecided && vb.currentSet < vb.rules.bestOf) ...[
+            _BigButton(
+              label: 'Start set ${vb.currentSet + 1}',
+              icon: Icons.play_arrow_rounded,
+              color: _green,
+              textColor: _bg,
+              height: 64,
+              onTap: _busy ? null : () => _run(() => _repo.volleyballSet(widget.gameId, 'startNext')),
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (vb != null && g.isLive && vb.switchSidesDue) ...[
+            _BigButton(
+              label: 'Change ends — tap when done',
+              icon: Icons.swap_horiz_rounded,
+              color: _amber,
+              textColor: _bg,
+              height: 56,
+              onTap: _busy ? null : () => _run(() => _repo.volleyballSet(widget.gameId, 'sidesSwitched')),
+            ),
+            const SizedBox(height: 12),
+          ],
           if (clockRunning && prof.has('pause')) ...[
             _BigButton(
               label: paused ? prof.resumeLabel : prof.pauseLabel,
@@ -536,6 +621,20 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
               const SizedBox(height: 12),
             ],
             if (awaitingDraw) ...[
+              if (draws.contains('overtime')) ...[
+                _BigButton(
+                  label: 'Tied — play overtime',
+                  icon: Icons.timer_outlined,
+                  color: _green,
+                  textColor: _bg,
+                  height: 64,
+                  fontSize: 18,
+                  onTap: _busy
+                      ? null
+                      : () => _run(() => _repo.phase(widget.gameId, 'overtime')),
+                ),
+                const SizedBox(height: 8),
+              ],
               Row(children: [
                 if (draws.contains('extra_time') && !etAdded)
                   Expanded(
@@ -582,12 +681,32 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
           ],
           if (showFullTime && prof.has('complete'))
             _HoldButton(
-              label: 'Hold for full time',
+              label: bb != null
+                  ? 'Hold to end the game'
+                  : vb != null
+                      ? 'Hold to end the match'
+                      : 'Hold for full time',
               holdingLabel: 'Keep holding…',
               expand: true,
               color: _red,
               onConfirmed: () => _run(() => _repo.complete(widget.gameId)),
             ),
+          if (vbWinner != null && g.isLive) ...[
+            const SizedBox(height: 8),
+            Text(
+              '🏁 ${vbWinner.name} won the match — hold to end it.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: _green, fontSize: 13, fontWeight: FontWeight.w700),
+            ),
+          ],
+          if (targetWinner != null && g.isLive) ...[
+            const SizedBox(height: 8),
+            Text(
+              '🏁 ${targetWinner.name} reached ${bb!.rules.targetScore} — hold to end the game.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: _green, fontSize: 13, fontWeight: FontWeight.w700),
+            ),
+          ],
           if (over)
             _BigButton(
               label: 'Done — back to the game',

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,8 +15,12 @@ import 'package:sportpadi_mobile/data/payments/payment_models.dart' show formatM
 import 'package:sportpadi_mobile/data/tickets/ticket_models.dart';
 import 'package:sportpadi_mobile/data/tickets/tickets_repository.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
+import 'package:sportpadi_mobile/data/wallet/wallet_models.dart' show FeeQuote;
+import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
+import 'package:sportpadi_mobile/shared/format/instant.dart' show viewerTimezone;
+import 'package:sportpadi_mobile/shared/format/ticket_validity.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
@@ -153,6 +159,10 @@ class _GroupTicketsScreenState extends ConsumerState<GroupTicketsScreen> {
 
     final all = tickets.valueOrNull ?? const <ManagedTicket>[];
     final soldTotal = all.fold<int>(0, (a, t) => a + t.soldCount);
+    // Ended cycles of recurring tickets stay listed (they hold the receipts)
+    // but out of the way, below the tickets that matter now.
+    final ended = all.where((t) => t.isEndedCycle).toList();
+    final current = all.where((t) => !t.isEndedCycle).toList();
 
     return Scaffold(
       backgroundColor: p.bg,
@@ -196,7 +206,9 @@ class _GroupTicketsScreenState extends ConsumerState<GroupTicketsScreen> {
                             Row(children: [
                               _heroStat(p, '${activeCount ?? 0}', 'Active'),
                               const SizedBox(width: 8),
-                              _heroStat(p, '${list.length - (activeCount ?? 0)}',
+                              _heroStat(
+                                  p,
+                                  '${current.length - (activeCount ?? 0)}',
                                   'Hidden'),
                               const SizedBox(width: 8),
                               _heroStat(p, '$soldTotal', 'Sold', mint: true),
@@ -309,12 +321,23 @@ class _GroupTicketsScreenState extends ConsumerState<GroupTicketsScreen> {
                         ]),
                       )
                     else ...[
-                      SpSectionTitle('Your tickets', count: list.length),
-                      const SizedBox(height: 10),
-                      SpListCard(children: [
-                        for (final t in list)
-                          _TicketRow(ticket: t, onTap: () => _openDetail(t)),
-                      ]),
+                      SpSectionTitle('Your tickets', count: current.length),
+                      if (current.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        SpListCard(children: [
+                          for (final t in current)
+                            _TicketRow(ticket: t, onTap: () => _openDetail(t)),
+                        ]),
+                      ],
+                      if (ended.isNotEmpty) ...[
+                        const SizedBox(height: 18),
+                        SpSectionTitle('Ended cycles', count: ended.length),
+                        const SizedBox(height: 10),
+                        SpListCard(children: [
+                          for (final t in ended)
+                            _TicketRow(ticket: t, onTap: () => _openDetail(t)),
+                        ]),
+                      ],
                     ],
                   ],
                 ),
@@ -357,10 +380,12 @@ class _TicketRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final t = ticket;
+    final valid = t.isRecurring ? validityRange(t.validFrom, t.validUntil) : null;
     final sub = [
       formatMoney(t.priceMinor, t.currency, t.currencyExponent),
       t.soldLabel,
       if (t.recurrence != 'one_time') _recurrenceLabel[t.recurrence] ?? t.recurrence,
+      if (valid != null) 'Valid $valid',
     ].join(' · ');
 
     Widget kindPill(IconData icon, String label, Color bg, Color fg) =>
@@ -399,16 +424,25 @@ class _TicketRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: p.muted, fontSize: 12)),
-                if (t.kind == 'event' || t.kind == 'tournament' || !t.isActive) ...[
+                if (t.kind == 'event' ||
+                    t.kind == 'tournament' ||
+                    !t.isActive ||
+                    t.isNextCycle) ...[
                   const SizedBox(height: 5),
-                  Wrap(spacing: 5, children: [
+                  Wrap(spacing: 5, runSpacing: 4, children: [
                     if (t.kind == 'event')
                       kindPill(Icons.calendar_month_rounded, 'Event',
                           p.accentTint, p.greenText),
                     if (t.kind == 'tournament')
                       kindPill(Icons.emoji_events_outlined, 'Tournament',
                           p.orangeTint, p.orangeInk),
-                    if (!t.isActive)
+                    if (t.isNextCycle)
+                      kindPill(Icons.repeat_rounded, 'Next cycle · on sale',
+                          p.accentTint, p.greenText),
+                    if (t.isEndedCycle)
+                      kindPill(Icons.repeat_rounded, 'Ended cycle', p.surface2,
+                          p.muted)
+                    else if (!t.isActive)
                       kindPill(Icons.visibility_off_outlined, 'Hidden',
                           p.surface2, p.muted),
                   ]),
@@ -486,6 +520,8 @@ class _TicketDetailSheet extends ConsumerWidget {
     final base = ref.read(appConfigProvider).apiBaseUrl;
     final fmt = DateFormat('d MMM yyyy, h:mm a');
     final fmtDay = DateFormat('d MMM yyyy');
+    final validity =
+        t.isRecurring ? validityRange(t.validFrom, t.validUntil) : null;
 
     Widget badge(IconData icon, String label, {Color? tone}) => Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -616,12 +652,19 @@ class _TicketDetailSheet extends ConsumerWidget {
                 badge(Icons.qr_code_2_rounded, 'Scanned at the gate'),
               badge(Icons.repeat_rounded,
                   _recurrenceLabel[t.recurrence] ?? t.recurrence),
+              if (validity != null)
+                badge(Icons.event_available_outlined,
+                    'Valid $validity · cycle ${t.cycleNo}'),
+              if (t.isNextCycle)
+                badge(Icons.repeat_rounded, 'Next cycle · on sale',
+                    tone: p.accent),
               if (t.salesStartAt != null)
                 badge(Icons.play_arrow_rounded,
-                    'From ${fmtDay.format(t.salesStartAt!.toLocal())}'),
+                    'Sales open ${fmtDay.format(t.salesStartAt!.toLocal())}'),
               if (t.salesEndAt != null)
                 badge(Icons.stop_rounded,
-                    'Until ${fmtDay.format(t.salesEndAt!.toLocal())}'),
+                    'Sales close ${fmtDay.format(t.salesEndAt!.toLocal())}'),
+              if (t.isEndedCycle) badge(Icons.repeat_rounded, 'Ended cycle'),
             ]),
             Divider(height: 24, color: p.surface2),
             Row(children: [
@@ -689,7 +732,7 @@ class _TicketDetailSheet extends ConsumerWidget {
           data: (s) {
             final rows = s.sales;
             final paid = rows.where((r) => r.status == 'paid').toList();
-            final total = paid.fold<int>(0, (a, r) => a + r.amount);
+            final total = paid.fold<int>(0, (a, r) => a + r.received);
             final used = rows.where((r) => r.redeemedAt != null).length;
             Widget tile(String v, String l, {bool green = false}) => Expanded(
                   child: Container(
@@ -750,7 +793,10 @@ class _TicketDetailSheet extends ConsumerWidget {
                       child: Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 10),
-                      child: Row(children: [
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                      Row(children: [
                         CircleAvatar(
                           radius: 19,
                           backgroundColor: p.surface2,
@@ -828,6 +874,17 @@ class _TicketDetailSheet extends ConsumerWidget {
                         const SizedBox(width: 4),
                         Icon(Icons.chevron_right_rounded, size: 18, color: p.muted),
                       ]),
+                      // Refund: the action, why it can't be, or how it went.
+                      _SaleRefundLine(
+                        sale: r,
+                        money: (m) => formatMoney(
+                            m,
+                            r.currency.isNotEmpty ? r.currency : t.currency,
+                            s.currencyExponent),
+                        onRefund: () => _openRefund(context, groupId, t.id,
+                            r, t.currency, s.currencyExponent),
+                      ),
+                    ]),
                     ),
                     ),
                 ]),
@@ -840,6 +897,356 @@ class _TicketDetailSheet extends ConsumerWidget {
             ]);
           },
         ),
+      ],
+    );
+  }
+}
+
+/// Under a payment row: a Refund button when it can be refunded, a
+/// "Refunded" pill once it is, why it can't be when it's paid but not
+/// refundable, and the last failed attempt if there was one.
+class _SaleRefundLine extends StatelessWidget {
+  const _SaleRefundLine(
+      {required this.sale, required this.money, required this.onRefund});
+  final TicketSale sale;
+  final String Function(int minor) money;
+  final VoidCallback onRefund;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final r = sale;
+    final paid = r.status == 'paid';
+    final failed = paid ? r.refundFailReason : null;
+    final blocked = paid && !r.canRefund ? r.refundBlocked : null;
+    final canRefund = paid && r.canRefund;
+    // Partly refunded: still paid, the ticket still valid.
+    final partly = paid && r.refundedMinor > 0;
+    // A refunded row already says REFUNDED on the right — nothing to add.
+    if (!canRefund && blocked == null && failed == null && !partly) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      // Lined up under the buyer's name (avatar 38 + gap 12).
+      padding: const EdgeInsets.only(left: 50, top: 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (partly) ...[
+          Text(
+              '${money(r.refundedMinor)} of ${money(r.amount)} refunded so far · ticket still valid',
+              style: TextStyle(color: p.orangeInk, fontSize: 12, height: 1.35)),
+          const SizedBox(height: 6),
+        ],
+        if (failed != null) ...[
+          Text('Last refund attempt failed: $failed',
+              style: TextStyle(color: p.danger, fontSize: 12, height: 1.35)),
+          const SizedBox(height: 6),
+        ],
+        if (canRefund)
+          Material(
+            color: p.liveTint,
+            shape: const StadiumBorder(),
+            child: InkWell(
+              customBorder: const StadiumBorder(),
+              onTap: onRefund,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.undo_rounded, size: 14, color: p.danger),
+                  const SizedBox(width: 5),
+                  Text(partly ? 'Refund more' : 'Refund',
+                      style: TextStyle(
+                          color: p.danger,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            ),
+          )
+        else if (blocked != null)
+          Text(blocked,
+              style: TextStyle(color: p.muted, fontSize: 12, height: 1.35)),
+      ]),
+    );
+  }
+}
+
+/// Opens the refund confirmation for one payment.
+void _openRefund(BuildContext context, String groupId, String ticketId,
+    TicketSale sale, String currency, int exponent) {
+  showSpSheet<void>(
+    context,
+    builder: (_) => _RefundSheet(
+      groupId: groupId,
+      ticketId: ticketId,
+      sale: sale,
+      currency: currency,
+      exponent: exponent,
+    ),
+  );
+}
+
+/// "Refund {buyer}'s ticket?" — like refunding a charge from the Stripe
+/// Dashboard: the ticket price goes back to the buyer's original payment
+/// method; SportPadi's processing fee doesn't; on a pay-all checkout only
+/// this ticket is refunded. The buyer (or a ward's paying guardian) is told.
+class _RefundSheet extends ConsumerStatefulWidget {
+  const _RefundSheet({
+    required this.groupId,
+    required this.ticketId,
+    required this.sale,
+    required this.currency,
+    required this.exponent,
+  });
+  final String groupId;
+  final String ticketId;
+  final TicketSale sale;
+  final String currency;
+  final int exponent;
+
+  @override
+  ConsumerState<_RefundSheet> createState() => _RefundSheetState();
+}
+
+class _RefundSheetState extends ConsumerState<_RefundSheet> {
+  final _reason = TextEditingController();
+  // How much to give back, in major units ("2.00"). Starts at everything
+  // still refundable; anything less is a partial refund.
+  late final TextEditingController _amount =
+      TextEditingController(text: _toMajor(widget.sale.refundableMinor));
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _amount.addListener(_onAmount);
+  }
+
+  void _onAmount() => setState(() {});
+
+  @override
+  void dispose() {
+    _amount.removeListener(_onAmount);
+    _amount.dispose();
+    _reason.dispose();
+    super.dispose();
+  }
+
+  int get _refundable => widget.sale.refundableMinor;
+
+  String _toMajor(int minor) {
+    var d = 1;
+    for (var i = 0; i < widget.exponent; i++) {
+      d *= 10;
+    }
+    return (minor / d).toStringAsFixed(widget.exponent);
+  }
+
+  /// The typed amount in minor units, or null when it isn't a number.
+  int? get _amountMinor {
+    final v = double.tryParse(_amount.text.replaceAll(',', '').trim());
+    if (v == null || !v.isFinite) return null;
+    var d = 1;
+    for (var i = 0; i < widget.exponent; i++) {
+      d *= 10;
+    }
+    return (v * d).round();
+  }
+
+  String? get _amountError {
+    final m = _amountMinor;
+    if (m == null) return 'Enter an amount';
+    if (m <= 0) return 'Enter more than zero';
+    if (m > _refundable) return 'You can refund up to ${_money(_refundable)}';
+    return null;
+  }
+
+  bool get _isPartial =>
+      _amountError == null && (_amountMinor ?? 0) < _refundable;
+
+  String get _currency =>
+      widget.sale.currency.isNotEmpty ? widget.sale.currency : widget.currency;
+
+  String _money(int minor) => formatMoney(minor, _currency, widget.exponent);
+
+  Future<void> _refund() async {
+    setState(() => _busy = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final nav = Navigator.of(context);
+    final key = (groupId: widget.groupId, ticketId: widget.ticketId);
+    try {
+      final asked = _amountMinor ?? _refundable;
+      final refunded = await ref.read(ticketsRepositoryProvider).refundPayment(
+          widget.groupId, widget.sale.id,
+          reason: _reason.text,
+          // Only a partial sends an amount; a full refund takes whatever is
+          // left when it runs.
+          amountMinor: _isPartial ? asked : null);
+      if (!mounted) return;
+      // Refresh the payments list (and the sold counts) before closing, so
+      // the row already reads "Refunded" when the sheet goes.
+      ref.invalidate(managedTicketsProvider(widget.groupId));
+      ref.invalidate(ticketSalesProvider(key));
+      try {
+        await ref.read(ticketSalesProvider(key).future);
+      } catch (_) {
+        // The refund went through; the list shows its own error.
+      }
+      if (!mounted) return;
+      nav.pop();
+      messenger.showSnackBar(SnackBar(
+          content: Text(
+              'Refunded ${_money(refunded > 0 ? refunded : asked)}')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final sale = widget.sale;
+    final price = _money(sale.amount);
+    final fee = sale.platformFee;
+    final via = sale.providerLabel;
+    final error = _amountError;
+    final partial = _isPartial;
+    final amountLabel = error == null ? _money(_amountMinor!) : '';
+
+    Widget line(IconData icon, String text, {Color? tone}) => Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(icon, size: 17, color: tone ?? p.muted),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(text,
+                  style: TextStyle(
+                      color: tone ?? p.ink, fontSize: 13.5, height: 1.4)),
+            ),
+          ]),
+        );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SpSheetHeader(
+          icon: Icons.undo_rounded,
+          iconBg: p.liveTint,
+          iconFg: p.danger,
+          title: "Refund ${sale.buyerName}'s ticket?",
+          subtitle: sale.refundedMinor > 0
+              ? '$price · ${sale.code} · ${_money(sale.refundedMinor)} already refunded'
+              : '$price · ${sale.code}',
+        ),
+        Text('Amount to refund ($_currency)',
+            style: TextStyle(
+                color: p.ink, fontSize: 13, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 6),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            child: TextField(
+              controller: _amount,
+              enabled: !_busy,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                errorText: error,
+                helperText: partial
+                    ? 'Partial refund — their ticket stays valid'
+                    : null,
+                helperMaxLines: 2,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: OutlinedButton(
+              onPressed: _busy || (!partial && error == null)
+                  ? null
+                  : () => _amount.text = _toMajor(_refundable),
+              child: Text('Full ${_money(_refundable)}'),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        GlassCard(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            line(
+                Icons.credit_card_rounded,
+                via != null
+                    ? 'Refund ${error == null ? amountLabel : '—'} to their $via payment'
+                    : 'Refund ${error == null ? amountLabel : '—'} to their original payment'),
+            line(
+                Icons.receipt_long_outlined,
+                fee != null && fee > 0
+                    ? "SportPadi's processing fee (${_money(fee)}) isn't refunded"
+                    : "SportPadi's processing fee isn't refunded"),
+            line(Icons.layers_outlined,
+                'If they paid several tickets in one checkout, only this one is refunded'),
+            if (!partial)
+              line(Icons.info_outline_rounded, 'A full refund cancels the ticket'),
+            if (sale.redeemedAt != null)
+              line(Icons.warning_amber_rounded,
+                  "They've already used this ticket at the gate",
+                  tone: p.orangeInk),
+          ]),
+        ),
+        const SizedBox(height: 14),
+        Text('Reason (optional)',
+            style: TextStyle(
+                color: p.ink, fontSize: 13, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _reason,
+          enabled: !_busy,
+          maxLength: 200,
+          maxLines: 2,
+          minLines: 1,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            hintText: 'e.g. Event cancelled',
+            helperText: 'Shown to them',
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: _busy ? null : () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 2,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: p.danger,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: p.danger.withAlpha(150),
+                disabledForegroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(48),
+              ),
+              onPressed: _busy || error != null ? null : _refund,
+              child: _busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                          error == null ? 'Refund $amountLabel' : 'Refund',
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+            ),
+          ),
+        ]),
       ],
     );
   }
@@ -1079,12 +1486,16 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
   late bool _isActive;
   DateTime? _salesStart;
   DateTime? _salesEnd;
+  // First day of the first cycle (recurring, create only): SportPadi sets the
+  // validity from it — start of that day to the end of the cycle's last day.
+  DateTime _firstDay = viewerToday();
   bool _busy = false;
   bool _uploadingFlier = false;
   String? _error;
 
   bool get _isEvent => _kind == 'event';
   bool get _isTournament => _kind == 'tournament';
+  bool get _isRecurring => _recurrence != 'one_time';
 
   int _pow10(int e) {
     var v = 1;
@@ -1175,12 +1586,22 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
       // always scannable.
       'blocksCheckin': _isEvent ? true : (_isTournament ? false : _blocksCheckin),
       'requiresValidation': _isTournament ? true : _requiresValidation,
-      'recurrence': _recurrence,
       'salesStartAt': _salesStart?.toUtc().toIso8601String(),
       'salesEndAt': _salesEnd?.toUtc().toIso8601String(),
       'capacity': _capacity.text.trim().isEmpty ? null : int.tryParse(_capacity.text.trim()),
       'isActive': _isActive,
     };
+    // How often it renews is fixed once created (the server rejects a
+    // change), so it's only sent on create — with the first day the validity
+    // starts from, in the admin's zone.
+    if (widget.existing == null) {
+      body['recurrence'] = _recurrence;
+      if (_isRecurring) {
+        body['validFromDate'] = ymdString(_firstDay);
+        final zone = viewerTimezone;
+        if (zone != null) body['timezone'] = zone;
+      }
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -1194,10 +1615,22 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      setState(() => _error = '$e');
+      if (mounted) setState(() => _error = '$e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _pickFirstDay() async {
+    final today = viewerToday();
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _firstDay,
+      firstDate: DateTime(today.year - 1),
+      lastDate: DateTime(today.year + 3),
+    );
+    if (d == null || !mounted) return;
+    setState(() => _firstDay = DateTime(d.year, d.month, d.day));
   }
 
   Future<void> _pickDate(bool start) async {
@@ -1232,6 +1665,30 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
     final tournaments =
         ref.watch(groupTournamentsProvider(widget.groupId)).valueOrNull ?? const [];
     final fmt = DateFormat('EEE d MMM, HH:mm');
+    // Creating a recurring ticket: the validity SportPadi will set, live.
+    final preview = !editing && _isRecurring ? cyclePreview(_recurrence, _firstDay) : null;
+    // Editing: the ticket's own validity, read-only.
+    final existing = widget.existing;
+    final editValidity = existing != null && _isRecurring
+        ? validityRange(existing.validFrom, existing.validUntil)
+        : null;
+    final cycleNo = existing?.cycleNo ?? 1;
+
+    Widget infoBox(String title, String body) => Container(
+          margin: const EdgeInsets.only(top: 10),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: p.surface2,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title,
+                style: TextStyle(
+                    color: p.ink, fontSize: 13.5, height: 1.35, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            Text(body, style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.4)),
+          ]),
+        );
 
     Widget label(String s) => Padding(
           padding: const EdgeInsets.only(bottom: 6),
@@ -1333,6 +1790,12 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
               },
             ),
             hint('Tickets are sold in your wallet\'s currency (${widget.currency}).'),
+            _FeePreview(
+              groupId: widget.groupId,
+              price: _price,
+              currency: widget.currency,
+              exponent: widget.exponent,
+            ),
             const Divider(height: 32),
 
             // Q2 — is this tied to an event or tournament?
@@ -1420,7 +1883,7 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
             ),
             const SizedBox(height: 14),
 
-            // Q4 — recurring?
+            // Q4 — recurring? Fixed once created: the cadence sets the validity.
             label('Does this repeat?'),
             DropdownButtonFormField<String>(
               isExpanded: true,
@@ -1432,10 +1895,40 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
                 DropdownMenuItem(value: 'quarterly', child: Text('Quarterly')),
                 DropdownMenuItem(value: 'yearly', child: Text('Yearly')),
               ],
-              onChanged: (v) => setState(() => _recurrence = v ?? 'one_time'),
+              onChanged:
+                  editing ? null : (v) => setState(() => _recurrence = v ?? 'one_time'),
             ),
-            if (_recurrence != 'one_time')
+            if (editing)
+              hint('How often a ticket renews can\'t change after it\'s created — '
+                  'create a new ticket instead.')
+            else if (_isRecurring)
               hint('Players pay again each period — dues, memberships, season fees.'),
+            if (_isEvent && _isRecurring)
+              hint('Covers every occurrence of this event during each cycle '
+                  '(e.g. a monthly pass for a weekly session).'),
+
+            // Validity — how long a purchase admits you. Set by SportPadi on
+            // create, from the first day; read-only afterwards.
+            if (preview != null) ...[
+              const SizedBox(height: 14),
+              label('First day'),
+              _PickerTile(
+                value: DateFormat('EEE d MMM yyyy').format(_firstDay),
+                onTap: _pickFirstDay,
+              ),
+              infoBox(
+                'Valid ${preview.current} · renews every ${cycleUnit(_recurrence)} '
+                    '(next: ${preview.next})',
+                'Validity is set by SportPadi from the first day and can\'t be changed '
+                    'later. When a cycle\'s last day ends, a fresh ticket starts the next '
+                    'cycle; last cycle\'s tickets are used up and can\'t be refunded.',
+              ),
+            ],
+            if (editValidity != null)
+              infoBox(
+                'Valid $editValidity · cycle $cycleNo',
+                'Set by SportPadi when the ticket was created — it can\'t be changed.',
+              ),
             const Divider(height: 32),
 
             // Robustness extras
@@ -1444,7 +1937,9 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   label('Sales open (optional)'),
                   _PickerTile(
-                    value: _salesStart == null ? 'Now' : fmt.format(_salesStart!),
+                    value: _salesStart == null
+                        ? (_isRecurring ? 'Cycle start' : 'Now')
+                        : fmt.format(_salesStart!),
                     onTap: () => _pickDate(true),
                     onClear:
                         _salesStart == null ? null : () => setState(() => _salesStart = null),
@@ -1456,13 +1951,17 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   label('Sales close (optional)'),
                   _PickerTile(
-                    value: _salesEnd == null ? 'Never' : fmt.format(_salesEnd!),
+                    value: _salesEnd == null
+                        ? (_isRecurring ? 'Cycle end' : 'Never')
+                        : fmt.format(_salesEnd!),
                     onTap: () => _pickDate(false),
                     onClear: _salesEnd == null ? null : () => setState(() => _salesEnd = null),
                   ),
                 ]),
               ),
             ]),
+            if (_isRecurring)
+              hint('When people can buy it. Leave empty to sell for the whole cycle.'),
             const SizedBox(height: 14),
 
             label('Capacity (optional)'),
@@ -1636,6 +2135,118 @@ class _PickerTile extends StatelessWidget {
             Icon(Icons.calendar_today_rounded, size: 14, color: p.muted),
         ]),
       ),
+    );
+  }
+}
+
+
+/// "Buyers pay X · you receive Y" under the ticket price, split the way
+/// checkout will split it for the group's fee setting (Wallet → Who pays the
+/// fees?).
+class _FeePreview extends ConsumerStatefulWidget {
+  const _FeePreview({
+    required this.groupId,
+    required this.price,
+    required this.currency,
+    required this.exponent,
+  });
+  final String groupId;
+  final TextEditingController price;
+  final String currency;
+  final int exponent;
+
+  @override
+  ConsumerState<_FeePreview> createState() => _FeePreviewState();
+}
+
+class _FeePreviewState extends ConsumerState<_FeePreview> {
+  Timer? _debounce;
+  FeeQuote? _quote;
+  int _asked = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.price.addListener(_onChange);
+    _onChange(immediate: true);
+  }
+
+  @override
+  void dispose() {
+    widget.price.removeListener(_onChange);
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  int _minor() {
+    final d = double.tryParse(widget.price.text.trim()) ?? 0;
+    if (d <= 0) return 0;
+    var m = d;
+    for (var i = 0; i < widget.exponent; i++) {
+      m *= 10;
+    }
+    return m.round();
+  }
+
+  void _onChange({bool immediate = false}) {
+    _debounce?.cancel();
+    _debounce = Timer(Duration(milliseconds: immediate ? 0 : 400), () async {
+      final minor = _minor();
+      if (minor <= 0) {
+        if (mounted) setState(() => _quote = null);
+        return;
+      }
+      if (minor == _asked && _quote != null) return;
+      _asked = minor;
+      try {
+        final q = await ref.read(walletRepositoryProvider).feeQuote(widget.groupId, minor);
+        if (mounted && _asked == minor) setState(() => _quote = q);
+      } catch (_) {
+        // Preview only — checkout still validates. Don't leave the previous
+        // price's split on screen.
+        if (mounted && _asked == minor) {
+          _asked = 0;
+          setState(() => _quote = null);
+        }
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final q = _quote;
+    if (q == null) return const SizedBox.shrink();
+    final p = context.palette;
+    String money(int m) => formatMoney(m, widget.currency, widget.exponent);
+    final note = q.tooLow
+        ? 'This price is too low — the fees would take more than half of it. Raise the price.'
+        : q.bearer == 'group'
+            ? 'Your group pays the fees, so they come out of what you receive. Change this in Wallet.'
+            : 'Buyers pay the fees on top of your price. Set who pays in Wallet.';
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: q.tooLow ? p.orangeTint : p.surface2,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text.rich(TextSpan(
+          style: TextStyle(color: q.tooLow ? p.orangeInk : p.ink, fontSize: 12.5),
+          children: [
+            const TextSpan(text: 'Buyers pay '),
+            TextSpan(
+                text: money(q.buyerPaysMinor),
+                style: const TextStyle(fontWeight: FontWeight.w800)),
+            const TextSpan(text: ' · you receive '),
+            TextSpan(
+                text: money(q.groupReceivesMinor),
+                style: const TextStyle(fontWeight: FontWeight.w800)),
+          ],
+        )),
+        const SizedBox(height: 2),
+        Text(note, style: TextStyle(color: p.muted, fontSize: 11)),
+      ]),
     );
   }
 }

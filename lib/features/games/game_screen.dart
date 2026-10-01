@@ -9,9 +9,12 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
 import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
+import 'package:sportpadi_mobile/features/games/basketball_widgets.dart';
 import 'package:sportpadi_mobile/features/games/officiant_panel.dart';
 import 'package:sportpadi_mobile/features/games/officiants_card.dart';
 import 'package:sportpadi_mobile/features/games/scoreboard_widgets.dart';
+import 'package:sportpadi_mobile/features/games/timeout_widgets.dart';
+import 'package:sportpadi_mobile/features/games/volleyball_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
@@ -70,11 +73,82 @@ class GameScreen extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
                   children: [
                     _Scoreboard(game: g),
+                    // Basketball shot clock + team timeouts (volleyball too).
+                    if (g.isLive && g.basketball?.shotClock != null) ...[
+                      const SizedBox(height: 12),
+                      ShotClockPanel(
+                        game: g,
+                        onReset: g.canTime
+                            ? (short) => _gameAct(context, ref, gameId,
+                                () => ref.read(gamesRepositoryProvider).shotClock(gameId, short: short))
+                            : null,
+                      ),
+                    ],
+                    if (g.isLive && (g.isBasketball || g.isVolleyball)) ...[
+                      const SizedBox(height: 12),
+                      TimeoutBar(
+                        game: g,
+                        onAction: (g.isBasketball ? g.canTime : (g.canTime || g.canScore))
+                            ? (teamId, action) => _gameAct(context, ref, gameId,
+                                () => ref.read(gamesRepositoryProvider).timeout(gameId, teamId, action))
+                            : null,
+                      ),
+                    ],
+                    // Volleyball: change ends / start the next set / end it.
+                    if (g.isLive &&
+                        g.isVolleyball &&
+                        (g.volleyball!.matchWinnerTeamId != null ||
+                            g.volleyball!.currentSetDecided ||
+                            g.volleyball!.switchSidesDue)) ...[
+                      const SizedBox(height: 12),
+                      VolleyballSetCard(
+                        game: g,
+                        onStartNext: g.canTime || g.canScore
+                            ? () => _gameAct(context, ref, gameId,
+                                () => ref.read(gamesRepositoryProvider).volleyballSet(gameId, 'startNext'))
+                            : null,
+                        onSwitched: g.canTime || g.canScore
+                            ? () => _gameAct(context, ref, gameId,
+                                () => ref.read(gamesRepositoryProvider).volleyballSet(gameId, 'sidesSwitched'))
+                            : null,
+                        onEnd: g.canTime
+                            ? () => _gameAct(
+                                context, ref, gameId, () => ref.read(gamesRepositoryProvider).complete(gameId))
+                            : null,
+                      ),
+                    ],
+                    // First-to-N basketball: someone has won — end it.
+                    if (g.isBasketball &&
+                        g.isLive &&
+                        g.basketball!.targetWinnerTeamId != null) ...[
+                      const SizedBox(height: 12),
+                      TargetReachedCard(
+                        game: g,
+                        onEnd: g.canTime
+                            ? () async {
+                                try {
+                                  await ref.read(gamesRepositoryProvider).complete(gameId);
+                                  await ref.read(liveGameProvider(gameId).notifier).refresh();
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(SnackBar(content: Text('$e')));
+                                  }
+                                }
+                              }
+                            : null,
+                      ),
+                    ],
                     if (g.status == 'completed') ...[
                       // Web parity: the post-match summary replaces the
                       // lineups.
                       const SizedBox(height: 12),
-                      _SummaryCard(game: g),
+                      if (g.isBasketball)
+                        BasketballSummary(game: g)
+                      else if (g.isVolleyball)
+                        VolleyballSummary(game: g)
+                      else
+                        _SummaryCard(game: g),
                     ],
                     if (g.canTime && _awaitingDraw(g)) ...[
                       const SizedBox(height: 12),
@@ -96,10 +170,22 @@ class GameScreen extends ConsumerWidget {
                     ],
                     const SizedBox(height: 12),
                     _TimelineCard(game: g, gameId: gameId),
+                    // Basketball: line score + box score while it's played.
+                    if (g.isBasketball && g.isLive) ...[
+                      const SizedBox(height: 12),
+                      BasketballSummary(game: g),
+                    ],
+                    if (g.isVolleyball && g.isLive) ...[
+                      const SizedBox(height: 12),
+                      VolleyballSummary(game: g),
+                    ],
                     if (g.status != 'completed') ...[
                       const SizedBox(height: 20),
-                      SpSectionTitle(
-                          g.isScheduled ? 'Line-ups' : 'On the pitch'),
+                      SpSectionTitle(g.isScheduled
+                          ? 'Line-ups'
+                          : g.isBasketball || g.isVolleyball
+                              ? 'On the court'
+                              : 'On the pitch'),
                       const SizedBox(height: 10),
                       _Lineups(game: g),
                     ],
@@ -125,7 +211,8 @@ class GameScreen extends ConsumerWidget {
     // Web drawOpts: extra time is only an option while it hasn't been played.
     final hasOption =
         (lc.drawResolutions.contains('extra_time') && !lc.hasExtraPhases) ||
-            lc.drawResolutions.contains('penalties');
+            lc.drawResolutions.contains('penalties') ||
+            lc.drawResolutions.contains('overtime');
     return regulationDone && g.isDrawn && hasOption && !_penaltiesAdded(g);
   }
 }
@@ -154,7 +241,13 @@ class _Scoreboard extends StatelessWidget {
     // Sport-aware wording + court markings (goals / points / runs; Full time /
     // Final / Match over…).
     final board = boardSpec(g.profile.family);
-    final unit = Text(board.unit.toUpperCase(),
+    // Volleyball, live: the big numbers are the CURRENT set's points.
+    final vbPts = vsMode ? currentSetPoints(g) : null;
+    final unit = Text(
+        (vbPts != null && vsMode
+                ? 'Set ${g.volleyball!.currentSet} · sets ${g.teams[0].score}–${g.teams[1].score}'
+                : board.unit)
+            .toUpperCase(),
         style: TextStyle(
             color: p.heroMuted,
             fontSize: 10,
@@ -205,7 +298,9 @@ class _Scoreboard extends StatelessWidget {
               padding: const EdgeInsets.only(top: 10),
               child: Column(children: [
                 Text(
-                  '${g.teams[0].score}–${g.teams[1].score}',
+                  vbPts != null
+                      ? '${vbPts[g.teams[0].teamId] ?? 0}–${vbPts[g.teams[1].teamId] ?? 0}'
+                      : '${g.teams[0].score}–${g.teams[1].score}',
                   style: TextStyle(
                     color: p.onHero,
                     fontSize: 46,
@@ -236,6 +331,10 @@ class _Scoreboard extends StatelessWidget {
             ],
           ),
         _ClockStrip(game: g),
+        if (g.isBasketball && g.startedAt != null && g.status != 'completed')
+          TeamFoulsStrip(game: g),
+        if (g.isVolleyball && g.startedAt != null && vsMode)
+          SetScoresStrip(game: g, order: [g.teams[0].teamId, g.teams[1].teamId]),
       ]),
         ),
       ]),
@@ -442,6 +541,15 @@ ClockInfo? clockInfo(GameDetail g) {
     var elapsed =
         end.difference(anchor).inMilliseconds - ph.timer.pausedMs;
     if (elapsed < 0) elapsed = 0;
+    if (g.profile.countsDown && ph.nominalMinutes != null) {
+      // Basketball: time LEFT in the quarter.
+      final left = ((ph.nominalMinutes! * 60000 - elapsed) / 1000).ceil();
+      return ClockInfo(
+        mmss(left < 0 ? 0 : left),
+        label: ph.label,
+        paused: ph.timer.pausedAt != null,
+      );
+    }
     final total = ph.nominalOffset * 60000 + elapsed;
     return ClockInfo(
       _fmt(total),
@@ -532,14 +640,25 @@ class _DrawCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Level at ${etAdded ? 'the end of extra time' : 'full time'}',
+            game.isBasketball
+                ? 'Tied at the buzzer'
+                : 'Level at ${etAdded ? 'the end of extra time' : 'full time'}',
             style: TextStyle(
                 color: p.ink, fontSize: 14, fontWeight: FontWeight.w700),
           ),
-          Text('Choose how to decide the tie.',
+          Text(
+              game.isBasketball
+                  ? 'Play overtime — as many periods as it takes.'
+                  : 'Choose how to decide the tie.',
               style: TextStyle(color: p.muted, fontSize: 12)),
           const SizedBox(height: 10),
           Wrap(spacing: 8, runSpacing: 8, children: [
+            if (lc.drawResolutions.contains('overtime'))
+              SpButton(
+                label: 'Overtime',
+                icon: Icons.timelapse_rounded,
+                onTap: () => act('overtime'),
+              ),
             if (lc.drawResolutions.contains('extra_time') && !etAdded)
               SpButton(
                 label: 'Extra time',
@@ -807,9 +926,15 @@ class _TimelineCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 32,
+            width: g.isBasketball || g.isVolleyball ? 56 : 32,
             child: Text(
-              a.minute != null ? "${a.minute}'" : (a.phase ?? ''),
+              g.isBasketball
+                  ? bbStamp(a)
+                  : g.isVolleyball
+                      ? setStamp(a.phase)
+                      : a.minute != null
+                      ? "${a.minute}'"
+                      : (a.phase ?? ''),
               textAlign: TextAlign.right,
               style: TextStyle(
                   color: p.muted,
@@ -1101,7 +1226,7 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
           if (x.onField && !x.sentOff && subbedIn.contains(x.playerId))
             badge('▲ ON', p.accent)
           else if (x.sentOff)
-            badge('SENT OFF', p.danger)
+            badge(g.isBasketball ? 'FOULED OUT' : 'SENT OFF', p.danger)
           else if (!x.onField && subbedOff.contains(x.playerId))
             badge('▼ OFF', p.muted)
           else if (!x.onField && !canPick)
@@ -1170,7 +1295,7 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
           const SizedBox(height: 8),
           Text(
               started
-                  ? 'ON THE PITCH (${onPitch.length})'
+                  ? '${g.isBasketball || g.isVolleyball ? 'ON THE COURT' : 'ON THE PITCH'} (${onPitch.length})'
                   : 'STARTING LINE-UP (${onPitch.length}/${g.maxPlayersPerTeam})',
               style: TextStyle(
                   color: p.muted,
@@ -1332,5 +1457,18 @@ class _SummaryCard extends StatelessWidget {
         ),
       ],
     ]);
+  }
+}
+
+/// Run a game action, refresh the live game, and toast a failure.
+Future<void> _gameAct(
+    BuildContext context, WidgetRef ref, String gameId, Future<void> Function() f) async {
+  try {
+    await f();
+    await ref.read(liveGameProvider(gameId).notifier).refresh();
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+    }
   }
 }

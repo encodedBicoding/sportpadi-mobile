@@ -58,7 +58,9 @@ class ManageRepository {
     }
   }
 
-  Future<void> addMember(
+  /// Add a group member to the team. A ward isn't added: their guardians
+  /// are invited instead ([AddMemberResult.pendingWardInvite]).
+  Future<AddMemberResult> addMember(
     String teamId, {
     required String playerId,
     List<String>? positions,
@@ -66,14 +68,41 @@ class ManageRepository {
     bool? isStarter,
   }) async {
     try {
-      await _dio.post('/api/mobile/teams/$teamId/members', data: {
+      final res = await _dio.post('/api/mobile/teams/$teamId/members', data: {
         'playerId': playerId,
         'positions': positions,
         'jerseyNumber': jerseyNumber,
         'isStarter': isStarter,
       });
+      return res.data is Map
+          ? AddMemberResult.fromJson(Map<String, dynamic>.from(res.data as Map))
+          : const AddMemberResult();
     } catch (e) {
       throw apiError(e, fallback: 'Could not add the player.');
+    }
+  }
+
+  /// Admin: wards invited onto the team, still waiting for a guardian.
+  Future<List<TeamWardInvite>> wardInvites(String teamId) async {
+    try {
+      final res = await _dio.get('/api/mobile/teams/$teamId/ward-invites');
+      final list = res.data is List ? res.data as List : const [];
+      return [
+        for (final e in list)
+          if (e is Map) TeamWardInvite.fromJson(Map<String, dynamic>.from(e))
+      ];
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load invitations.');
+    }
+  }
+
+  /// Admin: withdraw a ward's team invitation nobody has answered yet.
+  Future<void> cancelWardInvite(String teamId, String inviteId) async {
+    try {
+      await _dio.delete('/api/mobile/teams/$teamId/ward-invites',
+          queryParameters: {'inviteId': inviteId});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not cancel the invitation.');
     }
   }
 
@@ -233,6 +262,11 @@ final categoriesProvider =
 final eligibleMembersProvider =
     FutureProvider.autoDispose.family<List<SimpleUser>, String>(
         (ref, teamId) => ref.watch(manageRepositoryProvider).eligibleMembers(teamId));
+
+/// Admin: wards invited onto a team, waiting for a guardian's answer.
+final teamWardInvitesProvider =
+    FutureProvider.autoDispose.family<List<TeamWardInvite>, String>(
+        (ref, teamId) => ref.watch(manageRepositoryProvider).wardInvites(teamId));
 
 final groupWalletProvider =
     FutureProvider.autoDispose.family<WalletStatus, String>(
