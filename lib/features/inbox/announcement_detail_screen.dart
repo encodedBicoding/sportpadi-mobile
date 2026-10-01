@@ -20,6 +20,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 
 /// One announcement: the full text (selectable, links tappable), its
 /// attachments and link, "Got it" for recipients, and — for its sender and
@@ -117,8 +118,8 @@ class _AnnouncementDetailScreenState
       } else {
         context.go('/inbox');
       }
-      messenger.showSnackBar(
-          const SnackBar(content: Text('Announcement deleted.')));
+      messenger
+          .showSnackBar(const SnackBar(content: Text('Announcement deleted.')));
     } catch (e) {
       _snack('$e');
       if (mounted) setState(() => _busy = null);
@@ -142,8 +143,8 @@ class _AnnouncementDetailScreenState
   }
 
   void _openLink(AnnouncementLink l) {
-    final route = resolveLinkRoute(l.url) ??
-        (l.type == 'team' ? '/teams/${l.id}' : null);
+    final route =
+        resolveLinkRoute(l.url) ?? (l.type == 'team' ? '/teams/${l.id}' : null);
     if (route != null) {
       context.push(route);
     } else if (l.url != null) {
@@ -235,8 +236,7 @@ class _AnnouncementDetailScreenState
                           Text('From ${a.senderName} · ${a.roleLabel}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style:
-                                  TextStyle(color: p.muted, fontSize: 12.5)),
+                              style: TextStyle(color: p.muted, fontSize: 12.5)),
                         ]),
                   ),
                 ]),
@@ -247,7 +247,8 @@ class _AnnouncementDetailScreenState
                     SpBadge('To ${a.audienceLabel}',
                         icon: Icons.groups_outlined),
                   if (a.isPinned)
-                    SpBadge('Pinned until ${fmtInstant(a.pinnedUntil, style: InstantStyle.day)}',
+                    SpBadge(
+                        'Pinned until ${fmtInstant(a.pinnedUntil, style: InstantStyle.day)}',
                         icon: Icons.push_pin_outlined),
                   if (wards != null) WardsForChip(wards),
                 ]),
@@ -280,7 +281,8 @@ class _AnnouncementDetailScreenState
                 ],
                 if (a.expiresAt != null) ...[
                   const SizedBox(height: 14),
-                  Text('Hidden from the inbox after ${fmtInstant(a.expiresAt, style: InstantStyle.day)}',
+                  Text(
+                      'Hidden from the inbox after ${fmtInstant(a.expiresAt, style: InstantStyle.day)}',
                       style: TextStyle(color: p.muted, fontSize: 12)),
                 ],
               ],
@@ -388,8 +390,7 @@ class _AnnouncementDetailScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                  'Seen by ${r.seen} of ${r.total} · ${r.acked} tapped Got it',
+              Text('Seen by ${r.seen} of ${r.total} · ${r.acked} tapped Got it',
                   style: TextStyle(
                       color: p.ink,
                       fontSize: 14.5,
@@ -430,49 +431,50 @@ class _AnnouncementDetailScreenState
   }
 
   Widget _personRow(AppPalette p, ReceiptPerson person) {
-    final via = person.guardians.isEmpty
-        ? null
-        : 'via ${person.guardians.join(', ')}';
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-      child: Row(children: [
-        WardAvatar(
-            name: person.displayName, url: person.avatarUrl, size: 34),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  Flexible(
-                    child: Text(person.displayName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: p.ink,
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w600)),
-                  ),
-                  if (person.isWard) ...[
-                    const SizedBox(width: 6),
-                    const WardBadge(),
-                  ],
-                ]),
-                if (via != null)
-                  Text(via,
+    final via =
+        person.guardians.isEmpty ? null : 'via ${person.guardians.join(', ')}';
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => openPlayerProfile(context, ref, person.userId),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+        child: Row(children: [
+          WardAvatar(name: person.displayName, url: person.avatarUrl, size: 34),
+          const SizedBox(width: 10),
+          Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Flexible(
+                  child: Text(person.displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: p.muted, fontSize: 11.5)),
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600)),
+                ),
+                if (person.isWard) ...[
+                  const SizedBox(width: 6),
+                  const WardBadge(),
+                ],
               ]),
-        ),
-        const SizedBox(width: 8),
-        if (person.acked)
-          SpBadge('Got it', icon: Icons.check_rounded, tone: p.greenText)
-        else if (person.seen)
-          const SpBadge('Seen', icon: Icons.done_rounded)
-        else
-          SpBadge('Not seen', tone: p.orangeInk),
-      ]),
+              if (via != null)
+                Text(via,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: p.muted, fontSize: 11.5)),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          if (person.acked)
+            SpBadge('Got it', icon: Icons.check_rounded, tone: p.greenText)
+          else if (person.seen)
+            const SpBadge('Seen', icon: Icons.done_rounded)
+          else
+            SpBadge('Not seen', tone: p.orangeInk),
+        ]),
+      ),
     );
   }
 
@@ -596,8 +598,8 @@ class _LinkifiedText extends ConsumerStatefulWidget {
 }
 
 class _LinkifiedTextState extends ConsumerState<_LinkifiedText> {
-  static final _url = RegExp(r'''(https?://|www\.)[^\s<>"']+''',
-      caseSensitive: false);
+  static final _url =
+      RegExp(r'''(https?://|www\.)[^\s<>"']+''', caseSensitive: false);
   static const _trailing = '.,;:!?)]}';
   final List<TapGestureRecognizer> _recognizers = [];
 

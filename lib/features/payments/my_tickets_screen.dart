@@ -67,8 +67,7 @@ class _MyTicketsScreenState extends ConsumerState<MyTicketsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
   }
 
@@ -88,9 +87,7 @@ class _MyTicketsScreenState extends ConsumerState<MyTicketsScreen> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: SpHeader(
               title: 'My purchases',
-              subtitle: tickets.hasValue
-                  ? '$ready ready to use'
-                  : null,
+              subtitle: tickets.hasValue ? '$ready ready to use' : null,
             ),
           ),
           Padding(
@@ -130,8 +127,7 @@ class _MyTicketsScreenState extends ConsumerState<MyTicketsScreen> {
                       padding: const EdgeInsets.fromLTRB(32, 70, 32, 32),
                       children: [
                         Center(
-                          child: SpIconTile(
-                              Icons.confirmation_num_outlined,
+                          child: SpIconTile(Icons.confirmation_num_outlined,
                               bg: p.accentTint,
                               fg: p.greenText,
                               size: 60,
@@ -220,17 +216,18 @@ class _TicketStub extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(26),
         onTap: () => showSpSheet<void>(
-      context,
-      framed: false,
-      builder: (_) => _LiveTicketSheet(ticket: t),
-    ),
+          context,
+          framed: false,
+          builder: (_) => _LiveTicketSheet(ticket: t),
+        ),
         child: Ink(
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(26),
             boxShadow: ready ? null : cardShadow(context),
           ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
               child: Column(
@@ -249,35 +246,37 @@ class _TicketStub extends StatelessWidget {
                             letterSpacing: 1.3,
                             fontWeight: FontWeight.w700)),
                     const SizedBox(height: 6),
-                    Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Expanded(
-                        child: Text(t.eventTitle ?? t.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: fg,
-                                fontSize: 18,
-                                height: 1.25,
-                                fontWeight: FontWeight.w800)),
-                      ),
-                      if (usedUp) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          margin: const EdgeInsets.only(top: 2),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: p.surface2,
-                            borderRadius: BorderRadius.circular(999),
+                    Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(t.eventTitle ?? t.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: fg,
+                                    fontSize: 18,
+                                    height: 1.25,
+                                    fontWeight: FontWeight.w800)),
                           ),
-                          child: Text('Used up',
-                              style: TextStyle(
-                                  color: p.muted,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700)),
-                        ),
-                      ],
-                    ]),
+                          if (usedUp) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              margin: const EdgeInsets.only(top: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: p.surface2,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text('Used up',
+                                  style: TextStyle(
+                                      color: p.muted,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700)),
+                            ),
+                          ],
+                        ]),
                     if (t.eventTitle != null)
                       Text(t.title,
                           maxLines: 1,
@@ -300,8 +299,7 @@ class _TicketStub extends StatelessWidget {
                   ]),
             ),
             TicketPerforation(
-                color: ready ? p.onHero.withAlpha(46) : p.line,
-                notch: p.bg),
+                color: ready ? p.onHero.withAlpha(46) : p.line, notch: p.bg),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 14, 16, 16),
               child: Row(children: [
@@ -336,7 +334,10 @@ class _TicketStub extends StatelessWidget {
                     borderRadius: BorderRadius.circular(19),
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(ready ? Icons.qr_code_2_rounded : Icons.receipt_long_outlined,
+                    Icon(
+                        ready
+                            ? Icons.qr_code_2_rounded
+                            : Icons.receipt_long_outlined,
                         size: 16,
                         color: ready ? const Color(0xFF0E1411) : p.ink),
                     const SizedBox(width: 5),
@@ -359,7 +360,8 @@ class _TicketStub extends StatelessWidget {
 /// The tear line across a ticket: a dashed rule with a half-circle notch
 /// bitten out of each edge (in the page colour).
 class TicketPerforation extends StatelessWidget {
-  const TicketPerforation({super.key, required this.color, required this.notch});
+  const TicketPerforation(
+      {super.key, required this.color, required this.notch});
   final Color color;
   final Color notch;
 
@@ -422,14 +424,12 @@ class _FollowNudgeState extends ConsumerState<_FollowNudge> {
   Future<void> _follow() async {
     setState(() => _busy = true);
     try {
-      await ref
-          .read(eventsRepositoryProvider)
-          .setFollow(widget.groupId, true);
+      await ref.read(eventsRepositoryProvider).setFollow(widget.groupId, true);
       if (mounted) {
         setState(() => _done = true);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text(
-                "Following — their events now show on your home page.")));
+            content:
+                Text("Following — their events now show on your home page.")));
       }
       ref.invalidate(myTicketsProvider);
     } catch (e) {
@@ -570,126 +570,95 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
               borderRadius: BorderRadius.circular(28),
               boxShadow: cardShadow(context),
             ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Container(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-                decoration: BoxDecoration(
-                  color: p.hero,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(28)),
-                ),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        Expanded(
-                          child: Text(
-                              ward != null
-                                  ? 'FOR ${ward.firstName.toUpperCase()}'
-                                  : t.giftedByName != null
-                                      ? 'GIFTED BY ${t.giftedByName!.toUpperCase()}'
-                                      : 'MATCH TICKET',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: Color(0xFF6EDC9E),
-                                  fontSize: 11,
-                                  letterSpacing: 1.3,
-                                  fontWeight: FontWeight.w700)),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 9, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: used
-                                ? const Color(0x296EDC9E)
-                                : p.onHero.withAlpha(30),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                              used
-                                  ? 'Used'
-                                  : usedUp
-                                      ? 'Used up'
-                                      : t.status == 'paid'
-                                          ? 'Valid'
-                                          : capitalizeFirst(t.status),
-                              style: TextStyle(
-                                  color: used
-                                      ? const Color(0xFF6EDC9E)
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+                    decoration: BoxDecoration(
+                      color: p.hero,
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(28)),
+                    ),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            Expanded(
+                              child: Text(
+                                  ward != null
+                                      ? 'FOR ${ward.firstName.toUpperCase()}'
+                                      : t.giftedByName != null
+                                          ? 'GIFTED BY ${t.giftedByName!.toUpperCase()}'
+                                          : 'MATCH TICKET',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      color: Color(0xFF6EDC9E),
+                                      fontSize: 11,
+                                      letterSpacing: 1.3,
+                                      fontWeight: FontWeight.w700)),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 9, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: used
+                                    ? const Color(0x296EDC9E)
+                                    : p.onHero.withAlpha(30),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                  used
+                                      ? 'Used'
                                       : usedUp
-                                          ? p.heroMuted
-                                          : p.onHero,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700)),
-                        ),
-                      ]),
-                      const SizedBox(height: 8),
-                      Text(t.eventTitle ?? t.title,
-                          style: TextStyle(
-                              color: p.onHero,
-                              fontSize: 20,
-                              height: 1.25,
-                              fontWeight: FontWeight.w800)),
-                      if (t.eventTitle != null)
-                        Text(t.title,
-                            style: TextStyle(
-                                color: p.onHero.withAlpha(215),
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 4),
-                      Text(
-                          [
-                            if (t.groupName != null) t.groupName!,
-                            if (t.eventDate != null) formatDayYear(t.eventDate),
-                            if (valid != null) 'Valid $valid',
-                          ].join(' · '),
-                          style:
-                              TextStyle(color: p.heroMuted, fontSize: 12.5)),
-                    ]),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-                child: used
-                    // Checked in — replaces the QR with unmistakable feedback.
-                    ? Container(
-                        padding: const EdgeInsets.symmetric(vertical: 26),
-                        decoration: BoxDecoration(
-                          color: p.accentTint,
-                          borderRadius: BorderRadius.circular(22),
-                        ),
-                        child: Column(children: [
-                          Container(
-                            width: 64,
-                            height: 64,
-                            decoration: BoxDecoration(
-                                color: p.accent, shape: BoxShape.circle),
-                            child: const Icon(Icons.check_rounded,
-                                size: 38, color: Colors.white),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                              _justScanned
-                                  ? "You're in — enjoy the game"
-                                  : 'Checked in',
+                                          ? 'Used up'
+                                          : t.status == 'paid'
+                                              ? 'Valid'
+                                              : capitalizeFirst(t.status),
+                                  style: TextStyle(
+                                      color: used
+                                          ? const Color(0xFF6EDC9E)
+                                          : usedUp
+                                              ? p.heroMuted
+                                              : p.onHero,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700)),
+                            ),
+                          ]),
+                          const SizedBox(height: 8),
+                          Text(t.eventTitle ?? t.title,
                               style: TextStyle(
-                                  color: p.greenText,
-                                  fontSize: 18,
+                                  color: p.onHero,
+                                  fontSize: 20,
+                                  height: 1.25,
                                   fontWeight: FontWeight.w800)),
-                          const SizedBox(height: 2),
-                          Text('Scanned ${timeAgo(t.redeemedAt)}',
+                          if (t.eventTitle != null)
+                            Text(t.title,
+                                style: TextStyle(
+                                    color: p.onHero.withAlpha(215),
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 4),
+                          Text(
+                              [
+                                if (t.groupName != null) t.groupName!,
+                                if (t.eventDate != null)
+                                  formatDayYear(t.eventDate),
+                                if (valid != null) 'Valid $valid',
+                              ].join(' · '),
                               style: TextStyle(
-                                  color: p.muted, fontSize: 12.5)),
+                                  color: p.heroMuted, fontSize: 12.5)),
                         ]),
-                      )
-                    : usedUp
-                        // Cycle ended — no QR: it would only be turned away
-                        // at the gate.
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                    child: used
+                        // Checked in — replaces the QR with unmistakable feedback.
                         ? Container(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 26, horizontal: 16),
+                            padding: const EdgeInsets.symmetric(vertical: 26),
                             decoration: BoxDecoration(
-                              color: p.surface2,
+                              color: p.accentTint,
                               borderRadius: BorderRadius.circular(22),
                             ),
                             child: Column(children: [
@@ -697,132 +666,173 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
                                 width: 64,
                                 height: 64,
                                 decoration: BoxDecoration(
-                                    color: p.surface, shape: BoxShape.circle),
-                                child: Icon(Icons.event_busy_outlined,
-                                    size: 30, color: p.muted),
+                                    color: p.accent, shape: BoxShape.circle),
+                                child: const Icon(Icons.check_rounded,
+                                    size: 38, color: Colors.white),
                               ),
                               const SizedBox(height: 12),
-                              Text('Used up',
+                              Text(
+                                  _justScanned
+                                      ? "You're in — enjoy the game"
+                                      : 'Checked in',
                                   style: TextStyle(
-                                      color: p.ink,
+                                      color: p.greenText,
                                       fontSize: 18,
                                       fontWeight: FontWeight.w800)),
                               const SizedBox(height: 2),
-                              Text(
-                                  'Used up — this cycle has ended'
-                                  '${t.validUntil != null ? ' (last day ${shortDay(t.validUntil!)})' : ''}. '
-                                  'Used-up tickets can\'t be refunded.',
-                                  textAlign: TextAlign.center,
+                              Text('Scanned ${timeAgo(t.redeemedAt)}',
                                   style: TextStyle(
-                                      color: p.muted,
-                                      fontSize: 12.5,
-                                      height: 1.45)),
+                                      color: p.muted, fontSize: 12.5)),
                             ]),
                           )
-                    : !t.showsQr
-                        // Not mine to present (a ticket I bought for someone
-                        // else) or not paid yet: the receipt, no QR.
-                        ? Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: p.surface2,
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: Row(children: [
-                              Icon(Icons.qr_code_2_rounded,
-                                  size: 20, color: p.muted),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  t.status != 'paid'
-                                      ? 'This payment is ${t.status} — the gate QR appears once it has gone through.'
-                                      : 'The gate QR is with ${t.holderName ?? 'the ticket holder'} — they show it at the gate.',
-                                  style: TextStyle(
-                                      color: p.muted,
-                                      fontSize: 12.5,
-                                      height: 1.4),
+                        : usedUp
+                            // Cycle ended — no QR: it would only be turned away
+                            // at the gate.
+                            ? Container(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 26, horizontal: 16),
+                                decoration: BoxDecoration(
+                                  color: p.surface2,
+                                  borderRadius: BorderRadius.circular(22),
                                 ),
-                              ),
-                            ]),
-                          )
-                        : Column(children: [
-                        Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(22),
-                            border: Border.all(color: p.line),
-                          ),
-                          child: QrImageView(
-                              data: t.code,
-                              size: 210,
-                              backgroundColor: Colors.white),
+                                child: Column(children: [
+                                  Container(
+                                    width: 64,
+                                    height: 64,
+                                    decoration: BoxDecoration(
+                                        color: p.surface,
+                                        shape: BoxShape.circle),
+                                    child: Icon(Icons.event_busy_outlined,
+                                        size: 30, color: p.muted),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text('Used up',
+                                      style: TextStyle(
+                                          color: p.ink,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800)),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                      'Used up — this cycle has ended'
+                                      '${t.validUntil != null ? ' (last day ${shortDay(t.validUntil!)})' : ''}. '
+                                      'Used-up tickets can\'t be refunded.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                          color: p.muted,
+                                          fontSize: 12.5,
+                                          height: 1.45)),
+                                ]),
+                              )
+                            : !t.showsQr
+                                // Not mine to present (a ticket I bought for someone
+                                // else) or not paid yet: the receipt, no QR.
+                                ? Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: p.surface2,
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                    child: Row(children: [
+                                      Icon(Icons.qr_code_2_rounded,
+                                          size: 20, color: p.muted),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          t.status != 'paid'
+                                              ? 'This payment is ${t.status} — the gate QR appears once it has gone through.'
+                                              : 'The gate QR is with ${t.holderName ?? 'the ticket holder'} — they show it at the gate.',
+                                          style: TextStyle(
+                                              color: p.muted,
+                                              fontSize: 12.5,
+                                              height: 1.4),
+                                        ),
+                                      ),
+                                    ]),
+                                  )
+                                : Column(children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(14),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(22),
+                                        border: Border.all(color: p.line),
+                                      ),
+                                      child: QrImageView(
+                                          data: t.code,
+                                          size: 210,
+                                          backgroundColor: Colors.white),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Container(
+                                            width: 8,
+                                            height: 8,
+                                            decoration: BoxDecoration(
+                                                color: p.accent,
+                                                shape: BoxShape.circle),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Flexible(
+                                            child: Text(
+                                                ward != null
+                                                    ? 'Show this at the gate for ${ward.firstName}'
+                                                    : 'Show this at the gate — it updates when scanned',
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                    color: p.muted,
+                                                    fontSize: 12)),
+                                          ),
+                                        ]),
+                                  ]),
+                  ),
+                  TicketPerforation(color: p.line, notch: p.bg),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 6, 20, 18),
+                    child: Material(
+                      color: p.surface2,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () async {
+                          await Clipboard.setData(ClipboardData(text: t.code));
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Receipt code copied')));
+                          }
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          child: Row(children: [
+                            Expanded(
+                              child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Receipt code',
+                                        style: TextStyle(
+                                            color: p.muted, fontSize: 11.5)),
+                                    Text(t.code,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                            color: p.ink,
+                                            fontFamily: 'monospace',
+                                            fontSize: 15,
+                                            letterSpacing: 1.5,
+                                            fontWeight: FontWeight.w700)),
+                                  ]),
+                            ),
+                            Icon(Icons.copy_rounded, size: 18, color: p.muted),
+                          ]),
                         ),
-                        const SizedBox(height: 10),
-                        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                                color: p.accent, shape: BoxShape.circle),
-                          ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                                ward != null
-                                    ? 'Show this at the gate for ${ward.firstName}'
-                                    : 'Show this at the gate — it updates when scanned',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    color: p.muted, fontSize: 12)),
-                          ),
-                        ]),
-                      ]),
-              ),
-              TicketPerforation(color: p.line, notch: p.bg),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 6, 20, 18),
-                child: Material(
-                  color: p.surface2,
-                  borderRadius: BorderRadius.circular(16),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () async {
-                      await Clipboard.setData(ClipboardData(text: t.code));
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Receipt code copied')));
-                      }
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
-                      child: Row(children: [
-                        Expanded(
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Receipt code',
-                                    style: TextStyle(
-                                        color: p.muted, fontSize: 11.5)),
-                                Text(t.code,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        color: p.ink,
-                                        fontFamily: 'monospace',
-                                        fontSize: 15,
-                                        letterSpacing: 1.5,
-                                        fontWeight: FontWeight.w700)),
-                              ]),
-                        ),
-                        Icon(Icons.copy_rounded, size: 18, color: p.muted),
-                      ]),
+                      ),
                     ),
                   ),
-                ),
-              ),
-            ]),
+                ]),
           ),
           const SizedBox(height: 14),
           // Full receipt: what was actually paid, and for what.
@@ -845,9 +855,7 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
                     formatMoney(
                         t.refundedMinor, t.currency, t.currencyExponent)),
               if (ward != null) _kv(p, 'For', ward.displayName),
-              if (ward == null &&
-                  !t.canPresent &&
-                  t.holderName != null)
+              if (ward == null && !t.canPresent && t.holderName != null)
                 _kv(p, 'For', t.holderName!),
               if (t.groupName != null) _kv(p, 'Group', t.groupName!),
               if (t.eventTitle != null) _kv(p, 'Event', t.eventTitle!),
@@ -860,7 +868,8 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
               if (t.redeemedAt != null)
                 _kv(p, 'Used', formatDayYear(t.redeemedAt)),
               // The cycle's last day (when it was closed can be the morning after).
-              if (usedUp) _kv(p, 'Cycle ended', shortDay(t.validUntil ?? t.expiredAt!)),
+              if (usedUp)
+                _kv(p, 'Cycle ended', shortDay(t.validUntil ?? t.expiredAt!)),
             ]),
           ),
         ]),

@@ -102,7 +102,8 @@ class _DockButton extends StatelessWidget {
     final p = context.palette;
     final iconColor = selected ? p.accent : p.onHero.withAlpha(185);
     final icon = Stack(clipBehavior: Clip.none, children: [
-      Icon(selected ? item.selectedIcon : item.icon, size: 22, color: iconColor),
+      Icon(selected ? item.selectedIcon : item.icon,
+          size: 22, color: iconColor),
       if (item.dot)
         Positioned(
           top: -1,
@@ -113,7 +114,8 @@ class _DockButton extends StatelessWidget {
             decoration: BoxDecoration(
               color: p.orange,
               shape: BoxShape.circle,
-              border: Border.all(color: selected ? p.onHero : p.hero, width: 1.5),
+              border:
+                  Border.all(color: selected ? p.onHero : p.hero, width: 1.5),
             ),
           ),
         ),
@@ -145,16 +147,16 @@ class _DockButton extends StatelessWidget {
                       child: ConstrainedBox(
                         constraints: BoxConstraints(maxWidth: labelMax),
                         child: Text(
-                        item.label,
-                        maxLines: 1,
-                        softWrap: false,
-                        overflow: TextOverflow.fade,
-                        style: TextStyle(
-                          color: p.hero,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                          item.label,
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.fade,
+                          style: TextStyle(
+                            color: p.hero,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
                       ),
                     )
                   : const SizedBox.shrink(),

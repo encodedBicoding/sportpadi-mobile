@@ -37,9 +37,8 @@ class SportRecordCard extends StatelessWidget {
     ];
     final heads = headlineFor(family, tally, fields, attendance: att);
     // Hikes and runs lead with check-ins; every other sport with games.
-    final showNumbers = isAttendanceDesign(family)
-        ? games > 0 || checkIns > 0
-        : games > 0;
+    final showNumbers =
+        isAttendanceDesign(family) ? games > 0 || checkIns > 0 : games > 0;
 
     return Semantics(
       button: true,
@@ -176,8 +175,7 @@ class OtherSportRow extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
                 color: p.surface2, borderRadius: BorderRadius.circular(12)),
-            child: Text(
-                parseStr(category['emoji']) ?? sportTheme(family).emoji,
+            child: Text(parseStr(category['emoji']) ?? sportTheme(family).emoji,
                 style: const TextStyle(fontSize: 18)),
           ),
           const SizedBox(width: 12),
@@ -245,7 +243,8 @@ class PlayerRecordsSection extends StatelessWidget {
                             fontSize: 14.5,
                             fontWeight: FontWeight.w700)),
                     const SizedBox(height: 2),
-                    Text("Their sports appear here once they've finished a game.",
+                    Text(
+                        "Their sports appear here once they've finished a game.",
                         style: TextStyle(
                             color: p.muted, fontSize: 12.5, height: 1.35)),
                   ]),

@@ -18,8 +18,10 @@ class GameTeam {
   });
   final String teamId;
   final String name;
+
   /// The kit colour this side wears in THIS game (officiating uses it).
   final String? color;
+
   /// Tournament team crest — the scoreboard shows it before the colour.
   final String? logoUrl;
   final int score;
@@ -219,8 +221,9 @@ class GamePhase {
         nominalOffset: parseInt(j['nominalOffset']) ?? 0,
         startedAt: parseDate(j['startedAt']),
         endedAt: parseDate(j['endedAt']),
-        timer: PhaseTimer.fromJson(
-            j['timer'] is Map ? Map<String, dynamic>.from(j['timer'] as Map) : null),
+        timer: PhaseTimer.fromJson(j['timer'] is Map
+            ? Map<String, dynamic>.from(j['timer'] as Map)
+            : null),
       );
 }
 
@@ -251,10 +254,10 @@ class GameLifecycle {
   final bool hasExtraPhases;
   final bool hasShootout;
 
-  GamePhase? get current => currentPhaseIndex >= 0 &&
-          currentPhaseIndex < phases.length
-      ? phases[currentPhaseIndex]
-      : null;
+  GamePhase? get current =>
+      currentPhaseIndex >= 0 && currentPhaseIndex < phases.length
+          ? phases[currentPhaseIndex]
+          : null;
 
   /// The next PENDING timed phase from the current one on (web semantics:
   /// scan includes the current phase; shootouts are not timed phases).
@@ -308,7 +311,8 @@ class GameLifecycle {
       shootoutTally: tally,
       shootoutOrder: order,
       shootoutHistory: history,
-      drawResolutions: rules is Map ? parseStrList(rules['drawResolutions']) : const [],
+      drawResolutions:
+          rules is Map ? parseStrList(rules['drawResolutions']) : const [],
       hasExtraPhases: phases.any((p) => p.kind == 'extra'),
       hasShootout: phases.any((p) => p.kind == 'shootout'),
     );
@@ -389,7 +393,9 @@ class OfficiatingRights {
     if (j is! Map) {
       // Older server: canManage meant "may do everything".
       return OfficiatingRights(
-          canTime: fallback, canScore: fallback, role: fallback ? 'both' : null);
+          canTime: fallback,
+          canScore: fallback,
+          role: fallback ? 'both' : null);
     }
     return OfficiatingRights(
       role: parseStr(j['role']),
@@ -560,7 +566,9 @@ class GameDetail {
 
   /// Server time now, from the fetch's serverNow / fetchedAt anchor.
   DateTime get serverClock {
-    final off = (serverNow != null && fetchedAt != null) ? serverNow!.difference(fetchedAt!) : Duration.zero;
+    final off = (serverNow != null && fetchedAt != null)
+        ? serverNow!.difference(fetchedAt!)
+        : Duration.zero;
     return DateTime.now().add(off);
   }
 
@@ -643,18 +651,17 @@ class GameDetail {
               (j['officiants'] as Map)['people'] is List
           ? [
               for (final o in (j['officiants'] as Map)['people'] as List)
-                if (o is Map && o['displayName'] != null)
-                  '${o['displayName']}'
+                if (o is Map && o['displayName'] != null) '${o['displayName']}'
             ]
           : const [],
-      officiants: j['officiants'] is Map &&
-              (j['officiants'] as Map)['people'] is List
-          ? [
-              for (final o in (j['officiants'] as Map)['people'] as List)
-                if (o is Map)
-                  GameOfficiant.fromJson(Map<String, dynamic>.from(o))
-            ]
-          : const [],
+      officiants:
+          j['officiants'] is Map && (j['officiants'] as Map)['people'] is List
+              ? [
+                  for (final o in (j['officiants'] as Map)['people'] as List)
+                    if (o is Map)
+                      GameOfficiant.fromJson(Map<String, dynamic>.from(o))
+                ]
+              : const [],
       officiating: OfficiatingRights.fromJson(j['officiating'],
           fallback: j['canManage'] == true),
       profile: OfficiatingProfile.fromJson(j['officiatingProfile']),

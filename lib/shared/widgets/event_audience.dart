@@ -79,7 +79,8 @@ class EventAudiencePicker extends StatelessWidget {
         if (forTeams) ...[
           if (allowEveryone) const SizedBox(height: 8),
           if (teams.isEmpty)
-            Text('No teams to pick yet — build one from the group\'s Teams tab.',
+            Text(
+                'No teams to pick yet — build one from the group\'s Teams tab.',
                 style: TextStyle(color: p.muted, fontSize: 12.5))
           else
             for (final t in teams)

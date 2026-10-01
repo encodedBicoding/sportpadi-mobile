@@ -66,8 +66,10 @@ class _PushBannerHostState extends ConsumerState<PushBannerHost> {
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 260),
           transitionBuilder: (child, anim) => SlideTransition(
-            position: Tween<Offset>(begin: const Offset(0, -1), end: Offset.zero)
-                .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+            position: Tween<Offset>(
+                    begin: const Offset(0, -1), end: Offset.zero)
+                .animate(
+                    CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
             child: FadeTransition(opacity: anim, child: child),
           ),
           child: alert == null
@@ -85,7 +87,11 @@ class _PushBannerHostState extends ConsumerState<PushBannerHost> {
 }
 
 class _Banner extends StatelessWidget {
-  const _Banner({super.key, required this.alert, required this.onTap, required this.onDismiss});
+  const _Banner(
+      {super.key,
+      required this.alert,
+      required this.onTap,
+      required this.onDismiss});
   final PushAlert alert;
   final VoidCallback onTap;
   final VoidCallback onDismiss;
@@ -115,47 +121,53 @@ class _Banner extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: p.line),
                 ),
-                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: p.accent.withAlpha(36),
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                    child: Icon(Icons.notifications_active_rounded,
-                        size: 18, color: p.accent),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(alert.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  color: p.ink,
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w700)),
-                          if (alert.body != null && alert.body!.isNotEmpty)
-                            Text(alert.body!,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    color: p.muted, fontSize: 12, height: 1.35)),
-                        ]),
-                  ),
-                  const SizedBox(width: 6),
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                    icon: Icon(Icons.close_rounded, size: 17, color: p.muted),
-                    onPressed: onDismiss,
-                    tooltip: 'Dismiss',
-                  ),
-                ]),
+                child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: p.accent.withAlpha(36),
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: Icon(Icons.notifications_active_rounded,
+                            size: 18, color: p.accent),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(alert.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      color: p.ink,
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w700)),
+                              if (alert.body != null && alert.body!.isNotEmpty)
+                                Text(alert.body!,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        color: p.muted,
+                                        fontSize: 12,
+                                        height: 1.35)),
+                            ]),
+                      ),
+                      const SizedBox(width: 6),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints:
+                            const BoxConstraints(minWidth: 28, minHeight: 28),
+                        icon:
+                            Icon(Icons.close_rounded, size: 17, color: p.muted),
+                        onPressed: onDismiss,
+                        tooltip: 'Dismiss',
+                      ),
+                    ]),
               ),
             ),
           ),

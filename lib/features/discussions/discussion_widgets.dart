@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/data/discussions/discussion_models.dart';
 import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 
 /// Building blocks shared by the Discussions list, the thread, the composer
 /// and the group / team sections.
@@ -48,7 +49,8 @@ class DiscussionResolvedPill extends StatelessWidget {
 
 /// A small inline tag next to a name: OP, Admin, Coach.
 class DiscussionTag extends StatelessWidget {
-  const DiscussionTag(this.label, {super.key, required this.fg, required this.bg});
+  const DiscussionTag(this.label,
+      {super.key, required this.fg, required this.bg});
   final String label;
   final Color fg;
   final Color bg;
@@ -70,7 +72,8 @@ class DiscussionTag extends StatelessWidget {
 }
 
 /// Avatar, name, OP / Admin / Coach tags, "Tobi's guardian", and an optional
-/// trailing note (time, "edited").
+/// trailing note (time, "edited"). With a [userId], the avatar and name
+/// open that person's profile.
 class DiscussionAuthorLine extends StatelessWidget {
   const DiscussionAuthorLine({
     super.key,
@@ -79,28 +82,40 @@ class DiscussionAuthorLine extends StatelessWidget {
     this.note,
     this.avatarSize = 20,
     this.fontSize = 12.5,
+    this.userId,
   });
   final DiscussionAuthor author;
   final bool isOP;
   final String? note;
   final double avatarSize;
   final double fontSize;
+  final String? userId;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
     final guardian = author.guardianOf;
     return Row(children: [
-      WardAvatar(name: author.name, url: author.avatarUrl, size: avatarSize),
+      // PlayerTap leaves its child as-is when userId is null.
+      PlayerTap(
+        userId: userId,
+        borderRadius: 999,
+        child: WardAvatar(
+            name: author.name, url: author.avatarUrl, size: avatarSize),
+      ),
       const SizedBox(width: 6),
       Flexible(
-        child: Text(author.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-                color: p.ink,
-                fontSize: fontSize,
-                fontWeight: FontWeight.w700)),
+        child: PlayerTap(
+          userId: userId,
+          borderRadius: 6,
+          child: Text(author.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  color: p.ink,
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w700)),
+        ),
       ),
       if (isOP) ...[
         const SizedBox(width: 5),

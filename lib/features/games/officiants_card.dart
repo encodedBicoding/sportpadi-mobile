@@ -11,13 +11,15 @@ import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 
 /// Officiant jobs. Missing = both.
 const kOfficiantRoles = <String, ({String label, String icon, String blurb})>{
   'timekeeper': (
     label: 'Timekeeper',
     icon: '⏱️',
-    blurb: 'Runs the clock in officiant mode — kick-off, pauses, stoppage, full time.',
+    blurb:
+        'Runs the clock in officiant mode — kick-off, pauses, stoppage, full time.',
   ),
   'scorer': (
     label: 'Scorer',
@@ -92,9 +94,7 @@ class _OfficiantsCardState extends ConsumerState<OfficiantsCard> {
             Expanded(
               child: Text('Officiants',
                   style: TextStyle(
-                      color: p.ink,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700)),
+                      color: p.ink, fontSize: 13, fontWeight: FontWeight.w700)),
             ),
             if (_busy)
               const SizedBox(
@@ -135,27 +135,35 @@ class _OfficiantsCardState extends ConsumerState<OfficiantsCard> {
     final p = context.palette;
     final self = o.userId == myId;
     final off = g.officiating;
-    final canEdit = off.canAssign ||
-        (self && off.role != null && off.role != 'admin');
+    final canEdit =
+        off.canAssign || (self && off.role != null && off.role != 'admin');
     final meta = kOfficiantRoles[o.role] ?? kOfficiantRoles['both']!;
     return InkWell(
       borderRadius: BorderRadius.circular(10),
-      onTap: canEdit ? () => _manage(o, self) : null,
+      // Editors manage the job; everyone else opens the person's profile.
+      // (The avatar and name always open the profile.)
+      onTap: canEdit
+          ? () => _manage(o, self)
+          : () => openPlayerProfile(context, ref, o.userId),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Row(children: [
-          CircleAvatar(
-            radius: 15,
-            backgroundColor: p.surface2,
-            backgroundImage:
-                o.avatarUrl != null ? NetworkImage(o.avatarUrl!) : null,
-            child: o.avatarUrl == null
-                ? Text(
-                    o.displayName.isNotEmpty
-                        ? o.displayName[0].toUpperCase()
-                        : '?',
-                    style: TextStyle(color: p.ink, fontSize: 12))
-                : null,
+          PlayerTap(
+            userId: o.userId,
+            borderRadius: 999,
+            child: CircleAvatar(
+              radius: 15,
+              backgroundColor: p.surface2,
+              backgroundImage:
+                  o.avatarUrl != null ? NetworkImage(o.avatarUrl!) : null,
+              child: o.avatarUrl == null
+                  ? Text(
+                      o.displayName.isNotEmpty
+                          ? o.displayName[0].toUpperCase()
+                          : '?',
+                      style: TextStyle(color: p.ink, fontSize: 12))
+                  : null,
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -164,14 +172,18 @@ class _OfficiantsCardState extends ConsumerState<OfficiantsCard> {
               children: [
                 Row(children: [
                   Flexible(
-                    child: Text(
-                      o.displayName + (self ? ' (you)' : ''),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w600),
+                    child: PlayerTap(
+                      userId: o.userId,
+                      borderRadius: 6,
+                      child: Text(
+                        o.displayName + (self ? ' (you)' : ''),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600),
+                      ),
                     ),
                   ),
                   if (o.pending) ...[
@@ -196,49 +208,45 @@ class _OfficiantsCardState extends ConsumerState<OfficiantsCard> {
     final choice = await showSpSheet<String>(
       context,
       builder: (ctx) => Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(self ? 'Your job on this game' : '${o.displayName}\'s job',
-                  style: TextStyle(
-                      color: p.ink,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              for (final e in kOfficiantRoles.entries)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  leading: Text(e.value.icon, style: const TextStyle(fontSize: 20)),
-                  title: Text(e.value.label,
-                      style: TextStyle(
-                          color: p.ink, fontWeight: FontWeight.w600)),
-                  subtitle: Text(e.value.blurb,
-                      style: TextStyle(color: p.muted, fontSize: 11.5)),
-                  trailing: o.role == e.key
-                      ? Icon(Icons.check_rounded, color: p.accent)
-                      : null,
-                  onTap: () => Navigator.pop(ctx, e.key),
-                ),
-              const Divider(),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                leading: Icon(
-                    self ? Icons.logout_rounded : Icons.person_remove_outlined,
-                    color: p.danger),
-                title: Text(self ? 'Step down' : 'Take off officiating',
-                    style: TextStyle(
-                        color: p.danger, fontWeight: FontWeight.w600)),
-                subtitle: Text(
-                    self
-                        ? 'The group admins get a heads-up to call someone else in.'
-                        : 'They can be called back in any time.',
-                    style: TextStyle(color: p.muted, fontSize: 11.5)),
-                onTap: () => Navigator.pop(ctx, '__remove'),
-              ),
-            ],
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(self ? 'Your job on this game' : '${o.displayName}\'s job',
+              style: TextStyle(
+                  color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          for (final e in kOfficiantRoles.entries)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              leading: Text(e.value.icon, style: const TextStyle(fontSize: 20)),
+              title: Text(e.value.label,
+                  style: TextStyle(color: p.ink, fontWeight: FontWeight.w600)),
+              subtitle: Text(e.value.blurb,
+                  style: TextStyle(color: p.muted, fontSize: 11.5)),
+              trailing: o.role == e.key
+                  ? Icon(Icons.check_rounded, color: p.accent)
+                  : null,
+              onTap: () => Navigator.pop(ctx, e.key),
+            ),
+          const Divider(),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            leading: Icon(
+                self ? Icons.logout_rounded : Icons.person_remove_outlined,
+                color: p.danger),
+            title: Text(self ? 'Step down' : 'Take off officiating',
+                style: TextStyle(color: p.danger, fontWeight: FontWeight.w600)),
+            subtitle: Text(
+                self
+                    ? 'The group admins get a heads-up to call someone else in.'
+                    : 'They can be called back in any time.',
+                style: TextStyle(color: p.muted, fontSize: 11.5)),
+            onTap: () => Navigator.pop(ctx, '__remove'),
           ),
+        ],
+      ),
     );
     if (choice == null || !mounted) return;
     if (choice == '__remove') {
@@ -388,15 +396,14 @@ class _CallInSheetState extends ConsumerState<_CallInSheet> {
                   : _error != null
                       ? Padding(
                           padding: const EdgeInsets.all(12),
-                          child: Text(_error!,
-                              style: TextStyle(color: p.danger)),
+                          child:
+                              Text(_error!, style: TextStyle(color: p.danger)),
                         )
                       : _list.isEmpty
                           ? Padding(
                               padding: const EdgeInsets.all(16),
                               child: Text(
-                                widget.isTournament &&
-                                        _q.text.trim().length < 2
+                                widget.isTournament && _q.text.trim().length < 2
                                     ? 'Type a name to search the whole platform.'
                                     : 'No one matches.',
                                 style: TextStyle(color: p.muted),
@@ -443,7 +450,8 @@ class _CallInSheetState extends ConsumerState<_CallInSheet> {
         backgroundImage:
             c.avatarUrl != null ? NetworkImage(c.avatarUrl!) : null,
         child: c.avatarUrl == null
-            ? Text(c.displayName.isNotEmpty ? c.displayName[0].toUpperCase() : '?',
+            ? Text(
+                c.displayName.isNotEmpty ? c.displayName[0].toUpperCase() : '?',
                 style: TextStyle(color: p.ink, fontSize: 12))
             : null,
       ),

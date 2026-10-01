@@ -69,7 +69,8 @@ class _CourtPainter extends CustomPainter {
     final scale =
         (size.width / w) > (size.height / h) ? size.width / w : size.height / h;
     canvas.save();
-    canvas.translate((size.width - w * scale) / 2, (size.height - h * scale) / 2);
+    canvas.translate(
+        (size.width - w * scale) / 2, (size.height - h * scale) / 2);
     canvas.scale(scale);
     final paint = Paint()
       ..color = const Color(0x12FFFFFF)
@@ -90,9 +91,11 @@ class _CourtPainter extends CustomPainter {
         line(x1 + dx * d, y1 + dy * d, x1 + dx * e, y1 + dy * e);
       }
     }
+
     void rect(double x, double y, double rw, double rh, [double r = 0]) =>
         canvas.drawRRect(
-            RRect.fromRectAndRadius(Rect.fromLTWH(x, y, rw, rh), Radius.circular(r)),
+            RRect.fromRectAndRadius(
+                Rect.fromLTWH(x, y, rw, rh), Radius.circular(r)),
             paint);
     void dQuad(double edge, double depth, double top, double bottom) {
       // A "D" / arc from the goal line: edge x, bulging to depth x.
@@ -174,7 +177,10 @@ class _CourtPainter extends CustomPainter {
           }
         }
       case 'cricket':
-        canvas.drawOval(Rect.fromCenter(center: const Offset(200, 110), width: 368, height: 192), paint);
+        canvas.drawOval(
+            Rect.fromCenter(
+                center: const Offset(200, 110), width: 368, height: 192),
+            paint);
         rect(170, 100, 60, 20, 2);
       case 'diamond':
         final d = Path()
@@ -209,12 +215,14 @@ class ScoreCrest extends ConsumerWidget {
   });
 
   final String name;
+
   /// The kit colour for this game (null when none was set).
   final Color? color;
   final String? logoUrl;
   final double size;
   final double radius;
   final bool won;
+
   /// The scoreboard background — separates the shirt from the crest.
   final Color outline;
 
@@ -266,12 +274,16 @@ class ScoreCrest extends ConsumerWidget {
 
   Widget _colourTile(BoxBorder? border) {
     final bg = color ?? const Color(0xFF888888);
-    final fg = bg.computeLuminance() > 0.6 ? const Color(0xFF0E1411) : Colors.white;
-    final words = name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    final fg =
+        bg.computeLuminance() > 0.6 ? const Color(0xFF0E1411) : Colors.white;
+    final words =
+        name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
     final initials = words.isEmpty
         ? '?'
         : words.length == 1
-            ? words.first.substring(0, words.first.length >= 2 ? 2 : 1).toUpperCase()
+            ? words.first
+                .substring(0, words.first.length >= 2 ? 2 : 1)
+                .toUpperCase()
             : (words[0][0] + words[1][0]).toUpperCase();
     return Container(
       width: size,
@@ -284,14 +296,17 @@ class ScoreCrest extends ConsumerWidget {
       ),
       child: Text(initials,
           style: TextStyle(
-              color: fg, fontSize: (size * 0.3).roundToDouble(), fontWeight: FontWeight.w800)),
+              color: fg,
+              fontSize: (size * 0.3).roundToDouble(),
+              fontWeight: FontWeight.w800)),
     );
   }
 }
 
 /// A small football shirt filled with the kit colour.
 class KitShirt extends StatelessWidget {
-  const KitShirt({super.key, required this.color, this.size = 20, required this.outline});
+  const KitShirt(
+      {super.key, required this.color, this.size = 20, required this.outline});
   final Color color;
   final double size;
   final Color outline;
@@ -339,5 +354,6 @@ class _ShirtPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_ShirtPainter old) => old.color != color || old.outline != outline;
+  bool shouldRepaint(_ShirtPainter old) =>
+      old.color != color || old.outline != outline;
 }

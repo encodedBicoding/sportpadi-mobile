@@ -62,7 +62,8 @@ class SoccerRecord extends StatelessWidget {
                           style: TextStyle(
                               color: cells[i].$4,
                               fontSize: 18,
-                              fontWeight: i == 4 ? FontWeight.w900 : FontWeight.w800,
+                              fontWeight:
+                                  i == 4 ? FontWeight.w900 : FontWeight.w800,
                               fontFeatures: tabularFigures)),
                     ),
                   ),
@@ -119,7 +120,9 @@ class WinRateRing extends StatelessWidget {
                     fontFeatures: tabularFigures)),
             Text(caption,
                 style: TextStyle(
-                    color: p.muted, fontSize: 10.5, fontWeight: FontWeight.w600)),
+                    color: p.muted,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600)),
           ]),
         ),
       ),
@@ -265,11 +268,10 @@ class SoccerStats extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w800)),
           const TextSpan(text: ' of '),
           TextSpan(
-              text: '$g',
-              style: const TextStyle(fontWeight: FontWeight.w800)),
+              text: '$g', style: const TextStyle(fontWeight: FontWeight.w800)),
         ]),
-        style: TextStyle(
-            color: p.ink, fontSize: 14, fontFeatures: tabularFigures),
+        style:
+            TextStyle(color: p.ink, fontSize: 14, fontFeatures: tabularFigures),
       ),
       const SizedBox(height: 8),
       ThinBar(value: g > 0 ? starts / g : 0.0),
@@ -311,7 +313,9 @@ class _BookingCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(5),
             boxShadow: const [
               BoxShadow(
-                  color: Color(0x33000000), blurRadius: 6, offset: Offset(0, 3)),
+                  color: Color(0x33000000),
+                  blurRadius: 6,
+                  offset: Offset(0, 3)),
             ],
           ),
           child: Text('$count',

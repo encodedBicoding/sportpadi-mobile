@@ -86,8 +86,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
       await WakelockPlus.enable();
     } catch (_) {}
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    await SystemChrome.setPreferredOrientations(
-        [DeviceOrientation.portraitUp]);
+    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   }
 
   Future<void> _lockIn() async {
@@ -170,7 +169,8 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
           ph.timer.pausedAt != null) {
         return;
       }
-      final el = now.difference(ph.startedAt!).inMilliseconds - ph.timer.pausedMs;
+      final el =
+          now.difference(ph.startedAt!).inMilliseconds - ph.timer.pausedMs;
       if (el >= (ph.nominalMinutes! + ph.timer.stoppageMin) * 60000 &&
           _autoPhase != lc.currentPhaseIndex) {
         _autoPhase = lc.currentPhaseIndex;
@@ -180,7 +180,10 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
       return;
     }
     final d = g.durationMinutes;
-    if (d == null || g.startedAt == null || g.timer.pausedAt != null || _autoDone) {
+    if (d == null ||
+        g.startedAt == null ||
+        g.timer.pausedAt != null ||
+        _autoDone) {
       return;
     }
     final el = now.difference(g.startedAt!).inMilliseconds - g.timer.pausedMs;
@@ -197,15 +200,17 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _snack('Officiant mode is on — press and hold Exit to leave.');
+        if (!didPop) {
+          _snack('Officiant mode is on — press and hold Exit to leave.');
+        }
       },
       child: Scaffold(
         backgroundColor: _bg,
         // The officials' own space: no dock, no ad strip — just the clock.
         body: SafeArea(
           child: game.when(
-            loading: () => const Center(
-                child: CircularProgressIndicator(color: _white)),
+            loading: () =>
+                const Center(child: CircularProgressIndicator(color: _white)),
             error: (e, _) => _message(
               'Couldn\'t load the game',
               '$e',
@@ -299,8 +304,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
     } else if (g.startedAt != null) {
       paused = g.timer.pausedAt != null;
       stoppage = g.timer.stoppageMin;
-      final e = g.timer.pausedAt ??
-          (g.isLive ? now : (g.endedAt ?? now));
+      final e = g.timer.pausedAt ?? (g.isLive ? now : (g.endedAt ?? now));
       final el = e.difference(g.startedAt!).inMilliseconds - g.timer.pausedMs;
       clockMs = el < 0 ? 0 : el;
       if (g.durationMinutes != null) targetMs = g.durationMinutes! * 60000;
@@ -389,8 +393,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
           // score strip (read-only)
           if (a != null && b != null && g.teams.length == 2)
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: const Color(0x0DFFFFFF),
                 borderRadius: BorderRadius.circular(18),
@@ -416,7 +419,10 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                   if (vbPts != null && vb != null)
                     Text('SET ${vb.currentSet} · SETS ${a.score}–${b.score}',
                         style: const TextStyle(
-                            color: _dim, fontSize: 9.5, fontWeight: FontWeight.w800, letterSpacing: 0.8)),
+                            color: _dim,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8)),
                 ]),
                 Expanded(
                   child: Text(b.name,
@@ -447,10 +453,10 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                                   : vb != null
                                       ? 'Set ${vb.currentSet} · ${paused ? 'break' : 'elapsed'}'
                                       : label.isNotEmpty
-                                      ? label
-                                      : prof.clock == 'elapsed'
-                                          ? 'Elapsed'
-                                          : 'Match time')
+                                          ? label
+                                          : prof.clock == 'elapsed'
+                                              ? 'Elapsed'
+                                              : 'Match time')
                       .toUpperCase(),
                   style: const TextStyle(
                       color: _dim,
@@ -464,22 +470,22 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                 // instead of overflowing the column.
                 Flexible(
                   child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    _fmt(clockMs),
-                    style: TextStyle(
-                      color: paused
-                          ? const Color(0x66FFFFFF)
-                          : overTime
-                              ? _amber
-                              : _white,
-                      fontSize: 120,
-                      height: 1,
-                      fontWeight: FontWeight.w900,
-                      fontFeatures: const [FontFeature.tabularFigures()],
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      _fmt(clockMs),
+                      style: TextStyle(
+                        color: paused
+                            ? const Color(0x66FFFFFF)
+                            : overTime
+                                ? _amber
+                                : _white,
+                        fontSize: 120,
+                        height: 1,
+                        fontWeight: FontWeight.w900,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
                     ),
                   ),
-                ),
                 ),
                 const SizedBox(height: 8),
                 Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -506,7 +512,8 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                     dark: true,
                     large: true,
                     busy: _busy,
-                    onReset: (short) => _run(() => _repo.shotClock(widget.gameId, short: short)),
+                    onReset: (short) => _run(
+                        () => _repo.shotClock(widget.gameId, short: short)),
                   ),
                 ],
                 if (pensAdded && g.isLive) ...[
@@ -531,25 +538,34 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
               textColor: _bg,
               height: 84,
               fontSize: 26,
-              onTap: _busy ? null : () => _run(() => _repo.start(widget.gameId)),
+              onTap:
+                  _busy ? null : () => _run(() => _repo.start(widget.gameId)),
             ),
           if ((bb != null || vb != null) && g.isLive) ...[
             TimeoutBar(
               game: g,
               dark: true,
               busy: _busy,
-              onAction: (teamId, action) => _run(() => _repo.timeout(widget.gameId, teamId, action)),
+              onAction: (teamId, action) =>
+                  _run(() => _repo.timeout(widget.gameId, teamId, action)),
             ),
             const SizedBox(height: 12),
           ],
-          if (vb != null && g.isLive && vbWinner == null && vb.currentSetDecided && vb.currentSet < vb.rules.bestOf) ...[
+          if (vb != null &&
+              g.isLive &&
+              vbWinner == null &&
+              vb.currentSetDecided &&
+              vb.currentSet < vb.rules.bestOf) ...[
             _BigButton(
               label: 'Start set ${vb.currentSet + 1}',
               icon: Icons.play_arrow_rounded,
               color: _green,
               textColor: _bg,
               height: 64,
-              onTap: _busy ? null : () => _run(() => _repo.volleyballSet(widget.gameId, 'startNext')),
+              onTap: _busy
+                  ? null
+                  : () => _run(
+                      () => _repo.volleyballSet(widget.gameId, 'startNext')),
             ),
             const SizedBox(height: 12),
           ],
@@ -560,7 +576,10 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
               color: _amber,
               textColor: _bg,
               height: 56,
-              onTap: _busy ? null : () => _run(() => _repo.volleyballSet(widget.gameId, 'sidesSwitched')),
+              onTap: _busy
+                  ? null
+                  : () => _run(() =>
+                      _repo.volleyballSet(widget.gameId, 'sidesSwitched')),
             ),
             const SizedBox(height: 12),
           ],
@@ -574,8 +593,8 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
               fontSize: 30,
               onTap: _busy
                   ? null
-                  : () => _run(() => _repo.timer(
-                      widget.gameId, paused ? 'resume' : 'pause')),
+                  : () => _run(() =>
+                      _repo.timer(widget.gameId, paused ? 'resume' : 'pause')),
             ),
             const SizedBox(height: 12),
           ],
@@ -586,8 +605,10 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
               current: stoppage,
               presets: prof.stoppagePresets,
               busy: _busy,
-              onAdd: (m) => _run(() => _repo.timer(widget.gameId, 'stoppage', minutes: m)),
-              onSet: (m) => _run(() => _repo.timer(widget.gameId, 'setStoppage', minutes: m)),
+              onAdd: (m) => _run(
+                  () => _repo.timer(widget.gameId, 'stoppage', minutes: m)),
+              onSet: (m) => _run(
+                  () => _repo.timer(widget.gameId, 'setStoppage', minutes: m)),
             ),
             const SizedBox(height: 12),
           ],
@@ -615,8 +636,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                 fontSize: 18,
                 onTap: _busy
                     ? null
-                    : () =>
-                        _run(() => _repo.phase(widget.gameId, 'startNext')),
+                    : () => _run(() => _repo.phase(widget.gameId, 'startNext')),
               ),
               const SizedBox(height: 12),
             ],
@@ -631,7 +651,8 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                   fontSize: 18,
                   onTap: _busy
                       ? null
-                      : () => _run(() => _repo.phase(widget.gameId, 'overtime')),
+                      : () =>
+                          _run(() => _repo.phase(widget.gameId, 'overtime')),
                 ),
                 const SizedBox(height: 8),
               ],
@@ -696,7 +717,8 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
             Text(
               '🏁 ${vbWinner.name} won the match — hold to end it.',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: _green, fontSize: 13, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                  color: _green, fontSize: 13, fontWeight: FontWeight.w700),
             ),
           ],
           if (targetWinner != null && g.isLive) ...[
@@ -704,7 +726,8 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
             Text(
               '🏁 ${targetWinner.name} reached ${bb!.rules.targetScore} — hold to end the game.',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: _green, fontSize: 13, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                  color: _green, fontSize: 13, fontWeight: FontWeight.w700),
             ),
           ],
           if (over)

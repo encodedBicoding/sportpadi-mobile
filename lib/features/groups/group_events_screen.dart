@@ -126,8 +126,7 @@ class _GroupEventsScreenState extends ConsumerState<GroupEventsScreen> {
                 for (final k in const ['upcoming', 'past'])
                   Expanded(
                     child: Material(
-                      color:
-                          _scope == k ? p.surface : Colors.transparent,
+                      color: _scope == k ? p.surface : Colors.transparent,
                       borderRadius: BorderRadius.circular(9),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(9),
@@ -137,8 +136,7 @@ class _GroupEventsScreenState extends ConsumerState<GroupEventsScreen> {
                           _load(reset: true);
                         },
                         child: Padding(
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 8),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
                           child: Text(
                             k == 'upcoming' ? 'Upcoming' : 'Past',
                             textAlign: TextAlign.center,
@@ -158,8 +156,7 @@ class _GroupEventsScreenState extends ConsumerState<GroupEventsScreen> {
             if (_loading)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 60),
-                child: Center(
-                    child: CircularProgressIndicator(strokeWidth: 2)),
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
               )
             else if (_error != null)
               GlassCard(
@@ -194,8 +191,7 @@ class _GroupEventsScreenState extends ConsumerState<GroupEventsScreen> {
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child:
-                              CircularProgressIndicator(strokeWidth: 2))
+                          child: CircularProgressIndicator(strokeWidth: 2))
                       : InkWell(
                           onTap: () {
                             setState(() => _loadingMore = true);

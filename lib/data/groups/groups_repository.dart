@@ -84,6 +84,45 @@ class GroupsRepository {
     }
   }
 
+  /// Group invitations I've received (an admin invited me), newest first,
+  /// a page at a time. [groupId] narrows to one group (its page's banner).
+  Future<InvitationsPage> invitationsPage({int? cursor, String? groupId}) async {
+    try {
+      final res = await _dio.get('/api/mobile/groups/invitations', queryParameters: {
+        'page': 1,
+        if (cursor != null) 'cursor': cursor,
+        if (groupId != null) 'groupId': groupId,
+      });
+      return InvitationsPage.fromJson(
+          res.data is Map ? Map<String, dynamic>.from(res.data as Map) : const {});
+    } on DioException catch (e) {
+      throw _err(e);
+    }
+  }
+
+  /// How many invitations are waiting for me (the Invites tab badge).
+  Future<int> invitationCount() async {
+    try {
+      final res = await _dio.get('/api/mobile/groups/invitations',
+          queryParameters: {'count': 1});
+      final m = res.data is Map ? res.data as Map : const {};
+      final n = m['count'];
+      return n is num ? n.toInt() : 0;
+    } on DioException catch (e) {
+      throw _err(e);
+    }
+  }
+
+  /// Accept (join the group) or decline an invitation.
+  Future<void> respondInvitation(String invitationId, bool accept) async {
+    try {
+      await _dio.post('/api/mobile/groups/invitations',
+          data: {'invitationId': invitationId, 'accept': accept});
+    } on DioException catch (e) {
+      throw _err(e);
+    }
+  }
+
   /// Search profiles by name / @handle (for invites).
   Future<List<GroupMemberItem>> searchUsers(String query) async {
     try {
@@ -102,8 +141,8 @@ class GroupsRepository {
   Future<List<Map<String, dynamic>>> leaderboardCategories(
       String groupId) async {
     try {
-      final res = await _dio
-          .get('/api/mobile/groups/$groupId/leaderboard-categories');
+      final res =
+          await _dio.get('/api/mobile/groups/$groupId/leaderboard-categories');
       final list = res.data is List ? res.data as List : const [];
       return [
         for (final e in list)
@@ -137,8 +176,7 @@ class GroupsRepository {
   Future<GroupOverview> overview(String groupId) async {
     try {
       final res = await _dio.get('/api/mobile/groups/$groupId/overview');
-      return GroupOverview.fromJson(
-          Map<String, dynamic>.from(res.data as Map));
+      return GroupOverview.fromJson(Map<String, dynamic>.from(res.data as Map));
     } on DioException catch (e) {
       throw _err(e);
     }
@@ -188,15 +226,15 @@ final groupsRepositoryProvider = Provider<GroupsRepository>(
 final groupLeaderboardProvider = FutureProvider.autoDispose.family<
         List<LeaderboardRow>,
         ({String groupId, String? categoryId, String ageBand})>(
-    (ref, a) => ref.watch(groupsRepositoryProvider).leaderboard(a.groupId,
-        categoryId: a.categoryId, ageBand: a.ageBand));
+    (ref, a) => ref
+        .watch(groupsRepositoryProvider)
+        .leaderboard(a.groupId, categoryId: a.categoryId, ageBand: a.ageBand));
 
 /// Sport categories this group has completed games in (board switcher).
 final groupLeaderboardCategoriesProvider = FutureProvider.autoDispose
     .family<List<Map<String, dynamic>>, String>((ref, groupId) async {
-  final res = await ref
-      .watch(groupsRepositoryProvider)
-      .leaderboardCategories(groupId);
+  final res =
+      await ref.watch(groupsRepositoryProvider).leaderboardCategories(groupId);
   return res;
 });
 
@@ -219,3 +257,22 @@ final teamTalkCountsProvider = FutureProvider.autoDispose
     .family<GroupTalkCounts, TeamTalkKey>((ref, k) => ref
         .watch(groupsRepositoryProvider)
         .talkCounts(k.groupId, teamId: k.teamId));
+
+/// How many group invitations are waiting for me — the Invites tab badge.
+/// Invalidate it whenever invitations may have changed (it also bumps the
+/// tab's list, which watches it).
+final groupInvitationCountProvider = FutureProvider.autoDispose<int>(
+    (ref) => ref.watch(groupsRepositoryProvider).invitationCount());
+
+/// My pending invitation to one group, if any (the banner on its page).
+final groupInviteForProvider = FutureProvider.autoDispose
+    .family<GroupInvitation?, String>((ref, groupId) async {
+  final page = await ref
+      .watch(groupsRepositoryProvider)
+      .invitationsPage(groupId: groupId);
+  return page.items.isEmpty ? null : page.items.first;
+});
+
+/// Ask the Groups tab to open a section (2 = Invites) — set by the
+/// "You've been invited" notification, read and cleared by the tab.
+final groupsTabRequestProvider = StateProvider<int?>((_) => null);

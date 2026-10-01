@@ -46,7 +46,8 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
         ref.watch(authControllerProvider).value?.isAuthenticated ?? false;
     final p = context.palette;
     return Scaffold(
-      appBar: AppBar(leading: const SpLeading(), title: const Text('Join group')),
+      appBar:
+          AppBar(leading: const SpLeading(), title: const Text('Join group')),
       body: AsyncView(
         value: info,
         onRetry: () => ref.invalidate(groupJoinInfoProvider(widget.groupId)),

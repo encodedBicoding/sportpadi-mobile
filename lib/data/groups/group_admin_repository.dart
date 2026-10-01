@@ -37,7 +37,8 @@ class GroupAdminRepository {
         'title': title,
         'amount': amount,
       });
-      final m = res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {};
+      final m =
+          res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {};
       return parseInt(m['count']) ?? userIds.length;
     } catch (e) {
       throw apiError(e, fallback: 'Could not issue the fine.');
@@ -138,7 +139,8 @@ class GroupFine {
   final DateTime? createdAt;
 
   factory GroupFine.fromJson(Map<String, dynamic> j) {
-    final u = j['user'] is Map ? Map<String, dynamic>.from(j['user'] as Map) : null;
+    final u =
+        j['user'] is Map ? Map<String, dynamic>.from(j['user'] as Map) : null;
     return GroupFine(
       id: parseStr(j['id']) ?? '',
       userId: parseStr(j['userId']) ?? '',
@@ -187,9 +189,9 @@ final groupAdminRepositoryProvider = Provider<GroupAdminRepository>(
     (ref) => GroupAdminRepository(ref.watch(dioProvider)));
 
 final groupFinesProvider = FutureProvider.autoDispose
-    .family<GroupFines, String>(
-        (ref, groupId) => ref.watch(groupAdminRepositoryProvider).fines(groupId));
+    .family<GroupFines, String>((ref, groupId) =>
+        ref.watch(groupAdminRepositoryProvider).fines(groupId));
 
 final groupPromosProvider = FutureProvider.autoDispose
-    .family<List<GroupPromo>, String>(
-        (ref, groupId) => ref.watch(groupAdminRepositoryProvider).promos(groupId));
+    .family<List<GroupPromo>, String>((ref, groupId) =>
+        ref.watch(groupAdminRepositoryProvider).promos(groupId));

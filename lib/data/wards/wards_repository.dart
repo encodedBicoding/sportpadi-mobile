@@ -27,8 +27,8 @@ class WardsRepository {
   /// One ward with its guardians (active and invited).
   Future<WardDetail> get(String wardId) async {
     try {
-      final res = await _dio
-          .get('/api/mobile/wards', queryParameters: {'id': wardId});
+      final res =
+          await _dio.get('/api/mobile/wards', queryParameters: {'id': wardId});
       if (res.data is! Map) {
         throw ApiException('Ward not found.', statusCode: 404);
       }
@@ -99,8 +99,7 @@ class WardsRepository {
   }
 
   Future<void> cancelInvite(String wardId, String userId) async {
-    await _post(
-        {'action': 'cancel-invite', 'wardId': wardId, 'userId': userId},
+    await _post({'action': 'cancel-invite', 'wardId': wardId, 'userId': userId},
         "Couldn't cancel the invitation.");
   }
 
@@ -134,8 +133,7 @@ class WardsRepository {
 
   /// Take the ward out of a group (and its teams there).
   Future<void> leaveGroup(String wardId, String groupId) async {
-    await _post(
-        {'action': 'leave-group', 'wardId': wardId, 'groupId': groupId},
+    await _post({'action': 'leave-group', 'wardId': wardId, 'groupId': groupId},
         "Couldn't remove them from the group.");
   }
 
@@ -160,9 +158,11 @@ class WardsRepository {
   /// Accept (put the ward on the team) or decline a team invitation.
   Future<WardTeamInviteResult> respondTeamInvite(String inviteId,
       {required bool accept}) async {
-    final r = await _post(
-        {'action': 'respond-team-invite', 'inviteId': inviteId, 'accept': accept},
-        "Couldn't answer the invitation.");
+    final r = await _post({
+      'action': 'respond-team-invite',
+      'inviteId': inviteId,
+      'accept': accept
+    }, "Couldn't answer the invitation.");
     return WardTeamInviteResult.fromJson(r);
   }
 
@@ -229,8 +229,8 @@ class WardsRepository {
   }
 }
 
-final wardsRepositoryProvider = Provider<WardsRepository>(
-    (ref) => WardsRepository(ref.watch(dioProvider)));
+final wardsRepositoryProvider =
+    Provider<WardsRepository>((ref) => WardsRepository(ref.watch(dioProvider)));
 
 final myWardsProvider = FutureProvider.autoDispose<WardsOverview>(
     (ref) => ref.watch(wardsRepositoryProvider).mine());
@@ -250,6 +250,5 @@ final wardTeamInvitesProvider = FutureProvider.autoDispose
         .teamInvites(wardId: wardId.isEmpty ? null : wardId));
 
 /// The public claim link's state, by token.
-final claimInfoProvider = FutureProvider.autoDispose
-    .family<ClaimInfo, String>(
-        (ref, token) => ref.watch(wardsRepositoryProvider).claimInfo(token));
+final claimInfoProvider = FutureProvider.autoDispose.family<ClaimInfo, String>(
+    (ref, token) => ref.watch(wardsRepositoryProvider).claimInfo(token));

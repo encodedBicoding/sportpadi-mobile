@@ -109,8 +109,8 @@ class _OversightList extends ConsumerWidget {
                 note,
                 const SizedBox(height: 40),
                 const Center(
-                  child: SpIconTile(Icons.forum_outlined,
-                      size: 60, iconSize: 28),
+                  child:
+                      SpIconTile(Icons.forum_outlined, size: 60, iconSize: 28),
                 ),
                 const SizedBox(height: 14),
                 Text('No conversations yet',
@@ -135,8 +135,7 @@ class _OversightList extends ConsumerWidget {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               itemCount: items.length + 1 + (page.hasMore ? 1 : 0),
-              separatorBuilder: (_, i) =>
-                  SizedBox(height: i == 0 ? 0 : 10),
+              separatorBuilder: (_, i) => SizedBox(height: i == 0 ? 0 : 10),
               itemBuilder: (context, i) {
                 if (i == 0) return note;
                 final k = i - 1;
@@ -201,8 +200,7 @@ class _ReportsListState extends ConsumerState<_ReportsList> {
               : 'Marked as reviewed.')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     } finally {
       if (mounted) setState(() => _busy.remove(r.id));
     }
@@ -231,7 +229,8 @@ class _ReportsListState extends ConsumerState<_ReportsList> {
       ),
       Expanded(
         child: RefreshIndicator(
-          onRefresh: () async => ref.refresh(messageReportsProvider(key).future),
+          onRefresh: () async =>
+              ref.refresh(messageReportsProvider(key).future),
           child: AsyncView<List<MessageReport>>(
             value: reports,
             onRetry: () => ref.invalidate(messageReportsProvider(key)),
@@ -246,10 +245,7 @@ class _ReportsListState extends ConsumerState<_ReportsList> {
                           size: 60, iconSize: 28),
                     ),
                     const SizedBox(height: 14),
-                    Text(
-                        _status == 'open'
-                            ? 'No open reports'
-                            : 'Nothing here',
+                    Text(_status == 'open' ? 'No open reports' : 'Nothing here',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             color: p.ink,
@@ -356,8 +352,7 @@ class _ReportsListState extends ConsumerState<_ReportsList> {
               ),
             if (r.discussionId != null)
               TextButton.icon(
-                onPressed: () =>
-                    context.push('/discussions/${r.discussionId}'),
+                onPressed: () => context.push('/discussions/${r.discussionId}'),
                 icon: const Icon(Icons.forum_outlined, size: 17),
                 label: const Text('Open discussion'),
               ),

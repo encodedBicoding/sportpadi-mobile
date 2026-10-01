@@ -19,7 +19,8 @@ import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 /// itself can be trusted or dismissed at a glance, while an unexplained one
 /// just reads as an advert.
 class SuggestedEventsSection extends ConsumerWidget {
-  const SuggestedEventsSection({super.key, this.categoryId, this.guest = false});
+  const SuggestedEventsSection(
+      {super.key, this.categoryId, this.guest = false});
 
   /// The Home sport chip, so the shelf follows the filter.
   final String? categoryId;
@@ -49,7 +50,9 @@ class SuggestedEventsSection extends ConsumerWidget {
     // Nothing to suggest is a real answer. A "we found nothing" card on a
     // member's Home is just clutter, so stay silent — unless this is the
     // guest Home, where an empty shelf with no explanation looks broken.
-    if (!guest && (rows == null || rows.isEmpty)) return const SizedBox.shrink();
+    if (!guest && (rows == null || rows.isEmpty)) {
+      return const SizedBox.shrink();
+    }
 
     void browse() => ref.read(homeTabIndexProvider.notifier).state = 1;
 
@@ -191,8 +194,18 @@ class _SuggestionCard extends StatelessWidget {
     final d = e.eventDate?.toUtc();
     const wd = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const mo = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
 
     final when = [
@@ -204,9 +217,8 @@ class _SuggestionCard extends StatelessWidget {
     // Tournaments wear the orange; everything else the brand green.
     final pillBg = e.isTournament ? p.orangeTint : p.accentTint;
     final pillFg = e.isTournament ? p.orangeInk : p.greenText;
-    final pillLabel = e.isTournament
-        ? 'Tournament'
-        : (e.categoryName ?? 'Event');
+    final pillLabel =
+        e.isTournament ? 'Tournament' : (e.categoryName ?? 'Event');
 
     final going = e.interestCount ?? 0;
 
@@ -228,79 +240,78 @@ class _SuggestionCard extends StatelessWidget {
               border: dark ? Border.all(color: p.line) : null,
               boxShadow: cardShadow(context),
             ),
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: [
-                    Flexible(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 9, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: pillBg,
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          '${e.categoryEmoji != null && !e.isTournament ? '${e.categoryEmoji} ' : ''}$pillLabel',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: pillFg,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700),
-                        ),
-                      ),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Flexible(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: pillBg,
+                      borderRadius: BorderRadius.circular(999),
                     ),
-                    const Spacer(),
-                    Icon(Icons.north_east_rounded, size: 16, color: p.muted),
-                  ]),
-                  const SizedBox(height: 10),
-                  Text(
-                    e.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: p.ink,
-                        fontSize: 15,
-                        height: 1.3,
-                        fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 4),
-                  if (when.isNotEmpty)
-                    Text(when,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: p.muted, fontSize: 12)),
-                  if (e.groupName != null || e.locationName != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        e.groupName ?? e.locationName!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: p.muted, fontSize: 12),
-                      ),
-                    ),
-                  const Spacer(),
-                  // The why. Without it this shelf is indistinguishable
-                  // from promoted content.
-                  if (e.reasons.isNotEmpty)
-                    Text(
-                      e.reasons.first,
+                    child: Text(
+                      '${e.categoryEmoji != null && !e.isTournament ? '${e.categoryEmoji} ' : ''}$pillLabel',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          color: e.isTournament ? p.orangeInk : p.greenText,
-                          fontSize: 12,
+                          color: pillFg,
+                          fontSize: 11,
                           fontWeight: FontWeight.w700),
-                    )
-                  else if (going > 0)
-                    Text('$going going',
-                        style: TextStyle(
-                            color: p.muted,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600)),
-                ]),
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Icon(Icons.north_east_rounded, size: 16, color: p.muted),
+              ]),
+              const SizedBox(height: 10),
+              Text(
+                e.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: p.ink,
+                    fontSize: 15,
+                    height: 1.3,
+                    fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              if (when.isNotEmpty)
+                Text(when,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: p.muted, fontSize: 12)),
+              if (e.groupName != null || e.locationName != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    e.groupName ?? e.locationName!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: p.muted, fontSize: 12),
+                  ),
+                ),
+              const Spacer(),
+              // The why. Without it this shelf is indistinguishable
+              // from promoted content.
+              if (e.reasons.isNotEmpty)
+                Text(
+                  e.reasons.first,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: e.isTournament ? p.orangeInk : p.greenText,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700),
+                )
+              else if (going > 0)
+                Text('$going going',
+                    style: TextStyle(
+                        color: p.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600)),
+            ]),
           ),
         ),
       ),
@@ -326,30 +337,29 @@ class _BrowseAllCard extends StatelessWidget {
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: p.onHero.withAlpha(30),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.arrow_forward_rounded,
-                        size: 20, color: p.onHero),
-                  ),
-                  const Spacer(),
-                  Text('Browse\neverything',
-                      style: TextStyle(
-                          color: p.onHero,
-                          fontSize: 15,
-                          height: 1.25,
-                          fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 4),
-                  Text('Public games on SportPadi',
-                      style: TextStyle(color: p.heroMuted, fontSize: 11.5)),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: p.onHero.withAlpha(30),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.arrow_forward_rounded,
+                    size: 20, color: p.onHero),
+              ),
+              const Spacer(),
+              Text('Browse\neverything',
+                  style: TextStyle(
+                      color: p.onHero,
+                      fontSize: 15,
+                      height: 1.25,
+                      fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              Text('Public games on SportPadi',
+                  style: TextStyle(color: p.heroMuted, fontSize: 11.5)),
+            ]),
           ),
         ),
       ),

@@ -14,6 +14,7 @@ class PushAlert {
   final int id;
   final String title;
   final String? body;
+
   /// Web-shaped destination from the push payload (`data.url`).
   final String? url;
 }

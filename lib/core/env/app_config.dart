@@ -31,7 +31,8 @@ class AppConfig {
       //           --dart-define=API_BASE_URL=https://test.sportpadi.com
       // (plain http to a LAN host is allowed by NSAllowsLocalNetworking on
       // iOS and usesCleartextTraffic in the debug manifest on Android).
-      Flavor.dev => Platform.isIOS ? 'http://localhost:3000' : 'http://10.0.2.2:3000',
+      Flavor.dev =>
+        Platform.isIOS ? 'http://localhost:3000' : 'http://10.0.2.2:3000',
       Flavor.staging => 'https://test.sportpadi.com',
       Flavor.prod => 'https://sportpadi.com',
     };

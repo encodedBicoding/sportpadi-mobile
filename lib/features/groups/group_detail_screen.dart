@@ -25,9 +25,11 @@ import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
 import 'package:sportpadi_mobile/features/announcements/announcement_entry_points.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/groups/group_admin_sheets.dart';
+import 'package:sportpadi_mobile/features/groups/group_invitations.dart';
 import 'package:sportpadi_mobile/features/groups/group_talk_section.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
-import 'package:sportpadi_mobile/features/shell/home_shell.dart' show ShellBottomBar;
+import 'package:sportpadi_mobile/features/shell/home_shell.dart'
+    show ShellBottomBar;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
@@ -161,8 +163,7 @@ class _Header extends ConsumerStatefulWidget {
   ConsumerState<_Header> createState() => _HeaderState();
 }
 
-class _HeaderState extends ConsumerState<_Header>
-    with WidgetsBindingObserver {
+class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
   String? _uploading; // 'logo' | 'cover'
 
   // Back-on-top detection: the router's changes, checked against this
@@ -249,8 +250,8 @@ class _HeaderState extends ConsumerState<_Header>
             assetType: 'groupImage',
             scopeId: groupId,
           );
-      await ref.read(groupsRepositoryProvider).updateGroup(groupId,
-          {kind == 'cover' ? 'coverImageUrl' : 'imageUrl': url});
+      await ref.read(groupsRepositoryProvider).updateGroup(
+          groupId, {kind == 'cover' ? 'coverImageUrl' : 'imageUrl': url});
       ref.invalidate(groupProvider(groupId));
     } catch (e) {
       if (mounted) {
@@ -305,8 +306,7 @@ class _HeaderState extends ConsumerState<_Header>
     final followerCount = group.followerCount;
     final canPop = context.canPop() || Navigator.of(context).canPop();
     final signedIn =
-        ref.watch(authControllerProvider).valueOrNull?.isAuthenticated ??
-            false;
+        ref.watch(authControllerProvider).valueOrNull?.isAuthenticated ?? false;
     final desc = description?.trim() ?? '';
     // Coaches (members who don't manage the group) can create events for
     // the teams they coach.
@@ -395,39 +395,38 @@ class _HeaderState extends ConsumerState<_Header>
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: [
-                    Flexible(
-                      child: Text(name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: p.ink,
-                              fontSize: 20,
-                              height: 1.2,
-                              letterSpacing: -0.2,
-                              fontWeight: FontWeight.w800)),
-                    ),
-                    if (group.isVerified) ...[
-                      const SizedBox(width: 5),
-                      VerifiedBadgeButton(size: 20, groupName: name),
-                    ],
-                  ]),
-                  const SizedBox(height: 2),
-                  Text(
-                      group.isOwner
-                          ? 'You own this group'
-                          : canManage
-                              ? 'You manage this group'
-                              : group.isMember
-                                  ? 'You\'re a member'
-                                  : group.isFollower
-                                      ? 'You follow this group'
-                                      : 'Public group',
-                      style: TextStyle(color: p.muted, fontSize: 12.5)),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Flexible(
+                  child: Text(name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 20,
+                          height: 1.2,
+                          letterSpacing: -0.2,
+                          fontWeight: FontWeight.w800)),
+                ),
+                if (group.isVerified) ...[
+                  const SizedBox(width: 5),
+                  VerifiedBadgeButton(size: 20, groupName: name),
+                ],
+              ]),
+              const SizedBox(height: 2),
+              Text(
+                  group.isOwner
+                      ? 'You own this group'
+                      : canManage
+                          ? 'You manage this group'
+                          : group.isMember
+                              ? 'You\'re a member'
+                              : group.isFollower
+                                  ? 'You follow this group'
+                                  : 'Public group',
+                  style: TextStyle(color: p.muted, fontSize: 12.5)),
+            ]),
           ),
         ]),
         if (desc.isNotEmpty) ...[
@@ -481,6 +480,8 @@ class _HeaderState extends ConsumerState<_Header>
             onTap: () => context.push('/groups/$groupId/new-event'),
           ),
         ] else if (!group.isMember) ...[
+          // Invited by an admin: accept / decline right here.
+          if (signedIn) GroupInviteBanner(groupId: groupId),
           const SizedBox(height: 14),
           _FollowButton(groupId: groupId, initialFollowing: group.isFollower),
           // Followers (and visitors) can ask the owner to let them in.
@@ -666,10 +667,10 @@ class _ManageMenu extends ConsumerWidget {
               break;
             case 'edit':
               showSpSheet<void>(
-      context,
-      framed: false,
-      builder: (_) => _EditGroupSheet(groupId: groupId),
-    );
+                context,
+                framed: false,
+                builder: (_) => _EditGroupSheet(groupId: groupId),
+              );
               break;
             case 'wallet':
               context.push('/groups/$groupId/wallet');
@@ -723,23 +724,26 @@ class _ManageMenu extends ConsumerWidget {
           return [
             _menuItem('link', Icons.link_rounded, 'Copy membership link'),
             _menuItem('edit', Icons.edit_outlined, 'Edit group'),
-            _menuItem('wallet', Icons.account_balance_wallet_outlined, 'Wallet'),
+            _menuItem(
+                'wallet', Icons.account_balance_wallet_outlined, 'Wallet'),
             _menuItem('fines', Icons.gavel_rounded, 'Fines'),
             if (ios)
               _menuItem('plan', Icons.workspace_premium_outlined, 'Group plan')
             else
-              _menuItem('upgrade', Icons.workspace_premium_outlined, 'Upgrade plan'),
+              _menuItem(
+                  'upgrade', Icons.workspace_premium_outlined, 'Upgrade plan'),
             if (!ios)
-              _menuItem('promo', Icons.confirmation_number_outlined, 'Promo codes'),
+              _menuItem(
+                  'promo', Icons.confirmation_number_outlined, 'Promo codes'),
             if (isOwner)
-              _menuItem('requests', Icons.how_to_reg_outlined,
-                  'Membership requests',
+              _menuItem(
+                  'requests', Icons.how_to_reg_outlined, 'Membership requests',
                   badge: pending),
             if (isOwner)
-              _menuItem('transfer', Icons.swap_horiz_rounded, 'Transfer ownership'),
+              _menuItem(
+                  'transfer', Icons.swap_horiz_rounded, 'Transfer ownership'),
             const PopupMenuDivider(),
-            if (canTeams)
-              _menuItem('team', Icons.shield_outlined, 'New team'),
+            if (canTeams) _menuItem('team', Icons.shield_outlined, 'New team'),
             // Tournaments are a plan feature. On a tier without them the
             // item is offered only where tapping it can lead somewhere — the
             // in-app plans screen on iOS. Elsewhere it's hidden, same as the
@@ -747,7 +751,8 @@ class _ManageMenu extends ConsumerWidget {
             if (canTournaments || IapRepository.supportedPlatform)
               _menuItem('tournament', Icons.emoji_events_outlined,
                   canTournaments ? 'New tournament' : 'New tournament · plan'),
-            _menuItem('invites', Icons.mail_outline_rounded, 'Tournament invites'),
+            _menuItem(
+                'invites', Icons.mail_outline_rounded, 'Tournament invites'),
           ];
         },
       ),
@@ -1011,7 +1016,10 @@ class _TeamsTabState extends ConsumerState<_TeamsTab> {
                 padding: const EdgeInsets.all(24),
                 child: Column(children: [
                   SpIconTile(Icons.shield_outlined,
-                      bg: p.accentTint, fg: p.greenText, size: 56, iconSize: 26),
+                      bg: p.accentTint,
+                      fg: p.greenText,
+                      size: 56,
+                      iconSize: 26),
                   const SizedBox(height: 12),
                   Text('No teams yet',
                       style: TextStyle(
@@ -1024,7 +1032,8 @@ class _TeamsTabState extends ConsumerState<_TeamsTab> {
                         ? 'Build a team for any sport this group plays — football, basketball, and more. Teams are what you enter into tournaments.'
                         : 'This group hasn\'t built any teams yet.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: p.muted, fontSize: 13, height: 1.45),
+                    style:
+                        TextStyle(color: p.muted, fontSize: 13, height: 1.45),
                   ),
                   if (canBuild) ...[
                     const SizedBox(height: 16),
@@ -1200,8 +1209,7 @@ class _TournamentsTab extends ConsumerWidget {
       if (pending.isNotEmpty)
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-          child: _PendingInvitesStrip(
-              groupId: groupId, count: pending.length),
+          child: _PendingInvitesStrip(groupId: groupId, count: pending.length),
         ),
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
@@ -1328,9 +1336,8 @@ class _FollowButtonState extends ConsumerState<_FollowButton> {
 
   Future<void> _load() async {
     try {
-      final st = await ref
-          .read(eventsRepositoryProvider)
-          .followState(widget.groupId);
+      final st =
+          await ref.read(eventsRepositoryProvider).followState(widget.groupId);
       if (mounted) setState(() => _following = st.following);
     } catch (_) {/* stays unknown */}
   }
@@ -1342,9 +1349,7 @@ class _FollowButtonState extends ConsumerState<_FollowButton> {
       _following = !was;
     });
     try {
-      await ref
-          .read(eventsRepositoryProvider)
-          .setFollow(widget.groupId, !was);
+      await ref.read(eventsRepositoryProvider).setFollow(widget.groupId, !was);
       // The header's "You follow this group" and the follower count.
       if (mounted) ref.invalidate(groupProvider(widget.groupId));
     } catch (e) {
@@ -1409,14 +1414,14 @@ class _JoinRequestControlState extends ConsumerState<_JoinRequestControl> {
 
   String get _groupId => widget.group.id;
 
-  void _snack(String text) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(text)));
+  void _snack(String text) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 
   Future<void> _request() async {
     final sent = await showSpSheet<bool>(
       context,
-      builder: (_) => _RequestToJoinSheet(
-          groupId: _groupId, groupName: widget.group.name),
+      builder: (_) =>
+          _RequestToJoinSheet(groupId: _groupId, groupName: widget.group.name),
     );
     if (sent != true || !mounted) return;
     ref.invalidate(groupProvider(_groupId));
@@ -1528,8 +1533,7 @@ class _RequestToJoinSheetState extends ConsumerState<_RequestToJoinSheet> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _sending = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
   }
 
@@ -1595,8 +1599,7 @@ class _MembershipRequestsButton extends ConsumerWidget {
           top: -6,
           right: 6,
           child: IgnorePointer(
-            child: _CountBadge(
-                count: pending, border: context.palette.surface),
+            child: _CountBadge(count: pending, border: context.palette.surface),
           ),
         ),
     ]);
@@ -1648,8 +1651,7 @@ class _OverviewSection extends ConsumerWidget {
                 subtitle:
                     '${ov.outstandingCount} unpaid · ${formatMoney(ov.outstandingTotalMinor, ov.outstandingCurrency, ov.outstandingExponent)}',
                 highlighted: true,
-                onTap: () =>
-                    context.push('/groups/$groupId/outstanding'),
+                onTap: () => context.push('/groups/$groupId/outstanding'),
               ),
             ),
           ],
@@ -1704,8 +1706,7 @@ class _OverviewSection extends ConsumerWidget {
             !ov.checkinUnlimited &&
             ov.checkinLimit != null) ...[
           const SizedBox(height: 8),
-          _CheckinUsageCard(
-              used: ov.checkinUsed ?? 0, limit: ov.checkinLimit!),
+          _CheckinUsageCard(used: ov.checkinUsed ?? 0, limit: ov.checkinLimit!),
         ],
       ],
     );
@@ -2010,8 +2011,7 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
       }
       setState(() => _searching = true);
       try {
-        final r =
-            await ref.read(groupsRepositoryProvider).searchUsers(q);
+        final r = await ref.read(groupsRepositoryProvider).searchUsers(q);
         if (mounted) setState(() => _results = r);
       } catch (_) {
         /* keep last results */
@@ -2042,12 +2042,11 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
     return Padding(
       padding: EdgeInsets.only(bottom: bottom),
       child: Container(
-        constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.8),
+        constraints:
+            BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
         decoration: BoxDecoration(
           color: p.bg,
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(22)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: Column(
@@ -2056,9 +2055,7 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
           children: [
             Text('Invite members',
                 style: TextStyle(
-                    color: p.ink,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700)),
+                    color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
             Text('Search by name or @username — they get an invitation.',
                 style: TextStyle(color: p.muted, fontSize: 12)),
@@ -2077,8 +2074,7 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
                         child: SizedBox(
                             width: 14,
                             height: 14,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2)),
+                            child: CircularProgressIndicator(strokeWidth: 2)),
                       )
                     : null,
               ),
@@ -2096,19 +2092,15 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
                             label: u.displayName,
                             size: 34)),
                     title: Text(u.displayName,
-                        style:
-                            TextStyle(color: p.ink, fontSize: 14)),
+                        style: TextStyle(color: p.ink, fontSize: 14)),
                     subtitle: u.username != null
                         ? Text('@${u.username}',
-                            style: TextStyle(
-                                color: p.muted, fontSize: 11.5))
+                            style: TextStyle(color: p.muted, fontSize: 11.5))
                         : null,
                     trailing: _invited.contains(u.userId)
                         ? Icon(Icons.check_circle_rounded,
                             color: p.accent, size: 20)
-                        : SpButton(
-                            label: 'Invite',
-                            onTap: () => _invite(u)),
+                        : SpButton(label: 'Invite', onTap: () => _invite(u)),
                   ),
               ]),
             ),
@@ -2173,8 +2165,7 @@ class _EditGroupSheetState extends ConsumerState<_EditGroupSheet> {
       child: Container(
         decoration: BoxDecoration(
           color: p.bg,
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(22)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
         child: Column(
@@ -2183,9 +2174,7 @@ class _EditGroupSheetState extends ConsumerState<_EditGroupSheet> {
           children: [
             Text('Edit group',
                 style: TextStyle(
-                    color: p.ink,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700)),
+                    color: p.ink, fontSize: 18, fontWeight: FontWeight.w700)),
             const SizedBox(height: 14),
             TextField(
               controller: _name,
@@ -2212,7 +2201,6 @@ class _EditGroupSheetState extends ConsumerState<_EditGroupSheet> {
     );
   }
 }
-
 
 /// Pins the group tab bar under the app bar while the header scrolls away.
 class _PinnedTabBar extends SliverPersistentHeaderDelegate {

@@ -36,18 +36,15 @@ class LiveGameController
 
   void _listen() {
     _sub?.cancel();
-    _sub = ref
-        .read(gamesRepositoryProvider)
-        .pings(arg)
-        .listen(
-          (_) {
-            _backoffSec = 2; // healthy stream — reset backoff
-            refresh();
-          },
-          onError: (_) => _scheduleReconnect(),
-          onDone: _scheduleReconnect,
-          cancelOnError: true,
-        );
+    _sub = ref.read(gamesRepositoryProvider).pings(arg).listen(
+      (_) {
+        _backoffSec = 2; // healthy stream — reset backoff
+        refresh();
+      },
+      onError: (_) => _scheduleReconnect(),
+      onDone: _scheduleReconnect,
+      cancelOnError: true,
+    );
   }
 
   void _scheduleReconnect() {

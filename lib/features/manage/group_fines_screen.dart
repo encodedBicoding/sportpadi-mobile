@@ -9,11 +9,13 @@ import 'package:sportpadi_mobile/data/groups/group_admin_repository.dart';
 import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
-import 'package:sportpadi_mobile/data/payments/payment_models.dart' show formatMoney;
+import 'package:sportpadi_mobile/data/payments/payment_models.dart'
+    show formatMoney;
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
-import 'package:sportpadi_mobile/features/groups/groups_providers.dart' show groupProvider;
+import 'package:sportpadi_mobile/features/groups/groups_providers.dart'
+    show groupProvider;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
@@ -47,7 +49,9 @@ class _GroupFinesScreenState extends ConsumerState<GroupFinesScreen> {
   Future<void> _pardon(GroupFine f) async {
     setState(() => _pardoning = f.id);
     try {
-      await ref.read(groupAdminRepositoryProvider).pardonFine(widget.groupId, f.id);
+      await ref
+          .read(groupAdminRepositoryProvider)
+          .pardonFine(widget.groupId, f.id);
       _refetch();
       _snack('Fine pardoned');
     } catch (e) {
@@ -265,8 +269,8 @@ class _GroupFinesScreenState extends ConsumerState<GroupFinesScreen> {
                                           ? 'Nobody owes anything.'
                                           : 'None here.',
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      color: p.muted, fontSize: 13)),
+                                  style:
+                                      TextStyle(color: p.muted, fontSize: 13)),
                             ]),
                           )
                         else
@@ -351,7 +355,8 @@ class _FineRow extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -447,7 +452,8 @@ class _IssueFineSheetState extends ConsumerState<_IssueFineSheet> {
     _debounce = Timer(const Duration(milliseconds: 350), () async {
       setState(() => _searching = true);
       try {
-        final rows = await ref.read(groupsRepositoryProvider).searchUsers(query);
+        final rows =
+            await ref.read(groupsRepositoryProvider).searchUsers(query);
         if (mounted) setState(() => _results = rows);
       } catch (_) {
         if (mounted) setState(() => _results = const []);
@@ -498,159 +504,164 @@ class _IssueFineSheetState extends ConsumerState<_IssueFineSheet> {
   Widget build(BuildContext context) {
     final p = context.palette;
     return Column(children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Row(children: [
-              SpIconTile(Icons.gavel_rounded,
-                  bg: p.orangeTint, fg: p.orangeInk, size: 40, iconSize: 19),
-              const SizedBox(width: 12),
-              Text('Issue a fine',
-                  style:
-                      TextStyle(color: p.ink, fontSize: 18, fontWeight: FontWeight.w800)),
-            ]),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-              children: [
-                Text('Fine name',
-                    style: TextStyle(
-                        color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: _title,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration:
-                      const InputDecoration(hintText: 'e.g. Missed match, Late arrival'),
-                ),
-                const SizedBox(height: 14),
-                Text('Amount (wallet currency)',
-                    style: TextStyle(
-                        color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: _amount,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    hintText: '0.00',
-                    prefixText: widget.currency.isEmpty ? null : '${widget.currency} ',
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text('Who to fine${_picked.isEmpty ? '' : ' (${_picked.length})'}',
-                    style: TextStyle(
-                        color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 6),
-                if (_picked.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Wrap(spacing: 6, runSpacing: 6, children: [
-                      for (final u in _picked.values)
-                        InputChip(
-                          label: Text(u.displayName),
-                          avatar: u.avatarUrl != null
-                              ? CircleAvatar(backgroundImage: NetworkImage(u.avatarUrl!))
-                              : null,
-                          onDeleted: () => setState(() => _picked.remove(u.userId)),
-                        ),
-                    ]),
-                  ),
-                TextField(
-                  controller: _search,
-                  onChanged: _onSearchChanged,
-                  decoration: InputDecoration(
-                    hintText: 'Search users by name or @username',
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: _searching
-                        ? const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2)),
-                          )
-                        : null,
-                  ),
-                ),
-                for (final u in _results)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    leading: CircleAvatar(
-                      radius: 16,
-                      backgroundColor: p.surface2,
-                      backgroundImage:
-                          u.avatarUrl != null ? NetworkImage(u.avatarUrl!) : null,
-                      child: u.avatarUrl == null
-                          ? Text(u.displayName.isNotEmpty ? u.displayName[0] : '?',
-                              style: TextStyle(color: p.muted, fontSize: 12))
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+        child: Row(children: [
+          SpIconTile(Icons.gavel_rounded,
+              bg: p.orangeTint, fg: p.orangeInk, size: 40, iconSize: 19),
+          const SizedBox(width: 12),
+          Text('Issue a fine',
+              style: TextStyle(
+                  color: p.ink, fontSize: 18, fontWeight: FontWeight.w800)),
+        ]),
+      ),
+      const Divider(height: 1),
+      Expanded(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+          children: [
+            Text('Fine name',
+                style: TextStyle(
+                    color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _title,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                  hintText: 'e.g. Missed match, Late arrival'),
+            ),
+            const SizedBox(height: 14),
+            Text('Amount (wallet currency)',
+                style: TextStyle(
+                    color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _amount,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                hintText: '0.00',
+                prefixText:
+                    widget.currency.isEmpty ? null : '${widget.currency} ',
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text('Who to fine${_picked.isEmpty ? '' : ' (${_picked.length})'}',
+                style: TextStyle(
+                    color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            if (_picked.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Wrap(spacing: 6, runSpacing: 6, children: [
+                  for (final u in _picked.values)
+                    InputChip(
+                      label: Text(u.displayName),
+                      avatar: u.avatarUrl != null
+                          ? CircleAvatar(
+                              backgroundImage: NetworkImage(u.avatarUrl!))
                           : null,
+                      onDeleted: () => setState(() => _picked.remove(u.userId)),
                     ),
-                    title: Text(u.displayName, style: TextStyle(color: p.ink, fontSize: 14)),
-                    subtitle: u.username != null
-                        ? Text('@${u.username}', style: TextStyle(color: p.muted, fontSize: 12))
-                        : null,
-                    trailing: Icon(
-                      _picked.containsKey(u.userId)
-                          ? Icons.check_circle_rounded
-                          : Icons.add_circle_outline_rounded,
-                      color: _picked.containsKey(u.userId) ? p.accent : p.muted,
-                    ),
-                    onTap: () => setState(() {
-                      if (_picked.containsKey(u.userId)) {
-                        _picked.remove(u.userId);
-                      } else {
-                        _picked[u.userId] = u;
-                      }
-                    }),
+                ]),
+              ),
+            TextField(
+              controller: _search,
+              onChanged: _onSearchChanged,
+              decoration: InputDecoration(
+                hintText: 'Search users by name or @username',
+                prefixIcon: const Icon(Icons.search_rounded),
+                suffixIcon: _searching
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2)),
+                      )
+                    : null,
+              ),
+            ),
+            for (final u in _results)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                leading: CircleAvatar(
+                  radius: 16,
+                  backgroundColor: p.surface2,
+                  backgroundImage:
+                      u.avatarUrl != null ? NetworkImage(u.avatarUrl!) : null,
+                  child: u.avatarUrl == null
+                      ? Text(u.displayName.isNotEmpty ? u.displayName[0] : '?',
+                          style: TextStyle(color: p.muted, fontSize: 12))
+                      : null,
+                ),
+                title: Text(u.displayName,
+                    style: TextStyle(color: p.ink, fontSize: 14)),
+                subtitle: u.username != null
+                    ? Text('@${u.username}',
+                        style: TextStyle(color: p.muted, fontSize: 12))
+                    : null,
+                trailing: Icon(
+                  _picked.containsKey(u.userId)
+                      ? Icons.check_circle_rounded
+                      : Icons.add_circle_outline_rounded,
+                  color: _picked.containsKey(u.userId) ? p.accent : p.muted,
+                ),
+                onTap: () => setState(() {
+                  if (_picked.containsKey(u.userId)) {
+                    _picked.remove(u.userId);
+                  } else {
+                    _picked[u.userId] = u;
+                  }
+                }),
+              ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(_error!, style: TextStyle(color: p.danger, fontSize: 13)),
+            ],
+          ],
+        ),
+      ),
+      const Divider(height: 1),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        child: Row(children: [
+          Expanded(
+            child: Material(
+              color: p.surface,
+              shape: StadiumBorder(side: BorderSide(color: p.line)),
+              child: InkWell(
+                customBorder: const StadiumBorder(),
+                onTap: _busy ? null : () => Navigator.pop(context),
+                child: SizedBox(
+                  height: 48,
+                  child: Center(
+                    child: Text('Cancel',
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700)),
                   ),
-                if (_error != null) ...[
-                  const SizedBox(height: 8),
-                  Text(_error!, style: TextStyle(color: p.danger, fontSize: 13)),
-                ],
-              ],
+                ),
+              ),
             ),
           ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-            child: Row(children: [
-              Expanded(
-                child: Material(
-                  color: p.surface,
-                  shape: StadiumBorder(side: BorderSide(color: p.line)),
-                  child: InkWell(
-                    customBorder: const StadiumBorder(),
-                    onTap: _busy ? null : () => Navigator.pop(context),
-                    child: SizedBox(
-                      height: 48,
-                      child: Center(
-                        child: Text('Cancel',
-                            style: TextStyle(
-                                color: p.ink,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700)),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 2,
-                child: SpButton(
-                  label: _busy
-                      ? 'Issuing…'
-                      : _picked.length > 1
-                          ? 'Issue ${_picked.length} fines'
-                          : 'Issue fine',
-                  expand: true,
-                  onTap: _busy ? null : _submit,
-                ),
-              ),
-            ]),
+          const SizedBox(width: 10),
+          Expanded(
+            flex: 2,
+            child: SpButton(
+              label: _busy
+                  ? 'Issuing…'
+                  : _picked.length > 1
+                      ? 'Issue ${_picked.length} fines'
+                      : 'Issue fine',
+              expand: true,
+              onTap: _busy ? null : _submit,
+            ),
           ),
-        ]);
+        ]),
+      ),
+    ]);
   }
 }

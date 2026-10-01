@@ -97,9 +97,8 @@ DateTime inViewerZone(DateTime instant) {
 String? zoneOffsetLabel(String? name, [DateTime? at]) {
   final loc = _loc(name);
   if (loc == null) return null;
-  final mins = tz.TZDateTime.from(at ?? DateTime.now(), loc)
-      .timeZoneOffset
-      .inMinutes;
+  final mins =
+      tz.TZDateTime.from(at ?? DateTime.now(), loc).timeZoneOffset.inMinutes;
   if (mins == 0) return 'GMT';
   final sign = mins < 0 ? '-' : '+';
   final h = mins.abs() ~/ 60;

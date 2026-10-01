@@ -132,7 +132,8 @@ class _DiscussionComposerScreenState
     final spaces = ref.watch(discussionSpacesProvider(widget.groupId));
     final s = spaces.valueOrNull;
     if (s != null) _seed(s);
-    final groupName = ref.watch(groupProvider(widget.groupId)).valueOrNull?.name;
+    final groupName =
+        ref.watch(groupProvider(widget.groupId)).valueOrNull?.name;
     return Scaffold(
       backgroundColor: p.bg,
       body: SafeArea(
@@ -151,8 +152,7 @@ class _DiscussionComposerScreenState
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(32),
-                      child: Text(
-                          "You can't start discussions in this group.",
+                      child: Text("You can't start discussions in this group.",
                           textAlign: TextAlign.center,
                           style: TextStyle(color: p.muted)),
                     ),

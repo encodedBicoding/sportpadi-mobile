@@ -194,10 +194,10 @@ class _PitchPainter extends _ArtPainter {
     final cr = math.max(4.0, ph * 0.045);
     canvas.drawArc(Rect.fromCircle(center: r.topLeft, radius: cr), 0,
         math.pi / 2, false, line);
-    canvas.drawArc(Rect.fromCircle(center: r.topRight, radius: cr),
-        math.pi / 2, math.pi / 2, false, line);
-    canvas.drawArc(Rect.fromCircle(center: r.bottomRight, radius: cr),
-        math.pi, math.pi / 2, false, line);
+    canvas.drawArc(Rect.fromCircle(center: r.topRight, radius: cr), math.pi / 2,
+        math.pi / 2, false, line);
+    canvas.drawArc(Rect.fromCircle(center: r.bottomRight, radius: cr), math.pi,
+        math.pi / 2, false, line);
     canvas.drawArc(Rect.fromCircle(center: r.bottomLeft, radius: cr),
         -math.pi / 2, math.pi / 2, false, line);
   }
@@ -221,8 +221,8 @@ class _HardwoodPainter extends _ArtPainter {
       canvas.drawLine(Offset(x, 0), Offset(x, h), plank);
       final j = ((col * 37) % 100) / 100 * h;
       canvas.drawLine(Offset(x - pw, j), Offset(x, j), plank);
-      canvas.drawLine(
-          Offset(x - pw, (j + h * 0.5) % h), Offset(x, (j + h * 0.5) % h), plank);
+      canvas.drawLine(Offset(x - pw, (j + h * 0.5) % h),
+          Offset(x, (j + h * 0.5) % h), plank);
       col++;
     }
     _vignette(canvas, size);
@@ -252,10 +252,14 @@ class _HardwoodPainter extends _ArtPainter {
 
     // Hoop, backboard, restricted area.
     final hx = bx - s * 0.1;
-    canvas.drawLine(Offset(bx - s * 0.055, hy - s * 0.085),
-        Offset(bx - s * 0.055, hy + s * 0.085), _stroke(line.strokeWidth * 1.6, 82));
-    canvas.drawLine(Offset(bx - s * 0.055, hy), Offset(hx + s * 0.035, hy), line);
-    canvas.drawCircle(Offset(hx, hy), s * 0.035, _stroke(line.strokeWidth * 1.3, 92));
+    canvas.drawLine(
+        Offset(bx - s * 0.055, hy - s * 0.085),
+        Offset(bx - s * 0.055, hy + s * 0.085),
+        _stroke(line.strokeWidth * 1.6, 82));
+    canvas.drawLine(
+        Offset(bx - s * 0.055, hy), Offset(hx + s * 0.035, hy), line);
+    canvas.drawCircle(
+        Offset(hx, hy), s * 0.035, _stroke(line.strokeWidth * 1.3, 92));
     canvas.drawArc(Rect.fromCircle(center: Offset(hx, hy), radius: s * 0.11),
         math.pi / 2, math.pi, false, line);
 
@@ -322,15 +326,17 @@ class _BeachPainter extends _ArtPainter {
     canvas.drawLine(Offset(w * 0.24, floorY), Offset(w * 0.76, floorY), line);
     canvas.drawLine(Offset(w * 0.24, floorY), Offset(w * 0.02, h), line);
     canvas.drawLine(Offset(w * 0.76, floorY), Offset(w * 0.98, h), line);
-    canvas.drawLine(
-        Offset(w * 0.19, h * 0.6), Offset(w * 0.81, h * 0.6), _stroke(line.strokeWidth, 36));
+    canvas.drawLine(Offset(w * 0.19, h * 0.6), Offset(w * 0.81, h * 0.6),
+        _stroke(line.strokeWidth, 36));
 
     // The net across the upper third: posts, a mesh band, the top tape.
     final top = h * 0.17, bottom = h * 0.35;
     final postL = w * 0.05, postR = w * 0.95;
     final post = _stroke(math.max(2.0, line.strokeWidth * 1.8), 72);
-    canvas.drawLine(Offset(postL, top - h * 0.05), Offset(postL, floorY + h * 0.06), post);
-    canvas.drawLine(Offset(postR, top - h * 0.05), Offset(postR, floorY + h * 0.06), post);
+    canvas.drawLine(
+        Offset(postL, top - h * 0.05), Offset(postL, floorY + h * 0.06), post);
+    canvas.drawLine(
+        Offset(postR, top - h * 0.05), Offset(postR, floorY + h * 0.06), post);
 
     canvas.save();
     canvas.clipRect(Rect.fromLTRB(postL, top, postR, bottom));
@@ -344,8 +350,8 @@ class _BeachPainter extends _ArtPainter {
     canvas.restore();
     canvas.drawLine(Offset(postL, top), Offset(postR, top),
         _stroke(math.max(2.4, h * 0.014), 96));
-    canvas.drawLine(
-        Offset(postL, bottom), Offset(postR, bottom), _stroke(line.strokeWidth, 52));
+    canvas.drawLine(Offset(postL, bottom), Offset(postR, bottom),
+        _stroke(line.strokeWidth, 52));
   }
 }
 
@@ -367,7 +373,8 @@ class _DiamondPainter extends _ArtPainter {
     final third = Offset(cx - d, hy - d);
 
     // Infield dirt arc.
-    canvas.drawCircle(Offset(cx, hy - d), d * 1.32, _fill(const Color(0x33B45309)));
+    canvas.drawCircle(
+        Offset(cx, hy - d), d * 1.32, _fill(const Color(0x33B45309)));
     canvas.drawCircle(home, d * 0.26, _fill(const Color(0x33B45309)));
     _vignette(canvas, size);
 
@@ -448,7 +455,8 @@ class _GenericPainter extends _ArtPainter {
       text: TextSpan(text: emoji, style: TextStyle(fontSize: h * 0.82)),
       textDirection: TextDirection.ltr,
     )..layout();
-    canvas.saveLayer(Offset.zero & size, Paint()..color = const Color(0x1F000000));
+    canvas.saveLayer(
+        Offset.zero & size, Paint()..color = const Color(0x1F000000));
     canvas.translate(w - tp.width * 0.78, h - tp.height * 0.8);
     canvas.rotate(-0.18);
     tp.paint(canvas, Offset.zero);
@@ -458,7 +466,8 @@ class _GenericPainter extends _ArtPainter {
 
   @override
   bool shouldRepaint(covariant _ArtPainter old) =>
-      super.shouldRepaint(old) || (old is _GenericPainter && old.emoji != emoji);
+      super.shouldRepaint(old) ||
+      (old is _GenericPainter && old.emoji != emoji);
 }
 
 // ── §8 helpers ──────────────────────────────────────────────────────────────
@@ -566,8 +575,11 @@ class _HardCourtPainter extends _ArtPainter {
 
     // A ball, in screen space so it never turns with the court.
     final br = dense ? 6.5 : (math.min(w, h) * 0.04).clamp(9.0, 15.0);
-    _tennisBall(canvas, Offset(w * (dense ? 0.9 : 0.84), h * (dense ? 0.24 : 0.2)),
-        br, const Color(0xBFD9F99D));
+    _tennisBall(
+        canvas,
+        Offset(w * (dense ? 0.9 : 0.84), h * (dense ? 0.24 : 0.2)),
+        br,
+        const Color(0xBFD9F99D));
   }
 }
 
@@ -609,8 +621,8 @@ class _GlassCourtPainter extends _ArtPainter {
 
     for (final left in [true, false]) {
       // Back wall: glass the full width of the end, in panels.
-      final wall = Rect.fromLTWH(
-          left ? r.left - t : r.right, r.top - t, t, wid + 2 * t);
+      final wall =
+          Rect.fromLTWH(left ? r.left - t : r.right, r.top - t, t, wid + 2 * t);
       canvas.drawRect(wall, glass);
       canvas.drawRect(wall, frame);
       for (var i = 1; i < 5; i++) {
@@ -785,7 +797,10 @@ class _FieldPainter extends _ArtPainter {
 
     // Brick marks: crosses on the middle line, 18 m out from each goal line.
     final b = math.max(3.0, h * 0.02);
-    for (final x in [r.left + ez + r.width * 0.18, r.right - ez - r.width * 0.18]) {
+    for (final x in [
+      r.left + ez + r.width * 0.18,
+      r.right - ez - r.width * 0.18
+    ]) {
       canvas.drawLine(Offset(x - b, cy - b), Offset(x + b, cy + b), line);
       canvas.drawLine(Offset(x - b, cy + b), Offset(x + b, cy - b), line);
     }
@@ -802,7 +817,8 @@ class _FieldPainter extends _ArtPainter {
     canvas.save();
     canvas.translate(end.dx, end.dy);
     canvas.rotate(-0.35);
-    final disc = Rect.fromCenter(center: Offset.zero, width: dr * 2.3, height: dr * 1.05);
+    final disc = Rect.fromCenter(
+        center: Offset.zero, width: dr * 2.3, height: dr * 1.05);
     canvas.drawOval(disc, _fill(const Color(0xCCFEF08A)));
     canvas.drawOval(
         disc.deflate(dr * 0.28),
@@ -866,7 +882,8 @@ class _FairwayPainter extends _ArtPainter {
     final tee = Offset(w * 0.12, h * 0.9);
     final shot = Path()
       ..moveTo(tee.dx, tee.dy)
-      ..quadraticBezierTo(w * 0.28, h * 0.12, hole.dx - gr * 0.45, hole.dy + gr * 0.1);
+      ..quadraticBezierTo(
+          w * 0.28, h * 0.12, hole.dx - gr * 0.45, hole.dy + gr * 0.1);
     _dotted(canvas, shot, _fill(const Color(0x80FFFFFF)),
         every: dense ? 7 : 9, radius: dense ? 1.0 : 1.4);
     canvas.drawCircle(tee, dense ? 2.4 : 3.4, _fill(const Color(0xCCFFFFFF)));
@@ -952,8 +969,8 @@ class _TrailPainter extends _ArtPainter {
     _vignette(canvas, size);
 
     // The switchback trail, dashed, and a flag on the summit.
-    _dashed(canvas, ridgeLine(_trail),
-        _stroke(_lineWidth(size, dense) * 1.15, 115),
+    _dashed(
+        canvas, ridgeLine(_trail), _stroke(_lineWidth(size, dense) * 1.15, 115),
         dash: dense ? 3.5 : 5, gap: dense ? 3 : 4);
     final peak = at(_front[3]);
     final pole = h * (dense ? 0.1 : 0.07);
@@ -1062,9 +1079,14 @@ class _ArenaPainter extends _ArtPainter {
     final seam = _stroke(1, 26);
 
     // The centre line, dashed.
-    _dashed(canvas, Path()..moveTo(w / 2, 0)..lineTo(w / 2, h),
+    _dashed(
+        canvas,
+        Path()
+          ..moveTo(w / 2, 0)
+          ..lineTo(w / 2, h),
         _stroke(_lineWidth(size, dense), 40),
-        dash: 7, gap: 6);
+        dash: 7,
+        gap: 6);
 
     // Inflatable bunkers: cones ("doritos"), cans and a snake.
     void cone(double fx, double fy, double sz, double angle) {
@@ -1098,7 +1120,9 @@ class _ArenaPainter extends _ArtPainter {
 
     final snake = RRect.fromRectAndRadius(
         Rect.fromCenter(
-            center: Offset(w * 0.5, h * 0.9), width: w * 0.46, height: s * 0.42),
+            center: Offset(w * 0.5, h * 0.9),
+            width: w * 0.46,
+            height: s * 0.42),
         Radius.circular(s * 0.21));
     canvas.drawRRect(snake, olive);
     canvas.drawRRect(snake, seam);

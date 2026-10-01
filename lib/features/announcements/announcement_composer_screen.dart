@@ -212,8 +212,8 @@ class _AnnouncementComposerScreenState
             scopeId: widget.groupId,
           );
       if (!mounted) return;
-      setState(() =>
-          _images.add(AnnouncementAttachment(url: url, kind: 'image')));
+      setState(
+          () => _images.add(AnnouncementAttachment(url: url, kind: 'image')));
     } catch (e) {
       _snack('$e');
     } finally {
@@ -285,8 +285,8 @@ class _AnnouncementComposerScreenState
           Expanded(
             child: AsyncView<ComposerInfo>(
               value: composer,
-              onRetry: () => ref
-                  .invalidate(announcementComposerProvider(widget.groupId)),
+              onRetry: () =>
+                  ref.invalidate(announcementComposerProvider(widget.groupId)),
               data: (info) {
                 _seed(info);
                 return _form(p, info);
@@ -504,9 +504,10 @@ class _AnnouncementComposerScreenState
           Wrap(spacing: 6, runSpacing: 6, children: [
             for (final m in people)
               InputChip(
-                avatar: WardAvatar(
-                    name: m.displayName, url: m.avatarUrl, size: 24),
-                label: Text(m.isWard ? '${m.displayName} · Ward' : m.displayName),
+                avatar:
+                    WardAvatar(name: m.displayName, url: m.avatarUrl, size: 24),
+                label:
+                    Text(m.isWard ? '${m.displayName} · Ward' : m.displayName),
                 onDeleted: () => _setAudience(() => _members.remove(m.userId)),
               ),
           ]),
@@ -544,8 +545,7 @@ class _AnnouncementComposerScreenState
           size: 16, color: warn ? p.danger : p.muted),
       const SizedBox(width: 6),
       Expanded(
-        child: Text(
-            warn ? 'Nobody in that audience can receive it yet.' : text,
+        child: Text(warn ? 'Nobody in that audience can receive it yet.' : text,
             style: TextStyle(
                 color: warn ? p.danger : p.muted,
                 fontSize: 12.5,
@@ -615,8 +615,7 @@ class _AnnouncementComposerScreenState
                               color: p.muted),
                           const SizedBox(height: 2),
                           Text('Photo',
-                              style:
-                                  TextStyle(color: p.muted, fontSize: 11)),
+                              style: TextStyle(color: p.muted, fontSize: 11)),
                         ]),
             ),
           ),
@@ -646,8 +645,8 @@ class _AnnouncementComposerScreenState
         ],
       ]),
       subtitle: Text(note,
-          style: TextStyle(
-              color: q.canSend ? p.muted : p.danger, fontSize: 12)),
+          style:
+              TextStyle(color: q.canSend ? p.muted : p.danger, fontSize: 12)),
       value: _urgent && q.canSend,
       onChanged: q.canSend ? (v) => setState(() => _urgent = v) : null,
     );
@@ -667,7 +666,10 @@ class _AnnouncementComposerScreenState
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon, color: p.muted),
       title: Text(title),
-      subtitle: Text(value == null ? empty : '$prefix ${fmtInstant(value, style: InstantStyle.day)}',
+      subtitle: Text(
+          value == null
+              ? empty
+              : '$prefix ${fmtInstant(value, style: InstantStyle.day)}',
           style: TextStyle(color: p.muted, fontSize: 12)),
       trailing: value == null
           ? Icon(Icons.chevron_right_rounded, color: p.muted)
@@ -793,22 +795,19 @@ class _SelectRow extends StatelessWidget {
           leading,
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600)),
-                  if (subtitle.isNotEmpty)
-                    Text(subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: p.muted, fontSize: 12)),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: p.ink, fontSize: 14, fontWeight: FontWeight.w600)),
+              if (subtitle.isNotEmpty)
+                Text(subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: p.muted, fontSize: 12)),
+            ]),
           ),
           Icon(mark, color: selected ? p.greenText : p.muted),
         ]),

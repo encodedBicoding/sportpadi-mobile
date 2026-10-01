@@ -41,6 +41,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
+
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   int _tab = 0; // 0 groups, 1 tournaments, 2 events, 3 posts
 
@@ -50,9 +51,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final p = context.palette;
     void openMenu(Profile profile) {
       showSpSheet<void>(
-      context,
-      framed: false,
-      builder: (ctx) => _ProfileMenuSheet(
+        context,
+        framed: false,
+        builder: (ctx) => _ProfileMenuSheet(
           profile: profile,
           onPick: (v) {
             Navigator.pop(ctx);
@@ -65,7 +66,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             }
           },
         ),
-    );
+      );
     }
 
     return Scaffold(
@@ -89,8 +90,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ? null
               : parseStr(categories.first['categoryId']);
           // No sport picker here any more: the tabs cover every sport.
-          final groups = ref.watch(myGroupsProvider).valueOrNull ??
-              const <GroupSummary>[];
+          final groups =
+              ref.watch(myGroupsProvider).valueOrNull ?? const <GroupSummary>[];
           final akas = ref.watch(myGroupAkasProvider).valueOrNull ??
               const <String, String>{};
 
@@ -154,27 +155,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
                 sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                      if (_tab == 0)
-                        _MyGroupsList(
-                          groups: groups,
-                          akas: akas,
-                          userId: userId,
-                        )
-                      else if (_tab == 1)
-                        TournamentList(
-                          rows: tournaments,
-                          playerId: userId,
-                          title: 'My tournaments',
-                        )
-                      else if (_tab == 2)
-                        _AttendedEventsGrid(userId: userId)
-                      else
-                        const _EmptyNote(
-                          icon: Icons.image_outlined,
-                          title: 'Posts are coming',
-                          text: 'Share photos from events — coming soon.',
-                        ),
-                    ])),
+                  if (_tab == 0)
+                    _MyGroupsList(
+                      groups: groups,
+                      akas: akas,
+                      userId: userId,
+                    )
+                  else if (_tab == 1)
+                    TournamentList(
+                      rows: tournaments,
+                      playerId: userId,
+                      title: 'My tournaments',
+                    )
+                  else if (_tab == 2)
+                    _AttendedEventsGrid(userId: userId)
+                  else
+                    const _EmptyNote(
+                      icon: Icons.image_outlined,
+                      title: 'Posts are coming',
+                      text: 'Share photos from events — coming soon.',
+                    ),
+                ])),
               ),
             ]),
           );
@@ -215,9 +216,7 @@ class _HeroState extends ConsumerState<_Hero> {
             picked.mimeType ?? 'image/jpeg',
             assetType: 'avatar',
           );
-      await ref
-          .read(profileRepositoryProvider)
-          .updateMe({'avatarUrl': url});
+      await ref.read(profileRepositoryProvider).updateMe({'avatarUrl': url});
       ref.invalidate(meProvider);
     } catch (e) {
       if (mounted) {
@@ -247,11 +246,9 @@ class _HeroState extends ConsumerState<_Hero> {
     final coverH = top + 132.0;
     const avatar = 104.0;
     const cardOverlap = 34.0;
-    final frame = frameColor(ref
-                .watch(identityProvider(userId ?? ''))
-                .valueOrNull
-                ?.frame ??
-            'none') ??
+    final frame = frameColor(
+            ref.watch(identityProvider(userId ?? '')).valueOrNull?.frame ??
+                'none') ??
         p.accent;
 
     return Stack(clipBehavior: Clip.none, children: [
@@ -483,8 +480,8 @@ class _ProfileCover extends CustomPainter {
       ..color = const Color(0x1FFFFFFF)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
-    canvas.drawLine(Offset(size.width / 2, 0),
-        Offset(size.width / 2, size.height), line);
+    canvas.drawLine(
+        Offset(size.width / 2, 0), Offset(size.width / 2, size.height), line);
     canvas.drawCircle(Offset(size.width / 2, size.height * 0.62), 44, line);
   }
 
@@ -602,8 +599,7 @@ class _ProfileMenuSheet extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 child: Column(children: [
-                  SpIconTile(icon,
-                      bg: p.accentTint, fg: p.greenText, size: 40),
+                  SpIconTile(icon, bg: p.accentTint, fg: p.greenText, size: 40),
                   const SizedBox(height: 8),
                   Text(label,
                       style: TextStyle(
@@ -616,8 +612,8 @@ class _ProfileMenuSheet extends StatelessWidget {
           ),
         );
 
-    Widget row(String value, IconData icon, String label, String sub,
-            Color bg, Color fg) =>
+    Widget row(String value, IconData icon, String label, String sub, Color bg,
+            Color fg) =>
         InkWell(
           borderRadius: BorderRadius.circular(18),
           onTap: () => onPick(value),
@@ -714,9 +710,8 @@ class _ProfileMenuSheet extends StatelessWidget {
                     'Check in at an event', p.accentTint, p.greenText),
                 row('/my-qr', Icons.qr_code_2_rounded, 'My QR code',
                     'Show it at the gate', p.surface2, p.ink),
-                row('/tickets', Icons.confirmation_num_outlined,
-                    'My purchases', 'Tickets and passes you bought',
-                    p.orangeTint, p.orangeInk),
+                row('/tickets', Icons.confirmation_num_outlined, 'My purchases',
+                    'Tickets and passes you bought', p.orangeTint, p.orangeInk),
                 row('/fines', Icons.receipt_long_outlined, 'My fines',
                     'Fines from your groups', p.liveTint, p.danger),
               ]),
@@ -726,9 +721,13 @@ class _ProfileMenuSheet extends StatelessWidget {
                 child: Eyebrow('Activity & stats'),
               ),
               SpListCard(children: [
-                row('/profile/sports', Icons.sports_soccer_outlined,
-                    'My sports', 'The sports you play and how',
-                    p.accentTint, p.greenText),
+                row(
+                    '/profile/sports',
+                    Icons.sports_soccer_outlined,
+                    'My sports',
+                    'The sports you play and how',
+                    p.accentTint,
+                    p.greenText),
                 row('/profile/records', Icons.insights_rounded, 'My records',
                     'Your numbers, sport by sport', p.orangeTint, p.orangeInk),
               ]),
@@ -757,8 +756,7 @@ class _EditProfileSheet extends ConsumerStatefulWidget {
   final Profile profile;
 
   @override
-  ConsumerState<_EditProfileSheet> createState() =>
-      _EditProfileSheetState();
+  ConsumerState<_EditProfileSheet> createState() => _EditProfileSheetState();
 }
 
 class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
@@ -813,8 +811,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
       child: Container(
         decoration: BoxDecoration(
           color: p.bg,
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(28)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
         child: Column(
@@ -825,15 +822,12 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
             const SizedBox(height: 16),
             Text('Edit profile',
                 style: TextStyle(
-                    color: p.ink,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800)),
+                    color: p.ink, fontSize: 20, fontWeight: FontWeight.w800)),
             const SizedBox(height: 16),
             TextField(
               controller: _name,
               textCapitalization: TextCapitalization.words,
-              decoration:
-                  const InputDecoration(labelText: 'Display name'),
+              decoration: const InputDecoration(labelText: 'Display name'),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -846,8 +840,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
             ),
             if (_error != null) ...[
               const SizedBox(height: 8),
-              Text(_error!,
-                  style: TextStyle(color: p.danger, fontSize: 12.5)),
+              Text(_error!, style: TextStyle(color: p.danger, fontSize: 12.5)),
             ],
             const SizedBox(height: 16),
             SpButton(
@@ -955,8 +948,8 @@ class _AttendedEventsGrid extends ConsumerWidget {
     final list = events.valueOrNull ?? const <EventSummary>[];
     if (events.isLoading) {
       return GlassCard(
-          child: Text('Loading…',
-              style: TextStyle(color: p.muted, fontSize: 13)));
+          child:
+              Text('Loading…', style: TextStyle(color: p.muted, fontSize: 13)));
     }
     if (list.isEmpty) {
       return const _EmptyNote(
@@ -1081,8 +1074,8 @@ class _MyGroupsList extends StatelessWidget {
                   customBorder: const StadiumBorder(),
                   onTap: () => context.push('/groups/${g.id}'),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Text('Group',
                           style: TextStyle(
@@ -1090,8 +1083,7 @@ class _MyGroupsList extends StatelessWidget {
                               fontSize: 11.5,
                               fontWeight: FontWeight.w700)),
                       const SizedBox(width: 2),
-                      Icon(Icons.north_east_rounded,
-                          size: 12, color: p.ink),
+                      Icon(Icons.north_east_rounded, size: 12, color: p.ink),
                     ]),
                   ),
                 ),

@@ -13,7 +13,8 @@ import 'package:sportpadi_mobile/features/tournaments/invitation_rows.dart';
 import 'package:sportpadi_mobile/features/tournaments/my_tournaments_screen.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
-import 'package:sportpadi_mobile/shared/widgets/team_tile.dart' show kitGradient;
+import 'package:sportpadi_mobile/shared/widgets/team_tile.dart'
+    show kitGradient;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
 const _tabs = <(String, String)>[
@@ -25,8 +26,18 @@ const _tabs = <(String, String)>[
 ];
 
 const _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 /// One team's tournaments, every kind — live, upcoming, invites (group admins
@@ -200,8 +211,7 @@ class _Hero extends StatelessWidget {
       if ((t.categoryName ?? '').isNotEmpty)
         '${t.categoryEmoji ?? ''} ${t.categoryName}'.trim(),
     ].join(' · ');
-    final winRate =
-        t.played > 0 ? '${(t.won * 100 / t.played).round()}%' : '—';
+    final winRate = t.played > 0 ? '${(t.won * 100 / t.played).round()}%' : '—';
 
     return Stack(clipBehavior: Clip.none, children: [
       Positioned(
@@ -210,7 +220,8 @@ class _Hero extends StatelessWidget {
         right: 0,
         height: bannerH,
         child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+          borderRadius:
+              const BorderRadius.vertical(bottom: Radius.circular(32)),
           child: DecoratedBox(
             decoration: BoxDecoration(
                 gradient: kitGradient(t.kitPrimary, t.kitSecondary)),
@@ -302,9 +313,7 @@ class _Hero extends StatelessWidget {
                 _Stat(value: '${t.played}', label: 'Played'),
                 const SizedBox(width: 8),
                 _Stat(
-                    value: t.played > 0
-                        ? '${t.won}-${t.drawn}-${t.lost}'
-                        : '—',
+                    value: t.played > 0 ? '${t.won}-${t.drawn}-${t.lost}' : '—',
                     label: 'W-D-L'),
                 const SizedBox(width: 8),
                 _Stat(value: winRate, label: 'Win rate', accent: true),
@@ -361,7 +370,8 @@ class _KitStripes extends CustomPainter {
       ..strokeWidth = 18;
     final d = size.height + size.width;
     for (double x = -size.height; x < d; x += 48) {
-      canvas.drawLine(Offset(x, size.height), Offset(x + size.height, 0), paint);
+      canvas.drawLine(
+          Offset(x, size.height), Offset(x + size.height, 0), paint);
     }
     // Soft glow in the top-right, like the other 2026 covers.
     canvas.drawCircle(
@@ -487,8 +497,7 @@ class _EntryCard extends StatelessWidget {
             ? 'vs ${e.opponents.first}'
             : '${e.opponents.length + 1} teams';
     final meta = [
-      if (e.locationName != null && e.locationName!.isNotEmpty)
-        e.locationName!,
+      if (e.locationName != null && e.locationName!.isNotEmpty) e.locationName!,
       if (vs != null) vs,
       if (e.role != 'host' && e.hostGroupName != null)
         'Hosted by ${e.hostGroupName}',
@@ -519,7 +528,10 @@ class _EntryCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(children: [
-                Text(date == null ? 'TBC' : _months[date.month - 1].toUpperCase(),
+                Text(
+                    date == null
+                        ? 'TBC'
+                        : _months[date.month - 1].toUpperCase(),
                     style: TextStyle(
                         color: live
                             ? p.danger

@@ -59,8 +59,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
       ref.invalidate(announcementsUnreadProvider);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
   }
 
@@ -297,8 +296,7 @@ class _InboxTabs extends StatelessWidget {
                               color: i == 0 ? p.orange : p.accentDeep,
                               borderRadius: BorderRadius.circular(999),
                             ),
-                            child: Text(
-                                counts[i] > 99 ? '99+' : '${counts[i]}',
+                            child: Text(counts[i] > 99 ? '99+' : '${counts[i]}',
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                     color: Colors.white,

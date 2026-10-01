@@ -267,7 +267,8 @@ class DiscussionSpaceTeam {
         logoUrl: parseStr(j['logoUrl']),
         canModerate: _bool(j['canModerate']),
         asGuardianOf: [
-          for (final w in _maps(j['asGuardianOf'])) DiscussionWardRef.fromJson(w)
+          for (final w in _maps(j['asGuardianOf']))
+            DiscussionWardRef.fromJson(w)
         ].where((w) => w.id.isNotEmpty).toList(),
       );
 }
@@ -294,9 +295,9 @@ class DiscussionSpaces {
   factory DiscussionSpaces.fromJson(Map<String, dynamic> j) => DiscussionSpaces(
         isAdmin: _bool(j['isAdmin']),
         group: _bool(j['group']),
-        teams: [for (final t in _maps(j['teams'])) DiscussionSpaceTeam.fromJson(t)]
-            .where((t) => t.id.isNotEmpty)
-            .toList(),
+        teams: [
+          for (final t in _maps(j['teams'])) DiscussionSpaceTeam.fromJson(t)
+        ].where((t) => t.id.isNotEmpty).toList(),
       );
 }
 

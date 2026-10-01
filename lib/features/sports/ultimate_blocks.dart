@@ -24,18 +24,25 @@ class UltimateStats extends StatelessWidget {
     final p = context.palette;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final ink = sportInk(SportFamily.ultimate, dark: dark);
-    final scoreKey =
-        firstStatKey(ultimateScoreKeys, nums.fields, nums.counts);
+    final scoreKey = firstStatKey(ultimateScoreKeys, nums.fields, nums.counts);
     final hasAssists = nums.has('assists');
     if (scoreKey == null && !hasAssists) return GenericStats(nums: nums);
 
     final tiles = <(String, String, int, String)>[
       if (scoreKey != null)
-        (nums.field(scoreKey).icon ?? '🥏', 'Scores', nums.n(scoreKey),
-            nums.rate(scoreKey)),
+        (
+          nums.field(scoreKey).icon ?? '🥏',
+          'Scores',
+          nums.n(scoreKey),
+          nums.rate(scoreKey)
+        ),
       if (hasAssists)
-        (nums.field('assists').icon ?? '🅰️', nums.field('assists').label,
-            nums.n('assists'), nums.rate('assists')),
+        (
+          nums.field('assists').icon ?? '🅰️',
+          nums.field('assists').label,
+          nums.n('assists'),
+          nums.rate('assists')
+        ),
     ];
     final involved = (scoreKey == null ? 0 : nums.n(scoreKey)) +
         (hasAssists ? nums.n('assists') : 0);

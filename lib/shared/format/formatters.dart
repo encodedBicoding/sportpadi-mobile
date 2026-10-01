@@ -91,6 +91,6 @@ String formatYmd(String? ymd) {
   if (ymd == null || ymd.isEmpty) return '';
   final m = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(ymd);
   if (m == null) return ymd;
-  return _ymdDate.format(
-      DateTime(int.parse(m[1]!), int.parse(m[2]!), int.parse(m[3]!)));
+  return _ymdDate
+      .format(DateTime(int.parse(m[1]!), int.parse(m[2]!), int.parse(m[3]!)));
 }

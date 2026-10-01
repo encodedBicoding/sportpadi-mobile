@@ -121,8 +121,7 @@ class _EventTicketsCardState extends ConsumerState<EventTicketsCard> {
       return const SizedBox.shrink();
     }
     final required = data.tickets.where((t) => t.required).toList();
-    final payableRequired =
-        required.where((t) => !t.paid && t.canBuy).toList();
+    final payableRequired = required.where((t) => !t.paid && t.canBuy).toList();
     final allPaid = data.allRequiredPaid;
     // Price sum only — the fees line shows on the provider's checkout page.
     final payAllPrice =
@@ -200,8 +199,8 @@ class _EventTicketsCardState extends ConsumerState<EventTicketsCard> {
                 decoration: BoxDecoration(
                   color: const Color.fromRGBO(23, 166, 94, 0.06),
                   borderRadius: BorderRadius.circular(12),
-                  border:
-                      Border.all(color: const Color.fromRGBO(23, 166, 94, 0.30)),
+                  border: Border.all(
+                      color: const Color.fromRGBO(23, 166, 94, 0.30)),
                 ),
                 child: Row(children: [
                   Expanded(
@@ -251,7 +250,8 @@ class _TicketRow extends StatelessWidget {
     // A recurring ticket covers every occurrence during its cycle — a pass:
     // "Monthly pass · valid Oct 1 – Oct 31" (how long it admits you).
     final pass = passLabel(t.recurrence);
-    final valid = pass != null ? validityRange(t.validFrom, t.validUntil) : null;
+    final valid =
+        pass != null ? validityRange(t.validFrom, t.validUntil) : null;
     final meta = <String>[
       t.required ? 'Required to check in' : 'Optional',
       if (!t.eventSpecific) 'group pass',
@@ -268,7 +268,9 @@ class _TicketRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: t.paid ? const Color.fromRGBO(23, 166, 94, 0.06) : Colors.transparent,
+        color: t.paid
+            ? const Color.fromRGBO(23, 166, 94, 0.06)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
             color: t.paid ? const Color.fromRGBO(23, 166, 94, 0.35) : p.line),
@@ -322,8 +324,7 @@ class _TicketRow extends StatelessWidget {
                           fontWeight: FontWeight.w800),
                     ),
                     if (rec != null)
-                      Text(rec,
-                          style: TextStyle(color: p.muted, fontSize: 10)),
+                      Text(rec, style: TextStyle(color: p.muted, fontSize: 10)),
                     // Ticket price only — fees appear at the payment step.
                   ],
                 ),
@@ -339,57 +340,59 @@ class _TicketRow extends StatelessWidget {
                       fontSize: 11)),
               const SizedBox(height: 8),
               if (t.paid)
-                Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  InkWell(
-                    onTap: () => context.push('/tickets'),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.check_circle_rounded,
-                          size: 15, color: p.accent),
-                      const SizedBox(width: 5),
-                      Flexible(
-                        child: Text('Paid · view your ticket',
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: p.accent,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700)),
-                      ),
-                    ]),
-                  ),
-                  // Already covered — but they can still buy for someone else.
-                  if (!t.soldOut && !t.closed && !t.notOpenYet) ...[
-                    const SizedBox(height: 8),
-                    Material(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: busy ? null : onPay,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: p.line),
-                            borderRadius: BorderRadius.circular(12),
+                Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      InkWell(
+                        onTap: () => context.push('/tickets'),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.check_circle_rounded,
+                              size: 15, color: p.accent),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text('Paid · view your ticket',
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: p.accent,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700)),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.card_giftcard_rounded,
-                                  size: 15, color: p.ink),
-                              const SizedBox(width: 6),
-                              Text('Buy for someone else',
-                                  style: TextStyle(
-                                      color: p.ink,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700)),
-                            ],
+                        ]),
+                      ),
+                      // Already covered — but they can still buy for someone else.
+                      if (!t.soldOut && !t.closed && !t.notOpenYet) ...[
+                        const SizedBox(height: 8),
+                        Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: busy ? null : onPay,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(color: p.line),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.card_giftcard_rounded,
+                                      size: 15, color: p.ink),
+                                  const SizedBox(width: 6),
+                                  Text('Buy for someone else',
+                                      style: TextStyle(
+                                          color: p.ink,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700)),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  ],
-                ])
+                      ],
+                    ])
               else if (t.canBuy)
                 SpButton(
                   label: 'Buy ticket',

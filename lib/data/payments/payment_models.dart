@@ -157,13 +157,17 @@ class MyTicket {
   final String? eventTitle;
   final DateTime? eventDate;
   final DateTime? paidAt;
+
   /// Set when someone else paid for this ticket (gift purchase).
   final String? giftedByName;
   final String? groupId;
+
   /// member | follower | none — powers the "follow this group" nudge.
   final String? groupRelation;
+
   /// Platform fee paid on top of [amountMinor].
   final int feeMinor;
+
   /// Given back so far. A partly refunded ticket is still 'paid' and valid.
   final int refundedMinor;
   final DateTime? redeemedAt;
@@ -405,6 +409,7 @@ class EventTickets {
   final int unpaidRequiredTotalMinor;
   final String? groupId;
   final String? groupName;
+
   /// member | follower | none (null = signed out).
   final String? viewerRelation;
 
@@ -416,7 +421,8 @@ class EventTickets {
     final ids = j['unpaidRequiredIds'] is List
         ? (j['unpaidRequiredIds'] as List).map((e) => '$e').toList()
         : <String>[];
-    final grp = j['group'] is Map ? Map<String, dynamic>.from(j['group'] as Map) : null;
+    final grp =
+        j['group'] is Map ? Map<String, dynamic>.from(j['group'] as Map) : null;
     return EventTickets(
       ticketed: j['ticketed'] == true,
       groupId: grp != null ? parseStr(grp['id']) : null,

@@ -13,6 +13,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 
 /// The group OWNER's membership requests (`/groups/:id/requests`, also where
 /// the "X asked to join" notification lands): Pending, Approved and
@@ -88,8 +89,7 @@ class _MembershipRequestsScreenState
 
 /// One tab of the queue.
 class _RequestsList extends ConsumerStatefulWidget {
-  const _RequestsList(
-      {super.key, required this.groupId, required this.status});
+  const _RequestsList({super.key, required this.groupId, required this.status});
   final String groupId;
   final String status;
 
@@ -243,27 +243,37 @@ class _RequestCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(children: [
-            ClipOval(
-              child: Crest(logoUrl: r.avatarUrl, label: r.displayName, size: 42),
-            ),
-            const SizedBox(width: 10),
+            // Avatar + name open the requester's profile.
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(r.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700)),
-                  if (r.username != null)
-                    Text('@${r.username}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: p.muted, fontSize: 12)),
-                ],
+              child: PlayerTap(
+                userId: r.userId,
+                borderRadius: 14,
+                child: Row(children: [
+                  ClipOval(
+                    child: Crest(
+                        logoUrl: r.avatarUrl, label: r.displayName, size: 42),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(r.displayName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: p.ink,
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700)),
+                        if (r.username != null)
+                          Text('@${r.username}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: p.muted, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                ]),
               ),
             ),
             const SizedBox(width: 8),
@@ -375,8 +385,8 @@ class _OwnerOnly extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(32, 80, 32, 32),
       children: [
         const Center(
-            child: SpIconTile(Icons.lock_outline_rounded,
-                size: 60, iconSize: 28)),
+            child:
+                SpIconTile(Icons.lock_outline_rounded, size: 60, iconSize: 28)),
         const SizedBox(height: 14),
         Text('Only the group owner can see membership requests',
             textAlign: TextAlign.center,

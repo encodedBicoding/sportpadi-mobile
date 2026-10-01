@@ -34,8 +34,8 @@ class _InvitationRowState extends ConsumerState<InvitationRow> {
 
   TournamentInvite get iv => widget.invite;
 
-  void _snack(String msg) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(msg)));
+  void _snack(String msg) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
   Future<void> _accept() => _run('approve');
 
@@ -112,8 +112,7 @@ class _InvitationRowState extends ConsumerState<InvitationRow> {
     // categoryLabel is built server-side as "<emoji> <name>", so the leading
     // token is the emoji. Split rather than take a code unit: an emoji is
     // several UTF-16 units and slicing one would render a broken glyph.
-    final labelParts =
-        (iv.categoryLabel ?? '').trim().split(RegExp(r'\s+'));
+    final labelParts = (iv.categoryLabel ?? '').trim().split(RegExp(r'\s+'));
     final emoji = labelParts.isNotEmpty && labelParts.first.isNotEmpty
         ? labelParts.first
         : '🏆';
@@ -121,8 +120,8 @@ class _InvitationRowState extends ConsumerState<InvitationRow> {
     return InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: iv.eventId != null && iv.hostGroupId != null
-          ? () =>
-              context.push('/groups/${iv.hostGroupId}/tournaments/${iv.eventId}')
+          ? () => context
+              .push('/groups/${iv.hostGroupId}/tournaments/${iv.eventId}')
           : null,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
@@ -263,9 +262,7 @@ class InvitationListBox extends StatelessWidget {
                 endIndent: 12,
                 color: p.surface2),
           InvitationRow(
-              key: ValueKey(invites[i].id),
-              invite: invites[i],
-              onDone: onDone),
+              key: ValueKey(invites[i].id), invite: invites[i], onDone: onDone),
         ],
       ]),
     );

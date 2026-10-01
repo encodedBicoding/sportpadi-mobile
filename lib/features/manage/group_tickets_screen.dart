@@ -11,7 +11,8 @@ import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
-import 'package:sportpadi_mobile/data/payments/payment_models.dart' show formatMoney;
+import 'package:sportpadi_mobile/data/payments/payment_models.dart'
+    show formatMoney;
 import 'package:sportpadi_mobile/data/tickets/ticket_models.dart';
 import 'package:sportpadi_mobile/data/tickets/tickets_repository.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
@@ -19,7 +20,8 @@ import 'package:sportpadi_mobile/data/wallet/wallet_models.dart' show FeeQuote;
 import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
-import 'package:sportpadi_mobile/shared/format/instant.dart' show viewerTimezone;
+import 'package:sportpadi_mobile/shared/format/instant.dart'
+    show viewerTimezone;
 import 'package:sportpadi_mobile/shared/format/ticket_validity.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
@@ -113,7 +115,9 @@ class _GroupTicketsScreenState extends ConsumerState<GroupTicketsScreen> {
             _confirmDelete(tk);
           },
           onToggleActive: (tk, v) => _run(() async {
-            await ref.read(ticketsRepositoryProvider).setActive(widget.groupId, tk.id, v);
+            await ref
+                .read(ticketsRepositoryProvider)
+                .setActive(widget.groupId, tk.id, v);
             _refetch();
           }),
         ),
@@ -130,9 +134,12 @@ class _GroupTicketsScreenState extends ConsumerState<GroupTicketsScreen> {
             'This can\'t be undone. Tickets that already have purchases can\'t be '
             'deleted — deactivate them instead.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(d, false),
+              child: const Text('Cancel')),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: context.palette.danger),
+            style:
+                FilledButton.styleFrom(backgroundColor: context.palette.danger),
             onPressed: () => Navigator.pop(d, true),
             child: const Text('Delete'),
           ),
@@ -154,7 +161,8 @@ class _GroupTicketsScreenState extends ConsumerState<GroupTicketsScreen> {
     final tickets = ref.watch(managedTicketsProvider(widget.groupId));
     final wallet = ref.watch(groupWalletProvider(widget.groupId)).valueOrNull;
     final walletOk = wallet?.active ?? false;
-    final groupName = ref.watch(groupProvider(widget.groupId)).valueOrNull?.name ?? 'Group';
+    final groupName =
+        ref.watch(groupProvider(widget.groupId)).valueOrNull?.name ?? 'Group';
     final activeCount = tickets.valueOrNull?.where((t) => t.isActive).length;
 
     final all = tickets.valueOrNull ?? const <ManagedTicket>[];
@@ -380,11 +388,13 @@ class _TicketRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final t = ticket;
-    final valid = t.isRecurring ? validityRange(t.validFrom, t.validUntil) : null;
+    final valid =
+        t.isRecurring ? validityRange(t.validFrom, t.validUntil) : null;
     final sub = [
       formatMoney(t.priceMinor, t.currency, t.currencyExponent),
       t.soldLabel,
-      if (t.recurrence != 'one_time') _recurrenceLabel[t.recurrence] ?? t.recurrence,
+      if (t.recurrence != 'one_time')
+        _recurrenceLabel[t.recurrence] ?? t.recurrence,
       if (valid != null) 'Valid $valid',
     ].join(' · ');
 
@@ -413,41 +423,45 @@ class _TicketRow extends StatelessWidget {
             _Thumb(url: t.flierUrl, size: 50),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(t.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 1),
-                Text(sub,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: p.muted, fontSize: 12)),
-                if (t.kind == 'event' ||
-                    t.kind == 'tournament' ||
-                    !t.isActive ||
-                    t.isNextCycle) ...[
-                  const SizedBox(height: 5),
-                  Wrap(spacing: 5, runSpacing: 4, children: [
-                    if (t.kind == 'event')
-                      kindPill(Icons.calendar_month_rounded, 'Event',
-                          p.accentTint, p.greenText),
-                    if (t.kind == 'tournament')
-                      kindPill(Icons.emoji_events_outlined, 'Tournament',
-                          p.orangeTint, p.orangeInk),
-                    if (t.isNextCycle)
-                      kindPill(Icons.repeat_rounded, 'Next cycle · on sale',
-                          p.accentTint, p.greenText),
-                    if (t.isEndedCycle)
-                      kindPill(Icons.repeat_rounded, 'Ended cycle', p.surface2,
-                          p.muted)
-                    else if (!t.isActive)
-                      kindPill(Icons.visibility_off_outlined, 'Hidden',
-                          p.surface2, p.muted),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(t.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 1),
+                    Text(sub,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: p.muted, fontSize: 12)),
+                    if (t.kind == 'event' ||
+                        t.kind == 'tournament' ||
+                        !t.isActive ||
+                        t.isNextCycle) ...[
+                      const SizedBox(height: 5),
+                      Wrap(spacing: 5, runSpacing: 4, children: [
+                        if (t.kind == 'event')
+                          kindPill(Icons.calendar_month_rounded, 'Event',
+                              p.accentTint, p.greenText),
+                        if (t.kind == 'tournament')
+                          kindPill(Icons.emoji_events_outlined, 'Tournament',
+                              p.orangeTint, p.orangeInk),
+                        if (t.isNextCycle)
+                          kindPill(Icons.repeat_rounded, 'Next cycle · on sale',
+                              p.accentTint, p.greenText),
+                        if (t.isEndedCycle)
+                          kindPill(Icons.repeat_rounded, 'Ended cycle',
+                              p.surface2, p.muted)
+                        else if (!t.isActive)
+                          kindPill(Icons.visibility_off_outlined, 'Hidden',
+                              p.surface2, p.muted),
+                      ]),
+                    ],
                   ]),
-                ],
-              ]),
             ),
             const SizedBox(width: 8),
             Icon(Icons.chevron_right_rounded, color: p.muted, size: 20),
@@ -472,7 +486,8 @@ class _Thumb extends StatelessWidget {
         width: size,
         height: size,
         child: url != null
-            ? Image.network(url!, fit: BoxFit.cover,
+            ? Image.network(url!,
+                fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => _placeholder(p))
             : _placeholder(p),
       ),
@@ -508,7 +523,8 @@ class _TicketDetailSheet extends ConsumerWidget {
     final p = context.palette;
     // Read live so the Active switch reflects the toggle without closing.
     ManagedTicket? ticket;
-    for (final t in ref.watch(managedTicketsProvider(groupId)).valueOrNull ?? const <ManagedTicket>[]) {
+    for (final t in ref.watch(managedTicketsProvider(groupId)).valueOrNull ??
+        const <ManagedTicket>[]) {
       if (t.id == ticketId) {
         ticket = t;
         break;
@@ -516,7 +532,8 @@ class _TicketDetailSheet extends ConsumerWidget {
     }
     if (ticket == null) return const SizedBox(height: 120);
     final t = ticket;
-    final sales = ref.watch(ticketSalesProvider((groupId: groupId, ticketId: t.id)));
+    final sales =
+        ref.watch(ticketSalesProvider((groupId: groupId, ticketId: t.id)));
     final base = ref.read(appConfigProvider).apiBaseUrl;
     final fmt = DateFormat('d MMM yyyy, h:mm a');
     final fmtDay = DateFormat('d MMM yyyy');
@@ -534,7 +551,9 @@ class _TicketDetailSheet extends ConsumerWidget {
             const SizedBox(width: 4),
             Text(label,
                 style: TextStyle(
-                    color: tone ?? p.ink, fontSize: 11.5, fontWeight: FontWeight.w700)),
+                    color: tone ?? p.ink,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700)),
           ]),
         );
 
@@ -556,27 +575,26 @@ class _TicketDetailSheet extends ConsumerWidget {
               onTap: onTap,
               child: SizedBox(
                 height: 46,
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(icon,
-                          size: 17,
+                child:
+                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(icon,
+                      size: 17,
+                      color: primary
+                          ? p.onHero
+                          : danger
+                              ? p.danger
+                              : p.ink),
+                  const SizedBox(width: 6),
+                  Text(label,
+                      style: TextStyle(
                           color: primary
                               ? p.onHero
                               : danger
                                   ? p.danger
-                                  : p.ink),
-                      const SizedBox(width: 6),
-                      Text(label,
-                          style: TextStyle(
-                              color: primary
-                                  ? p.onHero
-                                  : danger
-                                      ? p.danger
-                                      : p.ink,
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700)),
-                    ]),
+                                  : p.ink,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700)),
+                ]),
               ),
             ),
           ),
@@ -593,7 +611,8 @@ class _TicketDetailSheet extends ConsumerWidget {
           _Thumb(url: t.flierUrl, size: 68),
           const SizedBox(width: 14),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(t.title,
                   style: TextStyle(
                       color: p.ink,
@@ -632,7 +651,8 @@ class _TicketDetailSheet extends ConsumerWidget {
         const SizedBox(height: 16),
         GlassCard(
           padding: const EdgeInsets.all(14),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Text('Setup',
                 style: TextStyle(
                     color: p.ink, fontSize: 15, fontWeight: FontWeight.w700)),
@@ -746,9 +766,8 @@ class _TicketDetailSheet extends ConsumerWidget {
                         fit: BoxFit.scaleDown,
                         child: Text(v,
                             style: TextStyle(
-                                color: green
-                                    ? const Color(0xFF6EDC9E)
-                                    : p.onHero,
+                                color:
+                                    green ? const Color(0xFF6EDC9E) : p.onHero,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800)),
                       ),
@@ -757,144 +776,161 @@ class _TicketDetailSheet extends ConsumerWidget {
                     ]),
                   ),
                 );
-            return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              SpSectionTitle('Payments', count: rows.length),
-              const SizedBox(height: 10),
-              Row(children: [
-                tile('${paid.length}', 'Paid'),
-                const SizedBox(width: 8),
-                tile(formatMoney(total, t.currency, s.currencyExponent),
-                    'Collected',
-                    green: true),
-                const SizedBox(width: 8),
-                tile('$used', 'Used'),
-              ]),
-              const SizedBox(height: 12),
-              if (rows.isEmpty)
-                GlassCard(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(children: [
-                    const SpIconTile(Icons.receipt_long_outlined,
-                        size: 48, iconSize: 22),
-                    const SizedBox(height: 8),
-                    Text('No payments yet.',
-                        style: TextStyle(color: p.muted, fontSize: 13)),
+            return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SpSectionTitle('Payments', count: rows.length),
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    tile('${paid.length}', 'Paid'),
+                    const SizedBox(width: 8),
+                    tile(formatMoney(total, t.currency, s.currencyExponent),
+                        'Collected',
+                        green: true),
+                    const SizedBox(width: 8),
+                    tile('$used', 'Used'),
                   ]),
-                )
-              else
-                SpListCard(children: [
-                  for (final r in rows)
-                    // Tap → check this payment with the payment provider
-                    // (and reconcile it if SportPadi is out of step).
-                    InkWell(
-                      borderRadius: BorderRadius.circular(14),
-                      onTap: () => _openPaymentCheck(
-                          context, ref, r, t.currency, s.currencyExponent),
-                      child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 10),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                      Row(children: [
-                        CircleAvatar(
-                          radius: 19,
-                          backgroundColor: p.surface2,
-                          backgroundImage: r.buyerAvatarUrl != null
-                              ? NetworkImage(r.buyerAvatarUrl!)
-                              : null,
-                          child: r.buyerAvatarUrl == null
-                              ? Text(
-                                  r.buyerName.isNotEmpty
-                                      ? r.buyerName[0].toUpperCase()
-                                      : '?',
-                                  style: TextStyle(
-                                      color: p.muted,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700))
-                              : null,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(r.buyerName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        color: p.ink,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w700)),
-                                Text(
-                                  [
-                                    if (r.paidAt != null)
-                                      fmt.format(r.paidAt!.toLocal()),
-                                    if (r.periodKey != null) r.periodKey!,
-                                  ].join(' · '),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      color: p.muted, fontSize: 12),
-                                ),
-                              ]),
-                        ),
-                        const SizedBox(width: 8),
-                        Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                  formatMoney(r.amount, r.currency,
-                                      s.currencyExponent),
-                                  style: TextStyle(
-                                      color: p.ink,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w800)),
-                              const SizedBox(height: 2),
-                              Text(
-                                (r.redeemedAt != null
-                                        ? 'USED'
-                                        : r.status.toUpperCase()) +
-                                    (r.reconciled ? ' · RECONCILED' : ''),
-                                style: TextStyle(
-                                  color: r.redeemedAt != null ||
-                                          r.status == 'paid'
-                                      ? p.greenText
-                                      : r.status == 'failed'
-                                          ? p.danger
-                                          : r.status == 'refunded'
-                                              ? p.orangeInk
-                                              : p.muted,
-                                  fontSize: 10.5,
-                                  letterSpacing: 0.4,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ]),
-                        const SizedBox(width: 4),
-                        Icon(Icons.chevron_right_rounded, size: 18, color: p.muted),
+                  const SizedBox(height: 12),
+                  if (rows.isEmpty)
+                    GlassCard(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(children: [
+                        const SpIconTile(Icons.receipt_long_outlined,
+                            size: 48, iconSize: 22),
+                        const SizedBox(height: 8),
+                        Text('No payments yet.',
+                            style: TextStyle(color: p.muted, fontSize: 13)),
                       ]),
-                      // Refund: the action, why it can't be, or how it went.
-                      _SaleRefundLine(
-                        sale: r,
-                        money: (m) => formatMoney(
-                            m,
-                            r.currency.isNotEmpty ? r.currency : t.currency,
-                            s.currencyExponent),
-                        onRefund: () => _openRefund(context, groupId, t.id,
-                            r, t.currency, s.currencyExponent),
-                      ),
+                    )
+                  else
+                    SpListCard(children: [
+                      for (final r in rows)
+                        // Tap → check this payment with the payment provider
+                        // (and reconcile it if SportPadi is out of step).
+                        InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: () => _openPaymentCheck(
+                              context, ref, r, t.currency, s.currencyExponent),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 10),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Row(children: [
+                                    CircleAvatar(
+                                      radius: 19,
+                                      backgroundColor: p.surface2,
+                                      backgroundImage: r.buyerAvatarUrl != null
+                                          ? NetworkImage(r.buyerAvatarUrl!)
+                                          : null,
+                                      child: r.buyerAvatarUrl == null
+                                          ? Text(
+                                              r.buyerName.isNotEmpty
+                                                  ? r.buyerName[0].toUpperCase()
+                                                  : '?',
+                                              style: TextStyle(
+                                                  color: p.muted,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w700))
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(r.buyerName,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                    color: p.ink,
+                                                    fontSize: 14,
+                                                    fontWeight:
+                                                        FontWeight.w700)),
+                                            Text(
+                                              [
+                                                if (r.paidAt != null)
+                                                  fmt.format(
+                                                      r.paidAt!.toLocal()),
+                                                if (r.periodKey != null)
+                                                  r.periodKey!,
+                                              ].join(' · '),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                  color: p.muted, fontSize: 12),
+                                            ),
+                                          ]),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                              formatMoney(r.amount, r.currency,
+                                                  s.currencyExponent),
+                                              style: TextStyle(
+                                                  color: p.ink,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w800)),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            (r.redeemedAt != null
+                                                    ? 'USED'
+                                                    : r.status.toUpperCase()) +
+                                                (r.reconciled
+                                                    ? ' · RECONCILED'
+                                                    : ''),
+                                            style: TextStyle(
+                                              color: r.redeemedAt != null ||
+                                                      r.status == 'paid'
+                                                  ? p.greenText
+                                                  : r.status == 'failed'
+                                                      ? p.danger
+                                                      : r.status == 'refunded'
+                                                          ? p.orangeInk
+                                                          : p.muted,
+                                              fontSize: 10.5,
+                                              letterSpacing: 0.4,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ]),
+                                    const SizedBox(width: 4),
+                                    Icon(Icons.chevron_right_rounded,
+                                        size: 18, color: p.muted),
+                                  ]),
+                                  // Refund: the action, why it can't be, or how it went.
+                                  _SaleRefundLine(
+                                    sale: r,
+                                    money: (m) => formatMoney(
+                                        m,
+                                        r.currency.isNotEmpty
+                                            ? r.currency
+                                            : t.currency,
+                                        s.currencyExponent),
+                                    onRefund: () => _openRefund(
+                                        context,
+                                        groupId,
+                                        t.id,
+                                        r,
+                                        t.currency,
+                                        s.currencyExponent),
+                                  ),
+                                ]),
+                          ),
+                        ),
                     ]),
-                    ),
-                    ),
-                ]),
-              if (rows.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text('Tap a payment to check it with the payment provider.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: p.muted, fontSize: 12)),
-              ],
-            ]);
+                  if (rows.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text('Tap a payment to check it with the payment provider.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: p.muted, fontSize: 12)),
+                  ],
+                ]);
           },
         ),
       ],
@@ -1076,12 +1112,13 @@ class _RefundSheetState extends ConsumerState<_RefundSheet> {
     final key = (groupId: widget.groupId, ticketId: widget.ticketId);
     try {
       final asked = _amountMinor ?? _refundable;
-      final refunded = await ref.read(ticketsRepositoryProvider).refundPayment(
-          widget.groupId, widget.sale.id,
-          reason: _reason.text,
-          // Only a partial sends an amount; a full refund takes whatever is
-          // left when it runs.
-          amountMinor: _isPartial ? asked : null);
+      final refunded = await ref
+          .read(ticketsRepositoryProvider)
+          .refundPayment(widget.groupId, widget.sale.id,
+              reason: _reason.text,
+              // Only a partial sends an amount; a full refund takes whatever is
+              // left when it runs.
+              amountMinor: _isPartial ? asked : null);
       if (!mounted) return;
       // Refresh the payments list (and the sold counts) before closing, so
       // the row already reads "Refunded" when the sheet goes.
@@ -1095,8 +1132,8 @@ class _RefundSheetState extends ConsumerState<_RefundSheet> {
       if (!mounted) return;
       nav.pop();
       messenger.showSnackBar(SnackBar(
-          content: Text(
-              'Refunded ${_money(refunded > 0 ? refunded : asked)}')));
+          content:
+              Text('Refunded ${_money(refunded > 0 ? refunded : asked)}')));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
       if (mounted) setState(() => _busy = false);
@@ -1174,7 +1211,8 @@ class _RefundSheetState extends ConsumerState<_RefundSheet> {
         const SizedBox(height: 12),
         GlassCard(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             line(
                 Icons.credit_card_rounded,
                 via != null
@@ -1188,7 +1226,8 @@ class _RefundSheetState extends ConsumerState<_RefundSheet> {
             line(Icons.layers_outlined,
                 'If they paid several tickets in one checkout, only this one is refunded'),
             if (!partial)
-              line(Icons.info_outline_rounded, 'A full refund cancels the ticket'),
+              line(Icons.info_outline_rounded,
+                  'A full refund cancels the ticket'),
             if (sale.redeemedAt != null)
               line(Icons.warning_amber_rounded,
                   "They've already used this ticket at the gate",
@@ -1257,7 +1296,8 @@ void _openPaymentCheck(BuildContext context, WidgetRef ref, TicketSale sale,
     String currency, int exponent) {
   showSpSheet<void>(
     context,
-    builder: (_) => _PaymentCheckSheet(sale: sale, currency: currency, exponent: exponent),
+    builder: (_) =>
+        _PaymentCheckSheet(sale: sale, currency: currency, exponent: exponent),
   );
 }
 
@@ -1270,7 +1310,8 @@ final _paymentCheckProvider = FutureProvider.autoDispose
 /// Dashboard but still counted as paid here) — a Reconcile button that puts
 /// the ticket, the wallet and the payouts right. Web: PaymentCheckDialog.
 class _PaymentCheckSheet extends ConsumerStatefulWidget {
-  const _PaymentCheckSheet({required this.sale, required this.currency, required this.exponent});
+  const _PaymentCheckSheet(
+      {required this.sale, required this.currency, required this.exponent});
   final TicketSale sale;
   final String currency;
   final int exponent;
@@ -1310,7 +1351,8 @@ class _PaymentCheckSheetState extends ConsumerState<_PaymentCheckSheet> {
         }
       } else {
         messenger.showSnackBar(const SnackBar(
-            content: Text('Nothing applied — the payment changed. Showing the latest.')));
+            content: Text(
+                'Nothing applied — the payment changed. Showing the latest.')));
       }
       ref.invalidate(ticketSalesProvider);
       ref.invalidate(managedTicketsProvider);
@@ -1331,8 +1373,13 @@ class _PaymentCheckSheetState extends ConsumerState<_PaymentCheckSheet> {
     final provider = check?.providerLabel ?? 'the payment provider';
     final status = check?.ourStatus ?? sale.status;
 
-    final (Color tileBg, Color tileFg, IconData icon) = switch (check?.verdict) {
-      'in_sync' => (p.accentTint, p.greenText, Icons.check_circle_outline_rounded),
+    final (Color tileBg, Color tileFg, IconData icon) =
+        switch (check?.verdict) {
+      'in_sync' => (
+          p.accentTint,
+          p.greenText,
+          Icons.check_circle_outline_rounded
+        ),
       'out_of_sync' => (p.orangeTint, p.orangeInk, Icons.error_outline_rounded),
       'error' => (p.liveTint, p.danger, Icons.error_outline_rounded),
       _ => (p.surface2, p.muted, Icons.info_outline_rounded),
@@ -1345,7 +1392,8 @@ class _PaymentCheckSheetState extends ConsumerState<_PaymentCheckSheet> {
         SpSheetHeader(
           icon: Icons.receipt_long_outlined,
           title: sale.buyerName,
-          subtitle: '${formatMoney(sale.amount, sale.currency.isNotEmpty ? sale.currency : widget.currency, widget.exponent)} · ${sale.code}',
+          subtitle:
+              '${formatMoney(sale.amount, sale.currency.isNotEmpty ? sale.currency : widget.currency, widget.exponent)} · ${sale.code}',
           trailing: SpBadge(status.toUpperCase(),
               tone: status == 'paid'
                   ? p.greenText
@@ -1360,7 +1408,9 @@ class _PaymentCheckSheetState extends ConsumerState<_PaymentCheckSheet> {
             padding: const EdgeInsets.all(16),
             child: Row(children: [
               const SizedBox(
-                  width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2)),
               const SizedBox(width: 12),
               Expanded(
                 child: Text('Checking with $provider…',
@@ -1372,70 +1422,88 @@ class _PaymentCheckSheetState extends ConsumerState<_PaymentCheckSheet> {
           GlassCard(
             padding: const EdgeInsets.all(16),
             child: Text(
-                async.hasError ? '${async.error}' : 'Couldn\'t check this payment.',
+                async.hasError
+                    ? '${async.error}'
+                    : 'Couldn\'t check this payment.',
                 style: TextStyle(color: p.danger, fontSize: 13)),
           )
         else
           GlassCard(
             padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                SpIconTile(icon, bg: tileBg, fg: tileFg, size: 40, iconSize: 19),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(check.headline,
-                        style: TextStyle(
-                            color: p.ink, fontSize: 15, fontWeight: FontWeight.w700, height: 1.3)),
-                    for (final d in check.details) ...[
-                      const SizedBox(height: 6),
-                      Text(d, style: TextStyle(color: p.muted, fontSize: 13, height: 1.4)),
-                    ],
-                    if (check.providerStatus != null) ...[
-                      const SizedBox(height: 8),
-                      Text('$provider status: ${check.providerStatus}',
-                          style: TextStyle(color: p.muted, fontSize: 11)),
-                    ],
-                  ]),
-                ),
-              ]),
-              if (check.action != null) ...[
-                const SizedBox(height: 16),
-                if (!_confirming)
-                  SpButton(
-                    expand: true,
-                    icon: Icons.sync_rounded,
-                    label: check.actionLabel ?? 'Reconcile',
-                    onTap: () => setState(() => _confirming = true),
-                  )
-                else
-                  Row(children: [
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    SpIconTile(icon,
+                        bg: tileBg, fg: tileFg, size: 40, iconSize: 19),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: OutlinedButton(
-                        onPressed: _busy ? null : () => setState(() => _confirming = false),
-                        child: const Text('Cancel'),
-                      ),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(check.headline,
+                                style: TextStyle(
+                                    color: p.ink,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.3)),
+                            for (final d in check.details) ...[
+                              const SizedBox(height: 6),
+                              Text(d,
+                                  style: TextStyle(
+                                      color: p.muted,
+                                      fontSize: 13,
+                                      height: 1.4)),
+                            ],
+                            if (check.providerStatus != null) ...[
+                              const SizedBox(height: 8),
+                              Text('$provider status: ${check.providerStatus}',
+                                  style:
+                                      TextStyle(color: p.muted, fontSize: 11)),
+                            ],
+                          ]),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      flex: 3,
-                      child: SpButton(
+                  ]),
+                  if (check.action != null) ...[
+                    const SizedBox(height: 16),
+                    if (!_confirming)
+                      SpButton(
                         expand: true,
-                        tone: SpButtonTone.brand,
-                        icon: Icons.check_rounded,
-                        label: _busy ? 'Reconciling…' : 'Yes, reconcile',
-                        onTap: _busy ? null : () => _reconcile(check),
-                      ),
-                    ),
-                  ]),
-                if (check.actionHint != null) ...[
-                  const SizedBox(height: 8),
-                  Text(check.actionHint!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: p.muted, fontSize: 12, height: 1.4)),
-                ],
-              ],
-            ]),
+                        icon: Icons.sync_rounded,
+                        label: check.actionLabel ?? 'Reconcile',
+                        onTap: () => setState(() => _confirming = true),
+                      )
+                    else
+                      Row(children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _busy
+                                ? null
+                                : () => setState(() => _confirming = false),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 3,
+                          child: SpButton(
+                            expand: true,
+                            tone: SpButtonTone.brand,
+                            icon: Icons.check_rounded,
+                            label: _busy ? 'Reconciling…' : 'Yes, reconcile',
+                            onTap: _busy ? null : () => _reconcile(check),
+                          ),
+                        ),
+                      ]),
+                    if (check.actionHint != null) ...[
+                      const SizedBox(height: 8),
+                      Text(check.actionHint!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: p.muted, fontSize: 12, height: 1.4)),
+                    ],
+                  ],
+                ]),
           ),
         const SizedBox(height: 8),
         Center(
@@ -1513,7 +1581,8 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
     _description = TextEditingController(text: t?.description ?? '');
     _price = TextEditingController(
         text: t != null
-            ? (t.priceMinor / _pow10(t.currencyExponent)).toStringAsFixed(t.currencyExponent)
+            ? (t.priceMinor / _pow10(t.currencyExponent))
+                .toStringAsFixed(t.currencyExponent)
             : '');
     _capacity = TextEditingController(text: t?.capacity?.toString() ?? '');
     _kind = t?.kind ?? 'general';
@@ -1555,7 +1624,8 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
       if (mounted) setState(() => _flierUrl = url);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
       }
     } finally {
       if (mounted) setState(() => _uploadingFlier = false);
@@ -1565,18 +1635,21 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
   Future<void> _submit() async {
     if (!(_form.currentState?.validate() ?? false)) return;
     if ((_isEvent || _isTournament) && _eventId == null) {
-      setState(() =>
-          _error = 'Pick the ${_isEvent ? 'event' : 'tournament'} this ticket is for.');
+      setState(() => _error =
+          'Pick the ${_isEvent ? 'event' : 'tournament'} this ticket is for.');
       return;
     }
-    if (_salesStart != null && _salesEnd != null && !_salesEnd!.isAfter(_salesStart!)) {
+    if (_salesStart != null &&
+        _salesEnd != null &&
+        !_salesEnd!.isAfter(_salesStart!)) {
       setState(() => _error = 'Sales end must be after sales start.');
       return;
     }
     final price = double.tryParse(_price.text.trim()) ?? 0;
     final body = <String, dynamic>{
       'title': _title.text.trim(),
-      'description': _description.text.trim().isEmpty ? null : _description.text.trim(),
+      'description':
+          _description.text.trim().isEmpty ? null : _description.text.trim(),
       'flierUrl': _flierUrl,
       'price': (price * _pow10(widget.exponent)).round(),
       'kind': _kind,
@@ -1584,11 +1657,14 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
       // Same rules as the web: event tickets always block check-in,
       // tournament tickets never do (an officiant scans them instead) and are
       // always scannable.
-      'blocksCheckin': _isEvent ? true : (_isTournament ? false : _blocksCheckin),
+      'blocksCheckin':
+          _isEvent ? true : (_isTournament ? false : _blocksCheckin),
       'requiresValidation': _isTournament ? true : _requiresValidation,
       'salesStartAt': _salesStart?.toUtc().toIso8601String(),
       'salesEndAt': _salesEnd?.toUtc().toIso8601String(),
-      'capacity': _capacity.text.trim().isEmpty ? null : int.tryParse(_capacity.text.trim()),
+      'capacity': _capacity.text.trim().isEmpty
+          ? null
+          : int.tryParse(_capacity.text.trim()),
       'isActive': _isActive,
     };
     // How often it renews is fixed once created (the server rejects a
@@ -1659,14 +1735,17 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final editing = widget.existing != null;
-    final events = (ref.watch(groupEventsProvider(widget.groupId)).valueOrNull ?? const [])
-        .where((e) => !e.isTournament)
-        .toList();
+    final events =
+        (ref.watch(groupEventsProvider(widget.groupId)).valueOrNull ?? const [])
+            .where((e) => !e.isTournament)
+            .toList();
     final tournaments =
-        ref.watch(groupTournamentsProvider(widget.groupId)).valueOrNull ?? const [];
+        ref.watch(groupTournamentsProvider(widget.groupId)).valueOrNull ??
+            const [];
     final fmt = DateFormat('EEE d MMM, HH:mm');
     // Creating a recurring ticket: the validity SportPadi will set, live.
-    final preview = !editing && _isRecurring ? cyclePreview(_recurrence, _firstDay) : null;
+    final preview =
+        !editing && _isRecurring ? cyclePreview(_recurrence, _firstDay) : null;
     // Editing: the ticket's own validity, read-only.
     final existing = widget.existing;
     final editValidity = existing != null && _isRecurring
@@ -1681,23 +1760,30 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
             color: p.surface2,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(title,
                 style: TextStyle(
-                    color: p.ink, fontSize: 13.5, height: 1.35, fontWeight: FontWeight.w700)),
+                    color: p.ink,
+                    fontSize: 13.5,
+                    height: 1.35,
+                    fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
-            Text(body, style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.4)),
+            Text(body,
+                style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.4)),
           ]),
         );
 
     Widget label(String s) => Padding(
           padding: const EdgeInsets.only(bottom: 6),
           child: Text(s,
-              style: TextStyle(color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
+              style: TextStyle(
+                  color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
         );
     Widget hint(String s) => Padding(
           padding: const EdgeInsets.only(top: 6),
-          child: Text(s, style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.35)),
+          child: Text(s,
+              style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.35)),
         );
     Widget switchRow({
       required String title,
@@ -1713,12 +1799,18 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
           ),
           child: Row(children: [
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title,
-                    style: TextStyle(
-                        color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w600)),
-                Text(body, style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.3)),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600)),
+                    Text(body,
+                        style: TextStyle(
+                            color: p.muted, fontSize: 11.5, height: 1.3)),
+                  ]),
             ),
             Switch(value: value, onChanged: onChanged),
           ]),
@@ -1744,276 +1836,313 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-            Text('Set the price and answer a few questions so we know how this ticket behaves.',
-                style: TextStyle(color: p.muted, fontSize: 12.5)),
-            const SizedBox(height: 18),
+              Text(
+                  'Set the price and answer a few questions so we know how this ticket behaves.',
+                  style: TextStyle(color: p.muted, fontSize: 12.5)),
+              const SizedBox(height: 18),
 
-            label('Title'),
-            TextFormField(
-              controller: _title,
-              decoration: const InputDecoration(hintText: 'e.g. Saturday 5-a-side entry'),
-              maxLength: 120,
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Give the ticket a title' : null,
-            ),
-            const SizedBox(height: 10),
-
-            label('Description (optional)'),
-            TextFormField(
-              controller: _description,
-              decoration: const InputDecoration(hintText: 'What\'s this ticket for?'),
-              maxLines: 2,
-              maxLength: 2000,
-            ),
-            const SizedBox(height: 10),
-
-            // Flier — promo image players see on the ticket.
-            label('Flier (optional)'),
-            _FlierField(
-              url: _flierUrl,
-              uploading: _uploadingFlier,
-              onPick: _pickFlier,
-              onClear: () => setState(() => _flierUrl = null),
-            ),
-            const SizedBox(height: 18),
-
-            label('Price'),
-            TextFormField(
-              controller: _price,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                hintText: '0.00',
-                prefixText: '${widget.currency} ',
+              label('Title'),
+              TextFormField(
+                controller: _title,
+                decoration: const InputDecoration(
+                    hintText: 'e.g. Saturday 5-a-side entry'),
+                maxLength: 120,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Give the ticket a title'
+                    : null,
               ),
-              validator: (v) {
-                final d = double.tryParse((v ?? '').trim());
-                return d == null || d <= 0 ? 'Enter a price greater than zero' : null;
-              },
-            ),
-            hint('Tickets are sold in your wallet\'s currency (${widget.currency}).'),
-            _FeePreview(
-              groupId: widget.groupId,
-              price: _price,
-              currency: widget.currency,
-              exponent: widget.exponent,
-            ),
-            const Divider(height: 32),
-
-            // Q2 — is this tied to an event or tournament?
-            label('Is this ticket for a specific event?'),
-            DropdownButtonFormField<String>(
-              isExpanded: true,
-              initialValue: _kind,
-              items: const [
-                DropdownMenuItem(value: 'general', child: Text('No — a general ticket')),
-                DropdownMenuItem(value: 'event', child: Text('Yes — tie it to an event')),
-                DropdownMenuItem(
-                    value: 'tournament', child: Text('Yes — tie it to a tournament')),
-              ],
-              onChanged: (v) => setState(() {
-                // Switching kind clears a now-irrelevant event selection.
-                _kind = v ?? 'general';
-                _eventId = null;
-              }),
-            ),
-            if (_isEvent) ...[
               const SizedBox(height: 10),
+
+              label('Description (optional)'),
+              TextFormField(
+                controller: _description,
+                decoration:
+                    const InputDecoration(hintText: 'What\'s this ticket for?'),
+                maxLines: 2,
+                maxLength: 2000,
+              ),
+              const SizedBox(height: 10),
+
+              // Flier — promo image players see on the ticket.
+              label('Flier (optional)'),
+              _FlierField(
+                url: _flierUrl,
+                uploading: _uploadingFlier,
+                onPick: _pickFlier,
+                onClear: () => setState(() => _flierUrl = null),
+              ),
+              const SizedBox(height: 18),
+
+              label('Price'),
+              TextFormField(
+                controller: _price,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  hintText: '0.00',
+                  prefixText: '${widget.currency} ',
+                ),
+                validator: (v) {
+                  final d = double.tryParse((v ?? '').trim());
+                  return d == null || d <= 0
+                      ? 'Enter a price greater than zero'
+                      : null;
+                },
+              ),
+              hint(
+                  'Tickets are sold in your wallet\'s currency (${widget.currency}).'),
+              _FeePreview(
+                groupId: widget.groupId,
+                price: _price,
+                currency: widget.currency,
+                exponent: widget.exponent,
+              ),
+              const Divider(height: 32),
+
+              // Q2 — is this tied to an event or tournament?
+              label('Is this ticket for a specific event?'),
               DropdownButtonFormField<String>(
                 isExpanded: true,
-                key: ValueKey('event-${events.length}-$_eventId'),
-                initialValue: events.any((e) => e.id == _eventId) ? _eventId : null,
-                hint: const Text('Choose an event'),
-                items: [
-                  for (final e in events)
-                    DropdownMenuItem(
-                      value: e.id,
-                      child: Text(
-                        '${e.title}${e.eventDate != null ? ' · ${formatDay(e.eventDate)}' : ''}',
-                        overflow: TextOverflow.ellipsis,
+                initialValue: _kind,
+                items: const [
+                  DropdownMenuItem(
+                      value: 'general', child: Text('No — a general ticket')),
+                  DropdownMenuItem(
+                      value: 'event', child: Text('Yes — tie it to an event')),
+                  DropdownMenuItem(
+                      value: 'tournament',
+                      child: Text('Yes — tie it to a tournament')),
+                ],
+                onChanged: (v) => setState(() {
+                  // Switching kind clears a now-irrelevant event selection.
+                  _kind = v ?? 'general';
+                  _eventId = null;
+                }),
+              ),
+              if (_isEvent) ...[
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  key: ValueKey('event-${events.length}-$_eventId'),
+                  initialValue:
+                      events.any((e) => e.id == _eventId) ? _eventId : null,
+                  hint: const Text('Choose an event'),
+                  items: [
+                    for (final e in events)
+                      DropdownMenuItem(
+                        value: e.id,
+                        child: Text(
+                          '${e.title}${e.eventDate != null ? ' · ${formatDay(e.eventDate)}' : ''}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                ],
-                onChanged: (v) => setState(() => _eventId = v),
+                  ],
+                  onChanged: (v) => setState(() => _eventId = v),
+                ),
+                hint(events.isEmpty
+                    ? 'No upcoming events — create one first.'
+                    : 'Players must hold this ticket to check in to that event.'),
+              ],
+              if (_isTournament) ...[
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  key: ValueKey('tournament-${tournaments.length}-$_eventId'),
+                  initialValue: tournaments.any((t) => t.eventId == _eventId)
+                      ? _eventId
+                      : null,
+                  hint: const Text('Choose a tournament'),
+                  items: [
+                    for (final t in tournaments)
+                      DropdownMenuItem(
+                          value: t.eventId,
+                          child:
+                              Text(t.title, overflow: TextOverflow.ellipsis)),
+                  ],
+                  onChanged: (v) => setState(() => _eventId = v),
+                ),
+                hint(tournaments.isEmpty
+                    ? 'No tournaments yet — create one first.'
+                    : 'Buyers don\'t check in — an officiant scans the ticket\'s QR code to admit entry at the game.'),
+              ],
+              const SizedBox(height: 14),
+
+              // Q1 — blocks check-in? (not for officiant-scanned tournament tickets)
+              if (!_isTournament) ...[
+                switchRow(
+                  title: 'Required to check in',
+                  body: 'Unpaid players can\'t check into games/events.',
+                  value: _isEvent ? true : _blocksCheckin,
+                  onChanged: _isEvent
+                      ? null
+                      : (v) => setState(() => _blocksCheckin = v),
+                ),
+                const SizedBox(height: 10),
+              ],
+
+              // Q3 — scannable? Tournament tickets are always officiant-scanned.
+              switchRow(
+                title: _isTournament
+                    ? 'Scanned by an officiant'
+                    : 'Verify with a scan',
+                body: _isTournament
+                    ? 'An officiant scans the ticket\'s QR code at the game to admit entry.'
+                    : 'Organizers can scan a code at the gate to validate entry. Every purchase already gets its own QR receipt.',
+                value: _isTournament ? true : _requiresValidation,
+                onChanged: _isTournament
+                    ? null
+                    : (v) => setState(() => _requiresValidation = v),
               ),
-              hint(events.isEmpty
-                  ? 'No upcoming events — create one first.'
-                  : 'Players must hold this ticket to check in to that event.'),
-            ],
-            if (_isTournament) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 14),
+
+              // Q4 — recurring? Fixed once created: the cadence sets the validity.
+              label('Does this repeat?'),
               DropdownButtonFormField<String>(
                 isExpanded: true,
-                key: ValueKey('tournament-${tournaments.length}-$_eventId'),
-                initialValue:
-                    tournaments.any((t) => t.eventId == _eventId) ? _eventId : null,
-                hint: const Text('Choose a tournament'),
-                items: [
-                  for (final t in tournaments)
-                    DropdownMenuItem(
-                        value: t.eventId,
-                        child: Text(t.title, overflow: TextOverflow.ellipsis)),
+                initialValue: _recurrence,
+                items: const [
+                  DropdownMenuItem(
+                      value: 'one_time', child: Text('One-time — pay once')),
+                  DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
+                  DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
+                  DropdownMenuItem(
+                      value: 'quarterly', child: Text('Quarterly')),
+                  DropdownMenuItem(value: 'yearly', child: Text('Yearly')),
                 ],
-                onChanged: (v) => setState(() => _eventId = v),
+                onChanged: editing
+                    ? null
+                    : (v) => setState(() => _recurrence = v ?? 'one_time'),
               ),
-              hint(tournaments.isEmpty
-                  ? 'No tournaments yet — create one first.'
-                  : 'Buyers don\'t check in — an officiant scans the ticket\'s QR code to admit entry at the game.'),
-            ],
-            const SizedBox(height: 14),
+              if (editing)
+                hint(
+                    'How often a ticket renews can\'t change after it\'s created — '
+                    'create a new ticket instead.')
+              else if (_isRecurring)
+                hint(
+                    'Players pay again each period — dues, memberships, season fees.'),
+              if (_isEvent && _isRecurring)
+                hint('Covers every occurrence of this event during each cycle '
+                    '(e.g. a monthly pass for a weekly session).'),
 
-            // Q1 — blocks check-in? (not for officiant-scanned tournament tickets)
-            if (!_isTournament) ...[
-              switchRow(
-                title: 'Required to check in',
-                body: 'Unpaid players can\'t check into games/events.',
-                value: _isEvent ? true : _blocksCheckin,
-                onChanged: _isEvent ? null : (v) => setState(() => _blocksCheckin = v),
-              ),
-              const SizedBox(height: 10),
-            ],
-
-            // Q3 — scannable? Tournament tickets are always officiant-scanned.
-            switchRow(
-              title: _isTournament ? 'Scanned by an officiant' : 'Verify with a scan',
-              body: _isTournament
-                  ? 'An officiant scans the ticket\'s QR code at the game to admit entry.'
-                  : 'Organizers can scan a code at the gate to validate entry. Every purchase already gets its own QR receipt.',
-              value: _isTournament ? true : _requiresValidation,
-              onChanged:
-                  _isTournament ? null : (v) => setState(() => _requiresValidation = v),
-            ),
-            const SizedBox(height: 14),
-
-            // Q4 — recurring? Fixed once created: the cadence sets the validity.
-            label('Does this repeat?'),
-            DropdownButtonFormField<String>(
-              isExpanded: true,
-              initialValue: _recurrence,
-              items: const [
-                DropdownMenuItem(value: 'one_time', child: Text('One-time — pay once')),
-                DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
-                DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
-                DropdownMenuItem(value: 'quarterly', child: Text('Quarterly')),
-                DropdownMenuItem(value: 'yearly', child: Text('Yearly')),
+              // Validity — how long a purchase admits you. Set by SportPadi on
+              // create, from the first day; read-only afterwards.
+              if (preview != null) ...[
+                const SizedBox(height: 14),
+                label('First day'),
+                _PickerTile(
+                  value: DateFormat('EEE d MMM yyyy').format(_firstDay),
+                  onTap: _pickFirstDay,
+                ),
+                infoBox(
+                  'Valid ${preview.current} · renews every ${cycleUnit(_recurrence)} '
+                      '(next: ${preview.next})',
+                  'Validity is set by SportPadi from the first day and can\'t be changed '
+                      'later. When a cycle\'s last day ends, a fresh ticket starts the next '
+                      'cycle; last cycle\'s tickets are used up and can\'t be refunded.',
+                ),
               ],
-              onChanged:
-                  editing ? null : (v) => setState(() => _recurrence = v ?? 'one_time'),
-            ),
-            if (editing)
-              hint('How often a ticket renews can\'t change after it\'s created — '
-                  'create a new ticket instead.')
-            else if (_isRecurring)
-              hint('Players pay again each period — dues, memberships, season fees.'),
-            if (_isEvent && _isRecurring)
-              hint('Covers every occurrence of this event during each cycle '
-                  '(e.g. a monthly pass for a weekly session).'),
+              if (editValidity != null)
+                infoBox(
+                  'Valid $editValidity · cycle $cycleNo',
+                  'Set by SportPadi when the ticket was created — it can\'t be changed.',
+                ),
+              const Divider(height: 32),
 
-            // Validity — how long a purchase admits you. Set by SportPadi on
-            // create, from the first day; read-only afterwards.
-            if (preview != null) ...[
+              // Robustness extras
+              Row(children: [
+                Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        label('Sales open (optional)'),
+                        _PickerTile(
+                          value: _salesStart == null
+                              ? (_isRecurring ? 'Cycle start' : 'Now')
+                              : fmt.format(_salesStart!),
+                          onTap: () => _pickDate(true),
+                          onClear: _salesStart == null
+                              ? null
+                              : () => setState(() => _salesStart = null),
+                        ),
+                      ]),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        label('Sales close (optional)'),
+                        _PickerTile(
+                          value: _salesEnd == null
+                              ? (_isRecurring ? 'Cycle end' : 'Never')
+                              : fmt.format(_salesEnd!),
+                          onTap: () => _pickDate(false),
+                          onClear: _salesEnd == null
+                              ? null
+                              : () => setState(() => _salesEnd = null),
+                        ),
+                      ]),
+                ),
+              ]),
+              if (_isRecurring)
+                hint(
+                    'When people can buy it. Leave empty to sell for the whole cycle.'),
               const SizedBox(height: 14),
-              label('First day'),
-              _PickerTile(
-                value: DateFormat('EEE d MMM yyyy').format(_firstDay),
-                onTap: _pickFirstDay,
-              ),
-              infoBox(
-                'Valid ${preview.current} · renews every ${cycleUnit(_recurrence)} '
-                    '(next: ${preview.next})',
-                'Validity is set by SportPadi from the first day and can\'t be changed '
-                    'later. When a cycle\'s last day ends, a fresh ticket starts the next '
-                    'cycle; last cycle\'s tickets are used up and can\'t be refunded.',
-              ),
-            ],
-            if (editValidity != null)
-              infoBox(
-                'Valid $editValidity · cycle $cycleNo',
-                'Set by SportPadi when the ticket was created — it can\'t be changed.',
-              ),
-            const Divider(height: 32),
 
-            // Robustness extras
-            Row(children: [
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  label('Sales open (optional)'),
-                  _PickerTile(
-                    value: _salesStart == null
-                        ? (_isRecurring ? 'Cycle start' : 'Now')
-                        : fmt.format(_salesStart!),
-                    onTap: () => _pickDate(true),
-                    onClear:
-                        _salesStart == null ? null : () => setState(() => _salesStart = null),
+              label('Capacity (optional)'),
+              TextFormField(
+                controller: _capacity,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(hintText: 'Unlimited'),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return null;
+                  final n = int.tryParse(v.trim());
+                  return n == null || n <= 0
+                      ? 'Enter a whole number above 0'
+                      : null;
+                },
+              ),
+              const SizedBox(height: 14),
+
+              switchRow(
+                title: 'Active',
+                body: 'Visible and on sale to players.',
+                value: _isActive,
+                onChanged: (v) => setState(() => _isActive = v),
+              ),
+
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(_error!, style: TextStyle(color: p.danger, fontSize: 13)),
+              ],
+              const SizedBox(height: 20),
+              // The app's button theme makes buttons full-width by default
+              // (minimumSize: infinity), which a Row can't satisfy — so both get
+              // an Expanded slot: Cancel small, Save twice as wide.
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed:
+                        _busy ? null : () => Navigator.pop(context, false),
+                    child: const Text('Cancel'),
                   ),
-                ]),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  label('Sales close (optional)'),
-                  _PickerTile(
-                    value: _salesEnd == null
-                        ? (_isRecurring ? 'Cycle end' : 'Never')
-                        : fmt.format(_salesEnd!),
-                    onTap: () => _pickDate(false),
-                    onClear: _salesEnd == null ? null : () => setState(() => _salesEnd = null),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: FilledButton(
+                    onPressed: _busy || _uploadingFlier ? null : _submit,
+                    child: _busy
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                        : Text(editing ? 'Save changes' : 'Create ticket'),
                   ),
-                ]),
-              ),
-            ]),
-            if (_isRecurring)
-              hint('When people can buy it. Leave empty to sell for the whole cycle.'),
-            const SizedBox(height: 14),
-
-            label('Capacity (optional)'),
-            TextFormField(
-              controller: _capacity,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(hintText: 'Unlimited'),
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return null;
-                final n = int.tryParse(v.trim());
-                return n == null || n <= 0 ? 'Enter a whole number above 0' : null;
-              },
-            ),
-            const SizedBox(height: 14),
-
-            switchRow(
-              title: 'Active',
-              body: 'Visible and on sale to players.',
-              value: _isActive,
-              onChanged: (v) => setState(() => _isActive = v),
-            ),
-
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(_error!, style: TextStyle(color: p.danger, fontSize: 13)),
+                ),
+              ]),
             ],
-            const SizedBox(height: 20),
-            // The app's button theme makes buttons full-width by default
-            // (minimumSize: infinity), which a Row can't satisfy — so both get
-            // an Expanded slot: Cancel small, Save twice as wide.
-            Row(children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _busy ? null : () => Navigator.pop(context, false),
-                  child: const Text('Cancel'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 2,
-                child: FilledButton(
-                  onPressed: _busy || _uploadingFlier ? null : _submit,
-                  child: _busy
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text(editing ? 'Save changes' : 'Create ticket'),
-                ),
-              ),
-            ]),
-          ],
           ),
         ),
       ),
@@ -2059,7 +2188,9 @@ class _FlierField extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 10)),
                   child: uploading
                       ? const SizedBox(
-                          width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2))
                       : const Text('Replace'),
                 ),
                 const SizedBox(width: 6),
@@ -2081,17 +2212,24 @@ class _FlierField extends StatelessWidget {
         aspectRatio: 16 / 9,
         child: Container(
           decoration: BoxDecoration(
-            border: Border.all(color: p.line, width: 2, strokeAlign: BorderSide.strokeAlignInside),
+            border: Border.all(
+                color: p.line,
+                width: 2,
+                strokeAlign: BorderSide.strokeAlignInside),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             if (uploading)
-              const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+              const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2))
             else
               Icon(Icons.image_outlined, size: 26, color: p.muted),
             const SizedBox(height: 6),
             Text(uploading ? 'Uploading…' : 'Upload a flier',
-                style: TextStyle(color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w600)),
+                style: TextStyle(
+                    color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w600)),
             Text('Shown to players · 16:9 works best',
                 style: TextStyle(color: p.muted, fontSize: 11)),
           ]),
@@ -2124,7 +2262,8 @@ class _PickerTile extends StatelessWidget {
             child: Text(value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
+                style: TextStyle(
+                    color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
           ),
           if (onClear != null)
             InkWell(
@@ -2138,7 +2277,6 @@ class _PickerTile extends StatelessWidget {
     );
   }
 }
-
 
 /// "Buyers pay X · you receive Y" under the ticket price, split the way
 /// checkout will split it for the group's fee setting (Wallet → Who pays the
@@ -2199,7 +2337,9 @@ class _FeePreviewState extends ConsumerState<_FeePreview> {
       if (minor == _asked && _quote != null) return;
       _asked = minor;
       try {
-        final q = await ref.read(walletRepositoryProvider).feeQuote(widget.groupId, minor);
+        final q = await ref
+            .read(walletRepositoryProvider)
+            .feeQuote(widget.groupId, minor);
         if (mounted && _asked == minor) setState(() => _quote = q);
       } catch (_) {
         // Preview only — checkout still validates. Don't leave the previous
@@ -2232,7 +2372,8 @@ class _FeePreviewState extends ConsumerState<_FeePreview> {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text.rich(TextSpan(
-          style: TextStyle(color: q.tooLow ? p.orangeInk : p.ink, fontSize: 12.5),
+          style:
+              TextStyle(color: q.tooLow ? p.orangeInk : p.ink, fontSize: 12.5),
           children: [
             const TextSpan(text: 'Buyers pay '),
             TextSpan(

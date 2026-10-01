@@ -161,25 +161,36 @@ class _BestTile extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: p.muted, fontSize: 11.5, fontWeight: FontWeight.w600)),
+                  style: TextStyle(
+                      color: p.muted,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600)),
               const SizedBox(height: 4),
-              Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
-                Text('$value',
-                    style: TextStyle(
-                        color: p.ink,
-                        fontSize: 30,
-                        height: 1.0,
-                        fontWeight: FontWeight.w900,
-                        fontFeatures: tabularFigures)),
-                if (unit != null) ...[
-                  const SizedBox(width: 6),
-                  Text(unit!, style: TextStyle(color: p.muted, fontSize: 12, fontWeight: FontWeight.w800)),
-                ],
-              ]),
+              Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text('$value',
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 30,
+                            height: 1.0,
+                            fontWeight: FontWeight.w900,
+                            fontFeatures: tabularFigures)),
+                    if (unit != null) ...[
+                      const SizedBox(width: 6),
+                      Text(unit!,
+                          style: TextStyle(
+                              color: p.muted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800)),
+                    ],
+                  ]),
               const SizedBox(height: 6),
               Text(date,
                   maxLines: 1,

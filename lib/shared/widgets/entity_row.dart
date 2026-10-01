@@ -37,7 +37,8 @@ class EntityRow extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 15),
                 ),
                 if (subtitle != null && subtitle!.isNotEmpty)
                   Padding(

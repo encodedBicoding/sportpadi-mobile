@@ -11,7 +11,9 @@ class AppLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Image.asset(
-      dark ? 'assets/images/sportpadi-logo-dark.png' : 'assets/images/sportpadi-logo.png',
+      dark
+          ? 'assets/images/sportpadi-logo-dark.png'
+          : 'assets/images/sportpadi-logo.png',
       height: height,
       fit: BoxFit.contain,
     );

@@ -140,8 +140,7 @@ class WardsScreen extends ConsumerWidget {
                     // 18 — I supervise them until they turn 18.
                     if (o.supervised.isNotEmpty) ...[
                       const SizedBox(height: 26),
-                      SpSectionTitle('Supervising',
-                          count: o.supervised.length),
+                      SpSectionTitle('Supervising', count: o.supervised.length),
                       const SizedBox(height: 4),
                       Text(
                         "They run their own accounts now. You still hear "
@@ -152,8 +151,7 @@ class WardsScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 10),
                       SpListCard(children: [
-                        for (final s in o.supervised)
-                          _SupervisedRow(player: s),
+                        for (final s in o.supervised) _SupervisedRow(player: s),
                       ]),
                     ],
                   ],
@@ -188,22 +186,21 @@ class _WardRow extends StatelessWidget {
           WardAvatar(name: ward.displayName, url: ward.avatarUrl, size: 44),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(ward.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700)),
-                  if (sub.isNotEmpty)
-                    Text(sub,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: p.muted, fontSize: 12)),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(ward.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: p.ink,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700)),
+              if (sub.isNotEmpty)
+                Text(sub,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: p.muted, fontSize: 12)),
+            ]),
           ),
           Icon(Icons.chevron_right_rounded, color: p.muted),
         ]),
@@ -227,28 +224,26 @@ class _SupervisedRow extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         child: Row(children: [
-          WardAvatar(
-              name: player.displayName, url: player.avatarUrl, size: 44),
+          WardAvatar(name: player.displayName, url: player.avatarUrl, size: 44),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(player.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700)),
-                  Text(
-                      until.isEmpty
-                          ? 'Runs their own account · supervised until 18'
-                          : 'Runs their own account · supervised until $until',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: p.muted, fontSize: 12)),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(player.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: p.ink,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700)),
+              Text(
+                  until.isEmpty
+                      ? 'Runs their own account · supervised until 18'
+                      : 'Runs their own account · supervised until $until',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: p.muted, fontSize: 12)),
+            ]),
           ),
           Icon(Icons.chevron_right_rounded, color: p.muted),
         ]),
@@ -303,24 +298,23 @@ class _InviteCardState extends ConsumerState<_InviteCard> {
           WardAvatar(name: i.wardName, url: i.wardAvatarUrl, size: 44),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                      '${i.invitedByName ?? 'Someone'} invited you to be '
-                      "${i.wardName}'s guardian",
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 14,
-                          height: 1.3,
-                          fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 2),
-                  Text(
-                      i.relationship == 'other'
-                          ? 'As a co-guardian'
-                          : 'As their ${relationshipLabel(i.relationship).toLowerCase()}',
-                      style: TextStyle(color: p.muted, fontSize: 12)),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(
+                  '${i.invitedByName ?? 'Someone'} invited you to be '
+                  "${i.wardName}'s guardian",
+                  style: TextStyle(
+                      color: p.ink,
+                      fontSize: 14,
+                      height: 1.3,
+                      fontWeight: FontWeight.w700)),
+              const SizedBox(height: 2),
+              Text(
+                  i.relationship == 'other'
+                      ? 'As a co-guardian'
+                      : 'As their ${relationshipLabel(i.relationship).toLowerCase()}',
+                  style: TextStyle(color: p.muted, fontSize: 12)),
+            ]),
           ),
         ]),
         const SizedBox(height: 10),
@@ -532,29 +526,27 @@ class _AddWardSheetState extends ConsumerState<_AddWardSheet> {
             onTap: _busy ? null : () => setState(() => _consent = !_consent),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(4, 6, 12, 6),
-              child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Checkbox(
-                      value: _consent,
-                      activeColor: p.accentDeep,
-                      onChanged: _busy
-                          ? null
-                          : (v) => setState(() => _consent = v ?? false),
+              child:
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Checkbox(
+                  value: _consent,
+                  activeColor: p.accentDeep,
+                  onChanged: _busy
+                      ? null
+                      : (v) => setState(() => _consent = v ?? false),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      "I'm this person's parent, guardian or carer and I "
+                      'have the right to manage their SportPadi account. '
+                      'I agree to the ward terms.',
+                      style: TextStyle(color: p.ink, fontSize: 13, height: 1.4),
                     ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Text(
-                          "I'm this person's parent, guardian or carer and I "
-                          'have the right to manage their SportPadi account. '
-                          'I agree to the ward terms.',
-                          style: TextStyle(
-                              color: p.ink, fontSize: 13, height: 1.4),
-                        ),
-                      ),
-                    ),
-                  ]),
+                  ),
+                ),
+              ]),
             ),
           ),
         ),

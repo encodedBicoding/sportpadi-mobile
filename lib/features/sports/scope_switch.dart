@@ -81,7 +81,9 @@ class SportScopeSwitch extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                     decoration: BoxDecoration(
-                      color: selected ? p.accentTint : p.surface.withAlpha(dark ? 40 : 150),
+                      color: selected
+                          ? p.accentTint
+                          : p.surface.withAlpha(dark ? 40 : 150),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text('$n',

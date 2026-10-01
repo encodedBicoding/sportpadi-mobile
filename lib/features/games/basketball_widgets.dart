@@ -115,10 +115,17 @@ class PlayerScorePad extends StatelessWidget {
 
   Future<void> _open(BuildContext context, GamePlayer player) async {
     final known = {for (final d in game.schema) d.type};
-    final available = [for (final a in acts) if (known.contains(a.type)) a];
+    final available = [
+      for (final a in acts)
+        if (known.contains(a.type)) a
+    ];
     final mates = [
       for (final x in game.participants)
-        if (x.teamId == player.teamId && x.playerId != player.playerId && x.onField && !x.sentOff) x
+        if (x.teamId == player.teamId &&
+            x.playerId != player.playerId &&
+            x.onField &&
+            !x.sentOff)
+          x
     ];
     final pick = await showSpSheet<({String type, String? related})>(
       context,
@@ -148,13 +155,16 @@ class PlayerScorePad extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(10),
           margin: const EdgeInsets.only(bottom: 8),
-          decoration: BoxDecoration(color: p.surface2, borderRadius: BorderRadius.circular(16)),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          decoration: BoxDecoration(
+              color: p.surface2, borderRadius: BorderRadius.circular(16)),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Container(
                 width: 10,
                 height: 10,
-                decoration: BoxDecoration(color: _teamColor(t.color), shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                    color: _teamColor(t.color), shape: BoxShape.circle),
               ),
               const SizedBox(width: 6),
               Expanded(
@@ -162,17 +172,23 @@ class PlayerScorePad extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        color: p.muted, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.6)),
+                        color: p.muted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6)),
               ),
             ]),
             const SizedBox(height: 8),
             LayoutBuilder(builder: (context, c) {
               final players = [
                 for (final x in game.participants)
-                  if (x.teamId == t.teamId && (amend || (x.onField && !x.sentOff))) x
+                  if (x.teamId == t.teamId &&
+                      (amend || (x.onField && !x.sentOff)))
+                    x
               ];
               if (players.isEmpty) {
-                return Text('No one on court.', style: TextStyle(color: p.muted, fontSize: 12));
+                return Text('No one on court.',
+                    style: TextStyle(color: p.muted, fontSize: 12));
               }
               final w = (c.maxWidth - 6) / 2;
               return Wrap(spacing: 6, runSpacing: 6, children: [
@@ -184,28 +200,38 @@ class PlayerScorePad extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(12),
-                        onTap: busy || pl.sentOff ? null : () => _open(context, pl),
+                        onTap: busy || pl.sentOff
+                            ? null
+                            : () => _open(context, pl),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text('${_jn(pl.jersey)}${pl.displayName}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: pl.sentOff ? p.muted : p.ink,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  decoration: pl.sentOff ? TextDecoration.lineThrough : null,
-                                )),
-                            Text(
-                              statLine(pl),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: (warn?.call(pl) ?? false)
-                                  ? TextStyle(color: p.danger, fontSize: 11, fontWeight: FontWeight.w800)
-                                  : TextStyle(color: p.muted, fontSize: 11),
-                            ),
-                          ]),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('${_jn(pl.jersey)}${pl.displayName}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: pl.sentOff ? p.muted : p.ink,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      decoration: pl.sentOff
+                                          ? TextDecoration.lineThrough
+                                          : null,
+                                    )),
+                                Text(
+                                  statLine(pl),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: (warn?.call(pl) ?? false)
+                                      ? TextStyle(
+                                          color: p.danger,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800)
+                                      : TextStyle(color: p.muted, fontSize: 11),
+                                ),
+                              ]),
                         ),
                       ),
                     ),
@@ -268,7 +294,9 @@ class _BasketballScorePadState extends State<BasketballScorePad> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final bb = widget.game.basketball;
-    final pts = {for (final l in bb?.boxPlayers ?? const <BoxLine>[]) l.playerId: l.pts};
+    final pts = {
+      for (final l in bb?.boxPlayers ?? const <BoxLine>[]) l.playerId: l.pts
+    };
     final fouls = bb?.playerFouls ?? const {};
     final limit = bb?.rules.foulLimit ?? 5;
     final short = bb?.rules.shotClockShort ?? 14;
@@ -277,11 +305,15 @@ class _BasketballScorePadState extends State<BasketballScorePad> {
         Container(
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(color: p.orangeTint, borderRadius: BorderRadius.circular(14)),
+          decoration: BoxDecoration(
+              color: p.orangeTint, borderRadius: BorderRadius.circular(14)),
           child: Row(children: [
             Expanded(
               child: Text('Offensive rebound',
-                  style: TextStyle(color: p.orangeInk, fontSize: 13, fontWeight: FontWeight.w700)),
+                  style: TextStyle(
+                      color: p.orangeInk,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700)),
             ),
             SpButton(
               label: 'Shot clock to $short',
@@ -290,7 +322,9 @@ class _BasketballScorePadState extends State<BasketballScorePad> {
                 setState(() => _offer = false);
               },
             ),
-            TextButton(onPressed: () => setState(() => _offer = false), child: const Text('Skip')),
+            TextButton(
+                onPressed: () => setState(() => _offer = false),
+                child: const Text('Skip')),
           ]),
         ),
       PlayerScorePad(
@@ -302,10 +336,15 @@ class _BasketballScorePadState extends State<BasketballScorePad> {
         onSub: widget.onSub,
         icon: Icons.sports_basketball_rounded,
         onRecorded: (type) {
-          if (type == 'off_rebound' && widget.onShotShort != null && !widget.amend) _showOffer();
+          if (type == 'off_rebound' &&
+              widget.onShotShort != null &&
+              !widget.amend) {
+            _showOffer();
+          }
         },
         warn: (pl) => (fouls[pl.playerId] ?? 0) >= limit - 1,
-        statLine: (pl) => '${pts[pl.playerId] ?? 0} pts · ${fouls[pl.playerId] ?? 0} PF',
+        statLine: (pl) =>
+            '${pts[pl.playerId] ?? 0} pts · ${fouls[pl.playerId] ?? 0} PF',
       ),
     ]);
   }
@@ -338,70 +377,76 @@ class _ActionSheetState extends State<_ActionSheet> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final pl = widget.player;
-    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      SpSheetHeader(
-        icon: widget.icon,
-        title: '${_jn(pl.jersey)}${pl.displayName}',
-        subtitle: _assistFor == null ? 'What happened?' : widget.assistWord,
-      ),
-      if (_assistFor == null)
-        GridView.count(
-          crossAxisCount: 3,
-          shrinkWrap: true,
-          padding: EdgeInsets.zero,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 1.9,
-          children: [
-            for (final a in widget.acts)
-              Material(
-                color: switch (a.tone) {
-                  PadTone.score => p.accentDeep,
-                  PadTone.foul => p.liveTint,
-                  _ => p.surface2,
-                },
-                borderRadius: BorderRadius.circular(16),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () => a.assist && widget.mates.isNotEmpty
-                      ? setState(() => _assistFor = a.type)
-                      : _done(a.type),
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Text(a.label,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          style: TextStyle(
-                            color: switch (a.tone) {
-                              PadTone.score => Colors.white,
-                              PadTone.foul => p.danger,
-                              PadTone.miss => p.muted,
-                              PadTone.stat => p.ink,
-                            },
-                            fontSize: a.label.length > 10 ? 12.5 : 15,
-                            fontWeight: FontWeight.w800,
-                            height: 1.1,
-                          )),
+    return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SpSheetHeader(
+            icon: widget.icon,
+            title: '${_jn(pl.jersey)}${pl.displayName}',
+            subtitle: _assistFor == null ? 'What happened?' : widget.assistWord,
+          ),
+          if (_assistFor == null)
+            GridView.count(
+              crossAxisCount: 3,
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 1.9,
+              children: [
+                for (final a in widget.acts)
+                  Material(
+                    color: switch (a.tone) {
+                      PadTone.score => p.accentDeep,
+                      PadTone.foul => p.liveTint,
+                      _ => p.surface2,
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => a.assist && widget.mates.isNotEmpty
+                          ? setState(() => _assistFor = a.type)
+                          : _done(a.type),
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(a.label,
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              style: TextStyle(
+                                color: switch (a.tone) {
+                                  PadTone.score => Colors.white,
+                                  PadTone.foul => p.danger,
+                                  PadTone.miss => p.muted,
+                                  PadTone.stat => p.ink,
+                                },
+                                fontSize: a.label.length > 10 ? 12.5 : 15,
+                                fontWeight: FontWeight.w800,
+                                height: 1.1,
+                              )),
+                        ),
+                      ),
                     ),
                   ),
+              ],
+            )
+          else ...[
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final m in widget.mates)
+                ActionChip(
+                  label: Text('${_jn(m.jersey)}${m.displayName}'),
+                  onPressed: () => _done(_assistFor!, m.playerId),
                 ),
-              ),
+            ]),
+            const SizedBox(height: 12),
+            SpButton(
+                label: 'No assist',
+                expand: true,
+                onTap: () => _done(_assistFor!)),
           ],
-        )
-      else ...[
-        Wrap(spacing: 8, runSpacing: 8, children: [
-          for (final m in widget.mates)
-            ActionChip(
-              label: Text('${_jn(m.jersey)}${m.displayName}'),
-              onPressed: () => _done(_assistFor!, m.playerId),
-            ),
-        ]),
-        const SizedBox(height: 12),
-        SpButton(label: 'No assist', expand: true, onTap: () => _done(_assistFor!)),
-      ],
-    ]);
+        ]);
   }
 }
 
@@ -427,23 +472,29 @@ class TeamFoulsStrip extends StatelessWidget {
       final pen = bb.inPenalty[t.teamId] == true;
       final oneAway = !pen && n == bb.rules.bonusAt - 1;
       return Row(
-        mainAxisAlignment: end ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            end ? MainAxisAlignment.end : MainAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('Fouls ', style: TextStyle(color: muted, fontSize: 12)),
-          Text('$n', style: TextStyle(color: ink, fontSize: 13, fontWeight: FontWeight.w800)),
+          Text('$n',
+              style: TextStyle(
+                  color: ink, fontSize: 13, fontWeight: FontWeight.w800)),
           if (pen) ...[
             const SizedBox(width: 6),
             Flexible(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
-                    color: const Color(0x33FFB57D), borderRadius: BorderRadius.circular(999)),
+                    color: const Color(0x33FFB57D),
+                    borderRadius: BorderRadius.circular(999)),
                 child: Text('BONUS ${opp.name.split(' ').first.toUpperCase()}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        color: Color(0xFFFFB57D), fontSize: 9.5, fontWeight: FontWeight.w800)),
+                        color: Color(0xFFFFB57D),
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800)),
               ),
             ),
           ],
@@ -453,7 +504,8 @@ class TeamFoulsStrip extends StatelessWidget {
               child: Text('1 to bonus',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: muted, fontSize: 10, fontWeight: FontWeight.w700)),
+                  style: TextStyle(
+                      color: muted, fontSize: 10, fontWeight: FontWeight.w700)),
             ),
           ],
         ],
@@ -473,7 +525,11 @@ class TeamFoulsStrip extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Text((bb.foulPeriod ?? 'Team fouls').toUpperCase(),
-              style: TextStyle(color: muted, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.8)),
+              style: TextStyle(
+                  color: muted,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8)),
         ),
         Expanded(child: side(b, a, end: true)),
       ]),
@@ -493,19 +549,25 @@ class TargetReachedCard extends StatelessWidget {
     final p = context.palette;
     final bb = game.basketball;
     final wid = bb?.targetWinnerTeamId;
-    if (bb == null || wid == null || !game.isLive) return const SizedBox.shrink();
+    if (bb == null || wid == null || !game.isLive) {
+      return const SizedBox.shrink();
+    }
     final w = game.teams.where((t) => t.teamId == wid).firstOrNull;
     if (w == null) return const SizedBox.shrink();
     final other = game.teams.where((t) => t.teamId != wid).firstOrNull;
     return GlassCard(
       child: Row(children: [
-        SpIconTile(Icons.emoji_events_rounded, bg: p.accentTint, fg: p.greenText),
+        SpIconTile(Icons.emoji_events_rounded,
+            bg: p.accentTint, fg: p.greenText),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${w.name} reached ${bb.rules.targetScore}'
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+                '${w.name} reached ${bb.rules.targetScore}'
                 '${other != null ? ' — ${w.score}–${other.score}' : ''}',
-                style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w800)),
+                style: TextStyle(
+                    color: p.ink, fontSize: 14, fontWeight: FontWeight.w800)),
             Text(
                 'First to ${bb.rules.targetScore}${bb.rules.winBy > 1 ? ', win by ${bb.rules.winBy}' : ''}. '
                 'End the game to lock in the result.',
@@ -540,8 +602,13 @@ class BasketballSummary extends StatelessWidget {
     final names = {for (final x in game.participants) x.playerId: x};
 
     // Line score: points per team per period.
-    final points = {for (final d in game.schema) if (d.scorePoints != null) d.type: d.scorePoints!};
-    final byTeam = <String, Map<String, int>>{for (final t in game.teams) t.teamId: {}};
+    final points = {
+      for (final d in game.schema)
+        if (d.scorePoints != null) d.type: d.scorePoints!
+    };
+    final byTeam = <String, Map<String, int>>{
+      for (final t in game.teams) t.teamId: {}
+    };
     final seen = <String>{};
     for (final a in game.activities) {
       final pts = points[a.type];
@@ -578,28 +645,41 @@ class BasketballSummary extends StatelessWidget {
           fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
           fontFeatures: const [FontFeature.tabularFigures()],
         );
-    Widget c(String v, {double w = 40, bool bold = false, Color? color, TextAlign align = TextAlign.right}) =>
-        SizedBox(width: w, child: Text(v, textAlign: align, style: cell(bold: bold, color: color)));
+    Widget c(String v,
+            {double w = 40,
+            bool bold = false,
+            Color? color,
+            TextAlign align = TextAlign.right}) =>
+        SizedBox(
+            width: w,
+            child: Text(v,
+                textAlign: align, style: cell(bold: bold, color: color)));
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       if (done) ...[
         GlassCard(
           child: Row(children: [
             SpIconTile(Icons.emoji_events_rounded,
-                bg: winner != null ? p.orangeTint : p.surface2, fg: winner != null ? p.orangeInk : p.muted),
+                bg: winner != null ? p.orangeTint : p.surface2,
+                fg: winner != null ? p.orangeInk : p.muted),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(wentOT ? 'Final · after overtime' : 'Final',
-                    style: TextStyle(color: p.muted, fontSize: 12)),
-                Text(
-                    winner != null
-                        ? '${winner.name} won'
-                        : game.teams.any((t) => t.result == 'draw')
-                            ? 'Tied'
-                            : 'Match summary',
-                    style: TextStyle(color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(wentOT ? 'Final · after overtime' : 'Final',
+                        style: TextStyle(color: p.muted, fontSize: 12)),
+                    Text(
+                        winner != null
+                            ? '${winner.name} won'
+                            : game.teams.any((t) => t.result == 'draw')
+                                ? 'Tied'
+                                : 'Match summary',
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800)),
+                  ]),
             ),
           ]),
         ),
@@ -609,7 +689,8 @@ class BasketballSummary extends StatelessWidget {
         GlassCard(
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 c('TEAM', w: 120, color: p.muted, align: TextAlign.left),
                 for (final per in periods) c(per, color: p.muted),
@@ -625,7 +706,8 @@ class BasketballSummary extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: cell(bold: true)),
                   ),
-                  for (final per in periods) c('${byTeam[t.teamId]?[per] ?? 0}'),
+                  for (final per in periods)
+                    c('${byTeam[t.teamId]?[per] ?? 0}'),
                   c('${t.score}', w: 44, bold: true),
                 ]),
               ],
@@ -641,20 +723,28 @@ class BasketballSummary extends StatelessWidget {
             Expanded(
               child: GlassCard(
                 padding: const EdgeInsets.all(12),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(leaders[i].$1.toUpperCase(),
-                      style: TextStyle(color: p.muted, fontSize: 10, fontWeight: FontWeight.w800)),
-                  Text('${leaders[i].$3(leaders[i].$2!)}',
-                      style: TextStyle(color: p.ink, fontSize: 22, fontWeight: FontWeight.w800)),
-                  Text(
-                    names[leaders[i].$2!.playerId] != null
-                        ? '${_jn(names[leaders[i].$2!.playerId]!.jersey)}${names[leaders[i].$2!.playerId]!.displayName}'
-                        : 'Player',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: p.muted, fontSize: 11.5),
-                  ),
-                ]),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(leaders[i].$1.toUpperCase(),
+                          style: TextStyle(
+                              color: p.muted,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800)),
+                      Text('${leaders[i].$3(leaders[i].$2!)}',
+                          style: TextStyle(
+                              color: p.ink,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800)),
+                      Text(
+                        names[leaders[i].$2!.playerId] != null
+                            ? '${_jn(names[leaders[i].$2!.playerId]!.jersey)}${names[leaders[i].$2!.playerId]!.displayName}'
+                            : 'Player',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: p.muted, fontSize: 11.5),
+                      ),
+                    ]),
               ),
             ),
           ],
@@ -663,86 +753,134 @@ class BasketballSummary extends StatelessWidget {
       ],
       for (final t in game.teams) ...[
         Builder(builder: (context) {
-          final rows = [for (final l in bb.boxPlayers) if (l.teamId == t.teamId) l]
-            ..sort((x, y) => y.pts != x.pts ? y.pts - x.pts : y.reb - x.reb);
+          final rows = [
+            for (final l in bb.boxPlayers)
+              if (l.teamId == t.teamId) l
+          ]..sort((x, y) => y.pts != x.pts ? y.pts - x.pts : y.reb - x.reb);
           if (rows.isEmpty) return const SizedBox.shrink();
           final tot = bb.boxTeams[t.teamId];
-          const heads = ['PTS', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'FG', '3PT', 'FT', 'FG%'];
+          const heads = [
+            'PTS',
+            'REB',
+            'AST',
+            'STL',
+            'BLK',
+            'TO',
+            'PF',
+            'FG',
+            '3PT',
+            'FT',
+            'FG%'
+          ];
           List<String> vals(BoxLine l) => [
-                '${l.pts}', '${l.reb}', '${l.ast}', '${l.stl}', '${l.blk}', '${l.tov}', '${l.pf}',
-                '${l.fgm}-${l.fga}', '${l.tpm}-${l.tpa}', '${l.ftm}-${l.fta}', _pct(l.fgm, l.fga),
+                '${l.pts}',
+                '${l.reb}',
+                '${l.ast}',
+                '${l.stl}',
+                '${l.blk}',
+                '${l.tov}',
+                '${l.pf}',
+                '${l.fgm}-${l.fga}',
+                '${l.tpm}-${l.tpa}',
+                '${l.ftm}-${l.fta}',
+                _pct(l.fgm, l.fga),
               ];
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: GlassCard(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                        color: _teamColor(t.color), borderRadius: BorderRadius.circular(4)),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(t.name,
-                        style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w800)),
-                  ),
-                  Text('Box score', style: TextStyle(color: p.muted, fontSize: 11)),
-                ]),
-                const SizedBox(height: 8),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Row(children: [
-                      c('PLAYER', w: 130, color: p.muted, align: TextAlign.left),
-                      for (final h in heads) c(h, w: h.length > 3 || h == 'FG%' ? 52 : 40, color: p.muted),
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                            color: _teamColor(t.color),
+                            borderRadius: BorderRadius.circular(4)),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(t.name,
+                            style: TextStyle(
+                                color: p.ink,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800)),
+                      ),
+                      Text('Box score',
+                          style: TextStyle(color: p.muted, fontSize: 11)),
                     ]),
-                    for (final l in rows) ...[
-                      const Divider(height: 10),
-                      Row(children: [
-                        SizedBox(
-                          width: 130,
-                          child: Text(
-                            names[l.playerId] != null
-                                ? '${_jn(names[l.playerId]!.jersey)}${names[l.playerId]!.displayName}'
-                                    '${names[l.playerId]!.sentOff ? ' · out' : ''}'
-                                : 'Player',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: cell(bold: true),
-                          ),
-                        ),
-                        for (var i = 0; i < heads.length; i++)
-                          c(vals(l)[i],
-                              w: heads[i].length > 3 || heads[i] == 'FG%' ? 52 : 40,
-                              bold: i == 0,
-                              color: i == 6 && l.pf >= bb.rules.foulLimit
-                                  ? p.danger
-                                  : i == 10
-                                      ? p.muted
-                                      : null),
-                      ]),
-                    ],
+                    const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              c('PLAYER',
+                                  w: 130,
+                                  color: p.muted,
+                                  align: TextAlign.left),
+                              for (final h in heads)
+                                c(h,
+                                    w: h.length > 3 || h == 'FG%' ? 52 : 40,
+                                    color: p.muted),
+                            ]),
+                            for (final l in rows) ...[
+                              const Divider(height: 10),
+                              Row(children: [
+                                SizedBox(
+                                  width: 130,
+                                  child: Text(
+                                    names[l.playerId] != null
+                                        ? '${_jn(names[l.playerId]!.jersey)}${names[l.playerId]!.displayName}'
+                                            '${names[l.playerId]!.sentOff ? ' · out' : ''}'
+                                        : 'Player',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: cell(bold: true),
+                                  ),
+                                ),
+                                for (var i = 0; i < heads.length; i++)
+                                  c(vals(l)[i],
+                                      w: heads[i].length > 3 ||
+                                              heads[i] == 'FG%'
+                                          ? 52
+                                          : 40,
+                                      bold: i == 0,
+                                      color:
+                                          i == 6 && l.pf >= bb.rules.foulLimit
+                                              ? p.danger
+                                              : i == 10
+                                                  ? p.muted
+                                                  : null),
+                              ]),
+                            ],
+                            if (tot != null) ...[
+                              const Divider(height: 12, thickness: 1.5),
+                              Row(children: [
+                                c('Team',
+                                    w: 130, bold: true, align: TextAlign.left),
+                                for (var i = 0; i < heads.length; i++)
+                                  c(vals(tot)[i],
+                                      w: heads[i].length > 3 ||
+                                              heads[i] == 'FG%'
+                                          ? 52
+                                          : 40,
+                                      bold: true),
+                              ]),
+                            ],
+                          ]),
+                    ),
                     if (tot != null) ...[
-                      const Divider(height: 12, thickness: 1.5),
-                      Row(children: [
-                        c('Team', w: 130, bold: true, align: TextAlign.left),
-                        for (var i = 0; i < heads.length; i++)
-                          c(vals(tot)[i], w: heads[i].length > 3 || heads[i] == 'FG%' ? 52 : 40, bold: true),
-                      ]),
+                      const SizedBox(height: 8),
+                      Text(
+                        '3PT ${_pct(tot.tpm, tot.tpa)} · FT ${_pct(tot.ftm, tot.fta)} · '
+                        'Off. reb ${tot.oreb} · Def. reb ${tot.dreb}',
+                        style: TextStyle(color: p.muted, fontSize: 11),
+                      ),
                     ],
                   ]),
-                ),
-                if (tot != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    '3PT ${_pct(tot.tpm, tot.tpa)} · FT ${_pct(tot.ftm, tot.fta)} · '
-                    'Off. reb ${tot.oreb} · Def. reb ${tot.dreb}',
-                    style: TextStyle(color: p.muted, fontSize: 11),
-                  ),
-                ],
-              ]),
             ),
           );
         }),
@@ -754,30 +892,46 @@ class BasketballSummary extends StatelessWidget {
 // ── Format picker (create game / tournament match) ──────────────────────────
 
 bool isBasketballSport(String? name, String? emoji) =>
-    RegExp('basket', caseSensitive: false).hasMatch(name ?? '') || emoji == '🏀';
+    RegExp('basket', caseSensitive: false).hasMatch(name ?? '') ||
+    emoji == '🏀';
 
 /// How a basketball game is played: 4 timed quarters (+ overtime) or first
 /// to N — and the foul rules.
 class BasketballFormatFields extends StatelessWidget {
-  const BasketballFormatFields({super.key, required this.value, required this.onChanged});
+  const BasketballFormatFields(
+      {super.key, required this.value, required this.onChanged});
   final BasketballRules value;
   final ValueChanged<BasketballRules> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    Widget field(String label, int v, int min, int max, ValueChanged<int> set, {String? hint}) => Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: TextStyle(color: p.muted, fontSize: 11.5, fontWeight: FontWeight.w600)),
+    Widget field(String label, int v, int min, int max, ValueChanged<int> set,
+            {String? hint}) =>
+        Expanded(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label,
+                style: TextStyle(
+                    color: p.muted,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
             Row(children: [
-              _StepBtn(icon: Icons.remove_rounded, onTap: v > min ? () => set(v - 1) : null),
+              _StepBtn(
+                  icon: Icons.remove_rounded,
+                  onTap: v > min ? () => set(v - 1) : null),
               Expanded(
                 child: Text('$v',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
+                    style: TextStyle(
+                        color: p.ink,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800)),
               ),
-              _StepBtn(icon: Icons.add_rounded, onTap: v < max ? () => set(v + 1) : null),
+              _StepBtn(
+                  icon: Icons.add_rounded,
+                  onTap: v < max ? () => set(v + 1) : null),
             ]),
             if (hint != null)
               Text(hint, style: TextStyle(color: p.muted, fontSize: 10.5)),
@@ -786,14 +940,18 @@ class BasketballFormatFields extends StatelessWidget {
     final timed = !value.isTarget;
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: p.surface2, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+          color: p.surface2, borderRadius: BorderRadius.circular(16)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Text('🏀 Game format', style: TextStyle(color: p.ink, fontSize: 13, fontWeight: FontWeight.w800)),
+        Text('🏀 Game format',
+            style: TextStyle(
+                color: p.ink, fontSize: 13, fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
         SpSegmented(
           options: const ['4 quarters', 'First to N'],
           index: timed ? 0 : 1,
-          onChanged: (i) => onChanged(value.copyWith(format: i == 0 ? 'timed' : 'target')),
+          onChanged: (i) =>
+              onChanged(value.copyWith(format: i == 0 ? 'timed' : 'target')),
         ),
         const SizedBox(height: 12),
         if (timed)
@@ -811,7 +969,8 @@ class BasketballFormatFields extends StatelessWidget {
             field('Points to win', value.targetScore, 1, 200,
                 (n) => onChanged(value.copyWith(targetScore: n))),
             const SizedBox(width: 12),
-            field('Win by', value.winBy, 1, 5, (n) => onChanged(value.copyWith(winBy: n)),
+            field('Win by', value.winBy, 1, 5,
+                (n) => onChanged(value.copyWith(winBy: n)),
                 hint: '1 = next basket wins'),
           ]),
         const SizedBox(height: 10),
@@ -854,15 +1013,22 @@ class BasketballFormatFields extends StatelessWidget {
             ),
             child: Row(children: [
               Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Shot clock', style: TextStyle(color: p.ink, fontSize: 13, fontWeight: FontWeight.w800)),
-                  Text('Runs with the game clock and buzzes at 0',
-                      style: TextStyle(color: p.muted, fontSize: 11)),
-                ]),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Shot clock',
+                          style: TextStyle(
+                              color: p.ink,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800)),
+                      Text('Runs with the game clock and buzzes at 0',
+                          style: TextStyle(color: p.muted, fontSize: 11)),
+                    ]),
               ),
               Switch.adaptive(
                 value: value.shotClock > 0,
-                onChanged: (on) => onChanged(value.copyWith(shotClock: on ? 24 : 0)),
+                onChanged: (on) =>
+                    onChanged(value.copyWith(shotClock: on ? 24 : 0)),
               ),
             ]),
           ),

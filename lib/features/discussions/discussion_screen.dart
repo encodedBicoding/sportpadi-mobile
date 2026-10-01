@@ -57,8 +57,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
   DiscussionThread? _last;
 
   DiscussionThreadKey get _key => (id: widget.id, sort: _sort);
-  DiscussionController get _ctrl =>
-      ref.read(discussionProvider(_key).notifier);
+  DiscussionController get _ctrl => ref.read(discussionProvider(_key).notifier);
 
   @override
   void dispose() {
@@ -110,8 +109,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
   /// them (I comment as their guardian). Watched from build.
   List<DiscussionWardRef> _wards(DiscussionDetail d) {
     if (d.teamId == null || d.group.id.isEmpty) return const [];
-    final spaces =
-        ref.watch(discussionSpacesProvider(d.group.id)).valueOrNull;
+    final spaces = ref.watch(discussionSpacesProvider(d.group.id)).valueOrNull;
     return spaces?.team(d.teamId)?.asGuardianOf ?? const [];
   }
 
@@ -369,9 +367,8 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
             if (t.me.canResolve)
               PopupMenuItem(
                   value: 'status',
-                  child: Text(t.discussion.isResolved
-                      ? 'Reopen'
-                      : 'Mark as resolved')),
+                  child: Text(
+                      t.discussion.isResolved ? 'Reopen' : 'Mark as resolved')),
             if (t.me.canModerate) ...[
               PopupMenuItem(
                   value: 'pin',
@@ -548,6 +545,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           const SizedBox(height: 10),
           DiscussionAuthorLine(
             author: d.author,
+            userId: d.author.id,
             isOP: true,
             note: discussionTimeNote(d.createdAt, editedAt: d.editedAt),
             avatarSize: 24,
@@ -584,8 +582,8 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
                           width: w,
                           height: h,
                           color: p.surface2,
-                          child: Icon(Icons.broken_image_outlined,
-                              color: p.muted),
+                          child:
+                              Icon(Icons.broken_image_outlined, color: p.muted),
                         ),
                       ),
                     ),
@@ -800,6 +798,7 @@ class _CommentRow extends StatelessWidget {
                 color: p.muted, fontSize: 12.5, fontStyle: FontStyle.italic))
         : DiscussionAuthorLine(
             author: author,
+            userId: author.id,
             isOP: c.isOP,
             note: c.pending
                 ? 'Posting…'
@@ -877,8 +876,8 @@ class _CommentRow extends StatelessWidget {
                   tooltip: 'More',
                   visualDensity: VisualDensity.compact,
                   onPressed: onMore,
-                  icon: Icon(Icons.more_horiz_rounded,
-                      size: 18, color: p.muted),
+                  icon:
+                      Icon(Icons.more_horiz_rounded, size: 18, color: p.muted),
                 ),
               ])
             else

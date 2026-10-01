@@ -112,7 +112,8 @@ class BasketballRules {
 /// A team timeout in progress — the on-screen countdown (basketball 60 s,
 /// volleyball 30 s).
 class ActiveTimeout {
-  const ActiveTimeout({required this.teamId, required this.at, this.seconds = 60});
+  const ActiveTimeout(
+      {required this.teamId, required this.at, this.seconds = 60});
   final String teamId;
   final DateTime at;
   final int seconds;
@@ -122,7 +123,8 @@ class ActiveTimeout {
     final teamId = parseStr(j['teamId']);
     final at = parseDate(j['at']);
     if (teamId == null || at == null) return null;
-    return ActiveTimeout(teamId: teamId, at: at, seconds: parseInt(j['seconds']) ?? 60);
+    return ActiveTimeout(
+        teamId: teamId, at: at, seconds: parseInt(j['seconds']) ?? 60);
   }
 }
 
@@ -147,7 +149,8 @@ class ShotClockState {
     if (j is! Map) return null;
     final ms = parseInt(j['remainingMs']);
     if (ms == null) return null;
-    return ShotClockState(remainingMs: ms, runningSince: parseDate(j['runningSince']));
+    return ShotClockState(
+        remainingMs: ms, runningSince: parseDate(j['runningSince']));
   }
 }
 
@@ -176,7 +179,21 @@ class BoxLine {
     this.playerId = '',
     this.teamId = '',
   });
-  final int pts, fgm, fga, tpm, tpa, ftm, fta, oreb, dreb, reb, ast, stl, blk, tov, pf;
+  final int pts,
+      fgm,
+      fga,
+      tpm,
+      tpa,
+      ftm,
+      fta,
+      oreb,
+      dreb,
+      reb,
+      ast,
+      stl,
+      blk,
+      tov,
+      pf;
   final String playerId;
   final String teamId;
 
@@ -249,7 +266,10 @@ class BasketballInfo {
       foulPeriod: parseStr(j['foulPeriod']),
       teamFouls: ints(j['teamFouls']),
       inPenalty: j['inPenalty'] is Map
-          ? {for (final e in (j['inPenalty'] as Map).entries) '${e.key}': e.value == true}
+          ? {
+              for (final e in (j['inPenalty'] as Map).entries)
+                '${e.key}': e.value == true
+            }
           : const {},
       playerFouls: ints(j['playerFouls']),
       targetWinnerTeamId: parseStr(j['targetWinnerTeamId']),
@@ -263,7 +283,8 @@ class BasketballInfo {
           ? {
               for (final e in (box['teams'] as Map).entries)
                 if (e.value is Map)
-                  '${e.key}': BoxLine.fromJson(Map<String, dynamic>.from(e.value as Map))
+                  '${e.key}': BoxLine.fromJson(
+                      Map<String, dynamic>.from(e.value as Map))
             }
           : const {},
       timeoutsLeft: ints(j['timeoutsLeft']),

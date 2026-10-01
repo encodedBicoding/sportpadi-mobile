@@ -73,7 +73,6 @@ final playerStatsProvider = FutureProvider.autoDispose
   }
 });
 
-
 class PlayerProfileScreen extends ConsumerStatefulWidget {
   const PlayerProfileScreen({super.key, required this.userId});
   final String userId;
@@ -98,6 +97,9 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
     // short name, no photo, no numbers — and the stats routes would refuse,
     // so they're only asked for once the profile says it's open.
     final restricted = data.valueOrNull?['restricted'] == true;
+    // …or a player who made their own profile private: their name, @handle
+    // and photo, and a lock.
+    final privateProfile = data.valueOrNull?['privateProfile'] == true;
     final stats = data.hasValue && !restricted
         ? ref.watch(playerStatsProvider(userId)).valueOrNull
         : null;
@@ -133,6 +135,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                       tournaments: 0,
                       statsLoaded: false,
                       restricted: true,
+                      privateProfile: privateProfile,
                       onBack: _back,
                     ),
                   ],
@@ -394,6 +397,7 @@ class _Hero extends ConsumerWidget {
     required this.statsLoaded,
     required this.onBack,
     this.restricted = false,
+    this.privateProfile = false,
   });
   final String userId;
   final Map<String, dynamic> profile;
@@ -406,6 +410,10 @@ class _Hero extends ConsumerWidget {
   /// A private ward: initials, short name and a lock — nothing else.
   final bool restricted;
 
+  /// With [restricted]: the player made their own profile private — their
+  /// name, @username and photo still show, then the lock.
+  final bool privateProfile;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
@@ -414,7 +422,8 @@ class _Hero extends ConsumerWidget {
     const avatar = 104.0;
     const overlap = 34.0;
     final name = parseStr(profile['displayName']) ?? 'Player';
-    final username = restricted ? null : parseStr(profile['username']);
+    final username =
+        restricted && !privateProfile ? null : parseStr(profile['username']);
     // Gamification identity: level (always public), streak (if the player
     // made it public). Not for a private ward.
     final id =
@@ -484,13 +493,13 @@ class _Hero extends ConsumerWidget {
                   onTap: () async {
                     await Clipboard.setData(ClipboardData(text: username));
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text('@$username copied.')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('@$username copied.')));
                     }
                   },
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Flexible(
                         child: Text('@$username',
@@ -513,25 +522,30 @@ class _Hero extends ConsumerWidget {
               LevelBadge(
                   level: id.level, title: id.title, streak: id.weeklyStreak),
             ],
-            if (restricted) ...[
+            if (restricted && privateProfile) ...[
+              const SizedBox(height: 16),
+              const WardPrivateNote(
+                  text: 'This profile is private. Their records, groups and '
+                      'posts are only visible to them.'),
+            ] else if (restricted) ...[
               const SizedBox(height: 10),
               const WardBadge(),
               const SizedBox(height: 16),
               const WardPrivateNote(),
             ] else ...[
-            // Positions / strong foot are per-sport: they live in the sport's
-            // own card below, not up here as one fixed fact.
-            const SizedBox(height: 16),
-            Row(children: [
-              _Stat(value: statsLoaded ? '$sports' : '–', label: 'Sports'),
-              const SizedBox(width: 8),
-              _Stat(value: '$groups', label: 'Groups'),
-              const SizedBox(width: 8),
-              _Stat(
-                  value: statsLoaded ? '$tournaments' : '–',
-                  label: 'Tournaments',
-                  accent: true),
-            ]),
+              // Positions / strong foot are per-sport: they live in the sport's
+              // own card below, not up here as one fixed fact.
+              const SizedBox(height: 16),
+              Row(children: [
+                _Stat(value: statsLoaded ? '$sports' : '–', label: 'Sports'),
+                const SizedBox(width: 8),
+                _Stat(value: '$groups', label: 'Groups'),
+                const SizedBox(width: 8),
+                _Stat(
+                    value: statsLoaded ? '$tournaments' : '–',
+                    label: 'Tournaments',
+                    accent: true),
+              ]),
             ],
           ]),
         ),
@@ -559,7 +573,12 @@ class _Hero extends ConsumerWidget {
             // ward shows initials only.
             child: restricted
                 ? ClipOval(
-                    child: Crest(label: name, size: avatar - 12),
+                    child: Crest(
+                        logoUrl: privateProfile
+                            ? parseStr(profile['avatarUrl'])
+                            : null,
+                        label: name,
+                        size: avatar - 12),
                   )
                 : FramedAvatar(
                     userId: userId,
@@ -637,8 +656,8 @@ class _PlayerCover extends CustomPainter {
       ..color = const Color(0x1FFFFFFF)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
-    canvas.drawLine(Offset(size.width / 2, 0),
-        Offset(size.width / 2, size.height), line);
+    canvas.drawLine(
+        Offset(size.width / 2, 0), Offset(size.width / 2, size.height), line);
     canvas.drawCircle(Offset(size.width / 2, size.height * 0.62), 44, line);
   }
 

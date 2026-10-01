@@ -21,6 +21,7 @@ class PopupMessages {
   /// The screen currently looking for a pop-up. A shell that went away (the
   /// guest shell, on sign-in) doesn't block the next one.
   static BuildContext? _owner;
+
   /// This run's ticket, so the run that finishes clears only its own claim
   /// (without touching a BuildContext after the awaits).
   static Object? _ownerToken;
@@ -52,7 +53,9 @@ class PopupMessages {
       final slots = await repo.serveSlots(const [], popup: true);
       if (slots.isEmpty || slots.first.ads.isEmpty || !context.mounted) return;
       final route = ModalRoute.of(context);
-      if (route != null && !route.isCurrent) return; // something opened meanwhile
+      if (route != null && !route.isCurrent) {
+        return; // something opened meanwhile
+      }
       final slot = slots.first;
 
       final viewed = <String>{};
@@ -129,7 +132,8 @@ class _NotNow extends StatelessWidget {
         foregroundColor: p.muted,
         minimumSize: const Size.fromHeight(44),
       ),
-      child: const Text('Not now', style: TextStyle(fontWeight: FontWeight.w600)),
+      child:
+          const Text('Not now', style: TextStyle(fontWeight: FontWeight.w600)),
     );
   }
 }
@@ -223,7 +227,8 @@ class _SpotlightState extends State<_Spotlight> {
                       onTap: () => Navigator.of(context).pop(),
                       child: const Padding(
                         padding: EdgeInsets.all(7),
-                        child: Icon(Icons.close_rounded, size: 18, color: Colors.white),
+                        child: Icon(Icons.close_rounded,
+                            size: 18, color: Colors.white),
                       ),
                     ),
                   ),
@@ -338,7 +343,8 @@ class _StoryState extends State<_Story> {
                       PromoText(
                         ad: ad,
                         large: true,
-                        onOpen: () => Navigator.of(context).pop('open:${ad.id}'),
+                        onOpen: () =>
+                            Navigator.of(context).pop('open:${ad.id}'),
                       ),
                     ],
                   ),
@@ -356,7 +362,8 @@ class _StoryState extends State<_Story> {
               ),
             const Spacer(),
             TextButton(
-              onPressed: last ? () => Navigator.of(context).pop() : () => _go(_i + 1),
+              onPressed:
+                  last ? () => Navigator.of(context).pop() : () => _go(_i + 1),
               style: TextButton.styleFrom(foregroundColor: p.ink),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Text(last ? 'Done' : 'Next',

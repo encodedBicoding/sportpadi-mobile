@@ -38,7 +38,8 @@ class WardAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     if (image != null) {
       return ClipOval(
-        child: Image(image: image!, width: size, height: size, fit: BoxFit.cover),
+        child:
+            Image(image: image!, width: size, height: size, fit: BoxFit.cover),
       );
     }
     return ClipOval(child: Crest(logoUrl: url, label: name, size: size));
@@ -81,7 +82,8 @@ class WardForChip extends StatelessWidget {
     final label = 'Ward · $name';
     if (!onDark) {
       return SpBadge(label,
-          icon: Icons.supervisor_account_rounded, tone: context.palette.wardInk);
+          icon: Icons.supervisor_account_rounded,
+          tone: context.palette.wardInk);
     }
     const fg = Color(0xFFC4B5FF);
     return Container(
@@ -270,7 +272,9 @@ class WardsMenuRow extends ConsumerWidget {
         : ref.watch(wardTeamInvitesProvider('')).valueOrNull?.length ?? 0;
     final invites = (o?.invites.length ?? 0) + teamInvites;
     final sub = [
-      n == 0 ? 'Children, or anyone you care for' : '$n ward${n == 1 ? '' : 's'}',
+      n == 0
+          ? 'Children, or anyone you care for'
+          : '$n ward${n == 1 ? '' : 's'}',
       if (invites > 0) '$invites invite${invites == 1 ? '' : 's'} waiting',
     ].join(' · ');
     return InkWell(
@@ -480,8 +484,8 @@ class _WardTeamInviteCardState extends ConsumerState<WardTeamInviteCard> {
   Future<void> _answer(bool accept) async {
     if (_busy) return;
     setState(() => _busy = true);
-    final ok = await answerWardTeamInvite(context, ref, widget.invite,
-        accept: accept);
+    final ok =
+        await answerWardTeamInvite(context, ref, widget.invite, accept: accept);
     if (!ok && mounted) setState(() => _busy = false);
   }
 
@@ -500,24 +504,22 @@ class _WardTeamInviteCardState extends ConsumerState<WardTeamInviteCard> {
           Crest(logoUrl: i.teamLogoUrl, label: i.teamName, size: 44),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('${i.teamName} wants ${i.wardFirstName}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 14.5,
-                          height: 1.3,
-                          fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 2),
-                  Text(
-                      [if (sport.isNotEmpty) sport, i.groupName].join(' · '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: p.muted, fontSize: 12)),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('${i.teamName} wants ${i.wardFirstName}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: p.ink,
+                      fontSize: 14.5,
+                      height: 1.3,
+                      fontWeight: FontWeight.w700)),
+              const SizedBox(height: 2),
+              Text([if (sport.isNotEmpty) sport, i.groupName].join(' · '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: p.muted, fontSize: 12)),
+            ]),
           ),
         ]),
         const SizedBox(height: 10),
@@ -584,8 +586,8 @@ class _WardTeamInviteRowState extends ConsumerState<WardTeamInviteRow> {
   Future<void> _answer(bool accept) async {
     if (_busy) return;
     setState(() => _busy = true);
-    final ok = await answerWardTeamInvite(context, ref, widget.invite,
-        accept: accept);
+    final ok =
+        await answerWardTeamInvite(context, ref, widget.invite, accept: accept);
     if (!ok && mounted) setState(() => _busy = false);
   }
 
@@ -609,21 +611,18 @@ class _WardTeamInviteRowState extends ConsumerState<WardTeamInviteRow> {
           WardAvatar(name: i.wardName, url: i.wardAvatarUrl, size: 40),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('${i.wardFirstName} → ${i.teamName}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700)),
-                  Text(sub,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: p.muted, fontSize: 12)),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('${i.wardFirstName} → ${i.teamName}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
+              Text(sub,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: p.muted, fontSize: 12)),
+            ]),
           ),
           const SizedBox(width: 6),
           IconButton(

@@ -16,8 +16,10 @@ class WalletRepository {
 
   Future<WalletOverview> overview(String groupId) async {
     try {
-      final res = await _dio.get(_path(groupId), queryParameters: {'view': 'overview'});
-      return WalletOverview.fromJson(Map<String, dynamic>.from(res.data as Map));
+      final res =
+          await _dio.get(_path(groupId), queryParameters: {'view': 'overview'});
+      return WalletOverview.fromJson(
+          Map<String, dynamic>.from(res.data as Map));
     } catch (e) {
       throw apiError(e, fallback: 'Could not load the wallet.');
     }
@@ -25,9 +27,10 @@ class WalletRepository {
 
   Future<WithdrawalsPage> withdrawals(String groupId) async {
     try {
-      final res =
-          await _dio.get(_path(groupId), queryParameters: {'view': 'withdrawals'});
-      return WithdrawalsPage.fromJson(Map<String, dynamic>.from(res.data as Map));
+      final res = await _dio
+          .get(_path(groupId), queryParameters: {'view': 'withdrawals'});
+      return WithdrawalsPage.fromJson(
+          Map<String, dynamic>.from(res.data as Map));
     } catch (e) {
       throw apiError(e, fallback: 'Could not load withdrawals.');
     }
@@ -39,7 +42,8 @@ class WalletRepository {
           queryParameters: {'view': 'ledger', 'limit': limit});
       final list = res.data is List ? res.data as List : const [];
       return [
-        for (final e in list) LedgerEntry.fromJson(Map<String, dynamic>.from(e as Map)),
+        for (final e in list)
+          LedgerEntry.fromJson(Map<String, dynamic>.from(e as Map)),
       ];
     } catch (e) {
       throw apiError(e, fallback: 'Could not load activity.');
@@ -50,17 +54,20 @@ class WalletRepository {
   /// billing link. The app never links out to purchases itself (app-store
   /// rules, kept uniform across platforms) — out-of-app email is allowed.
   /// Server-side throttled; failures are deliberately swallowed.
-  Future<void> requestPlanEmail(String groupId, {String topic = 'wallet'}) async {
+  Future<void> requestPlanEmail(String groupId,
+      {String topic = 'wallet'}) async {
     try {
-      await _dio.post(_path(groupId),
-          data: {'action': 'plan-email', 'topic': topic});
+      await _dio
+          .post(_path(groupId), data: {'action': 'plan-email', 'topic': topic});
     } catch (_) {
       // Silent by design — the app never surfaces this flow.
     }
   }
 
   Future<void> requestWithdrawal(String groupId,
-      {required String paymentAccountId, required int amountMinor, String? reason}) async {
+      {required String paymentAccountId,
+      required int amountMinor,
+      String? reason}) async {
     try {
       await _dio.post(_path(groupId), data: {
         'action': 'withdraw',
@@ -73,7 +80,8 @@ class WalletRepository {
     }
   }
 
-  Future<void> approve(String groupId, String withdrawalId, {String? note}) async {
+  Future<void> approve(String groupId, String withdrawalId,
+      {String? note}) async {
     try {
       await _dio.post(_path(groupId), data: {
         'action': 'approve',
@@ -85,7 +93,8 @@ class WalletRepository {
     }
   }
 
-  Future<void> reject(String groupId, String withdrawalId, {String? note}) async {
+  Future<void> reject(String groupId, String withdrawalId,
+      {String? note}) async {
     try {
       await _dio.post(_path(groupId), data: {
         'action': 'reject',
@@ -102,7 +111,8 @@ class WalletRepository {
   Future<OnboardingProgress> refreshStatus(String groupId) async {
     try {
       final res = await _dio.post(_path(groupId), data: {'action': 'refresh'});
-      return OnboardingProgress.fromJson(Map<String, dynamic>.from(res.data as Map));
+      return OnboardingProgress.fromJson(
+          Map<String, dynamic>.from(res.data as Map));
     } catch (e) {
       throw apiError(e, fallback: 'Could not refresh the status.');
     }
@@ -122,7 +132,8 @@ class WalletRepository {
   /// Who pays the fees (one-time group setting) with a worked example.
   Future<FeeSetting> feeSetting(String groupId) async {
     try {
-      final res = await _dio.get(_path(groupId), queryParameters: {'view': 'fees'});
+      final res =
+          await _dio.get(_path(groupId), queryParameters: {'view': 'fees'});
       return FeeSetting.fromJson(Map<String, dynamic>.from(res.data as Map));
     } catch (e) {
       throw apiError(e, fallback: 'Could not load the fee setting.');
@@ -132,7 +143,8 @@ class WalletRepository {
   /// Choose who pays the fees — once. Support resets it.
   Future<void> setFeeBearer(String groupId, String bearer) async {
     try {
-      await _dio.post(_path(groupId), data: {'action': 'fee-bearer', 'bearer': bearer});
+      await _dio.post(_path(groupId),
+          data: {'action': 'fee-bearer', 'bearer': bearer});
     } catch (e) {
       throw apiError(e, fallback: 'Could not save the fee setting.');
     }
@@ -150,21 +162,21 @@ class WalletRepository {
   }
 }
 
-final walletRepositoryProvider =
-    Provider<WalletRepository>((ref) => WalletRepository(ref.watch(dioProvider)));
+final walletRepositoryProvider = Provider<WalletRepository>(
+    (ref) => WalletRepository(ref.watch(dioProvider)));
 
 final walletOverviewProvider = FutureProvider.autoDispose
-    .family<WalletOverview, String>(
-        (ref, groupId) => ref.watch(walletRepositoryProvider).overview(groupId));
+    .family<WalletOverview, String>((ref, groupId) =>
+        ref.watch(walletRepositoryProvider).overview(groupId));
 
 final walletWithdrawalsProvider = FutureProvider.autoDispose
-    .family<WithdrawalsPage, String>(
-        (ref, groupId) => ref.watch(walletRepositoryProvider).withdrawals(groupId));
+    .family<WithdrawalsPage, String>((ref, groupId) =>
+        ref.watch(walletRepositoryProvider).withdrawals(groupId));
 
 final walletLedgerProvider = FutureProvider.autoDispose
     .family<List<LedgerEntry>, String>(
         (ref, groupId) => ref.watch(walletRepositoryProvider).ledger(groupId));
 
 final feeSettingProvider = FutureProvider.autoDispose
-    .family<FeeSetting, String>(
-        (ref, groupId) => ref.watch(walletRepositoryProvider).feeSetting(groupId));
+    .family<FeeSetting, String>((ref, groupId) =>
+        ref.watch(walletRepositoryProvider).feeSetting(groupId));

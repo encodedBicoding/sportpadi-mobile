@@ -67,7 +67,11 @@ class VolleyballRules {
 
 /// One set: its target, the points each team has, and who won it.
 class VbSetLine {
-  const VbSetLine({required this.n, required this.target, this.points = const {}, this.winnerTeamId});
+  const VbSetLine(
+      {required this.n,
+      required this.target,
+      this.points = const {},
+      this.winnerTeamId});
   final int n;
   final int target;
   final Map<String, int> points;
@@ -97,7 +101,16 @@ class VbLine {
     this.playerId = '',
     this.teamId = '',
   });
-  final int pts, kills, attackErrors, aces, serviceErrors, blocks, digs, assists, receptionErrors, faults;
+  final int pts,
+      kills,
+      attackErrors,
+      aces,
+      serviceErrors,
+      blocks,
+      digs,
+      assists,
+      receptionErrors,
+      faults;
   final String playerId;
   final String teamId;
 
@@ -186,7 +199,9 @@ class VolleyballInfo {
       boxTeams: box is Map && box['teams'] is Map
           ? {
               for (final e in (box['teams'] as Map).entries)
-                if (e.value is Map) '${e.key}': VbLine.fromJson(Map<String, dynamic>.from(e.value as Map))
+                if (e.value is Map)
+                  '${e.key}':
+                      VbLine.fromJson(Map<String, dynamic>.from(e.value as Map))
             }
           : const {},
     );

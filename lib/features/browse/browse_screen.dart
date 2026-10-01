@@ -134,95 +134,91 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
         final p = ctx.palette;
         final loc = ref.watch(locationProvider);
         return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                        color: p.accentTint,
-                        borderRadius: BorderRadius.circular(14)),
-                    child: Icon(Icons.place_outlined,
-                        size: 20, color: p.greenText),
-                  ),
-                  const SizedBox(width: 12),
-                  Text('Find your event',
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800)),
-                  const Spacer(),
-                  if (loc.location != null && _locationFilter)
-                    InkWell(
-                      onTap: () {
-                        setState(() => _locationFilter = false);
-                        Navigator.pop(ctx);
-                        _loadMore(reset: true);
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                    color: p.accentTint,
+                    borderRadius: BorderRadius.circular(14)),
+                child: Icon(Icons.place_outlined, size: 20, color: p.greenText),
+              ),
+              const SizedBox(width: 12),
+              Text('Find your event',
+                  style: TextStyle(
+                      color: p.ink, fontSize: 18, fontWeight: FontWeight.w800)),
+              const Spacer(),
+              if (loc.location != null && _locationFilter)
+                InkWell(
+                  onTap: () {
+                    setState(() => _locationFilter = false);
+                    Navigator.pop(ctx);
+                    _loadMore(reset: true);
+                  },
+                  child: Text('Clear',
+                      style: TextStyle(color: p.danger, fontSize: 12.5)),
+                ),
+            ]),
+            const SizedBox(height: 12),
+            if (loc.location == null) ...[
+              SpButton(
+                label: loc.loading ? 'Locating…' : 'Use my location',
+                icon: Icons.my_location_rounded,
+                expand: true,
+                onTap: loc.loading
+                    ? null
+                    : () async {
+                        await ref.read(locationProvider.notifier).request();
+                        final st = ref.read(locationProvider);
+                        if (st.location != null) {
+                          setState(() => _locationFilter = true);
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          _loadMore(reset: true);
+                        }
                       },
-                      child: Text('Clear',
-                          style: TextStyle(color: p.danger, fontSize: 12.5)),
-                    ),
-                ]),
-                const SizedBox(height: 12),
-                if (loc.location == null) ...[
-                  SpButton(
-                    label: loc.loading ? 'Locating…' : 'Use my location',
-                    icon: Icons.my_location_rounded,
-                    expand: true,
-                    onTap: loc.loading
-                        ? null
-                        : () async {
-                            await ref.read(locationProvider.notifier).request();
-                            final st = ref.read(locationProvider);
-                            if (st.location != null) {
-                              setState(() => _locationFilter = true);
-                              if (ctx.mounted) Navigator.pop(ctx);
-                              _loadMore(reset: true);
-                            }
-                          },
-                  ),
-                  if (loc.error != null) ...[
-                    const SizedBox(height: 8),
-                    Text(loc.error!,
-                        style: TextStyle(color: p.danger, fontSize: 12)),
-                  ],
-                ] else ...[
-                  Row(children: [
-                    Expanded(
-                      child: Text('Events within',
-                          style: TextStyle(color: p.muted, fontSize: 12.5)),
-                    ),
-                    Text('${loc.radiusMiles} miles',
-                        style: TextStyle(
-                            color: p.ink,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700)),
-                  ]),
-                  Slider(
-                    value: loc.radiusMiles.toDouble().clamp(5, 100),
-                    min: 5,
-                    max: 100,
-                    divisions: 19,
-                    onChanged: (v) => ref
-                        .read(locationProvider.notifier)
-                        .setRadius(v.round()),
-                  ),
-                  const SizedBox(height: 4),
-                  SpButton(
-                    label: 'Show events near me',
-                    icon: Icons.travel_explore_rounded,
-                    expand: true,
-                    onTap: () {
-                      setState(() => _locationFilter = true);
-                      Navigator.pop(ctx);
-                      _loadMore(reset: true);
-                    },
-                  ),
-                ],
+              ),
+              if (loc.error != null) ...[
+                const SizedBox(height: 8),
+                Text(loc.error!,
+                    style: TextStyle(color: p.danger, fontSize: 12)),
               ],
-            );
+            ] else ...[
+              Row(children: [
+                Expanded(
+                  child: Text('Events within',
+                      style: TextStyle(color: p.muted, fontSize: 12.5)),
+                ),
+                Text('${loc.radiusMiles} miles',
+                    style: TextStyle(
+                        color: p.ink,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700)),
+              ]),
+              Slider(
+                value: loc.radiusMiles.toDouble().clamp(5, 100),
+                min: 5,
+                max: 100,
+                divisions: 19,
+                onChanged: (v) =>
+                    ref.read(locationProvider.notifier).setRadius(v.round()),
+              ),
+              const SizedBox(height: 4),
+              SpButton(
+                label: 'Show events near me',
+                icon: Icons.travel_explore_rounded,
+                expand: true,
+                onTap: () {
+                  setState(() => _locationFilter = true);
+                  Navigator.pop(ctx);
+                  _loadMore(reset: true);
+                },
+              ),
+            ],
+          ],
+        );
       }),
     );
   }
@@ -305,8 +301,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                         _search.clear();
                         setState(() => _results = null);
                       },
-                      icon: Icon(Icons.close_rounded,
-                          size: 18, color: p.muted),
+                      icon: Icon(Icons.close_rounded, size: 18, color: p.muted),
                     )
                   : null,
           filled: false,
@@ -424,8 +419,11 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
     final teams = section('teams');
     final players = section('players');
     if (events.isEmpty && groups.isEmpty && teams.isEmpty && players.isEmpty) {
-      return _emptyState(p, Icons.search_off_rounded,
-          'Nothing on the network matches that.', 'Try a shorter name or a username.');
+      return _emptyState(
+          p,
+          Icons.search_off_rounded,
+          'Nothing on the network matches that.',
+          'Try a shorter name or a username.');
     }
 
     Widget header(String label, int n) => Padding(
@@ -433,9 +431,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
           child: Row(children: [
             Text(label,
                 style: TextStyle(
-                    color: p.ink,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700)),
+                    color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -633,9 +629,10 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
 
   Widget _list(AppPalette p) {
     if (_error != null && _items.isEmpty) {
-      return _emptyState(p, Icons.wifi_off_rounded, 'Couldn\'t load events',
-          _error!,
-          action: SpButton(label: 'Retry', onTap: () => _loadMore(reset: true)));
+      return _emptyState(
+          p, Icons.wifi_off_rounded, 'Couldn\'t load events', _error!,
+          action:
+              SpButton(label: 'Retry', onTap: () => _loadMore(reset: true)));
     }
     if (_items.isEmpty && _loading) {
       return const Center(child: CircularProgressIndicator());
@@ -668,8 +665,8 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
 
     final slivers = <Widget>[];
     for (var start = 0; start < _items.length; start += _adEvery) {
-      final run = _items.sublist(
-          start, (start + _adEvery).clamp(0, _items.length));
+      final run =
+          _items.sublist(start, (start + _adEvery).clamp(0, _items.length));
       if (start > 0) {
         slivers.add(SliverToBoxAdapter(
           child: AdMobNativeCard(
@@ -737,8 +734,18 @@ class _BrowseTile extends StatelessWidget {
     final d = e.eventDate?.toUtc();
     const wd = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const mo = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
     final when = [
       if (d != null) '${wd[d.weekday - 1]} ${d.day} ${mo[d.month - 1]}',
@@ -789,7 +796,8 @@ class _BrowseTile extends StatelessWidget {
                     : null,
             boxShadow: cardShadow(context),
           ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             // Cover, inset so the card's white frames it.
             Padding(
               padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
@@ -824,9 +832,7 @@ class _BrowseTile extends StatelessWidget {
                         child: pill(
                           t ? 'Tournament' : (e.categoryName ?? 'Event'),
                           const Color(0xEBFFFFFF),
-                          t
-                              ? const Color(0xFF9A4308)
-                              : const Color(0xFF0F7A45),
+                          t ? const Color(0xFF9A4308) : const Color(0xFF0F7A45),
                         ),
                       ),
                     ),
@@ -834,8 +840,8 @@ class _BrowseTile extends StatelessWidget {
                       Positioned(
                         right: 8,
                         top: 8,
-                        child: pill('LIVE', const Color(0xFFE02424),
-                            Colors.white,
+                        child: pill(
+                            'LIVE', const Color(0xFFE02424), Colors.white,
                             lead: Container(
                                 width: 5,
                                 height: 5,
@@ -880,9 +886,8 @@ class _BrowseTile extends StatelessWidget {
                             style: TextStyle(
                                 color: live ? p.danger : p.muted,
                                 fontSize: 11.5,
-                                fontWeight: live
-                                    ? FontWeight.w700
-                                    : FontWeight.w500)),
+                                fontWeight:
+                                    live ? FontWeight.w700 : FontWeight.w500)),
                       if (e.groupName != null)
                         Text(e.groupName!,
                             maxLines: 1,
@@ -920,9 +925,10 @@ class _CoverPitch extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     final r = Rect.fromLTWH(16, 14, size.width - 32, size.height - 28);
-    canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(6)), line);
-    canvas.drawLine(Offset(size.width / 2, r.top),
-        Offset(size.width / 2, r.bottom), line);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(r, const Radius.circular(6)), line);
+    canvas.drawLine(
+        Offset(size.width / 2, r.top), Offset(size.width / 2, r.bottom), line);
     canvas.drawCircle(Offset(size.width / 2, size.height / 2), 26, line);
   }
 

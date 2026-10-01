@@ -100,7 +100,10 @@ EventTimeParts formatEventTime({
   final venueTime = a == null ? null : (b != null ? '$a – $b' : a);
 
   final venue = _loc(timezone);
-  if (venueTime == null || venue == null || eventDate == null || startTime == null) {
+  if (venueTime == null ||
+      venue == null ||
+      eventDate == null ||
+      startTime == null) {
     return EventTimeParts(day: day, venueTime: venueTime);
   }
 
@@ -116,9 +119,9 @@ EventTimeParts formatEventTime({
   final viewer = _loc(viewerTimezone);
   if (viewer == null ||
       viewer.name == venue.name ||
-      instant.timeZoneOffset == tz.TZDateTime.from(instant, viewer).timeZoneOffset) {
-    return EventTimeParts(
-        day: day, venueTime: venueTime, venueZone: venueZone);
+      instant.timeZoneOffset ==
+          tz.TZDateTime.from(instant, viewer).timeZoneOffset) {
+    return EventTimeParts(day: day, venueTime: venueTime, venueZone: venueZone);
   }
 
   final mine = tz.TZDateTime.from(instant, viewer);

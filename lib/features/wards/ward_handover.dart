@@ -68,9 +68,9 @@ class _WardHandoverCardState extends ConsumerState<WardHandoverCard> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Cancel the link?'),
-        content: Text(
-            "The link stops working and $first's account stays with you. "
-            'You can send a new one any time.'),
+        content:
+            Text("The link stops working and $first's account stays with you. "
+                'You can send a new one any time.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -133,8 +133,8 @@ class _WardHandoverCardState extends ConsumerState<WardHandoverCard> {
     // Too young (or no date of birth): a quiet line saying when.
     if (!d.claimable && claim == null) {
       final opens = formatYmd(d.claimOpensOn);
-      final reason = d.claimBlockedReason ??
-          'Handing over opens when they turn 15.';
+      final reason =
+          d.claimBlockedReason ?? 'Handing over opens when they turn 15.';
       return GlassCard(
         child: header(opens.isEmpty ? reason : '$reason Opens on $opens.'),
       );
@@ -268,7 +268,8 @@ class _HandoverSheetState extends ConsumerState<_HandoverSheet> {
     final dob = w.dob;
     // Their 18th birthday — a calendar date (29 Feb rolls to 1 Mar, as on
     // the server).
-    final adult = dob == null ? null : DateTime(dob.year + 18, dob.month, dob.day);
+    final adult =
+        dob == null ? null : DateTime(dob.year + 18, dob.month, dob.day);
     final minor = age != null && age < 18;
 
     Widget point(IconData icon, String text) => Padding(
@@ -294,7 +295,8 @@ class _HandoverSheetState extends ConsumerState<_HandoverSheet> {
           title: 'Hand over $first\'s account',
           subtitle: "We'll email $first a link to choose a password.",
         ),
-        point(Icons.login_rounded,
+        point(
+            Icons.login_rounded,
             '$first gets their own login — they sign in with this email and '
             'the password they choose.'),
         point(Icons.inventory_2_outlined,
@@ -308,11 +310,12 @@ class _HandoverSheetState extends ConsumerState<_HandoverSheet> {
               'from staff about $first and copies of announcements, but you '
               "can't act for them any more.")
         else
-          point(Icons.person_off_outlined,
+          point(
+              Icons.person_off_outlined,
               "You'll no longer manage $first — they'll run everything "
               'themselves.'),
-        point(Icons.timer_outlined,
-            'The link works once and expires in 7 days.'),
+        point(
+            Icons.timer_outlined, 'The link works once and expires in 7 days.'),
         const SizedBox(height: 4),
         TextField(
           controller: _email,

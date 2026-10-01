@@ -89,8 +89,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         final wards = await _myWards();
         if (!mounted) return;
         if (wards.isEmpty) {
-          final res =
-              await ref.read(eventsRepositoryProvider).checkInByQr(raw);
+          final res = await ref.read(eventsRepositoryProvider).checkInByQr(raw);
           if (!mounted) return;
           await _showCheckInResult(res);
         } else if (!await _checkInSeveral(raw, wards)) {
@@ -154,8 +153,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
       try {
         final res = await repo.checkInByQr(qrCode, forPlayerId: person.id);
         if (isMe) mine = res;
-        results.add(
-            CheckinOutcome.fromResult(res, name: person.name, isMe: isMe));
+        results
+            .add(CheckinOutcome.fromResult(res, name: person.name, isMe: isMe));
       } catch (e) {
         results.add(CheckinOutcome.failed(
             name: person.name,
@@ -169,10 +168,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     ref.invalidate(myFeedProvider);
     // My own check-in's reward moves "Your week" — same rule as the
     // single-person flow.
-    final myReward = mine != null && mine['status'] == 'checked_in' &&
-            mine['reward'] is Map
-        ? Map<String, dynamic>.from(mine['reward'] as Map)
-        : null;
+    final myReward =
+        mine != null && mine['status'] == 'checked_in' && mine['reward'] is Map
+            ? Map<String, dynamic>.from(mine['reward'] as Map)
+            : null;
     if (myReward != null && ((myReward['xp'] as num?)?.toInt() ?? 0) > 0) {
       ref.invalidate(yourWeekProvider);
       ref.invalidate(myProgressionProvider);
@@ -515,7 +514,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                           Text(
                             "Scan the event's QR code to check yourself in. The organizer will see you on the attendee list instantly.",
                             style: TextStyle(
-                                color: p.heroMuted, fontSize: 13.5, height: 1.5),
+                                color: p.heroMuted,
+                                fontSize: 13.5,
+                                height: 1.5),
                           ),
                           const SizedBox(height: 20),
                           Material(
@@ -784,7 +785,8 @@ class _ResultSheet extends StatelessWidget {
             onTap: onTap,
             child: SizedBox(
               height: 50,
-              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              child:
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 if (i != null) ...[
                   Icon(i, size: 18, color: ink ? p.onHero : p.ink),
                   const SizedBox(width: 8),
@@ -825,7 +827,8 @@ class _ResultSheet extends StatelessWidget {
             Container(
               width: 68,
               height: 68,
-              decoration: BoxDecoration(color: circleBg, shape: BoxShape.circle),
+              decoration:
+                  BoxDecoration(color: circleBg, shape: BoxShape.circle),
               child: Icon(icon, size: 38, color: circleFg),
             ),
             const SizedBox(height: 14),
@@ -876,7 +879,8 @@ class _RewardBlock extends StatelessWidget {
     final xp = (reward['xp'] as num?)?.toInt() ?? 0;
     final level = reward['level'];
     final title = reward['title'] as String? ?? '';
-    final progress = ((reward['progress'] as num?)?.toDouble() ?? 0).clamp(0.0, 1.0);
+    final progress =
+        ((reward['progress'] as num?)?.toDouble() ?? 0).clamp(0.0, 1.0);
     final streak = (reward['weeklyStreak'] as num?)?.toInt() ?? 0;
     final lines = reward['lines'] is List ? reward['lines'] as List : const [];
     final unlocked =

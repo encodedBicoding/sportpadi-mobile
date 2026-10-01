@@ -16,8 +16,10 @@ class AppNotification {
   final String type;
   final String title;
   final bool read;
+
   /// Short preview (the server caps `bodyText` at ~240 chars).
   final String? body;
+
   /// Full message as plain text with paragraph breaks — derived from the
   /// server's `bodyHtml`, which is the complete content. Falls back to [body].
   final String? fullBody;
@@ -70,9 +72,12 @@ String? htmlToPlainText(String? html) {
   if (html == null || html.trim().isEmpty) return null;
   var t = html
       .replaceAll(RegExp(r'<style[\s\S]*?</style>', caseSensitive: false), ' ')
-      .replaceAll(RegExp(r'<script[\s\S]*?</script>', caseSensitive: false), ' ')
+      .replaceAll(
+          RegExp(r'<script[\s\S]*?</script>', caseSensitive: false), ' ')
       .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
-      .replaceAll(RegExp(r'</(p|div|h[1-6]|tr|blockquote)>', caseSensitive: false), '\n\n')
+      .replaceAll(
+          RegExp(r'</(p|div|h[1-6]|tr|blockquote)>', caseSensitive: false),
+          '\n\n')
       .replaceAll(RegExp(r'<li[^>]*>', caseSensitive: false), '\n• ')
       .replaceAll(RegExp(r'</(li|ul|ol)>', caseSensitive: false), '\n')
       .replaceAll(RegExp(r'<[^>]+>'), '')

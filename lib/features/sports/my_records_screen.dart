@@ -86,7 +86,10 @@ class _Content extends StatelessWidget {
         if (parseStr(c['categoryId']) != null) c
     ];
     // Most played first (the server's order); then sports only set up.
-    final played = [for (final c in withIds) if (hasPlayed(c)) c];
+    final played = [
+      for (final c in withIds)
+        if (hasPlayed(c)) c
+    ];
     final setUp = [
       for (final c in withIds)
         if (!hasPlayed(c) && listOf(c['setup']).isNotEmpty) c

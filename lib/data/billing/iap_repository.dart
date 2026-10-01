@@ -38,14 +38,16 @@ class IapPlan {
 
   factory IapPlan.fromJson(Map<String, dynamic> j) {
     final products = <String, String>{};
-    for (final p in (j['products'] is List ? j['products'] as List : const [])) {
+    for (final p
+        in (j['products'] is List ? j['products'] as List : const [])) {
       if (p is! Map) continue;
       final interval = parseStr(p['interval']);
       final id = parseStr(p['productId']);
       if (interval != null && id != null) products[interval] = id;
     }
     final prices = <String, ({int minor, String currency})>{};
-    for (final p in (j['webPrices'] is List ? j['webPrices'] as List : const [])) {
+    for (final p
+        in (j['webPrices'] is List ? j['webPrices'] as List : const [])) {
       if (p is! Map) continue;
       final interval = parseStr(p['interval']);
       if (interval == null) continue;
@@ -60,7 +62,8 @@ class IapPlan {
       description: parseStr(j['description']),
       isCurrent: j['isCurrent'] == true,
       features: [
-        for (final f in (j['features'] is List ? j['features'] as List : const []))
+        for (final f
+            in (j['features'] is List ? j['features'] as List : const []))
           if (parseStr(f) != null) parseStr(f)!
       ],
       products: products,
@@ -170,7 +173,8 @@ class IapRepository {
   Future<IapPriceResult> productDetails(Set<String> ids) async {
     if (ids.isEmpty) return const IapPriceResult();
     if (!supportedPlatform) {
-      return IapPriceResult(notFound: ids, error: 'Not supported on this device.');
+      return IapPriceResult(
+          notFound: ids, error: 'Not supported on this device.');
     }
     try {
       if (!await _iap.isAvailable()) {
@@ -199,7 +203,8 @@ class IapRepository {
         'groupId': groupId,
         'transactionId': transactionId,
       });
-      final m = res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {};
+      final m =
+          res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {};
       return m['entitled'] == true;
     } catch (e) {
       throw apiError(e, fallback: 'We could not confirm that purchase.');
@@ -217,7 +222,8 @@ class IapRepository {
       final res = await _ref
           .read(dioProvider)
           .post('/api/mobile/iap', data: {'action': 'restore'});
-      final m = res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {};
+      final m =
+          res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {};
       return parseInt(m['restored']) ?? 0;
     } catch (e) {
       throw apiError(e, fallback: 'Could not restore purchases.');
@@ -230,7 +236,8 @@ class IapRepository {
     try {
       final res = await _ref.read(dioProvider).post('/api/mobile/iap',
           data: {'action': 'refresh', 'groupId': groupId});
-      final m = res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {};
+      final m =
+          res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {};
       return m['entitled'] == true;
     } catch (_) {
       return false;
@@ -300,5 +307,5 @@ final iapRepositoryProvider =
     Provider<IapRepository>((ref) => IapRepository(ref));
 
 final iapCatalogueProvider = FutureProvider.autoDispose
-    .family<IapCatalogue, String>((ref, groupId) =>
-        ref.watch(iapRepositoryProvider).catalogue(groupId));
+    .family<IapCatalogue, String>(
+        (ref, groupId) => ref.watch(iapRepositoryProvider).catalogue(groupId));

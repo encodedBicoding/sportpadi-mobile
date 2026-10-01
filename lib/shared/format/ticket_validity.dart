@@ -35,10 +35,9 @@ String? passLabel(String recurrence) => switch (recurrence) {
 final _monthDay = DateFormat('MMM d', 'en_US');
 final _monthDayYear = DateFormat('MMM d, y', 'en_US');
 
-String _wallDay(DateTime wall) =>
-    wall.year == inViewerZone(DateTime.now()).year
-        ? _monthDay.format(wall)
-        : _monthDayYear.format(wall);
+String _wallDay(DateTime wall) => wall.year == inViewerZone(DateTime.now()).year
+    ? _monthDay.format(wall)
+    : _monthDayYear.format(wall);
 
 /// "Sep 27" — with the year only when it isn't this year ("Oct 31, 2027").
 /// The calendar day [instant] falls on in the viewer's zone.
@@ -61,14 +60,14 @@ DateTime viewerToday() {
 }
 
 /// "2026-09-27" — a calendar date as the API's `validFromDate`.
-String ymdString(DateTime day) =>
-    '${day.year.toString().padLeft(4, '0')}-'
+String ymdString(DateTime day) => '${day.year.toString().padLeft(4, '0')}-'
     '${day.month.toString().padLeft(2, '0')}-'
     '${day.day.toString().padLeft(2, '0')}';
 
 int _daysIn(int y, int m) => DateTime.utc(y, m + 1, 0).day;
 
-DateTime _addDays(DateTime v, int n) => DateTime.utc(v.year, v.month, v.day + n);
+DateTime _addDays(DateTime v, int n) =>
+    DateTime.utc(v.year, v.month, v.day + n);
 
 /// Whole months on, on the series' anchor day (clamped to short months).
 DateTime _addMonths(DateTime v, int n, int anchorDay) {

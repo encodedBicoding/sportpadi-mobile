@@ -8,7 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
-import 'package:sportpadi_mobile/data/events/events_repository.dart' show myFeedProvider;
+import 'package:sportpadi_mobile/data/events/events_repository.dart'
+    show myFeedProvider;
 import 'package:sportpadi_mobile/data/games/basketball_models.dart';
 import 'package:sportpadi_mobile/data/games/volleyball_models.dart';
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
@@ -26,6 +27,7 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 
 /// Tournament page — a card-by-card port of the web page:
 /// header (badges + title + date/time/location + description), then for a
@@ -50,8 +52,8 @@ class TournamentDetailScreen extends ConsumerWidget {
       final groupId = event['groupId']?.toString();
       if (groupId == null || groupId.isEmpty) return;
       final base = ref.read(appConfigProvider).apiBaseUrl;
-      Clipboard.setData(ClipboardData(
-          text: '$base/groups/$groupId/tournaments/$eventId'));
+      Clipboard.setData(
+          ClipboardData(text: '$base/groups/$groupId/tournaments/$eventId'));
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Link copied')));
     }
@@ -62,154 +64,163 @@ class TournamentDetailScreen extends ConsumerWidget {
         bottom: false,
         child: Stack(children: [
           AsyncView(
-        value: t,
-        onRetry: () {
-          ref.invalidate(tournamentDetailProvider(eventId));
-          ref.invalidate(tournamentMatchProvider(eventId));
-        },
-        data: (m) {
-          final event = m['event'] is Map
-              ? Map<String, dynamic>.from(m['event'] as Map)
-              : const <String, dynamic>{};
-          final category = event['category'] is Map
-              ? Map<String, dynamic>.from(event['category'] as Map)
-              : null;
-          final mode = parseStr(m['mode']) ?? 'friendly';
-          final isFriendly = mode == 'friendly';
-          final canManage = m['canManage'] == true;
-          // An invite this viewer can answer from right here — set by the
-          // server only when they administer the invited team's group.
-          final myInvite = m['myInvite'] is Map
-              ? Map<String, dynamic>.from(m['myInvite'] as Map)
-              : null;
-          // Teams in this tournament whose squad this viewer runs.
-          final myTeams = [
-            for (final raw in (m['myTeams'] is List ? m['myTeams'] as List : const []))
-              if (raw is Map && parseStr(raw['status']) == 'approved')
-                Map<String, dynamic>.from(raw)
-          ];
-          final hostGroupId = parseStr(event['groupId']) ?? '';
-          final maxTeams = parseInt(m['maxTeams']) ?? 2;
-          final feeLabel = _fmtMoney(
-              m['feeMinor'], m['feeCurrency'], m['feeCurrencyExponent']);
-          final status = parseStr(event['status']) ?? 'upcoming';
-          final ended = status == 'completed' || status == 'cancelled';
-          final teams = m['teams'] is List ? (m['teams'] as List) : const [];
-          final rows = [
-            for (final raw in teams)
-              if (raw is Map) Map<String, dynamic>.from(raw)
-          ];
-          Map<String, dynamic>? hostRow;
-          Map<String, dynamic>? guestRow;
-          for (final row in rows) {
-            if (parseStr(row['role']) == 'host') {
-              hostRow = row;
-            } else {
-              guestRow ??= row;
-            }
-          }
-          final guestApproved = parseStr(guestRow?['status']) == 'approved';
-          final inTeams = [
-            for (final r in rows)
-              if (parseStr(r['status']) != 'rejected') r
-          ];
-          final approvedPick = [
-            for (final r in rows)
-              if (parseStr(r['status']) == 'approved' && r['team'] is Map)
-                (
-                  id: parseStr(r['id']) ?? '',
-                  name: parseStr((r['team'] as Map)['name']) ?? 'Team',
-                ),
-          ];
-
-          return RefreshIndicator(
-            onRefresh: () {
+            value: t,
+            onRetry: () {
+              ref.invalidate(tournamentDetailProvider(eventId));
               ref.invalidate(tournamentMatchProvider(eventId));
-              ref.invalidate(tournamentGamesProvider(eventId));
-              ref.invalidate(tournamentAwardsProvider(eventId));
-              return ref.refresh(tournamentDetailProvider(eventId).future);
             },
-            child: ListView(
-              padding: const EdgeInsets.only(bottom: 36),
-              children: [
-                // Invisible: keeps every live score on this page up to date.
-                LiveScoresSync(eventId: eventId),
-                _HeaderCard(
-                    event: event, mode: mode, status: status, onShare: share),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                if (myInvite != null) ...[
-                  const SizedBox(height: 14),
-                  _InviteBanner(
-                      eventId: eventId,
-                      groupId: hostGroupId,
-                      invite: myInvite),
-                ] else if (myTeams.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  _MySquads(
-                      eventId: eventId, groupId: hostGroupId, teams: myTeams),
-                ],
-                if (isFriendly) ...[
-                  const SizedBox(height: 14),
-                  _MatchupCard(
-                    eventId: eventId,
-                    hostRow: hostRow,
-                    guestRow: guestRow,
-                    feeLabel: feeLabel,
-                    canManage: canManage,
-                  ),
-                  const SizedBox(height: 14),
-                  _MatchSection(
-                    eventId: eventId,
-                    canCreate: canManage,
-                    guestApproved: guestApproved,
-                    category: category,
-                  ),
-                ] else ...[
-                  const SizedBox(height: 14),
-                  _TeamsCard(
-                    eventId: eventId,
-                    rows: inTeams,
-                    maxTeams: maxTeams,
-                    canManage: canManage,
-                    ended: ended,
-                    feeLabel: feeLabel,
-                    categoryId:
-                        category != null ? parseStr(category['id']) : null,
-                    hostGroupId: parseStr(event['groupId']),
-                  ),
-                  const SizedBox(height: 14),
-                  _MatchesCard(
-                    eventId: eventId,
-                    canManage: canManage,
-                    ended: ended,
-                    approvedPick: approvedPick,
-                    category: category,
-                  ),
-                  const SizedBox(height: 14),
-                  _AwardsCard(eventId: eventId),
-                ],
-                if (canManage) ...[
-                  if (!ended) ...[
-                    const SizedBox(height: 14),
-                    _EndTournamentCard(eventId: eventId, isFriendly: isFriendly),
+            data: (m) {
+              final event = m['event'] is Map
+                  ? Map<String, dynamic>.from(m['event'] as Map)
+                  : const <String, dynamic>{};
+              final category = event['category'] is Map
+                  ? Map<String, dynamic>.from(event['category'] as Map)
+                  : null;
+              final mode = parseStr(m['mode']) ?? 'friendly';
+              final isFriendly = mode == 'friendly';
+              final canManage = m['canManage'] == true;
+              // An invite this viewer can answer from right here — set by the
+              // server only when they administer the invited team's group.
+              final myInvite = m['myInvite'] is Map
+                  ? Map<String, dynamic>.from(m['myInvite'] as Map)
+                  : null;
+              // Teams in this tournament whose squad this viewer runs.
+              final myTeams = [
+                for (final raw
+                    in (m['myTeams'] is List ? m['myTeams'] as List : const []))
+                  if (raw is Map && parseStr(raw['status']) == 'approved')
+                    Map<String, dynamic>.from(raw)
+              ];
+              final hostGroupId = parseStr(event['groupId']) ?? '';
+              final maxTeams = parseInt(m['maxTeams']) ?? 2;
+              final feeLabel = _fmtMoney(
+                  m['feeMinor'], m['feeCurrency'], m['feeCurrencyExponent']);
+              final status = parseStr(event['status']) ?? 'upcoming';
+              final ended = status == 'completed' || status == 'cancelled';
+              final teams =
+                  m['teams'] is List ? (m['teams'] as List) : const [];
+              final rows = [
+                for (final raw in teams)
+                  if (raw is Map) Map<String, dynamic>.from(raw)
+              ];
+              Map<String, dynamic>? hostRow;
+              Map<String, dynamic>? guestRow;
+              for (final row in rows) {
+                if (parseStr(row['role']) == 'host') {
+                  hostRow = row;
+                } else {
+                  guestRow ??= row;
+                }
+              }
+              final guestApproved = parseStr(guestRow?['status']) == 'approved';
+              final inTeams = [
+                for (final r in rows)
+                  if (parseStr(r['status']) != 'rejected') r
+              ];
+              final approvedPick = [
+                for (final r in rows)
+                  if (parseStr(r['status']) == 'approved' && r['team'] is Map)
+                    (
+                      id: parseStr(r['id']) ?? '',
+                      name: parseStr((r['team'] as Map)['name']) ?? 'Team',
+                    ),
+              ];
+
+              return RefreshIndicator(
+                onRefresh: () {
+                  ref.invalidate(tournamentMatchProvider(eventId));
+                  ref.invalidate(tournamentGamesProvider(eventId));
+                  ref.invalidate(tournamentAwardsProvider(eventId));
+                  return ref.refresh(tournamentDetailProvider(eventId).future);
+                },
+                child: ListView(
+                  padding: const EdgeInsets.only(bottom: 36),
+                  children: [
+                    // Invisible: keeps every live score on this page up to date.
+                    LiveScoresSync(eventId: eventId),
+                    _HeaderCard(
+                        event: event,
+                        mode: mode,
+                        status: status,
+                        onShare: share),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (myInvite != null) ...[
+                            const SizedBox(height: 14),
+                            _InviteBanner(
+                                eventId: eventId,
+                                groupId: hostGroupId,
+                                invite: myInvite),
+                          ] else if (myTeams.isNotEmpty) ...[
+                            const SizedBox(height: 14),
+                            _MySquads(
+                                eventId: eventId,
+                                groupId: hostGroupId,
+                                teams: myTeams),
+                          ],
+                          if (isFriendly) ...[
+                            const SizedBox(height: 14),
+                            _MatchupCard(
+                              eventId: eventId,
+                              hostRow: hostRow,
+                              guestRow: guestRow,
+                              feeLabel: feeLabel,
+                              canManage: canManage,
+                            ),
+                            const SizedBox(height: 14),
+                            _MatchSection(
+                              eventId: eventId,
+                              canCreate: canManage,
+                              guestApproved: guestApproved,
+                              category: category,
+                            ),
+                          ] else ...[
+                            const SizedBox(height: 14),
+                            _TeamsCard(
+                              eventId: eventId,
+                              rows: inTeams,
+                              maxTeams: maxTeams,
+                              canManage: canManage,
+                              ended: ended,
+                              feeLabel: feeLabel,
+                              categoryId: category != null
+                                  ? parseStr(category['id'])
+                                  : null,
+                              hostGroupId: parseStr(event['groupId']),
+                            ),
+                            const SizedBox(height: 14),
+                            _MatchesCard(
+                              eventId: eventId,
+                              canManage: canManage,
+                              ended: ended,
+                              approvedPick: approvedPick,
+                              category: category,
+                            ),
+                            const SizedBox(height: 14),
+                            _AwardsCard(eventId: eventId),
+                          ],
+                          if (canManage) ...[
+                            if (!ended) ...[
+                              const SizedBox(height: 14),
+                              _EndTournamentCard(
+                                  eventId: eventId, isFriendly: isFriendly),
+                            ],
+                            const SizedBox(height: 14),
+                            _ManageRow(
+                                eventId: eventId,
+                                ended: ended,
+                                hostGroupId: parseStr(event['groupId'])),
+                          ],
+                        ],
+                      ),
+                    ),
                   ],
-                  const SizedBox(height: 14),
-                  _ManageRow(
-                      eventId: eventId,
-                      ended: ended,
-                      hostGroupId: parseStr(event['groupId'])),
-                ],
-                    ],
-                  ),
                 ),
-              ],
-            ),
-          );
-        },
+              );
+            },
           ),
           // While loading (or on error) there's no cover to carry the back
           // button — keep one on screen regardless.
@@ -281,8 +292,8 @@ class _InviteBanner extends ConsumerStatefulWidget {
 class _InviteBannerState extends ConsumerState<_InviteBanner> {
   bool _busy = false;
 
-  void _snack(String msg) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(msg)));
+  void _snack(String msg) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
   Future<void> _respond(bool accept) async {
     if (_busy) return;
@@ -312,7 +323,8 @@ class _InviteBannerState extends ConsumerState<_InviteBanner> {
     try {
       final id = parseStr(widget.invite['id']) ?? '';
       final repo = ref.read(manageRepositoryProvider);
-      final status = await repo.respondInvite(id, accept ? 'approve' : 'reject');
+      final status =
+          await repo.respondInvite(id, accept ? 'approve' : 'reject');
       if (status == 'payment_required') {
         final url = await repo.payInvite(id);
         if (!mounted) return;
@@ -358,7 +370,10 @@ class _InviteBannerState extends ConsumerState<_InviteBanner> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
           const SpIconTile(Icons.mail_outline_rounded,
-              bg: Color(0x29FFB57D), fg: Color(0xFFFFB57D), size: 40, iconSize: 20),
+              bg: Color(0x29FFB57D),
+              fg: Color(0xFFFFB57D),
+              size: 40,
+              iconSize: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text('$teamName is invited',
@@ -396,9 +411,8 @@ class _InviteBannerState extends ConsumerState<_InviteBanner> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            color: _busy
-                                ? p.heroMuted
-                                : const Color(0xFF0E1411),
+                            color:
+                                _busy ? p.heroMuted : const Color(0xFF0E1411),
                             fontSize: 14,
                             fontWeight: FontWeight.w700)),
                   ),
@@ -459,51 +473,53 @@ class _MySquads extends StatelessWidget {
               color: p.accentTint,
               borderRadius: BorderRadius.circular(22),
             ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Row(children: [
-                SpIconTile(Icons.shield_outlined,
-                    bg: p.surface, fg: p.greenText, size: 40, iconSize: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(parseStr(t['name']) ?? 'Your team',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: p.ink,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700)),
-                        Text('Your squad in this tournament',
-                            style: TextStyle(
-                                color: p.greenText, fontSize: 12)),
-                      ]),
-                ),
-              ]),
-              const SizedBox(height: 12),
-              Row(children: [
-                Expanded(
-                  child: SpButton(
-                    label: 'Call players',
-                    icon: Icons.campaign_rounded,
-                    expand: true,
-                    onTap: () => context.push(
-                        '/groups/$groupId/tournaments/$eventId/teams/${parseStr(t['teamId']) ?? ''}'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _OutlineBtn(
-                    label: 'Formation',
-                    icon: Icons.grid_view_rounded,
-                    expand: true,
-                    onTap: () => context.push(
-                        '/groups/$groupId/tournaments/$eventId/teams/${parseStr(t['teamId']) ?? ''}/formation'),
-                  ),
-                ),
-              ]),
-            ]),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(children: [
+                    SpIconTile(Icons.shield_outlined,
+                        bg: p.surface, fg: p.greenText, size: 40, iconSize: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(parseStr(t['name']) ?? 'Your team',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: p.ink,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700)),
+                            Text('Your squad in this tournament',
+                                style: TextStyle(
+                                    color: p.greenText, fontSize: 12)),
+                          ]),
+                    ),
+                  ]),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(
+                      child: SpButton(
+                        label: 'Call players',
+                        icon: Icons.campaign_rounded,
+                        expand: true,
+                        onTap: () => context.push(
+                            '/groups/$groupId/tournaments/$eventId/teams/${parseStr(t['teamId']) ?? ''}'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _OutlineBtn(
+                        label: 'Formation',
+                        icon: Icons.grid_view_rounded,
+                        expand: true,
+                        onTap: () => context.push(
+                            '/groups/$groupId/tournaments/$eventId/teams/${parseStr(t['teamId']) ?? ''}/formation'),
+                      ),
+                    ),
+                  ]),
+                ]),
           ),
         ),
     ]);
@@ -613,8 +629,7 @@ class _HeaderCard extends StatelessWidget {
               Container(
                   width: 6,
                   height: 6,
-                  decoration:
-                      BoxDecoration(color: fg, shape: BoxShape.circle)),
+                  decoration: BoxDecoration(color: fg, shape: BoxShape.circle)),
               const SizedBox(width: 5),
             ],
             Text(label,
@@ -658,9 +673,11 @@ class _HeaderCard extends StatelessWidget {
                 letterSpacing: -0.3,
                 fontWeight: FontWeight.w800)),
         const SizedBox(height: 10),
-        InfoRow(Icons.calendar_today_rounded, formatDayYear(event['eventDate'])),
+        InfoRow(
+            Icons.calendar_today_rounded, formatDayYear(event['eventDate'])),
         if (start != null)
-          InfoRow(Icons.schedule_rounded, end != null ? '$start – $end' : start),
+          InfoRow(
+              Icons.schedule_rounded, end != null ? '$start – $end' : start),
         if (location != null) InfoRow(Icons.place_outlined, location),
         if (description != null) ...[
           const SizedBox(height: 8),
@@ -756,7 +773,8 @@ class _MatchupCard extends ConsumerWidget {
     return GlassCard(
       child: Column(children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: _TeamCol(label: 'Host', row: hostRow, eventId: eventId)),
+          Expanded(
+              child: _TeamCol(label: 'Host', row: hostRow, eventId: eventId)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Column(children: [
@@ -765,8 +783,8 @@ class _MatchupCard extends ConsumerWidget {
                 width: 38,
                 height: 38,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(
-                    color: p.hero, shape: BoxShape.circle),
+                decoration:
+                    BoxDecoration(color: p.hero, shape: BoxShape.circle),
                 child: Text('VS',
                     style: TextStyle(
                         color: p.onHero,
@@ -775,7 +793,8 @@ class _MatchupCard extends ConsumerWidget {
               ),
             ]),
           ),
-          Expanded(child: _TeamCol(label: 'Guest', row: guestRow, eventId: eventId)),
+          Expanded(
+              child: _TeamCol(label: 'Guest', row: guestRow, eventId: eventId)),
         ]),
         const SizedBox(height: 12),
         Container(
@@ -839,8 +858,7 @@ class _MatchupCard extends ConsumerWidget {
                           content: Text(
                               "Entry fee refunded — SportPadi's processing fee is non-refundable.")));
                     } catch (e) {
-                      messenger
-                          .showSnackBar(SnackBar(content: Text('$e')));
+                      messenger.showSnackBar(SnackBar(content: Text('$e')));
                     }
                   },
                 ),
@@ -853,7 +871,8 @@ class _MatchupCard extends ConsumerWidget {
 }
 
 class _TeamCol extends StatelessWidget {
-  const _TeamCol({required this.label, required this.row, required this.eventId});
+  const _TeamCol(
+      {required this.label, required this.row, required this.eventId});
   final String label;
   final Map<String, dynamic>? row;
   final String eventId;
@@ -898,7 +917,10 @@ class _TeamCol extends StatelessWidget {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-            color: p.ink, fontSize: 14, height: 1.25, fontWeight: FontWeight.w700),
+            color: p.ink,
+            fontSize: 14,
+            height: 1.25,
+            fontWeight: FontWeight.w700),
       ),
       if (team != null && parseStr(team['username']) != null)
         Text('@${parseStr(team['username'])}',
@@ -931,8 +953,8 @@ class _TeamCol extends StatelessWidget {
     final groupId = team != null ? parseStr(team['groupId']) : null;
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () => context.push(
-          '/groups/${groupId ?? '-'}/tournaments/$eventId/teams/$teamId'),
+      onTap: () => context
+          .push('/groups/${groupId ?? '-'}/tournaments/$eventId/teams/$teamId'),
       child: Padding(padding: const EdgeInsets.all(4), child: col),
     );
   }
@@ -1169,8 +1191,8 @@ class _MatchSection extends ConsumerWidget {
               for (final o in officiants)
                 Container(
                   margin: const EdgeInsets.only(bottom: 6),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 9),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
                     color: p.surface2,
@@ -1449,27 +1471,25 @@ class _ConflictsBlock extends ConsumerWidget {
     Future<void> pickSub(String teamId, String playerId,
         List<Map<String, dynamic>> bench) async {
       final chosen = await showSpSheet<String>(
-      context,
-      builder: (ctx) => Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Sub on…',
-                  style: TextStyle(
-                      color: p.ink,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              for (final b in bench)
-                ListTile(
-                  dense: true,
-                  title: Text(parseStr(b['name']) ?? 'Player',
-                      style: TextStyle(color: p.ink, fontSize: 14)),
-                  onTap: () => Navigator.pop(ctx, parseStr(b['playerId'])),
-                ),
-            ],
-          ),
-    );
+        context,
+        builder: (ctx) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Sub on…',
+                style: TextStyle(
+                    color: p.ink, fontSize: 15, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            for (final b in bench)
+              ListTile(
+                dense: true,
+                title: Text(parseStr(b['name']) ?? 'Player',
+                    style: TextStyle(color: p.ink, fontSize: 14)),
+                onTap: () => Navigator.pop(ctx, parseStr(b['playerId'])),
+              ),
+          ],
+        ),
+      );
       if (chosen != null && context.mounted) {
         await subOff(teamId, playerId, swapInPlayerId: chosen);
       }
@@ -1510,82 +1530,83 @@ class _ConflictsBlock extends ConsumerWidget {
               borderRadius: BorderRadius.circular(10),
               color: p.surface,
             ),
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(parseStr(c['name']) ?? 'Player',
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600)),
-                  if (canResolve) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'Pick the team they should not play for — bench them, '
-                      'or bring a substitute on in their place.',
-                      style: TextStyle(color: p.muted, fontSize: 11),
-                    ),
-                    for (final t in (c['teams'] is List
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(parseStr(c['name']) ?? 'Player',
+                  style: TextStyle(
+                      color: p.ink,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600)),
+              if (canResolve) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Pick the team they should not play for — bench them, '
+                  'or bring a substitute on in their place.',
+                  style: TextStyle(color: p.muted, fontSize: 11),
+                ),
+                for (final t in (c['teams'] is List
+                    ? [
+                        for (final x in c['teams'] as List)
+                          if (x is Map) Map<String, dynamic>.from(x)
+                      ]
+                    : const <Map<String, dynamic>>[])) ...[
+                  const SizedBox(height: 6),
+                  Builder(builder: (context) {
+                    final teamId = parseStr(t['teamId']) ?? '';
+                    final playerId = parseStr(c['playerId']) ?? '';
+                    final bench = benchByTeam[teamId] is List
                         ? [
-                            for (final x in c['teams'] as List)
-                              if (x is Map) Map<String, dynamic>.from(x)
+                            for (final b in benchByTeam[teamId] as List)
+                              if (b is Map) Map<String, dynamic>.from(b)
                           ]
-                        : const <Map<String, dynamic>>[])) ...[
-                      const SizedBox(height: 6),
-                      Builder(builder: (context) {
-                        final teamId = parseStr(t['teamId']) ?? '';
-                        final playerId = parseStr(c['playerId']) ?? '';
-                        final bench = benchByTeam[teamId] is List
-                            ? [
-                                for (final b in benchByTeam[teamId] as List)
-                                  if (b is Map) Map<String, dynamic>.from(b)
-                              ]
-                            : const <Map<String, dynamic>>[];
-                        return Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: p.line),
+                        : const <Map<String, dynamic>>[];
+                    return Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: p.line),
+                      ),
+                      child: Row(children: [
+                        Expanded(
+                          child: Text(parseStr(t['name']) ?? 'Team',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: p.ink,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600)),
+                        ),
+                        _OutlineBtn(
+                          label: 'Bench',
+                          icon: Icons.person_remove_outlined,
+                          small: true,
+                          onTap: () => subOff(teamId, playerId),
+                        ),
+                        if (bench.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          _OutlineBtn(
+                            label: 'Sub on…',
+                            small: true,
+                            onTap: () => pickSub(teamId, playerId, bench),
                           ),
-                          child: Row(children: [
-                            Expanded(
-                              child: Text(parseStr(t['name']) ?? 'Team',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      color: p.ink,
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w600)),
-                            ),
-                            _OutlineBtn(
-                              label: 'Bench',
-                              icon: Icons.person_remove_outlined,
-                              small: true,
-                              onTap: () => subOff(teamId, playerId),
-                            ),
-                            if (bench.isNotEmpty) ...[
-                              const SizedBox(width: 6),
-                              _OutlineBtn(
-                                label: 'Sub on…',
-                                small: true,
-                                onTap: () =>
-                                    pickSub(teamId, playerId, bench),
-                              ),
-                            ],
-                          ]),
-                        );
-                      }),
-                    ],
-                  ] else ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'Starting for '
-                      '${(c['teams'] is List ? [for (final x in c['teams'] as List) if (x is Map) parseStr((x)['name']) ?? ''] : const <String>[]).join(' & ')}'
-                      ' — an admin or the officiant must bench them on one team.',
-                      style: TextStyle(color: p.muted, fontSize: 11),
-                    ),
-                  ],
-                ]),
+                        ],
+                      ]),
+                    );
+                  }),
+                ],
+              ] else ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Starting for '
+                  '${(c['teams'] is List ? [
+                      for (final x in c['teams'] as List)
+                        if (x is Map) parseStr((x)['name']) ?? ''
+                    ] : const <String>[]).join(' & ')}'
+                  ' — an admin or the officiant must bench them on one team.',
+                  style: TextStyle(color: p.muted, fontSize: 11),
+                ),
+              ],
+            ]),
           ),
         ],
       ]),
@@ -1621,146 +1642,137 @@ class _TeamsCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Row(children: [
-          Text('Teams',
+      Row(children: [
+        Text('Teams',
+            style: TextStyle(
+                color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+              color: p.surface2, borderRadius: BorderRadius.circular(999)),
+          child: Text('${rows.length}/$maxTeams',
               style: TextStyle(
-                  color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-                color: p.surface2, borderRadius: BorderRadius.circular(999)),
-            child: Text('${rows.length}/$maxTeams',
-                style: TextStyle(
-                    color: p.muted,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700)),
+                  color: p.muted, fontSize: 11.5, fontWeight: FontWeight.w700)),
+        ),
+        const Spacer(),
+        if (canManage && !ended && rows.length < maxTeams)
+          _OutlineBtn(
+            label: 'Invite team',
+            icon: Icons.add,
+            small: true,
+            onTap: () => _InviteTeamSheet.show(context,
+                eventId: eventId,
+                categoryId: categoryId,
+                hostGroupId: hostGroupId,
+                existingTeamIds: [
+                  for (final r in rows)
+                    if (r['team'] is Map)
+                      parseStr((r['team'] as Map)['id']) ?? ''
+                ]),
           ),
-          const Spacer(),
-          if (canManage && !ended && rows.length < maxTeams)
-            _OutlineBtn(
-              label: 'Invite team',
-              icon: Icons.add,
-              small: true,
-              onTap: () => _InviteTeamSheet.show(context,
-                  eventId: eventId,
-                  categoryId: categoryId,
-                  hostGroupId: hostGroupId,
-                  existingTeamIds: [
-                    for (final r in rows)
-                      if (r['team'] is Map)
-                        parseStr((r['team'] as Map)['id']) ?? ''
-                  ]),
-            ),
+      ]),
+      const SizedBox(height: 10),
+      if (rows.isEmpty)
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Center(
+            child: Text('No teams yet.',
+                style: TextStyle(color: p.muted, fontSize: 13)),
+          ),
+        )
+      else
+        SpListCard(children: [
+          for (final r in rows) _teamRow(context, r),
         ]),
-        const SizedBox(height: 10),
-        if (rows.isEmpty)
-          GlassCard(
-            padding: const EdgeInsets.all(20),
-            child: Center(
-              child: Text('No teams yet.',
-                  style: TextStyle(color: p.muted, fontSize: 13)),
-            ),
-          )
-        else
-          SpListCard(children: [
-            for (final r in rows) _teamRow(context, r),
-          ]),
-      ]);
+    ]);
   }
 
   Widget _teamRow(BuildContext context, Map<String, dynamic> r) {
     final p = context.palette;
-    final team = r['team'] is Map
-        ? Map<String, dynamic>.from(r['team'] as Map)
-        : null;
+    final team =
+        r['team'] is Map ? Map<String, dynamic>.from(r['team'] as Map) : null;
     final role = parseStr(r['role']);
     final status = parseStr(r['status']) ?? 'pending';
     final feeStatus = parseStr(r['feeStatus']);
     final teamId = team != null ? parseStr(team['id']) : null;
 
     return Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: teamId != null
-              ? () => context.push(
-                  '/groups/${parseStr(team?['groupId']) ?? hostGroupId ?? '-'}/tournaments/$eventId/teams/$teamId')
-              : null,
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-            child: Row(children: [
-              Crest(
-                logoUrl: team != null ? parseStr(team['logoUrl']) : null,
-                kitPrimary:
-                    team != null ? parseStr(team['kitPrimary']) : null,
-                kitSecondary:
-                    team != null ? parseStr(team['kitSecondary']) : null,
-                label: team != null
-                    ? (parseStr(team['name']) ?? 'Team')
-                    : 'Team',
-                size: 44,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        team != null
-                            ? (parseStr(team['name']) ?? 'Team')
-                            : 'Team',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: p.ink,
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w700),
-                      ),
-                      Text(
-                        [
-                          if (team != null &&
-                              parseStr(team['username']) != null)
-                            '@${parseStr(team['username'])}',
-                          if (team != null &&
-                              parseStr(team['groupName']) != null)
-                            parseStr(team['groupName'])!,
-                        ].join(' · '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: p.muted, fontSize: 12),
-                      ),
-                    ]),
-              ),
-              const SizedBox(width: 6),
-              role == 'host'
-                  ? SpBadge('Host', tone: p.orange)
-                  : SpBadge(
-                      status,
-                      tone: status == 'approved'
-                          ? p.accent
-                          : status == 'rejected'
-                              ? p.danger
-                              : p.amber,
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: teamId != null
+            ? () => context.push(
+                '/groups/${parseStr(team?['groupId']) ?? hostGroupId ?? '-'}/tournaments/$eventId/teams/$teamId')
+            : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          child: Row(children: [
+            Crest(
+              logoUrl: team != null ? parseStr(team['logoUrl']) : null,
+              kitPrimary: team != null ? parseStr(team['kitPrimary']) : null,
+              kitSecondary:
+                  team != null ? parseStr(team['kitSecondary']) : null,
+              label: team != null ? (parseStr(team['name']) ?? 'Team') : 'Team',
+              size: 44,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      team != null
+                          ? (parseStr(team['name']) ?? 'Team')
+                          : 'Team',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700),
                     ),
-              if (feeLabel != null && role != 'host') ...[
-                const SizedBox(width: 6),
-                Text(
-                  feeStatus == 'paid'
-                      ? 'paid'
-                      : feeStatus == 'refunded'
-                          ? 'refunded'
-                          : feeStatus == 'pending'
-                              ? 'unpaid'
-                              : '',
-                  style: TextStyle(color: p.muted, fontSize: 10.5),
-                ),
-              ],
-              Icon(Icons.chevron_right_rounded, size: 20, color: p.muted),
-            ]),
-          ),
+                    Text(
+                      [
+                        if (team != null && parseStr(team['username']) != null)
+                          '@${parseStr(team['username'])}',
+                        if (team != null && parseStr(team['groupName']) != null)
+                          parseStr(team['groupName'])!,
+                      ].join(' · '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: p.muted, fontSize: 12),
+                    ),
+                  ]),
+            ),
+            const SizedBox(width: 6),
+            role == 'host'
+                ? SpBadge('Host', tone: p.orange)
+                : SpBadge(
+                    status,
+                    tone: status == 'approved'
+                        ? p.accent
+                        : status == 'rejected'
+                            ? p.danger
+                            : p.amber,
+                  ),
+            if (feeLabel != null && role != 'host') ...[
+              const SizedBox(width: 6),
+              Text(
+                feeStatus == 'paid'
+                    ? 'paid'
+                    : feeStatus == 'refunded'
+                        ? 'refunded'
+                        : feeStatus == 'pending'
+                            ? 'unpaid'
+                            : '',
+                style: TextStyle(color: p.muted, fontSize: 10.5),
+              ),
+            ],
+            Icon(Icons.chevron_right_rounded, size: 20, color: p.muted),
+          ]),
         ),
+      ),
     );
   }
 }
@@ -1790,46 +1802,44 @@ class _MatchesCard extends ConsumerWidget {
     final games = gamesAsync.valueOrNull ?? const <Map<String, dynamic>>[];
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Row(children: [
-          Text('Matches',
-              style: TextStyle(
-                  color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
-          const Spacer(),
-          if (canManage && !ended && approvedPick.length >= 2)
-            _OutlineBtn(
-              label: 'Create match',
-              icon: Icons.add,
-              small: true,
-              onTap: () => _CreateMatchSheet.show(context,
-                  eventId: eventId,
-                  category: category,
-                  teams: approvedPick),
+      Row(children: [
+        Text('Matches',
+            style: TextStyle(
+                color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
+        const Spacer(),
+        if (canManage && !ended && approvedPick.length >= 2)
+          _OutlineBtn(
+            label: 'Create match',
+            icon: Icons.add,
+            small: true,
+            onTap: () => _CreateMatchSheet.show(context,
+                eventId: eventId, category: category, teams: approvedPick),
+          ),
+      ]),
+      const SizedBox(height: 10),
+      if (gamesAsync.isLoading && games.isEmpty)
+        const Padding(
+          padding: EdgeInsets.all(20),
+          child: Center(child: CircularProgressIndicator()),
+        )
+      else if (games.isEmpty)
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Center(
+            child: Text(
+              approvedPick.length >= 2
+                  ? 'No matches yet. Create one to get started.'
+                  : 'Once at least two teams have accepted, you can create matches.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: p.muted, fontSize: 13, height: 1.4),
             ),
+          ),
+        )
+      else
+        SpListCard(children: [
+          for (final g in games) _gameRow(context, g),
         ]),
-        const SizedBox(height: 10),
-        if (gamesAsync.isLoading && games.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(20),
-            child: Center(child: CircularProgressIndicator()),
-          )
-        else if (games.isEmpty)
-          GlassCard(
-            padding: const EdgeInsets.all(20),
-            child: Center(
-              child: Text(
-                approvedPick.length >= 2
-                    ? 'No matches yet. Create one to get started.'
-                    : 'Once at least two teams have accepted, you can create matches.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: p.muted, fontSize: 13, height: 1.4),
-              ),
-            ),
-          )
-        else
-          SpListCard(children: [
-            for (final g in games) _gameRow(context, g),
-          ]),
-      ]);
+    ]);
   }
 
   Widget _gameRow(BuildContext context, Map<String, dynamic> g) {
@@ -1877,90 +1887,85 @@ class _MatchesCard extends ConsumerWidget {
         );
 
     return Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: gameId != null ? () => context.push('/games/$gameId') : null,
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
-            child: Row(children: [
-              Expanded(
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          ht != null
-                              ? (parseStr(ht['name']) ?? 'TBD')
-                              : 'TBD',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: p.ink,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      crest(ht),
-                    ]),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: Column(children: [
-                  Text(
-                    showScore
-                        ? '${parseInt(home?['score']) ?? 0}–${parseInt(away?['score']) ?? 0}'
-                        : 'vs',
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: gameId != null ? () => context.push('/games/$gameId') : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+          child: Row(children: [
+            Expanded(
+              child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                Flexible(
+                  child: Text(
+                    ht != null ? (parseStr(ht['name']) ?? 'TBD') : 'TBD',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        color: status == 'live'
-                            ? p.danger
-                            : showScore
-                                ? p.ink
-                                : p.muted,
-                        fontSize: showScore ? 17 : 12,
-                        fontWeight: FontWeight.w800),
+                        color: p.ink,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600),
                   ),
-                  if (status == 'live')
-                    Row(mainAxisSize: MainAxisSize.min, children: [
-                      LivePip(color: p.danger),
-                      const SizedBox(width: 3),
-                      Text(matchClockText(g['clock']) ?? 'LIVE',
-                          style: TextStyle(
-                              color: p.danger,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800)),
-                    ])
-                  else
-                    Text(
-                      status == 'completed'
-                          ? 'FT'
-                          : (schedule.isEmpty ? 'TBD' : schedule),
-                      style: TextStyle(color: p.muted, fontSize: 9),
-                    ),
-                ]),
-              ),
-              Expanded(
-                child: Row(children: [
-                  crest(at),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      at != null ? (parseStr(at['name']) ?? 'TBD') : 'TBD',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600),
-                    ),
+                ),
+                const SizedBox(width: 6),
+                crest(ht),
+              ]),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Column(children: [
+                Text(
+                  showScore
+                      ? '${parseInt(home?['score']) ?? 0}–${parseInt(away?['score']) ?? 0}'
+                      : 'vs',
+                  style: TextStyle(
+                      color: status == 'live'
+                          ? p.danger
+                          : showScore
+                              ? p.ink
+                              : p.muted,
+                      fontSize: showScore ? 17 : 12,
+                      fontWeight: FontWeight.w800),
+                ),
+                if (status == 'live')
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    LivePip(color: p.danger),
+                    const SizedBox(width: 3),
+                    Text(matchClockText(g['clock']) ?? 'LIVE',
+                        style: TextStyle(
+                            color: p.danger,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800)),
+                  ])
+                else
+                  Text(
+                    status == 'completed'
+                        ? 'FT'
+                        : (schedule.isEmpty ? 'TBD' : schedule),
+                    style: TextStyle(color: p.muted, fontSize: 9),
                   ),
-                ]),
-              ),
-            ]),
-          ),
+              ]),
+            ),
+            Expanded(
+              child: Row(children: [
+                crest(at),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    at != null ? (parseStr(at['name']) ?? 'TBD') : 'TBD',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: p.ink,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ]),
+            ),
+          ]),
         ),
+      ),
     );
   }
 }
@@ -1988,59 +1993,67 @@ class _AwardsCard extends ConsumerWidget {
         : const <Map<String, dynamic>>[];
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Row(children: [
-          Text('Awards',
-              style: TextStyle(
-                  color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
-          const Spacer(),
-          SpBadge(isFinal ? 'Final' : 'Provisional',
-              tone: isFinal ? p.accent : p.orange),
-        ]),
-        if (gamesCounted == 0) ...[
-          const SizedBox(height: 10),
-          GlassCard(
-            padding: const EdgeInsets.all(20),
-            child: Column(children: [
-              SpIconTile(Icons.emoji_events_outlined,
-                  bg: p.orangeTint, fg: p.orangeInk, size: 50, iconSize: 24),
-              const SizedBox(height: 10),
-              Text('Awards appear here as match games are completed.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: p.muted, fontSize: 13)),
-            ]),
-          ),
-        ] else ...[
-          const SizedBox(height: 10),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: EdgeInsets.zero,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 1.15,
-            children: [for (final a in awards) _awardTile(context, a)],
-          ),
-          if (!isFinal)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                'These update as matches finish and are locked in when the '
-                'tournament ends.',
-                style: TextStyle(color: p.muted, fontSize: 12, height: 1.4),
-              ),
+      Row(children: [
+        Text('Awards',
+            style: TextStyle(
+                color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
+        const Spacer(),
+        SpBadge(isFinal ? 'Final' : 'Provisional',
+            tone: isFinal ? p.accent : p.orange),
+      ]),
+      if (gamesCounted == 0) ...[
+        const SizedBox(height: 10),
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(children: [
+            SpIconTile(Icons.emoji_events_outlined,
+                bg: p.orangeTint, fg: p.orangeInk, size: 50, iconSize: 24),
+            const SizedBox(height: 10),
+            Text('Awards appear here as match games are completed.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: p.muted, fontSize: 13)),
+          ]),
+        ),
+      ] else ...[
+        const SizedBox(height: 10),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 1.15,
+          children: [for (final a in awards) _awardTile(context, ref, a)],
+        ),
+        if (!isFinal)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'These update as matches finish and are locked in when the '
+              'tournament ends.',
+              style: TextStyle(color: p.muted, fontSize: 12, height: 1.4),
             ),
-        ],
-      ]);
+          ),
+      ],
+    ]);
   }
 
-  Widget _awardTile(BuildContext context, Map<String, dynamic> a) {
+  Widget _awardTile(
+      BuildContext context, WidgetRef ref, Map<String, dynamic> a) {
     final p = context.palette;
     final winner = a['winner'] is Map
         ? Map<String, dynamic>.from(a['winner'] as Map)
         : null;
+    // The winner's user id — tap the tile to open their profile.
+    final winnerId = winner == null
+        ? null
+        : parseStr(winner['playerId']) ?? parseStr(winner['userId']);
     return GlassCard(
       padding: const EdgeInsets.all(14),
+      onTap: winnerId == null
+          ? null
+          : () => openPlayerProfile(context, ref, winnerId),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
           width: 38,
@@ -2151,8 +2164,8 @@ class _ManageRow extends ConsumerWidget {
     final router = GoRouter.of(context);
     try {
       await ref.read(tournamentsRepositoryProvider).cancelTournament(eventId);
-      messenger.showSnackBar(
-          const SnackBar(content: Text('Tournament cancelled')));
+      messenger
+          .showSnackBar(const SnackBar(content: Text('Tournament cancelled')));
       router.pop();
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
@@ -2286,8 +2299,8 @@ class _CreateMatchSheet extends ConsumerStatefulWidget {
       List<({String id, String name})>? teams}) {
     showSpSheet<void>(
       context,
-      builder: (_) => _CreateMatchSheet(
-          eventId: eventId, category: category, teams: teams),
+      builder: (_) =>
+          _CreateMatchSheet(eventId: eventId, category: category, teams: teams),
     );
   }
 
@@ -2388,8 +2401,7 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
       if (_isSoccer)
         'lifecycle': {
           'usesHalves': _usesHalves,
-          'halfMinutes':
-              (int.tryParse(_halfMinutes.text) ?? 45).clamp(1, 180),
+          'halfMinutes': (int.tryParse(_halfMinutes.text) ?? 45).clamp(1, 180),
           'drawResolutions': [
             if (_allowExtraTime) 'extra_time',
             if (_allowPenalties) 'penalties',
@@ -2409,8 +2421,8 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
       ref.invalidate(tournamentGamesProvider(widget.eventId));
       ref.invalidate(tournamentAwardsProvider(widget.eventId));
       if (mounted) Navigator.pop(context);
-      messenger.showSnackBar(
-          const SnackBar(content: Text('Match game created')));
+      messenger
+          .showSnackBar(const SnackBar(content: Text('Match game created')));
     } catch (e) {
       if (mounted) setState(() => _saving = false);
       messenger.showSnackBar(SnackBar(content: Text('$e')));
@@ -2445,8 +2457,7 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
       padding: const EdgeInsets.only(left: 28, top: 2, bottom: 6),
       child: Row(children: [
         Expanded(
-          child: Text(label,
-              style: TextStyle(color: p.muted, fontSize: 12.5)),
+          child: Text(label, style: TextStyle(color: p.muted, fontSize: 12.5)),
         ),
         SizedBox(
           width: 72,
@@ -2514,135 +2525,124 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
     final p = context.palette;
     final isMulti = widget.teams != null;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const SpSheetHeader(
-              icon: Icons.sports_soccer_rounded,
-              title: 'Create match game',
-            ),
-            if (isMulti) ...[
-              _teamPicker('Home team', _homeId,
-                  (v) => setState(() => _homeId = v), _awayId),
-              const SizedBox(height: 10),
-              _teamPicker('Away team', _awayId,
-                  (v) => setState(() => _awayId = v), _homeId),
-              const SizedBox(height: 12),
-            ],
-            Row(children: [
-              Expanded(
-                child: _OutlineBtn(
-                  label: _date ?? 'Date (optional)',
-                  icon: Icons.calendar_today_outlined,
-                  expand: true,
-                  onTap: _pickDate,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _OutlineBtn(
-                  label: _time ?? 'Time (optional)',
-                  icon: Icons.schedule,
-                  expand: true,
-                  onTap: _pickTime,
-                ),
-              ),
-            ]),
-            const SizedBox(height: 6),
-            Text('Leave blank to show "TBD". You can set it anytime before kickoff.',
-                style: TextStyle(color: p.muted, fontSize: 11)),
-            if (_isBb) ...[
-              const SizedBox(height: 12),
-              BasketballFormatFields(
-                value: _bb,
-                onChanged: (v) => setState(() => _bb = v),
-              ),
-            ],
-            if (_isVb) ...[
-              const SizedBox(height: 12),
-              VolleyballFormatFields(
-                value: _vb,
-                onChanged: (v) => setState(() => _vb = v),
-              ),
-            ],
-            if (_isSoccer) ...[
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: p.line),
-                ),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Match format',
-                          style: TextStyle(
-                              color: p.ink,
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 4),
-                      _check('Play in halves', _usesHalves,
-                          (v) => setState(() => _usesHalves = v)),
-                      if (_usesHalves)
-                        _numField('Minutes per half', _halfMinutes),
-                      Container(
-                        margin: const EdgeInsets.only(top: 6),
-                        padding: const EdgeInsets.only(top: 8),
-                        decoration: BoxDecoration(
-                          border:
-                              Border(top: BorderSide(color: p.line)),
-                        ),
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('If the match is level at full time',
-                                  style: TextStyle(
-                                      color: p.muted,
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w600)),
-                              _check('Allow extra time', _allowExtraTime,
-                                  (v) =>
-                                      setState(() => _allowExtraTime = v)),
-                              if (_allowExtraTime)
-                                _numField('Minutes per extra-time half',
-                                    _extraHalf),
-                              _check('Allow penalties', _allowPenalties,
-                                  (v) =>
-                                      setState(() => _allowPenalties = v)),
-                              Text(
-                                'The officiant chooses at the draw — only the '
-                                'options you enable here are offered.',
-                                style: TextStyle(
-                                    color: p.muted, fontSize: 11),
-                              ),
-                            ]),
-                      ),
-                    ]),
-              ),
-            ],
-            const SizedBox(height: 12),
-            Text('Officiants (optional, as many as you like)',
+      const SpSheetHeader(
+        icon: Icons.sports_soccer_rounded,
+        title: 'Create match game',
+      ),
+      if (isMulti) ...[
+        _teamPicker(
+            'Home team', _homeId, (v) => setState(() => _homeId = v), _awayId),
+        const SizedBox(height: 10),
+        _teamPicker(
+            'Away team', _awayId, (v) => setState(() => _awayId = v), _homeId),
+        const SizedBox(height: 12),
+      ],
+      Row(children: [
+        Expanded(
+          child: _OutlineBtn(
+            label: _date ?? 'Date (optional)',
+            icon: Icons.calendar_today_outlined,
+            expand: true,
+            onTap: _pickDate,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _OutlineBtn(
+            label: _time ?? 'Time (optional)',
+            icon: Icons.schedule,
+            expand: true,
+            onTap: _pickTime,
+          ),
+        ),
+      ]),
+      const SizedBox(height: 6),
+      Text('Leave blank to show "TBD". You can set it anytime before kickoff.',
+          style: TextStyle(color: p.muted, fontSize: 11)),
+      if (_isBb) ...[
+        const SizedBox(height: 12),
+        BasketballFormatFields(
+          value: _bb,
+          onChanged: (v) => setState(() => _bb = v),
+        ),
+      ],
+      if (_isVb) ...[
+        const SizedBox(height: 12),
+        VolleyballFormatFields(
+          value: _vb,
+          onChanged: (v) => setState(() => _vb = v),
+        ),
+      ],
+      if (_isSoccer) ...[
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: p.line),
+          ),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Match format',
                 style: TextStyle(
-                    color: p.muted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600)),
+                    color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
-            OfficiantPicker(
-              eventId: widget.eventId,
-              selected: _officiants,
-              onChanged: (v) => setState(() => _officiants = v),
+            _check('Play in halves', _usesHalves,
+                (v) => setState(() => _usesHalves = v)),
+            if (_usesHalves) _numField('Minutes per half', _halfMinutes),
+            Container(
+              margin: const EdgeInsets.only(top: 6),
+              padding: const EdgeInsets.only(top: 8),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: p.line)),
+              ),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('If the match is level at full time',
+                        style: TextStyle(
+                            color: p.muted,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600)),
+                    _check('Allow extra time', _allowExtraTime,
+                        (v) => setState(() => _allowExtraTime = v)),
+                    if (_allowExtraTime)
+                      _numField('Minutes per extra-time half', _extraHalf),
+                    _check('Allow penalties', _allowPenalties,
+                        (v) => setState(() => _allowPenalties = v)),
+                    Text(
+                      'The officiant chooses at the draw — only the '
+                      'options you enable here are offered.',
+                      style: TextStyle(color: p.muted, fontSize: 11),
+                    ),
+                  ]),
             ),
-            const SizedBox(height: 4),
-            Text(
-                'Anyone on SportPadi. Each person gets a request to approve '
-                'before they can run the game — you can add more later too.',
-                style: TextStyle(color: p.muted, fontSize: 11)),
-            const SizedBox(height: 16),
-            SpButton(
-              label: _saving ? 'Creating…' : 'Create',
-              expand: true,
-              onTap: _saving ? null : _submit,
-            ),
-          ]);
+          ]),
+        ),
+      ],
+      const SizedBox(height: 12),
+      Text('Officiants (optional, as many as you like)',
+          style: TextStyle(
+              color: p.muted, fontSize: 12, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 4),
+      OfficiantPicker(
+        eventId: widget.eventId,
+        selected: _officiants,
+        onChanged: (v) => setState(() => _officiants = v),
+      ),
+      const SizedBox(height: 4),
+      Text(
+          'Anyone on SportPadi. Each person gets a request to approve '
+          'before they can run the game — you can add more later too.',
+          style: TextStyle(color: p.muted, fontSize: 11)),
+      const SizedBox(height: 16),
+      SpButton(
+        label: _saving ? 'Creating…' : 'Create',
+        expand: true,
+        onTap: _saving ? null : _submit,
+      ),
+    ]);
   }
 }
 
@@ -2697,13 +2697,12 @@ class _ScheduleSheetState extends ConsumerState<_ScheduleSheet> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _saving = true);
     try {
-      await ref.read(tournamentsRepositoryProvider).schedule(
-          widget.eventId, widget.gameId,
-          date: _date, time: _time);
+      await ref
+          .read(tournamentsRepositoryProvider)
+          .schedule(widget.eventId, widget.gameId, date: _date, time: _time);
       ref.invalidate(tournamentMatchProvider(widget.eventId));
       if (mounted) Navigator.pop(context);
-      messenger
-          .showSnackBar(const SnackBar(content: Text('Kickoff updated')));
+      messenger.showSnackBar(const SnackBar(content: Text('Kickoff updated')));
     } catch (e) {
       if (mounted) setState(() => _saving = false);
       messenger.showSnackBar(SnackBar(content: Text('$e')));
@@ -2712,58 +2711,60 @@ class _ScheduleSheetState extends ConsumerState<_ScheduleSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const SpSheetHeader(
-              icon: Icons.schedule_rounded,
-              title: 'Kickoff time',
+    return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SpSheetHeader(
+            icon: Icons.schedule_rounded,
+            title: 'Kickoff time',
+          ),
+          Row(children: [
+            Expanded(
+              child: _OutlineBtn(
+                label: _date ?? 'Date',
+                icon: Icons.calendar_today_outlined,
+                expand: true,
+                onTap: () async {
+                  final now = DateTime.now();
+                  final d = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.tryParse(_date ?? '') ?? now,
+                    firstDate: now.subtract(const Duration(days: 1)),
+                    lastDate: now.add(const Duration(days: 365)),
+                  );
+                  if (d != null) {
+                    setState(() => _date =
+                        '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}');
+                  }
+                },
+              ),
             ),
-            Row(children: [
-              Expanded(
-                child: _OutlineBtn(
-                  label: _date ?? 'Date',
-                  icon: Icons.calendar_today_outlined,
-                  expand: true,
-                  onTap: () async {
-                    final now = DateTime.now();
-                    final d = await showDatePicker(
+            const SizedBox(width: 8),
+            Expanded(
+              child: _OutlineBtn(
+                label: _time ?? 'Time',
+                icon: Icons.schedule,
+                expand: true,
+                onTap: () async {
+                  final t = await showTimePicker(
                       context: context,
-                      initialDate:
-                          DateTime.tryParse(_date ?? '') ?? now,
-                      firstDate: now.subtract(const Duration(days: 1)),
-                      lastDate: now.add(const Duration(days: 365)),
-                    );
-                    if (d != null) {
-                      setState(() => _date =
-                          '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}');
-                    }
-                  },
-                ),
+                      initialTime: const TimeOfDay(hour: 16, minute: 0));
+                  if (t != null) {
+                    setState(() => _time =
+                        '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}');
+                  }
+                },
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _OutlineBtn(
-                  label: _time ?? 'Time',
-                  icon: Icons.schedule,
-                  expand: true,
-                  onTap: () async {
-                    final t = await showTimePicker(
-                        context: context,
-                        initialTime: const TimeOfDay(hour: 16, minute: 0));
-                    if (t != null) {
-                      setState(() => _time =
-                          '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}');
-                    }
-                  },
-                ),
-              ),
-            ]),
-            const SizedBox(height: 16),
-            SpButton(
-              label: _saving ? 'Saving…' : 'Save',
-              expand: true,
-              onTap: _saving ? null : _save,
             ),
-          ]);
+          ]),
+          const SizedBox(height: 16),
+          SpButton(
+            label: _saving ? 'Saving…' : 'Save',
+            expand: true,
+            onTap: _saving ? null : _save,
+          ),
+        ]);
   }
 }
 
@@ -2825,10 +2826,8 @@ class _InviteTeamSheetState extends ConsumerState<_InviteTeamSheet> {
       }
       setState(() => _searching = true);
       try {
-        final r = await ref.read(manageRepositoryProvider).searchTeams(
-            q.trim(),
-            categoryId: widget.categoryId,
-            excludeGroupId: widget.hostGroupId);
+        final r = await ref.read(manageRepositoryProvider).searchTeams(q.trim(),
+            categoryId: widget.categoryId, excludeGroupId: widget.hostGroupId);
         if (mounted) {
           setState(() => _results = [
                 for (final t in r)
@@ -2863,88 +2862,81 @@ class _InviteTeamSheetState extends ConsumerState<_InviteTeamSheet> {
   Widget build(BuildContext context) {
     final p = context.palette;
     return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SpSheetHeader(
-                  icon: Icons.group_add_outlined,
-                  title: 'Invite a team',
-                ),
-                TextField(
-                  controller: _search,
-                  onChanged: _onSearch,
-                  style: TextStyle(color: p.ink, fontSize: 13.5),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    hintText: 'Search team @handle or name',
-                    hintStyle: TextStyle(color: p.muted, fontSize: 13),
-                    prefixIcon:
-                        Icon(Icons.search, size: 18, color: p.muted),
-                    suffixIcon: _searching
-                        ? const Padding(
-                            padding: EdgeInsets.all(10),
-                            child: SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2)),
-                          )
-                        : null,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: p.line)),
-                  ),
-                ),
-                if (_search.text.trim().length >= 2) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    constraints: const BoxConstraints(maxHeight: 260),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: p.line),
-                    ),
-                    child: _results.isEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.all(10),
-                            child: Text('No teams found.',
-                                style: TextStyle(
-                                    color: p.muted, fontSize: 12)),
-                          )
-                        : ListView(
-                            shrinkWrap: true,
-                            children: [
-                              for (final t in _results)
-                                ListTile(
-                                  dense: true,
-                                  leading: Crest(
-                                    logoUrl: t.logoUrl,
-                                    kitPrimary: t.kitPrimary,
-                                    kitSecondary: t.kitSecondary,
-                                    label: t.name,
-                                    size: 36,
-                                  ),
-                                  title: Text(t.name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                          color: p.ink, fontSize: 13.5)),
-                                  subtitle: t.username != null
-                                      ? Text('@${t.username}',
-                                          style: TextStyle(
-                                              color: p.muted,
-                                              fontSize: 11))
-                                      : null,
-                                  trailing: Icon(Icons.add,
-                                      size: 18, color: p.muted),
-                                  onTap:
-                                      _inviting ? null : () => _invite(t),
-                                ),
-                            ],
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SpSheetHeader(
+            icon: Icons.group_add_outlined,
+            title: 'Invite a team',
+          ),
+          TextField(
+            controller: _search,
+            onChanged: _onSearch,
+            style: TextStyle(color: p.ink, fontSize: 13.5),
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: 'Search team @handle or name',
+              hintStyle: TextStyle(color: p.muted, fontSize: 13),
+              prefixIcon: Icon(Icons.search, size: 18, color: p.muted),
+              suffixIcon: _searching
+                  ? const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2)),
+                    )
+                  : null,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: p.line)),
+            ),
+          ),
+          if (_search.text.trim().length >= 2) ...[
+            const SizedBox(height: 8),
+            Container(
+              constraints: const BoxConstraints(maxHeight: 260),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: p.line),
+              ),
+              child: _results.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Text('No teams found.',
+                          style: TextStyle(color: p.muted, fontSize: 12)),
+                    )
+                  : ListView(
+                      shrinkWrap: true,
+                      children: [
+                        for (final t in _results)
+                          ListTile(
+                            dense: true,
+                            leading: Crest(
+                              logoUrl: t.logoUrl,
+                              kitPrimary: t.kitPrimary,
+                              kitSecondary: t.kitSecondary,
+                              label: t.name,
+                              size: 36,
+                            ),
+                            title: Text(t.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: p.ink, fontSize: 13.5)),
+                            subtitle: t.username != null
+                                ? Text('@${t.username}',
+                                    style:
+                                        TextStyle(color: p.muted, fontSize: 11))
+                                : null,
+                            trailing: Icon(Icons.add, size: 18, color: p.muted),
+                            onTap: _inviting ? null : () => _invite(t),
                           ),
-                  ),
-                ],
-              ]);
+                      ],
+                    ),
+            ),
+          ],
+        ]);
   }
 }

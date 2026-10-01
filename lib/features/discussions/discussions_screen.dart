@@ -17,7 +17,8 @@ import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 /// pinned ones first, filtered by flair and open / resolved.
 /// `/groups/:id/discussions?team=<teamId|group>` opens on one space.
 class DiscussionsScreen extends ConsumerStatefulWidget {
-  const DiscussionsScreen({super.key, required this.groupId, this.initialSpace});
+  const DiscussionsScreen(
+      {super.key, required this.groupId, this.initialSpace});
   final String groupId;
 
   /// `group`, a team id, or null for everything.
@@ -64,7 +65,8 @@ class _DiscussionsScreenState extends ConsumerState<DiscussionsScreen> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final groupName = ref.watch(groupProvider(widget.groupId)).valueOrNull?.name;
+    final groupName =
+        ref.watch(groupProvider(widget.groupId)).valueOrNull?.name;
     final spaces =
         ref.watch(discussionSpacesProvider(widget.groupId)).valueOrNull;
     final canPost = spaces?.any ?? false;
@@ -154,8 +156,8 @@ class _DiscussionsScreenState extends ConsumerState<DiscussionsScreen> {
         label: 'Resolved',
         icon: Icons.check_circle_outline_rounded,
         selected: _status == 'resolved',
-        onTap: () => setState(
-            () => _status = _status == 'resolved' ? null : 'resolved'),
+        onTap: () =>
+            setState(() => _status = _status == 'resolved' ? null : 'resolved'),
       ),
       for (final f in discussionFlairs)
         DiscussionPill(

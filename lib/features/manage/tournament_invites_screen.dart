@@ -7,7 +7,8 @@ import 'package:sportpadi_mobile/features/tournaments/invitation_rows.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
-import 'package:sportpadi_mobile/features/groups/groups_providers.dart' show groupProvider;
+import 'package:sportpadi_mobile/features/groups/groups_providers.dart'
+    show groupProvider;
 
 /// One group's pending tournament invites, reached from the group menu.
 ///

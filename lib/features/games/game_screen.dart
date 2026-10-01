@@ -18,6 +18,7 @@ import 'package:sportpadi_mobile/features/games/volleyball_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 
 /// Live game screen — a faithful port of the web GameClient layout:
 /// scoreboard card with the clock strip, draw-resolution + shootout cards,
@@ -79,8 +80,13 @@ class GameScreen extends ConsumerWidget {
                       ShotClockPanel(
                         game: g,
                         onReset: g.canTime
-                            ? (short) => _gameAct(context, ref, gameId,
-                                () => ref.read(gamesRepositoryProvider).shotClock(gameId, short: short))
+                            ? (short) => _gameAct(
+                                context,
+                                ref,
+                                gameId,
+                                () => ref
+                                    .read(gamesRepositoryProvider)
+                                    .shotClock(gameId, short: short))
                             : null,
                       ),
                     ],
@@ -88,9 +94,16 @@ class GameScreen extends ConsumerWidget {
                       const SizedBox(height: 12),
                       TimeoutBar(
                         game: g,
-                        onAction: (g.isBasketball ? g.canTime : (g.canTime || g.canScore))
-                            ? (teamId, action) => _gameAct(context, ref, gameId,
-                                () => ref.read(gamesRepositoryProvider).timeout(gameId, teamId, action))
+                        onAction: (g.isBasketball
+                                ? g.canTime
+                                : (g.canTime || g.canScore))
+                            ? (teamId, action) => _gameAct(
+                                context,
+                                ref,
+                                gameId,
+                                () => ref
+                                    .read(gamesRepositoryProvider)
+                                    .timeout(gameId, teamId, action))
                             : null,
                       ),
                     ],
@@ -104,16 +117,31 @@ class GameScreen extends ConsumerWidget {
                       VolleyballSetCard(
                         game: g,
                         onStartNext: g.canTime || g.canScore
-                            ? () => _gameAct(context, ref, gameId,
-                                () => ref.read(gamesRepositoryProvider).volleyballSet(gameId, 'startNext'))
+                            ? () => _gameAct(
+                                context,
+                                ref,
+                                gameId,
+                                () => ref
+                                    .read(gamesRepositoryProvider)
+                                    .volleyballSet(gameId, 'startNext'))
                             : null,
                         onSwitched: g.canTime || g.canScore
-                            ? () => _gameAct(context, ref, gameId,
-                                () => ref.read(gamesRepositoryProvider).volleyballSet(gameId, 'sidesSwitched'))
+                            ? () => _gameAct(
+                                context,
+                                ref,
+                                gameId,
+                                () => ref
+                                    .read(gamesRepositoryProvider)
+                                    .volleyballSet(gameId, 'sidesSwitched'))
                             : null,
                         onEnd: g.canTime
                             ? () => _gameAct(
-                                context, ref, gameId, () => ref.read(gamesRepositoryProvider).complete(gameId))
+                                context,
+                                ref,
+                                gameId,
+                                () => ref
+                                    .read(gamesRepositoryProvider)
+                                    .complete(gameId))
                             : null,
                       ),
                     ],
@@ -127,12 +155,16 @@ class GameScreen extends ConsumerWidget {
                         onEnd: g.canTime
                             ? () async {
                                 try {
-                                  await ref.read(gamesRepositoryProvider).complete(gameId);
-                                  await ref.read(liveGameProvider(gameId).notifier).refresh();
+                                  await ref
+                                      .read(gamesRepositoryProvider)
+                                      .complete(gameId);
+                                  await ref
+                                      .read(liveGameProvider(gameId).notifier)
+                                      .refresh();
                                 } catch (e) {
                                   if (context.mounted) {
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(SnackBar(content: Text('$e')));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('$e')));
                                   }
                                 }
                               }
@@ -159,8 +191,7 @@ class GameScreen extends ConsumerWidget {
                       _ShootoutCard(gameId: gameId, game: g),
                     ],
                     // Officiants — call people in, split jobs, step down.
-                    if (g.officiants.isNotEmpty ||
-                        g.officiating.canCallIn) ...[
+                    if (g.officiants.isNotEmpty || g.officiating.canCallIn) ...[
                       const SizedBox(height: 12),
                       OfficiantsCard(gameId: gameId, game: g),
                     ],
@@ -269,73 +300,76 @@ class _Scoreboard extends StatelessWidget {
       child: Stack(children: [
         Positioned.fill(child: CourtLines(family: g.profile.family)),
         Padding(
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
-      child: Column(children: [
-        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          if (g.isLive) ...[
-            Container(
-              width: 7,
-              height: 7,
-              decoration: const BoxDecoration(
-                  color: Color(0xFFFF5A52), shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 6),
-          ],
-          Text(status,
-              style: TextStyle(
-                  color: g.isLive
-                      ? const Color(0xFFFF8A84)
-                      : const Color(0xFF6EDC9E),
-                  fontSize: 11.5,
-                  letterSpacing: 1.4,
-                  fontWeight: FontWeight.w700)),
-        ]),
-        const SizedBox(height: 14),
-        if (vsMode)
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: _ScoreTeam(team: g.teams[0])),
-            Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Column(children: [
-                Text(
-                  vbPts != null
-                      ? '${vbPts[g.teams[0].teamId] ?? 0}–${vbPts[g.teams[1].teamId] ?? 0}'
-                      : '${g.teams[0].score}–${g.teams[1].score}',
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+          child: Column(children: [
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              if (g.isLive) ...[
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(
+                      color: Color(0xFFFF5A52), shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 6),
+              ],
+              Text(status,
                   style: TextStyle(
-                    color: p.onHero,
-                    fontSize: 46,
-                    height: 1,
-                    letterSpacing: -1,
-                    fontWeight: FontWeight.w800,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
+                      color: g.isLive
+                          ? const Color(0xFFFF8A84)
+                          : const Color(0xFF6EDC9E),
+                      fontSize: 11.5,
+                      letterSpacing: 1.4,
+                      fontWeight: FontWeight.w700)),
+            ]),
+            const SizedBox(height: 14),
+            if (vsMode)
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(child: _ScoreTeam(team: g.teams[0])),
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Column(children: [
+                    Text(
+                      vbPts != null
+                          ? '${vbPts[g.teams[0].teamId] ?? 0}–${vbPts[g.teams[1].teamId] ?? 0}'
+                          : '${g.teams[0].score}–${g.teams[1].score}',
+                      style: TextStyle(
+                        color: p.onHero,
+                        fontSize: 46,
+                        height: 1,
+                        letterSpacing: -1,
+                        fontWeight: FontWeight.w800,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    unit,
+                  ]),
                 ),
-                const SizedBox(height: 6),
-                unit,
-              ]),
-            ),
-            Expanded(child: _ScoreTeam(team: g.teams[1])),
-          ])
-        else
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final t in g.teams)
-                SizedBox(
-                  width: 96,
-                  child: _ScoreTeam(team: t, compact: true),
-                ),
-              SizedBox(width: double.infinity, child: Center(child: unit)),
-            ],
-          ),
-        _ClockStrip(game: g),
-        if (g.isBasketball && g.startedAt != null && g.status != 'completed')
-          TeamFoulsStrip(game: g),
-        if (g.isVolleyball && g.startedAt != null && vsMode)
-          SetScoresStrip(game: g, order: [g.teams[0].teamId, g.teams[1].teamId]),
-      ]),
+                Expanded(child: _ScoreTeam(team: g.teams[1])),
+              ])
+            else
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final t in g.teams)
+                    SizedBox(
+                      width: 96,
+                      child: _ScoreTeam(team: t, compact: true),
+                    ),
+                  SizedBox(width: double.infinity, child: Center(child: unit)),
+                ],
+              ),
+            _ClockStrip(game: g),
+            if (g.isBasketball &&
+                g.startedAt != null &&
+                g.status != 'completed')
+              TeamFoulsStrip(game: g),
+            if (g.isVolleyball && g.startedAt != null && vsMode)
+              SetScoresStrip(
+                  game: g, order: [g.teams[0].teamId, g.teams[1].teamId]),
+          ]),
         ),
       ]),
     );
@@ -357,7 +391,8 @@ class _ScoreTeam extends StatelessWidget {
     final lost = t.result == 'loss';
     // Logo first (tournament teams), kit colour as a shirt on its corner;
     // no logo → the kit-colour tile with initials.
-    final kit = (t.color == null || t.color!.isEmpty) ? null : teamColor(t.color, p);
+    final kit =
+        (t.color == null || t.color!.isEmpty) ? null : teamColor(t.color, p);
     return Opacity(
       opacity: lost ? 0.6 : 1,
       child: Column(children: [
@@ -428,8 +463,7 @@ class _ClockStripState extends State<_ClockStrip> {
   @override
   void initState() {
     super.initState();
-    _tick =
-        Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+    _tick = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
   }
 
   @override
@@ -538,8 +572,7 @@ ClockInfo? clockInfo(GameDetail g) {
     final anchor = ph.startedAt;
     if (anchor == null) return ClockInfo('00:00', label: ph.label);
     final end = ph.timer.pausedAt ?? now;
-    var elapsed =
-        end.difference(anchor).inMilliseconds - ph.timer.pausedMs;
+    var elapsed = end.difference(anchor).inMilliseconds - ph.timer.pausedMs;
     if (elapsed < 0) elapsed = 0;
     if (g.profile.countsDown && ph.nominalMinutes != null) {
       // Basketball: time LEFT in the quarter.
@@ -601,7 +634,6 @@ String _fmt(int ms) {
   return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
 }
 
-
 // ---------------------------------------------------------------------------
 // Draw resolution — offered when a knockout ends level (amber card).
 // ---------------------------------------------------------------------------
@@ -633,8 +665,7 @@ class _DrawCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: p.surface,
         borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: const Color.fromRGBO(245, 167, 10, 0.4)),
+        border: Border.all(color: const Color.fromRGBO(245, 167, 10, 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -712,10 +743,8 @@ class _ShootoutCard extends ConsumerWidget {
     final tally = lc.shootoutTally;
     final order = lc.shootoutOrder;
     final history = lc.shootoutHistory;
-    final turnTeam =
-        order.length == 2 ? order[history.length % 2] : null;
-    final lastTaker =
-        history.isNotEmpty ? history.last.teamId : null;
+    final turnTeam = order.length == 2 ? order[history.length % 2] : null;
+    final lastTaker = history.isNotEmpty ? history.last.teamId : null;
 
     Future<void> attempt(String teamId, String outcome) async {
       try {
@@ -743,8 +772,7 @@ class _ShootoutCard extends ConsumerWidget {
           borderRadius: BorderRadius.circular(9),
           onTap: onTap,
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
             decoration: outline
                 ? BoxDecoration(
                     borderRadius: BorderRadius.circular(9),
@@ -777,9 +805,7 @@ class _ShootoutCard extends ConsumerWidget {
             const SizedBox(width: 6),
             Text('Penalty shootout',
                 style: TextStyle(
-                    color: p.ink,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700)),
+                    color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
           ]),
           const SizedBox(height: 4),
           if (turnTeam == null)
@@ -791,16 +817,14 @@ class _ShootoutCard extends ConsumerWidget {
           for (final t in g.teams)
             Container(
               margin: const EdgeInsets.only(bottom: 6),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 8, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 color: turnTeam == t.teamId
                     ? const Color.fromRGBO(23, 166, 94, 0.06)
                     : null,
                 border: turnTeam == t.teamId
-                    ? Border.all(
-                        color: const Color.fromRGBO(23, 166, 94, 0.3))
+                    ? Border.all(color: const Color.fromRGBO(23, 166, 94, 0.3))
                     : null,
               ),
               child: Row(children: [
@@ -808,8 +832,7 @@ class _ShootoutCard extends ConsumerWidget {
                   width: 10,
                   height: 10,
                   decoration: BoxDecoration(
-                      color: teamColor(t.color, p),
-                      shape: BoxShape.circle),
+                      color: teamColor(t.color, p), shape: BoxShape.circle),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -933,8 +956,8 @@ class _TimelineCard extends ConsumerWidget {
                   : g.isVolleyball
                       ? setStamp(a.phase)
                       : a.minute != null
-                      ? "${a.minute}'"
-                      : (a.phase ?? ''),
+                          ? "${a.minute}'"
+                          : (a.phase ?? ''),
               textAlign: TextAlign.right,
               style: TextStyle(
                   color: p.muted,
@@ -952,8 +975,7 @@ class _TimelineCard extends ConsumerWidget {
               width: 8,
               height: 8,
               decoration: BoxDecoration(
-                color: teamColor(
-                    team.isNotEmpty ? team.first.color : null, p),
+                color: teamColor(team.isNotEmpty ? team.first.color : null, p),
                 shape: BoxShape.circle,
               ),
             ),
@@ -966,44 +988,55 @@ class _TimelineCard extends ConsumerWidget {
                 ? Wrap(
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Text('${_jn(a.jersey)}${a.playerName}',
-                          style: TextStyle(
-                              color: p.ink,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600)),
-                      Text(' ▲ on',
-                          style: TextStyle(
-                              color: p.accent, fontSize: 13)),
-                      if (a.relatedPlayerName != null) ...[
-                        Text(' · ',
-                            style: TextStyle(
-                                color: p.muted, fontSize: 13)),
-                        Text(a.relatedPlayerName!,
+                      PlayerTap(
+                        userId: a.playerId,
+                        borderRadius: 6,
+                        child: Text('${_jn(a.jersey)}${a.playerName}',
                             style: TextStyle(
                                 color: p.ink,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600)),
+                      ),
+                      Text(' ▲ on',
+                          style: TextStyle(color: p.accent, fontSize: 13)),
+                      if (a.relatedPlayerName != null) ...[
+                        Text(' · ',
+                            style: TextStyle(color: p.muted, fontSize: 13)),
+                        PlayerTap(
+                          userId: a.relatedPlayerId,
+                          borderRadius: 6,
+                          child: Text(a.relatedPlayerName!,
+                              style: TextStyle(
+                                  color: p.ink,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600)),
+                        ),
                         Text(' ▼ off',
-                            style: TextStyle(
-                                color: p.danger, fontSize: 13)),
+                            style: TextStyle(color: p.danger, fontSize: 13)),
                       ],
                     ],
                   )
                 : Wrap(
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Text('${_jn(a.jersey)}${a.playerName}',
-                          style: TextStyle(
-                              color: p.ink,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600)),
-                      Text(' — ${def?.label ?? a.type}',
-                          style: TextStyle(
-                              color: p.muted, fontSize: 13)),
-                      if (a.relatedPlayerName != null)
-                        Text(' (with ${a.relatedPlayerName})',
+                      PlayerTap(
+                        userId: a.playerId,
+                        borderRadius: 6,
+                        child: Text('${_jn(a.jersey)}${a.playerName}',
                             style: TextStyle(
-                                color: p.muted, fontSize: 13)),
+                                color: p.ink,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                      Text(' — ${def?.label ?? a.type}',
+                          style: TextStyle(color: p.muted, fontSize: 13)),
+                      if (a.relatedPlayerName != null)
+                        PlayerTap(
+                          userId: a.relatedPlayerId,
+                          borderRadius: 6,
+                          child: Text(' (with ${a.relatedPlayerName})',
+                              style: TextStyle(color: p.muted, fontSize: 13)),
+                        ),
                     ],
                   ),
           ),
@@ -1156,8 +1189,8 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
     }
   }
 
-  void _snack(String msg) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(msg)));
+  void _snack(String msg) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
   @override
   Widget build(BuildContext context) {
@@ -1174,8 +1207,7 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
     final lineup = started
         ? g.participants.where((x) => x.teamId == t.teamId).toList()
         : [
-            for (final r
-                in g.roster.where((r) => r.teamId == t.teamId))
+            for (final r in g.roster.where((r) => r.teamId == t.teamId))
               GamePlayer(
                 playerId: r.playerId,
                 teamId: r.teamId,
@@ -1185,23 +1217,18 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
                 jersey: r.jersey,
               ),
           ];
-    final onPitch =
-        lineup.where((x) => x.onField && !x.sentOff).toList();
-    final offPitch =
-        lineup.where((x) => !(x.onField && !x.sentOff)).toList();
+    final onPitch = lineup.where((x) => x.onField && !x.sentOff).toList();
+    final offPitch = lineup.where((x) => !(x.onField && !x.sentOff)).toList();
 
     Widget badge(String text, Color tone) => Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
             color: tone.withAlpha(30),
           ),
           child: Text(text,
               style: TextStyle(
-                  color: tone,
-                  fontSize: 8.5,
-                  fontWeight: FontWeight.w800)),
+                  color: tone, fontSize: 8.5, fontWeight: FontWeight.w800)),
         );
 
     Widget row(GamePlayer x) {
@@ -1211,15 +1238,21 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
         padding: const EdgeInsets.symmetric(vertical: 2.5),
         child: Row(children: [
           Expanded(
-            child: Text(
-              '${x.jersey != null ? '#${x.jersey} ' : ''}${x.displayName}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: dimmed ? p.muted : p.ink,
-                fontSize: 12,
-                decoration:
-                    x.sentOff ? TextDecoration.lineThrough : null,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: PlayerTap(
+                userId: x.playerId,
+                borderRadius: 6,
+                child: Text(
+                  '${x.jersey != null ? '#${x.jersey} ' : ''}${x.displayName}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: dimmed ? p.muted : p.ink,
+                    fontSize: 12,
+                    decoration: x.sentOff ? TextDecoration.lineThrough : null,
+                  ),
+                ),
               ),
             ),
           ),
@@ -1237,8 +1270,7 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
               onTap: _busy ? null : () => _move(t.teamId, x),
               borderRadius: BorderRadius.circular(999),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
                 child: Text(
                   x.onField ? '▼ BENCH' : '▲ START',
                   style: TextStyle(
@@ -1316,7 +1348,10 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
             for (final x in onPitch) row(x),
           if (offPitch.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(started ? 'BENCH & OUT (${offPitch.length})' : 'BENCH (${offPitch.length})',
+            Text(
+                started
+                    ? 'BENCH & OUT (${offPitch.length})'
+                    : 'BENCH (${offPitch.length})',
                 style: TextStyle(
                     color: p.muted,
                     fontSize: 9,
@@ -1330,15 +1365,13 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
             Text(
                 'Set the side before kick-off — after that, changes are logged '
                 'as substitutions.',
-                style:
-                    TextStyle(color: p.muted, fontSize: 10, height: 1.35)),
+                style: TextStyle(color: p.muted, fontSize: 10, height: 1.35)),
           ],
         ],
       ),
     );
   }
 }
-
 
 // ---------------------------------------------------------------------------
 // Post-match summary — web's PostMatchSummary essentials: the result line
@@ -1355,8 +1388,7 @@ class _SummaryCard extends StatelessWidget {
     final g = game;
     final wentPens =
         g.lifecycle?.phases.any((ph) => ph.kind == 'shootout') ?? false;
-    final wentEt =
-        g.lifecycle?.hasExtraPhases ?? false;
+    final wentEt = g.lifecycle?.hasExtraPhases ?? false;
     final label = wentPens
         ? 'Penalties'
         : wentEt
@@ -1391,19 +1423,15 @@ class _SummaryCard extends StatelessWidget {
               fg: drawn ? p.muted : p.orangeInk),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label,
-                      style: TextStyle(color: p.muted, fontSize: 12)),
-                  Text(result,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800)),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label, style: TextStyle(color: p.muted, fontSize: 12)),
+              Text(result,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
+            ]),
           ),
         ]),
       ),
@@ -1415,9 +1443,7 @@ class _SummaryCard extends StatelessWidget {
             children: [
               Text('Scorers',
                   style: TextStyle(
-                      color: p.ink,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700)),
+                      color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
               const SizedBox(height: 10),
               for (final t in g.teams)
                 if (byTeam[t.teamId]?.isNotEmpty ?? false) ...[
@@ -1426,8 +1452,7 @@ class _SummaryCard extends StatelessWidget {
                       width: 9,
                       height: 9,
                       decoration: BoxDecoration(
-                          color: teamColor(t.color, p),
-                          shape: BoxShape.circle),
+                          color: teamColor(t.color, p), shape: BoxShape.circle),
                     ),
                     const SizedBox(width: 7),
                     Text(t.name,
@@ -1445,8 +1470,7 @@ class _SummaryCard extends StatelessWidget {
                         for (final e in byTeam[t.teamId]!.entries)
                           Text(
                             '⚽ ${e.key}${e.value > 1 ? ' ×${e.value}' : ''}',
-                            style:
-                                TextStyle(color: p.muted, fontSize: 12.5),
+                            style: TextStyle(color: p.muted, fontSize: 12.5),
                           ),
                       ],
                     ),
@@ -1461,8 +1485,8 @@ class _SummaryCard extends StatelessWidget {
 }
 
 /// Run a game action, refresh the live game, and toast a failure.
-Future<void> _gameAct(
-    BuildContext context, WidgetRef ref, String gameId, Future<void> Function() f) async {
+Future<void> _gameAct(BuildContext context, WidgetRef ref, String gameId,
+    Future<void> Function() f) async {
   try {
     await f();
     await ref.read(liveGameProvider(gameId).notifier).refresh();

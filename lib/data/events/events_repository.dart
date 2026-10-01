@@ -18,7 +18,9 @@ class EventsRepository {
     try {
       final res = await _dio.get('/api/mobile/balance-setup',
           queryParameters: {'eventId': eventId});
-      return res.data is Map ? Map<String, dynamic>.from(res.data as Map) : null;
+      return res.data is Map
+          ? Map<String, dynamic>.from(res.data as Map)
+          : null;
     } catch (_) {
       return null;
     }
@@ -140,8 +142,8 @@ class EventsRepository {
   /// Teams generated for this event, with player lists.
   Future<List<EventTeam>> teamsForEvent(String eventId) async {
     try {
-      final res = await _dio
-          .get('/api/mobile/event-teams', queryParameters: {'eventId': eventId});
+      final res = await _dio.get('/api/mobile/event-teams',
+          queryParameters: {'eventId': eventId});
       final list = res.data is List ? res.data as List : const [];
       return [
         for (final t in list)
@@ -270,8 +272,8 @@ class EventsRepository {
 
   Future<void> setFollow(String groupId, bool follow) async {
     try {
-      await _dio.post('/api/mobile/groups/$groupId/follow',
-          data: {'follow': follow});
+      await _dio
+          .post('/api/mobile/groups/$groupId/follow', data: {'follow': follow});
     } catch (e) {
       throw apiError(e, fallback: 'Could not update follow.');
     }
@@ -376,8 +378,8 @@ class EventsRepository {
   /// Late-arrival pool: checked-in players not yet on a team.
   Future<List<PoolPlayer>> availablePool(String eventId) async {
     try {
-      final res = await _dio
-          .get('/api/mobile/events-pool', queryParameters: {'eventId': eventId});
+      final res = await _dio.get('/api/mobile/events-pool',
+          queryParameters: {'eventId': eventId});
       final list = res.data is List ? res.data as List : const [];
       return [
         for (final e in list)
@@ -527,9 +529,8 @@ class EventsRepository {
           for (final e in list)
             EventSummary.fromJson(Map<String, dynamic>.from(e as Map))
         ],
-        nextCursor: m['nextCursor'] is num
-            ? (m['nextCursor'] as num).toInt()
-            : null,
+        nextCursor:
+            m['nextCursor'] is num ? (m['nextCursor'] as num).toInt() : null,
       );
     } catch (e) {
       throw apiError(e, fallback: 'Could not load events.');
@@ -569,13 +570,13 @@ class EventsRepository {
     int limit = 8,
   }) async {
     try {
-      final res = await _dio.get('/api/mobile/events/suggested',
-          queryParameters: {
-            'limit': limit,
-            if (lat != null) 'lat': lat,
-            if (lng != null) 'lng': lng,
-            if (categoryId != null) 'categoryId': categoryId,
-          });
+      final res =
+          await _dio.get('/api/mobile/events/suggested', queryParameters: {
+        'limit': limit,
+        if (lat != null) 'lat': lat,
+        if (lng != null) 'lng': lng,
+        if (categoryId != null) 'categoryId': categoryId,
+      });
       final list = res.data is List ? res.data as List : const [];
       return [
         for (final e in list)
@@ -604,8 +605,8 @@ class EventsRepository {
   /// Universal network search: events, groups, players, teams.
   Future<Map<String, dynamic>> searchAll(String q) async {
     try {
-      final res = await _dio
-          .get('/api/mobile/search-all', queryParameters: {'q': q});
+      final res =
+          await _dio.get('/api/mobile/search-all', queryParameters: {'q': q});
       return res.data is Map
           ? Map<String, dynamic>.from(res.data as Map)
           : const <String, dynamic>{};
@@ -629,8 +630,7 @@ class EventsRepository {
         if (durationMinutes != null) 'durationMinutes': durationMinutes,
         if (homeTeamId != null) 'homeTeamId': homeTeamId,
       };
-      final res =
-          await _dio.post('/api/mobile/event-actions/$eventId', data: {
+      final res = await _dio.post('/api/mobile/event-actions/$eventId', data: {
         'action': 'create-game',
         'teamIds': teamIds,
         if (attributes.isNotEmpty) 'attributes': attributes,
@@ -666,8 +666,10 @@ final discoverProvider = FutureProvider.autoDispose<List<EventSummary>>(
     (ref) => ref.watch(eventsRepositoryProvider).discover());
 
 final myFeedProvider = FutureProvider.autoDispose<
-        ({List<EventSummary> upcoming, List<EventSummary> past})>(
-    (ref) => ref.watch(eventsRepositoryProvider).myFeed());
+    ({
+      List<EventSummary> upcoming,
+      List<EventSummary> past
+    })>((ref) => ref.watch(eventsRepositoryProvider).myFeed());
 
 /// Suggestions for the Home shelf. Keyed by the optional coordinates + sport
 /// so a location fix (or a sport chip) re-ranks rather than re-using a
@@ -675,8 +677,8 @@ final myFeedProvider = FutureProvider.autoDispose<
 typedef SuggestedKey = ({double? lat, double? lng, String? categoryId});
 
 final suggestedEventsProvider = FutureProvider.autoDispose
-    .family<List<EventSummary>, SuggestedKey>((ref, key) =>
-        ref.watch(eventsRepositoryProvider).suggested(
+    .family<List<EventSummary>, SuggestedKey>(
+        (ref, key) => ref.watch(eventsRepositoryProvider).suggested(
               lat: key.lat,
               lng: key.lng,
               categoryId: key.categoryId,

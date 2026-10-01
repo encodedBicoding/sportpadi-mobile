@@ -27,8 +27,7 @@ class MessagesRepository {
     }
   }
 
-  Future<Map<String, dynamic>> _post(
-      Map<String, dynamic> body, String fallback,
+  Future<Map<String, dynamic>> _post(Map<String, dynamic> body, String fallback,
       {String path = _path}) async {
     try {
       final res = await _dio.post(path, data: body);
@@ -111,9 +110,9 @@ class MessagesRepository {
       'groupId': groupId,
       if (q != null && q.trim().isNotEmpty) 'q': q.trim(),
     }, "Couldn't load members.");
-    return [
-      for (final p in _asList(d)) ReachablePerson.fromJson(p)
-    ].where((p) => p.userId.isNotEmpty).toList();
+    return [for (final p in _asList(d)) ReachablePerson.fromJson(p)]
+        .where((p) => p.userId.isNotEmpty)
+        .toList();
   }
 
   /// Admins: every conversation in the group (read-only oversight).
@@ -228,9 +227,10 @@ class MessagesRepository {
   }
 
   Future<void> deleteMessage(String conversationId, String messageId) async {
-    await _post({'action': 'delete', 'messageId': messageId},
-        "Couldn't delete the message.",
-        path: '$_path/$conversationId');
+    await _post({
+      'action': 'delete',
+      'messageId': messageId
+    }, "Couldn't delete the message.", path: '$_path/$conversationId');
   }
 
   /// Mute pushes for [hours], or [forever]; neither unmutes.
@@ -378,9 +378,8 @@ class ConversationController
         merged = latest.messages;
         nextBefore = latest.nextBefore;
       } else {
-        final firstAt = latest.messages.isEmpty
-            ? null
-            : latest.messages.first.createdAt;
+        final firstAt =
+            latest.messages.isEmpty ? null : latest.messages.first.createdAt;
         final older = [
           for (final m in now.messages)
             if (!latestIds.contains(m.id) &&
@@ -458,14 +457,13 @@ typedef ReachableKey = ({String groupId, String q});
 
 /// Staff: members I can message in a group, filtered by name.
 final messageReachableProvider = FutureProvider.autoDispose
-    .family<List<ReachablePerson>, ReachableKey>((ref, k) => ref
-        .watch(messagesRepositoryProvider)
-        .reachable(k.groupId, q: k.q));
+    .family<List<ReachablePerson>, ReachableKey>((ref, k) =>
+        ref.watch(messagesRepositoryProvider).reachable(k.groupId, q: k.q));
 
 /// Staff: the ids of everyone I can message in a group (for per-row Message
 /// buttons). Empty for non-staff, and on any error.
-final messageReachableIdsProvider =
-    FutureProvider.autoDispose.family<Set<String>, String>((ref, groupId) async {
+final messageReachableIdsProvider = FutureProvider.autoDispose
+    .family<Set<String>, String>((ref, groupId) async {
   try {
     final options =
         await ref.watch(messageStartOptionsProvider(groupId).future);

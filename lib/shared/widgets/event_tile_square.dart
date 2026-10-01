@@ -72,8 +72,8 @@ class EventTileSquare extends StatelessWidget {
                 left: 6,
                 top: 6,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF59E0B),
                     borderRadius: BorderRadius.circular(999),
@@ -92,8 +92,8 @@ class EventTileSquare extends StatelessWidget {
                 right: tournament ? 6 : null,
                 top: 6,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: const Color(0xFFDC2626),
                     borderRadius: BorderRadius.circular(999),

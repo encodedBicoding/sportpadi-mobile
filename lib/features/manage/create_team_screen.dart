@@ -82,7 +82,8 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
       _error = null;
     });
     try {
-      final res = await ref.read(manageRepositoryProvider).createTeam(widget.groupId, {
+      final res =
+          await ref.read(manageRepositoryProvider).createTeam(widget.groupId, {
         'categoryId': _categoryId,
         'name': _name.text.trim(),
         'kitPrimary': _kitPrimary,
@@ -121,7 +122,8 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
               controller: _name,
               onChanged: (_) => setState(() {}),
               decoration: const InputDecoration(labelText: 'Team name'),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Add a name' : null,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Add a name' : null,
             ),
             const SizedBox(height: 14),
             Builder(builder: (context) {
@@ -143,7 +145,8 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
                     const SizedBox(height: 6),
                     Text(
                       'Your plan allows one team per sport, so sports that already have a team are greyed out. Upgrade, or redeem a promo code with Build Multiple Teams, to add more.',
-                      style: TextStyle(color: p.muted, fontSize: 12, height: 1.4),
+                      style:
+                          TextStyle(color: p.muted, fontSize: 12, height: 1.4),
                     ),
                   ],
                 ],
@@ -169,7 +172,8 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
                               fontSize: 13.5,
                               fontWeight: FontWeight.w700)),
                       const SizedBox(height: 2),
-                      Text('Shirt and trim — this is the crest on every team sheet.',
+                      Text(
+                          'Shirt and trim — this is the crest on every team sheet.',
                           style: TextStyle(color: p.muted, fontSize: 11.5)),
                     ]),
               ),
@@ -189,13 +193,15 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
             const SizedBox(height: 18),
             TextFormField(
               controller: _venue,
-              decoration: const InputDecoration(labelText: 'Home venue (optional)'),
+              decoration:
+                  const InputDecoration(labelText: 'Home venue (optional)'),
             ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _description,
               maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Description (optional)'),
+              decoration:
+                  const InputDecoration(labelText: 'Description (optional)'),
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
@@ -206,8 +212,10 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
               onPressed: _busy ? null : _submit,
               child: _busy
                   ? const SizedBox(
-                      height: 20, width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
                   : const Text('Create team'),
             ),
           ],

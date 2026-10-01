@@ -85,172 +85,175 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: SafeArea(
         bottom: false,
         child: AsyncView(
-        value: feed,
-        onRetry: () => ref.invalidate(myFeedProvider),
-        data: (f) {
-          // Sport chips from everything in the feed.
-          final cats = <String, String>{}; // name -> emoji
-          for (final e in [...f.upcoming, ...f.past]) {
-            if (e.categoryName != null) {
-              cats[e.categoryName!] = e.categoryEmoji ?? '';
+          value: feed,
+          onRetry: () => ref.invalidate(myFeedProvider),
+          data: (f) {
+            // Sport chips from everything in the feed.
+            final cats = <String, String>{}; // name -> emoji
+            for (final e in [...f.upcoming, ...f.past]) {
+              if (e.categoryName != null) {
+                cats[e.categoryName!] = e.categoryEmoji ?? '';
+              }
             }
-          }
-          List<EventSummary> bySport(List<EventSummary> list) => _sport == null
-              ? list
-              : [
-                  for (final e in list)
-                    if (e.categoryName == _sport) e
-                ];
-          final all = bySport(f.upcoming);
-          final liveList = all.where(_live).toList();
-          final todayList = all.where(_isToday).toList();
-          final upcomingList = all.where(_isUpcoming).toList();
-          // Past events: only the last two months.
-          final cutoff =
-              DateTime.now().toUtc().subtract(const Duration(days: 61));
-          final past = [
-            for (final e in bySport(f.past))
-              if (e.eventDate == null || e.eventDate!.isAfter(cutoff)) e
-          ];
-          // The sport chips filter by name; suggestions are queried by
-          // category id, so resolve one to the other off the same feed.
-          final sportCategoryId = _sport == null
-              ? null
-              : [...f.upcoming, ...f.past]
-                  .firstWhere((e) => e.categoryName == _sport,
-                      orElse: () => const EventSummary(
-                          id: '', title: '', slug: ''))
-                  .categoryId;
-          final panelList = _day != null
-              ? [
-                  for (final e in all)
-                    if (_eventKey(e) == _day) e
-                ]
-              : _range == 'live'
-              ? liveList
-              : _range == 'today'
-                  ? todayList
-                  : _range == 'upcoming'
-                      ? upcomingList
-                      : all;
+            List<EventSummary> bySport(List<EventSummary> list) =>
+                _sport == null
+                    ? list
+                    : [
+                        for (final e in list)
+                          if (e.categoryName == _sport) e
+                      ];
+            final all = bySport(f.upcoming);
+            final liveList = all.where(_live).toList();
+            final todayList = all.where(_isToday).toList();
+            final upcomingList = all.where(_isUpcoming).toList();
+            // Past events: only the last two months.
+            final cutoff =
+                DateTime.now().toUtc().subtract(const Duration(days: 61));
+            final past = [
+              for (final e in bySport(f.past))
+                if (e.eventDate == null || e.eventDate!.isAfter(cutoff)) e
+            ];
+            // The sport chips filter by name; suggestions are queried by
+            // category id, so resolve one to the other off the same feed.
+            final sportCategoryId = _sport == null
+                ? null
+                : [...f.upcoming, ...f.past]
+                    .firstWhere((e) => e.categoryName == _sport,
+                        orElse: () =>
+                            const EventSummary(id: '', title: '', slug: ''))
+                    .categoryId;
+            final panelList = _day != null
+                ? [
+                    for (final e in all)
+                      if (_eventKey(e) == _day) e
+                  ]
+                : _range == 'live'
+                    ? liveList
+                    : _range == 'today'
+                        ? todayList
+                        : _range == 'upcoming'
+                            ? upcomingList
+                            : all;
 
-          return RefreshIndicator(
-            onRefresh: () => ref.refresh(myFeedProvider.future),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-              children: [
-                const _HomeHeader(),
+            return RefreshIndicator(
+              onRefresh: () => ref.refresh(myFeedProvider.future),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                children: [
+                  const _HomeHeader(),
 
-                // Local ads — invisible until the owner activates mobile
-                // slots with this key; location-targeted server-side. Also
-                // "home_top": SportPadi messages at the top of Home (a slot
-                // set to Top bar or Card in the console), drawn first.
-                const SizedBox(height: 12),
-                const AdDisplay(slots: ['home_top', 'mobile_home'], carousel: true),
-
-                // Quick actions
-                const SizedBox(height: 6),
-                Row(children: [
-                  Expanded(
-                    child: _quickAction(p, Icons.group_add_outlined,
-                        'Create group', () => _newGroupSheet(context)),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _quickAction(p, Icons.qr_code_scanner_rounded,
-                        'Scan QR', () => context.push('/scan'),
-                        dark: true),
-                  ),
-                ]),
-
-                // Gamification: streak, this week's challenges, next unlock.
-                const YourWeekCard(),
-
-                // The one thing to look at next: live now, else the soonest.
-                if (_nextUp(f.upcoming) case final EventSummary n) ...[
-                  const SizedBox(height: 14),
-                  _NextUpCard(event: n, live: _live(n)),
-                ],
-
-                // Sport filter — All or exactly one sport
-                if (cats.isNotEmpty) ...[
+                  // Local ads — invisible until the owner activates mobile
+                  // slots with this key; location-targeted server-side. Also
+                  // "home_top": SportPadi messages at the top of Home (a slot
+                  // set to Top bar or Card in the console), drawn first.
                   const SizedBox(height: 12),
-                  SizedBox(
-                    height: 36,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: [
-                        _chip(p, 'All', _sport == null,
-                            () => setState(() => _sport = null)),
-                        for (final e in cats.entries)
-                          _chip(
-                              p,
-                              '${e.value} ${e.key}'.trim(),
-                              _sport == e.key,
-                              () => setState(() =>
-                                  _sport = _sport == e.key ? null : e.key)),
-                      ],
+                  const AdDisplay(
+                      slots: ['home_top', 'mobile_home'], carousel: true),
+
+                  // Quick actions
+                  const SizedBox(height: 6),
+                  Row(children: [
+                    Expanded(
+                      child: _quickAction(p, Icons.group_add_outlined,
+                          'Create group', () => _newGroupSheet(context)),
                     ),
-                  ),
-                ],
-                const SizedBox(height: 12),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _quickAction(p, Icons.qr_code_scanner_rounded,
+                          'Scan QR', () => context.push('/scan'),
+                          dark: true),
+                    ),
+                  ]),
 
-                ...[
-                  if (f.upcoming.isEmpty && f.past.isEmpty)
-                    GlassCard(
-                      padding: const EdgeInsets.all(22),
-                      child: Column(children: [
-                        const Text('🧭', style: TextStyle(fontSize: 28)),
-                        const SizedBox(height: 8),
-                        Text('Nothing here yet',
-                            style: TextStyle(
-                                color: p.ink,
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 4),
-                        Text(
-                          "You're not in any group yet, so there are no "
-                          "events on your Home. Browse what's happening on "
-                          'SportPadi and find your crew.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: p.muted, fontSize: 12.5),
-                        ),
-                        const SizedBox(height: 12),
-                        SpButton(
-                          label: 'Browse events',
-                          icon: Icons.explore_outlined,
-                          onTap: () =>
-                              ref.read(homeTabIndexProvider.notifier).state = 1,
-                        ),
-                      ]),
-                    )
-                  else
-                    _calendarPanel(context, p, panelList, liveList, todayList,
-                        upcomingList, all),
+                  // Gamification: streak, this week's challenges, next unlock.
+                  const YourWeekCard(),
 
-                  // AdMob native (Android). Takes no space until it fills.
-                  const AdMobNativeCard(padding: EdgeInsets.only(top: 14)),
+                  // The one thing to look at next: live now, else the soonest.
+                  if (_nextUp(f.upcoming) case final EventSummary n) ...[
+                    const SizedBox(height: 14),
+                    _NextUpCard(event: n, live: _live(n)),
+                  ],
 
-                  // Discovery. Below the player's own calendar and above the
-                  // ads — it's the answer to "nothing on this week", which is
-                  // exactly when someone opens Home and leaves. Rendered on
-                  // the empty path too: a brand-new account needs it most.
-                  const SizedBox(height: 22),
-                  SuggestedEventsSection(categoryId: sportCategoryId),
+                  // Sport filter — All or exactly one sport
+                  if (cats.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 36,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          _chip(p, 'All', _sport == null,
+                              () => setState(() => _sport = null)),
+                          for (final e in cats.entries)
+                            _chip(
+                                p,
+                                '${e.value} ${e.key}'.trim(),
+                                _sport == e.key,
+                                () => setState(() =>
+                                    _sport = _sport == e.key ? null : e.key)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
 
-                  const SizedBox(height: 10),
-                  const AdDisplay(slots: ['home_ads'], carousel: true),
-                  // Past events (hidden when the whole feed is empty —
-                  // the Browse CTA covers it).
-                  if (!(f.upcoming.isEmpty && f.past.isEmpty)) ...[
+                  ...[
+                    if (f.upcoming.isEmpty && f.past.isEmpty)
+                      GlassCard(
+                        padding: const EdgeInsets.all(22),
+                        child: Column(children: [
+                          const Text('🧭', style: TextStyle(fontSize: 28)),
+                          const SizedBox(height: 8),
+                          Text('Nothing here yet',
+                              style: TextStyle(
+                                  color: p.ink,
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 4),
+                          Text(
+                            "You're not in any group yet, so there are no "
+                            "events on your Home. Browse what's happening on "
+                            'SportPadi and find your crew.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: p.muted, fontSize: 12.5),
+                          ),
+                          const SizedBox(height: 12),
+                          SpButton(
+                            label: 'Browse events',
+                            icon: Icons.explore_outlined,
+                            onTap: () => ref
+                                .read(homeTabIndexProvider.notifier)
+                                .state = 1,
+                          ),
+                        ]),
+                      )
+                    else
+                      _calendarPanel(context, p, panelList, liveList, todayList,
+                          upcomingList, all),
+
+                    // AdMob native (Android). Takes no space until it fills.
+                    const AdMobNativeCard(padding: EdgeInsets.only(top: 14)),
+
+                    // Discovery. Below the player's own calendar and above the
+                    // ads — it's the answer to "nothing on this week", which is
+                    // exactly when someone opens Home and leaves. Rendered on
+                    // the empty path too: a brand-new account needs it most.
                     const SizedBox(height: 22),
-                    PastEventsSection(events: past, userId: me?.userId),
+                    SuggestedEventsSection(categoryId: sportCategoryId),
+
+                    const SizedBox(height: 10),
+                    const AdDisplay(slots: ['home_ads'], carousel: true),
+                    // Past events (hidden when the whole feed is empty —
+                    // the Browse CTA covers it).
+                    if (!(f.upcoming.isEmpty && f.past.isEmpty)) ...[
+                      const SizedBox(height: 22),
+                      PastEventsSection(events: past, userId: me?.userId),
+                    ],
                   ],
                 ],
-              ],
-            ),
-          );
-        },
+              ),
+            );
+          },
         ),
       ),
     );
@@ -290,8 +293,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   color: dark ? p.onHero.withAlpha(26) : p.accentTint,
                   borderRadius: BorderRadius.circular(13),
                 ),
-                child: Icon(icon,
-                    size: 20, color: dark ? p.accent : p.accentDeep),
+                child:
+                    Icon(icon, size: 20, color: dark ? p.accent : p.accentDeep),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -313,8 +316,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         padding: const EdgeInsets.only(right: 8),
         child: Material(
           color: active ? p.hero : p.surface,
-          shape: StadiumBorder(
-              side: BorderSide(color: active ? p.hero : p.line)),
+          shape:
+              StadiumBorder(side: BorderSide(color: active ? p.hero : p.line)),
           child: InkWell(
             customBorder: const StadiumBorder(),
             onTap: onTap,
@@ -333,8 +336,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   static const _wd1 = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
   static const _wd3 = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   static const _mo = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
   ];
 
   static String _key(DateTime d) =>
@@ -426,7 +439,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     style: TextStyle(
                         color: active ? p.onHero : p.ink,
                         fontSize: 12.5,
-                        fontWeight: active ? FontWeight.w700 : FontWeight.w600)),
+                        fontWeight:
+                            active ? FontWeight.w700 : FontWeight.w600)),
                 if (r.count > 0) ...[
                   const SizedBox(width: 6),
                   Text('${r.count}',
@@ -445,7 +459,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     Widget dayCell(DateTime d) {
       final k = _key(d);
       final isToday = k == _key(today);
-      final selected = _day == k || (_day == null && _range == 'today' && isToday);
+      final selected =
+          _day == k || (_day == null && _range == 'today' && isToday);
       final info = onDay[k];
       final live = info?.live ?? false;
       final mineDot = info != null && (info.mine || info.live);
@@ -556,7 +571,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             : null,
       );
     } else {
-      agenda = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      agenda =
+          Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         for (final g in groups.entries) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 12, 4, 4),
@@ -568,8 +584,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     fontWeight: FontWeight.w700)),
           ),
           for (var i = 0; i < g.value.length; i++)
-            _eventRow(context, p, g.value[i],
-                last: i == g.value.length - 1),
+            _eventRow(context, p, g.value[i], last: i == g.value.length - 1),
         ],
         if (panelList.length > cap)
           Padding(
@@ -579,25 +594,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               onTap: () => setState(() => _agendaOpen = !_agendaOpen),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                          _agendaOpen
-                              ? 'Show less'
-                              : 'Show all ${panelList.length}',
-                          style: TextStyle(
-                              color: p.greenText,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700)),
-                      const SizedBox(width: 4),
-                      Icon(
-                          _agendaOpen
-                              ? Icons.keyboard_arrow_up_rounded
-                              : Icons.keyboard_arrow_down_rounded,
-                          size: 18,
-                          color: p.greenText),
-                    ]),
+                child:
+                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Text(
+                      _agendaOpen
+                          ? 'Show less'
+                          : 'Show all ${panelList.length}',
+                      style: TextStyle(
+                          color: p.greenText,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700)),
+                  const SizedBox(width: 4),
+                  Icon(
+                      _agendaOpen
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      size: 18,
+                      color: p.greenText),
+                ]),
               ),
             ),
           ),
@@ -736,8 +750,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700)),
                     if (!live && end != null)
-                      Text(end,
-                          style: TextStyle(color: p.muted, fontSize: 11)),
+                      Text(end, style: TextStyle(color: p.muted, fontSize: 11)),
                   ]),
             ),
           ),
@@ -799,8 +812,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           Text(sub,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style:
-                                  TextStyle(color: p.muted, fontSize: 12)),
+                              style: TextStyle(color: p.muted, fontSize: 12)),
                         if (_wardChip(e) != null ||
                             e.audienceTeams.isNotEmpty) ...[
                           const SizedBox(height: 5),
@@ -851,66 +863,67 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final created = await showSpSheet<String>(
       context,
       builder: (ctx) => Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SpSheetHeader(
-                    icon: Icons.group_add_outlined,
-                    title: 'Create a group',
-                    subtitle: 'Name it now — you can add a crest, sports and more later.',
-                  ),
-                  TextField(
-                    controller: name,
-                    style: TextStyle(color: p.ink, fontSize: 14),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      hintText: 'Group name',
-                      hintStyle: TextStyle(color: p.muted, fontSize: 13.5),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 11),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: p.line)),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: desc,
-                    maxLines: 2,
-                    style: TextStyle(color: p.ink, fontSize: 14),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      hintText: 'Description (optional)',
-                      hintStyle: TextStyle(color: p.muted, fontSize: 13.5),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 11),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: p.line)),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  SpButton(
-                    label: 'Create group',
-                    icon: Icons.group_add_outlined,
-                    expand: true,
-                    onTap: () async {
-                      final n = name.text.trim();
-                      if (n.isEmpty) return;
-                      try {
-                        final id = await ref
-                            .read(groupsRepositoryProvider)
-                            .createGroup(n, desc.text.trim());
-                        if (ctx.mounted) Navigator.pop(ctx, id);
-                      } catch (e) {
-                        if (ctx.mounted) {
-                          ScaffoldMessenger.of(ctx)
-                              .showSnackBar(SnackBar(content: Text('$e')));
-                        }
-                      }
-                    },
-                  ),
-                ]),
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SpSheetHeader(
+              icon: Icons.group_add_outlined,
+              title: 'Create a group',
+              subtitle:
+                  'Name it now — you can add a crest, sports and more later.',
+            ),
+            TextField(
+              controller: name,
+              style: TextStyle(color: p.ink, fontSize: 14),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: 'Group name',
+                hintStyle: TextStyle(color: p.muted, fontSize: 13.5),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: p.line)),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: desc,
+              maxLines: 2,
+              style: TextStyle(color: p.ink, fontSize: 14),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: 'Description (optional)',
+                hintStyle: TextStyle(color: p.muted, fontSize: 13.5),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: p.line)),
+              ),
+            ),
+            const SizedBox(height: 14),
+            SpButton(
+              label: 'Create group',
+              icon: Icons.group_add_outlined,
+              expand: true,
+              onTap: () async {
+                final n = name.text.trim();
+                if (n.isEmpty) return;
+                try {
+                  final id = await ref
+                      .read(groupsRepositoryProvider)
+                      .createGroup(n, desc.text.trim());
+                  if (ctx.mounted) Navigator.pop(ctx, id);
+                } catch (e) {
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(ctx)
+                        .showSnackBar(SnackBar(content: Text('$e')));
+                  }
+                }
+              },
+            ),
+          ]),
     );
     if (created != null && created.isNotEmpty && context.mounted) {
       context.push('/groups/$created');
@@ -980,9 +993,11 @@ class _HomeHeader extends ConsumerWidget {
       padding: const EdgeInsets.only(top: 4),
       child: Row(children: [
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(greeting,
-                style: TextStyle(color: p.muted, fontSize: 13, fontWeight: FontWeight.w500)),
+                style: TextStyle(
+                    color: p.muted, fontSize: 13, fontWeight: FontWeight.w500)),
             Text(first.isEmpty ? 'Welcome' : first,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -1009,9 +1024,11 @@ class _HomeHeader extends ConsumerWidget {
               child: Container(
                 width: 44,
                 height: 44,
-                decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: cardShadow(context)),
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle, boxShadow: cardShadow(context)),
                 child: Stack(alignment: Alignment.center, children: [
-                  Icon(Icons.notifications_none_rounded, size: 23, color: p.ink),
+                  Icon(Icons.notifications_none_rounded,
+                      size: 23, color: p.ink),
                   if (unread > 0)
                     Positioned(
                       top: 10,
@@ -1040,52 +1057,58 @@ class _HomeHeader extends ConsumerWidget {
             child: SizedBox(
               width: 52,
               height: 52,
-              child: Stack(clipBehavior: Clip.none, alignment: Alignment.center, children: [
-                ProgressRing(
-                  value: week?.progress ?? 0,
-                  size: 48,
-                  stroke: 3.5,
-                  child: CircleAvatar(
-                    radius: 19,
-                    backgroundColor: p.hero,
-                    backgroundImage:
-                        me?.avatarUrl != null ? NetworkImage(me!.avatarUrl!) : null,
-                    child: me?.avatarUrl == null
-                        ? Text(initial,
-                            style: TextStyle(
-                                color: p.onHero, fontWeight: FontWeight.w700, fontSize: 15))
-                        : null,
-                  ),
-                ),
-                // What's waiting in the menu this avatar opens.
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: SideMenuAttentionCount(border: p.bg),
-                ),
-                if (week != null)
-                  Positioned(
-                    right: -4,
-                    bottom: -2,
-                    child: Container(
-                      constraints: const BoxConstraints(minWidth: 22),
-                      height: 18,
-                      padding: const EdgeInsets.symmetric(horizontal: 5),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: p.orange,
-                        borderRadius: BorderRadius.circular(9),
-                        border: Border.all(color: p.bg, width: 2),
+              child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
+                  children: [
+                    ProgressRing(
+                      value: week?.progress ?? 0,
+                      size: 48,
+                      stroke: 3.5,
+                      child: CircleAvatar(
+                        radius: 19,
+                        backgroundColor: p.hero,
+                        backgroundImage: me?.avatarUrl != null
+                            ? NetworkImage(me!.avatarUrl!)
+                            : null,
+                        child: me?.avatarUrl == null
+                            ? Text(initial,
+                                style: TextStyle(
+                                    color: p.onHero,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15))
+                            : null,
                       ),
-                      child: Text('${week.level}',
-                          style: const TextStyle(
-                              color: Color(0xFF1A0E04),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              height: 1)),
                     ),
-                  ),
-              ]),
+                    // What's waiting in the menu this avatar opens.
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: SideMenuAttentionCount(border: p.bg),
+                    ),
+                    if (week != null)
+                      Positioned(
+                        right: -4,
+                        bottom: -2,
+                        child: Container(
+                          constraints: const BoxConstraints(minWidth: 22),
+                          height: 18,
+                          padding: const EdgeInsets.symmetric(horizontal: 5),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: p.orange,
+                            borderRadius: BorderRadius.circular(9),
+                            border: Border.all(color: p.bg, width: 2),
+                          ),
+                          child: Text('${week.level}',
+                              style: const TextStyle(
+                                  color: Color(0xFF1A0E04),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1)),
+                        ),
+                      ),
+                  ]),
             ),
           ),
         ),
@@ -1140,7 +1163,8 @@ class _NextUpCard extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.all(20),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 if (live) ...[
                   const _PulseDot(),
@@ -1170,7 +1194,8 @@ class _NextUpCard extends StatelessWidget {
               _line(p, Icons.calendar_today_rounded, when),
               if (e.locationName != null && e.locationName!.trim().isNotEmpty)
                 _line(p, Icons.place_outlined, e.locationName!),
-              if (e.groupName != null) _line(p, Icons.groups_outlined, e.groupName!),
+              if (e.groupName != null)
+                _line(p, Icons.groups_outlined, e.groupName!),
               if (_HomeScreenState._wardChip(e) case final String chip)
                 _line(p, Icons.supervisor_account_rounded, chip),
               if (audienceLabel(e.audienceTeams) case final String who)
@@ -1192,14 +1217,21 @@ class _NextUpCard extends StatelessWidget {
                     customBorder: const StadiumBorder(),
                     onTap: live ? () => context.push('/scan') : open,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 12),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(live ? Icons.qr_code_scanner_rounded : Icons.arrow_forward_rounded,
-                            size: 17, color: p.hero),
+                        Icon(
+                            live
+                                ? Icons.qr_code_scanner_rounded
+                                : Icons.arrow_forward_rounded,
+                            size: 17,
+                            color: p.hero),
                         const SizedBox(width: 6),
                         Text(live ? 'Check in' : 'View',
                             style: TextStyle(
-                                color: p.hero, fontSize: 14, fontWeight: FontWeight.w700)),
+                                color: p.hero,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700)),
                       ]),
                     ),
                   ),
@@ -1239,11 +1271,15 @@ class _PitchPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     canvas.drawRRect(
-        RRect.fromLTRBR(10, 10, size.width - 10, size.height - 10, const Radius.circular(6)), paint);
-    canvas.drawLine(Offset(size.width / 2, 10), Offset(size.width / 2, size.height - 10), paint);
+        RRect.fromLTRBR(10, 10, size.width - 10, size.height - 10,
+            const Radius.circular(6)),
+        paint);
+    canvas.drawLine(Offset(size.width / 2, 10),
+        Offset(size.width / 2, size.height - 10), paint);
     canvas.drawCircle(Offset(size.width / 2, size.height / 2), 34, paint);
     canvas.drawRect(Rect.fromLTWH(10, size.height / 2 - 40, 44, 80), paint);
-    canvas.drawRect(Rect.fromLTWH(size.width - 54, size.height / 2 - 40, 44, 80), paint);
+    canvas.drawRect(
+        Rect.fromLTWH(size.width - 54, size.height / 2 - 40, 44, 80), paint);
   }
 
   @override

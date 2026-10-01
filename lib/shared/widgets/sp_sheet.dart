@@ -65,7 +65,8 @@ typedef SheetLaunch = void Function(void Function(BuildContext context) action);
 /// A [SheetLaunch] for content inside a [showSpSheet] sheet opened from
 /// [pageContext]: pops the sheet ([sheetContext] is any context inside it),
 /// then runs the action on the page.
-SheetLaunch closeSheetThen(BuildContext sheetContext, BuildContext pageContext) =>
+SheetLaunch closeSheetThen(
+        BuildContext sheetContext, BuildContext pageContext) =>
     (action) {
       if (!sheetContext.mounted) return; // the sheet is already gone
       Navigator.of(sheetContext).pop();
@@ -111,7 +112,8 @@ class SpSheet extends StatelessWidget {
       child: LayoutBuilder(builder: (context, c) {
         return ConstrainedBox(
           constraints: BoxConstraints(
-            maxHeight: c.maxHeight.isFinite ? c.maxHeight * 0.92 : double.infinity,
+            maxHeight:
+                c.maxHeight.isFinite ? c.maxHeight * 0.92 : double.infinity,
           ),
           child: Material(
             color: color ?? p.bg,
@@ -201,14 +203,19 @@ class SpSheetHeader extends StatelessWidget {
           const SizedBox(width: 12),
         ],
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(title,
                 style: TextStyle(
-                    color: p.ink, fontSize: 18, fontWeight: FontWeight.w800, height: 1.2)),
+                    color: p.ink,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    height: 1.2)),
             if (subtitle != null) ...[
               const SizedBox(height: 3),
               Text(subtitle!,
-                  style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.35)),
+                  style:
+                      TextStyle(color: p.muted, fontSize: 12.5, height: 1.35)),
             ],
           ]),
         ),

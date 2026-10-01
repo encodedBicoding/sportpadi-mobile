@@ -57,8 +57,8 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
     }
   }
 
-  void _snack(String msg) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(msg)));
+  void _snack(String msg) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
   Future<void> _offerTakeover(String msg) async {
     final take = await showDialog<bool>(
@@ -87,7 +87,8 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
     final lc = g.lifecycle;
     final phase = lc?.current;
     final inShootout = g.isLive && phase?.kind == 'shootout';
-    final inTimedPhase = phase != null && phase.isTimed && phase.status == 'live';
+    final inTimedPhase =
+        phase != null && phase.isTimed && phase.status == 'live';
     final paused = lc != null
         ? (phase?.timer.pausedAt != null)
         : (g.timer.pausedAt != null);
@@ -162,7 +163,8 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
           // -- Officiant mode: the distraction-free clock screen ----------
           if (canTime && (g.isScheduled || g.isLive)) ...[
             _OfficiantModeTile(
-              subtitle: 'Full-screen clock: ${g.isScheduled ? 'kick-off, ' : ''}'
+              subtitle:
+                  'Full-screen clock: ${g.isScheduled ? 'kick-off, ' : ''}'
                   '${prof.pauseLabel.toLowerCase()}'
                   '${prof.addsTime ? ', stoppage' : ''}'
                   '${prof.has('periods') ? ', ${prof.periodWord}s' : ''}'
@@ -205,8 +207,8 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                           : Icons.pause_rounded,
                       onTap: _busy
                           ? null
-                          : () => _run(() => repo.timer(widget.gameId,
-                              paused ? 'resume' : 'pause')),
+                          : () => _run(() => repo.timer(
+                              widget.gameId, paused ? 'resume' : 'pause')),
                     ),
                     if (prof.addsTime)
                       _MiniAction(
@@ -218,12 +220,14 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                                   context,
                                   builder: (ctx) => Column(
                                     mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
                                     children: [
                                       const SpSheetHeader(
                                         icon: Icons.more_time_rounded,
                                         title: 'Stoppage time',
-                                        subtitle: 'Add any amount up to 120\', or correct the total.',
+                                        subtitle:
+                                            'Add any amount up to 120\', or correct the total.',
                                       ),
                                       StoppagePad(
                                         dark: false,
@@ -232,11 +236,15 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                                         presets: prof.stoppagePresets,
                                         onAdd: (m) {
                                           Navigator.of(ctx).pop();
-                                          _run(() => repo.timer(widget.gameId, 'stoppage', minutes: m));
+                                          _run(() => repo.timer(
+                                              widget.gameId, 'stoppage',
+                                              minutes: m));
                                         },
                                         onSet: (m) {
                                           Navigator.of(ctx).pop();
-                                          _run(() => repo.timer(widget.gameId, 'setStoppage', minutes: m));
+                                          _run(() => repo.timer(
+                                              widget.gameId, 'setStoppage',
+                                              minutes: m));
                                         },
                                       ),
                                     ],
@@ -250,8 +258,8 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                       icon: Icons.flag_rounded,
                       onTap: _busy
                           ? null
-                          : () => _run(
-                              () => repo.phase(widget.gameId, 'endPhase')),
+                          : () =>
+                              _run(() => repo.phase(widget.gameId, 'endPhase')),
                     ),
                   if (showStartNext && canTime)
                     _MiniAction(
@@ -274,7 +282,8 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                   onRecord: _recordBb,
                   onSub: _substituteFlow,
                   onShotShort: canTime && g.basketball?.shotClock != null
-                      ? () => _run(() => repo.shotClock(widget.gameId, short: true))
+                      ? () =>
+                          _run(() => repo.shotClock(widget.gameId, short: true))
                       : null,
                 ),
               ],
@@ -289,7 +298,10 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                   onSub: _substituteFlow,
                 ),
               ],
-              if (showPlay && canScore && !g.isBasketball && !g.isVolleyball) ...[
+              if (showPlay &&
+                  canScore &&
+                  !g.isBasketball &&
+                  !g.isVolleyball) ...[
                 const SizedBox(height: 12),
                 const Eyebrow('Record'),
                 const SizedBox(height: 8),
@@ -325,8 +337,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                         : 'Complete match',
                 icon: Icons.check_rounded,
                 expand: true,
-                onTap:
-                    _busy || !completeEnabled ? null : _confirmComplete,
+                onTap: _busy || !completeEnabled ? null : _confirmComplete,
               ),
             ],
           ],
@@ -357,19 +368,19 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                 onRecord: _recordBb,
               )
             else
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final def in g.schema)
-                  if (def.type != 'substitution')
-                    _MiniAction(
-                      label:
-                          '${def.icon != null ? '${def.icon} ' : ''}${def.label}',
-                      onTap: _busy ? null : () => _recordActivity(def),
-                    ),
-              ],
-            ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final def in g.schema)
+                    if (def.type != 'substitution')
+                      _MiniAction(
+                        label:
+                            '${def.icon != null ? '${def.icon} ' : ''}${def.label}',
+                        onTap: _busy ? null : () => _recordActivity(def),
+                      ),
+                ],
+              ),
           ],
         ],
       ),
@@ -423,24 +434,22 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
     final team = await showSpSheet<GameTeam>(
       context,
       builder: (ctx) => Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Which team?',
-                style: TextStyle(
-                    color: p.ink,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700)),
-            const SizedBox(height: 10),
-            for (final t in g.teams)
-              ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text(t.name, style: TextStyle(color: p.ink)),
-                onTap: () => Navigator.pop(ctx, t),
-              ),
-          ],
-        ),
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Which team?',
+              style: TextStyle(
+                  color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
+          for (final t in g.teams)
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: Text(t.name, style: TextStyle(color: p.ink)),
+              onTap: () => Navigator.pop(ctx, t),
+            ),
+        ],
+      ),
     );
     if (team != null) await _substitute(team);
   }
@@ -481,8 +490,8 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Complete the match?'),
-        content: const Text(
-            'Final scores are locked in and results are recorded.'),
+        content:
+            const Text('Final scores are locked in and results are recorded.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -496,7 +505,6 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
     if (ok == true) await _run(() => repo.complete(widget.gameId));
   }
 
-
   // -- Player picker sheet --------------------------------------------------
 
   Future<String?> _pickPlayer(String title, List<_Pick> players,
@@ -506,12 +514,11 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
       context,
       framed: false,
       builder: (ctx) => Container(
-        constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(ctx).size.height * 0.7),
+        constraints:
+            BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.7),
         decoration: BoxDecoration(
           color: p.bg,
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(22)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
         child: Column(
@@ -531,9 +538,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
             const SizedBox(height: 14),
             Text(title,
                 style: TextStyle(
-                    color: p.ink,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700)),
+                    color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
             const SizedBox(height: 10),
             Flexible(
               child: ListView(
@@ -645,8 +650,7 @@ class _MiniAction extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         onTap: onTap,
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: p.line),
@@ -655,8 +659,7 @@ class _MiniAction extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (icon != null) ...[
-                Icon(icon,
-                    size: 16, color: enabled ? p.accent : p.muted),
+                Icon(icon, size: 16, color: enabled ? p.accent : p.muted),
                 const SizedBox(width: 5),
               ],
               Text(label,
@@ -672,7 +675,6 @@ class _MiniAction extends StatelessWidget {
   }
 }
 
-
 /// The web "add event" dialog as a sheet: pick the team, the player on the
 /// pitch, and (for goals / paired events) the assist — then Record.
 class _RecordSheet extends StatefulWidget {
@@ -685,9 +687,8 @@ class _RecordSheet extends StatefulWidget {
 }
 
 class _RecordSheetState extends State<_RecordSheet> {
-  late String _teamId = widget.game.teams.isNotEmpty
-      ? widget.game.teams.first.teamId
-      : '';
+  late String _teamId =
+      widget.game.teams.isNotEmpty ? widget.game.teams.first.teamId : '';
   String? _playerId;
   String? _relatedId;
 
@@ -707,7 +708,8 @@ class _RecordSheetState extends State<_RecordSheet> {
     final onField = g.onFieldFor(_teamId);
     final needsRelated = def.requiresRelated;
     final wantsRelated = def.assistAllowed || needsRelated;
-    final canRecord = _playerId != null && (!needsRelated || _relatedId != null);
+    final canRecord =
+        _playerId != null && (!needsRelated || _relatedId != null);
 
     Widget playerChip(String id, String name, int? jersey,
         {required bool selected, required VoidCallback onTap}) {
@@ -718,8 +720,7 @@ class _RecordSheetState extends State<_RecordSheet> {
           borderRadius: BorderRadius.circular(999),
           onTap: onTap,
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
               border: Border.all(color: selected ? p.accent : p.line),
@@ -738,8 +739,8 @@ class _RecordSheetState extends State<_RecordSheet> {
     }
 
     return Container(
-      constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85),
+      constraints:
+          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
       decoration: BoxDecoration(
         color: p.bg,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
@@ -780,9 +781,8 @@ class _RecordSheetState extends State<_RecordSheet> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                            color: _teamId == t.teamId
-                                ? _teamColor(t, p)
-                                : p.line,
+                            color:
+                                _teamId == t.teamId ? _teamColor(t, p) : p.line,
                             width: _teamId == t.teamId ? 1.6 : 1),
                       ),
                       child: Row(children: [
@@ -790,8 +790,7 @@ class _RecordSheetState extends State<_RecordSheet> {
                           width: 11,
                           height: 11,
                           decoration: BoxDecoration(
-                              color: _teamColor(t, p),
-                              shape: BoxShape.circle),
+                              color: _teamColor(t, p), shape: BoxShape.circle),
                         ),
                         const SizedBox(width: 7),
                         Expanded(
@@ -835,9 +834,7 @@ class _RecordSheetState extends State<_RecordSheet> {
           if (wantsRelated) ...[
             const SizedBox(height: 14),
             Text(
-              needsRelated
-                  ? 'SECOND PLAYER'
-                  : 'ASSIST (OPTIONAL)',
+              needsRelated ? 'SECOND PLAYER' : 'ASSIST (OPTIONAL)',
               style: TextStyle(
                   color: p.muted,
                   fontSize: 10.5,

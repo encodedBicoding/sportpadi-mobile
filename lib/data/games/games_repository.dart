@@ -60,31 +60,40 @@ class GamesRepository {
       fallback: 'Could not abandon the game.');
 
   Future<void> timer(String gameId, String timerAction, {int? minutes}) =>
-      _post(gameId, {
-        'action': 'timer',
-        'timerAction': timerAction,
-        if (minutes != null) 'minutes': minutes,
-      }, fallback: 'Clock update failed.');
+      _post(
+          gameId,
+          {
+            'action': 'timer',
+            'timerAction': timerAction,
+            if (minutes != null) 'minutes': minutes,
+          },
+          fallback: 'Clock update failed.');
 
-  Future<void> phase(String gameId, String phaseAction) => _post(
-      gameId, {'action': 'phase', 'phaseAction': phaseAction},
-      fallback: 'Could not change the period.');
+  Future<void> phase(String gameId, String phaseAction) =>
+      _post(gameId, {'action': 'phase', 'phaseAction': phaseAction},
+          fallback: 'Could not change the period.');
 
   /// Team timeout: 'call' | 'undo' | 'end' (basketball / volleyball).
-  Future<void> timeout(String gameId, String teamId, String timeoutAction) => _post(
-      gameId, {'action': 'timeout', 'teamId': teamId, 'timeoutAction': timeoutAction},
-      fallback: 'Could not update the timeout.');
+  Future<void> timeout(String gameId, String teamId, String timeoutAction) =>
+      _post(
+          gameId,
+          {
+            'action': 'timeout',
+            'teamId': teamId,
+            'timeoutAction': timeoutAction
+          },
+          fallback: 'Could not update the timeout.');
 
   /// Basketball shot clock: back to the full count, or the short one
   /// ([short]) after an offensive rebound.
-  Future<void> shotClock(String gameId, {bool short = false}) => _post(
-      gameId, {'action': 'shotClock', 'shotAction': short ? 'resetShort' : 'reset'},
+  Future<void> shotClock(String gameId, {bool short = false}) => _post(gameId,
+      {'action': 'shotClock', 'shotAction': short ? 'resetShort' : 'reset'},
       fallback: 'Could not reset the shot clock.');
 
   /// Volleyball: 'startNext' (next set) | 'sidesSwitched' (ends changed).
-  Future<void> volleyballSet(String gameId, String setAction) => _post(
-      gameId, {'action': 'volleyballSet', 'setAction': setAction},
-      fallback: 'Could not update the set.');
+  Future<void> volleyballSet(String gameId, String setAction) =>
+      _post(gameId, {'action': 'volleyballSet', 'setAction': setAction},
+          fallback: 'Could not update the set.');
 
   Future<void> shootout(String gameId, String teamId, String outcome) => _post(
       gameId, {'action': 'shootout', 'teamId': teamId, 'outcome': outcome},
@@ -98,18 +107,21 @@ class GamesRepository {
     String? relatedPlayerId,
     int? minute,
   }) =>
-      _post(gameId, {
-        'action': 'activity',
-        'teamId': teamId,
-        'type': type,
-        'playerId': playerId,
-        if (relatedPlayerId != null) 'relatedPlayerId': relatedPlayerId,
-        if (minute != null) 'minute': minute,
-      }, fallback: 'Could not record that.');
+      _post(
+          gameId,
+          {
+            'action': 'activity',
+            'teamId': teamId,
+            'type': type,
+            'playerId': playerId,
+            if (relatedPlayerId != null) 'relatedPlayerId': relatedPlayerId,
+            if (minute != null) 'minute': minute,
+          },
+          fallback: 'Could not record that.');
 
-  Future<void> voidActivity(String gameId, String activityId) => _post(
-      gameId, {'action': 'void', 'activityId': activityId},
-      fallback: 'Could not void that entry.');
+  Future<void> voidActivity(String gameId, String activityId) =>
+      _post(gameId, {'action': 'void', 'activityId': activityId},
+          fallback: 'Could not void that entry.');
 
   Future<void> substitute(
     String gameId, {
@@ -118,13 +130,16 @@ class GamesRepository {
     required String playerOnId,
     int? minute,
   }) =>
-      _post(gameId, {
-        'action': 'substitute',
-        'teamId': teamId,
-        'playerOffId': playerOffId,
-        'playerOnId': playerOnId,
-        if (minute != null) 'minute': minute,
-      }, fallback: 'Substitution failed.');
+      _post(
+          gameId,
+          {
+            'action': 'substitute',
+            'teamId': teamId,
+            'playerOffId': playerOffId,
+            'playerOnId': playerOnId,
+            if (minute != null) 'minute': minute,
+          },
+          fallback: 'Substitution failed.');
 
   /// Pre-kick-off team selection (group admins only). Before a game starts the
   /// line-up IS the team roster, so this moves a player between starters and
@@ -136,12 +151,15 @@ class GamesRepository {
     String? playerOffId,
     String? playerOnId,
   }) =>
-      _post(gameId, {
-        'action': 'lineup',
-        'teamId': teamId,
-        if (playerOffId != null) 'playerOffId': playerOffId,
-        if (playerOnId != null) 'playerOnId': playerOnId,
-      }, fallback: 'Could not change the line-up.');
+      _post(
+          gameId,
+          {
+            'action': 'lineup',
+            'teamId': teamId,
+            if (playerOffId != null) 'playerOffId': playerOffId,
+            if (playerOnId != null) 'playerOnId': playerOnId,
+          },
+          fallback: 'Could not change the line-up.');
 
   Future<void> takeover(String gameId) => _post(gameId, {'action': 'takeover'},
       fallback: 'Could not take over the scoresheet.');
@@ -172,9 +190,9 @@ class GamesRepository {
       _post(gameId, {'action': 'officiantRole', 'userId': userId, 'role': role},
           fallback: 'Could not change their job.');
 
-  Future<void> removeOfficiant(String gameId, String userId) => _post(
-      gameId, {'action': 'removeOfficiant', 'userId': userId},
-      fallback: 'Could not update the officiants.');
+  Future<void> removeOfficiant(String gameId, String userId) =>
+      _post(gameId, {'action': 'removeOfficiant', 'userId': userId},
+          fallback: 'Could not update the officiants.');
 
   Future<List<OfficiantCandidate>> officiantCandidates(String gameId,
       {String? q}) async {

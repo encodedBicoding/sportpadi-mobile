@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
-import 'package:sportpadi_mobile/data/payments/payment_models.dart' show formatMoney;
+import 'package:sportpadi_mobile/data/payments/payment_models.dart'
+    show formatMoney;
 import 'package:sportpadi_mobile/data/wallet/wallet_models.dart';
 import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
@@ -73,8 +74,7 @@ class _WalletWithdrawalsScreenState
             TextField(
               controller: c,
               maxLength: 280,
-              decoration:
-                  const InputDecoration(labelText: 'Note (optional)'),
+              decoration: const InputDecoration(labelText: 'Note (optional)'),
             ),
           ]),
           actions: [
@@ -125,7 +125,8 @@ class _WalletWithdrawalsScreenState
           children: [
             TipText('Withdrawals',
                 tip: WalletTips().withdrawalRequests,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             if (group != null)
               Text(group.name,
                   style: TextStyle(color: p.muted, fontSize: 11.5)),
@@ -243,24 +244,21 @@ class _WalletWithdrawalsScreenState
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(formatMoney(w.amount, w.currency, w.currencyExponent),
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${w.requestedBy != null ? 'Requested by ${mine ? 'you' : w.requestedBy!.name}' : 'Requested'}'
-                    '${w.createdAt != null ? ' · ${timeAgo(w.createdAt)}' : ''}',
-                    style: TextStyle(color: p.muted, fontSize: 12),
-                  ),
-                  if (w.reference.isNotEmpty)
-                    Text('Ref ${w.reference}',
-                        style: TextStyle(color: p.muted, fontSize: 11)),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(formatMoney(w.amount, w.currency, w.currencyExponent),
+                  style: TextStyle(
+                      color: p.ink, fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 2),
+              Text(
+                '${w.requestedBy != null ? 'Requested by ${mine ? 'you' : w.requestedBy!.name}' : 'Requested'}'
+                '${w.createdAt != null ? ' · ${timeAgo(w.createdAt)}' : ''}',
+                style: TextStyle(color: p.muted, fontSize: 12),
+              ),
+              if (w.reference.isNotEmpty)
+                Text('Ref ${w.reference}',
+                    style: TextStyle(color: p.muted, fontSize: 11)),
+            ]),
           ),
           const SizedBox(width: 8),
           Row(mainAxisSize: MainAxisSize.min, children: [

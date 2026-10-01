@@ -368,7 +368,8 @@ List<SportStat> statFields(dynamic raw, SportFamily family) => [
           SportStat(
             parseStr(f['key'])!,
             parseStr(f['label']) ?? defaultStatLabel(parseStr(f['key'])!),
-            parseStr(f['icon']) ?? _nonEmpty(_defaultIcon(parseStr(f['key'])!, family)),
+            parseStr(f['icon']) ??
+                _nonEmpty(_defaultIcon(parseStr(f['key'])!, family)),
           ),
     ];
 
@@ -379,7 +380,8 @@ SportStat fieldFor(String key, List<SportStat> fields, SportFamily family) {
   for (final f in fields) {
     if (f.key == key) return f;
   }
-  return SportStat(key, defaultStatLabel(key), _nonEmpty(_defaultIcon(key, family)));
+  return SportStat(
+      key, defaultStatLabel(key), _nonEmpty(_defaultIcon(key, family)));
 }
 
 /// Whether the sport tracks [key] at all (in its fields, or in the counts).
@@ -699,7 +701,10 @@ List<(String, String)> headlineFor(
       ];
     case SportFamily.chess:
       return [
-        (g > 0 ? '${chessScore(w, statInt(tally['draws']))} / $g' : '—', 'Score'),
+        (
+          g > 0 ? '${chessScore(w, statInt(tally['draws']))} / $g' : '—',
+          'Score'
+        ),
         ('$w', 'Wins'),
         ('${statInt(tally['draws'])}', 'Draws'),
       ];
@@ -757,8 +762,11 @@ List<(String, String)> _ultimateHeadline(
 
 /// Hiking / running: check-ins · this year · week streak. With no check-ins
 /// but some games (races), the neutral numbers.
-List<(String, String)> _attendanceHeadline(SportFamily family,
-    Map<String, dynamic> tally, List<SportStat> fields, Map<String, dynamic> att) {
+List<(String, String)> _attendanceHeadline(
+    SportFamily family,
+    Map<String, dynamic> tally,
+    List<SportStat> fields,
+    Map<String, dynamic> att) {
   final checkIns = statInt(att['checkIns']);
   if (checkIns == 0 && gamesOf(tally) > 0) {
     return _genericHeadline(tally, fields);

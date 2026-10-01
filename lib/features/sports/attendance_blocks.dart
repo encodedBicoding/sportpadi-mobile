@@ -77,7 +77,8 @@ class _MonthBars extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2.5),
-              child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+              child:
+                  Column(mainAxisAlignment: MainAxisAlignment.end, children: [
                 if (months[i].$2 > 0)
                   FittedBox(
                     fit: BoxFit.scaleDown,
@@ -152,8 +153,8 @@ class _LaneChart extends StatelessWidget {
             height: 24,
             decoration: i < lanes.length - 1
                 ? BoxDecoration(
-                    border: Border(
-                        bottom: BorderSide(color: laneLine, width: 1.5)))
+                    border:
+                        Border(bottom: BorderSide(color: laneLine, width: 1.5)))
                 : null,
             child: Row(children: [
               SizedBox(
@@ -172,7 +173,8 @@ class _LaneChart extends StatelessWidget {
                     style: TextStyle(
                         color: i == 0 ? p.ink : p.muted,
                         fontSize: 11.5,
-                        fontWeight: i == 0 ? FontWeight.w800 : FontWeight.w600)),
+                        fontWeight:
+                            i == 0 ? FontWeight.w800 : FontWeight.w600)),
               ),
               Expanded(
                 child: Align(
@@ -328,7 +330,8 @@ class OutingRow extends StatelessWidget {
     final title = parseStr(outing['title']) ?? 'Event';
     final target = parseStr(outing['slug']) ?? parseStr(outing['eventId']);
     final eventDay = shortDay(outing['date']);
-    final day = eventDay.isNotEmpty ? eventDay : shortDay(outing['checkedInAt']);
+    final day =
+        eventDay.isNotEmpty ? eventDay : shortDay(outing['checkedInAt']);
     final meta = [
       day,
       parseStr(outing['locationName']),

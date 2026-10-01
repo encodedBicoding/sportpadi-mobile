@@ -5,6 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/links/deep_links.dart';
 import 'package:sportpadi_mobile/core/router/app_router.dart';
+import 'package:sportpadi_mobile/data/groups/groups_repository.dart'
+    show groupInvitationCountProvider, groupsTabRequestProvider;
 import 'package:sportpadi_mobile/features/shell/home_shell.dart';
 
 /// Where a tapped notification goes — the ONE place that decides it, for a
@@ -25,6 +27,15 @@ import 'package:sportpadi_mobile/features/shell/home_shell.dart';
 Future<void> openNotificationTarget(WidgetRef ref, String? url) async {
   final router = ref.read(routerProvider);
   void inbox() => router.push('/notifications');
+  // A group invitation lands on Groups → Invites ("/groups?tab=invites"):
+  // fresh count and list even if that tab was already open.
+  ref.invalidate(groupInvitationCountProvider);
+  final asked = Uri.tryParse(url?.trim() ?? '');
+  if (asked != null &&
+      RegExp(r'/groups/?$').hasMatch(asked.path) &&
+      asked.queryParameters['tab'] == 'invites') {
+    ref.read(groupsTabRequestProvider.notifier).state = 2;
+  }
 
   final raw = url?.trim() ?? '';
   if (raw.isEmpty) return inbox();

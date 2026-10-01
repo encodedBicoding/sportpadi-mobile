@@ -53,8 +53,7 @@ class _ActivityNotificationsCardState
     } catch (e) {
       if (!mounted) return;
       setState(() => _pending.remove(category));
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
   }
 
@@ -88,9 +87,8 @@ class _ActivityNotificationsCardState
               subtitle: Text(_rows[i].subtitle,
                   style: TextStyle(color: p.muted, fontSize: 12)),
               value: saved(_rows[i].category),
-              onChanged: list == null
-                  ? null
-                  : (v) => _set(_rows[i].category, v),
+              onChanged:
+                  list == null ? null : (v) => _set(_rows[i].category, v),
             ),
           ],
         ],

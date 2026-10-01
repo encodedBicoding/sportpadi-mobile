@@ -3,7 +3,8 @@ import 'package:geolocator/geolocator.dart';
 
 /// The user's location for event recommendations (web useLocation twin).
 class UserLocation {
-  const UserLocation({required this.lat, required this.lng, this.label = 'you'});
+  const UserLocation(
+      {required this.lat, required this.lng, this.label = 'you'});
   final double lat;
   final double lng;
   final String label;

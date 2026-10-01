@@ -106,7 +106,8 @@ class _StoppagePadState extends State<StoppagePad> {
     _setN(_n + d);
     _stop();
     _delay = Timer(const Duration(milliseconds: 380), () {
-      _repeat = Timer.periodic(const Duration(milliseconds: 70), (_) => _setN(_n + d));
+      _repeat = Timer.periodic(
+          const Duration(milliseconds: 70), (_) => _setN(_n + d));
     });
   }
 
@@ -146,7 +147,9 @@ class _StoppagePadState extends State<StoppagePad> {
                 child: Center(
                   child: Text(label,
                       style: TextStyle(
-                          color: fg ?? ink, fontSize: size, fontWeight: FontWeight.w800)),
+                          color: fg ?? ink,
+                          fontSize: size,
+                          fontWeight: FontWeight.w800)),
                 ),
               ),
             ),
@@ -163,7 +166,8 @@ class _StoppagePadState extends State<StoppagePad> {
             alignment: Alignment.center,
             decoration: BoxDecoration(color: faint, shape: BoxShape.circle),
             child: Text(label,
-                style: TextStyle(color: ink, fontSize: 30, fontWeight: FontWeight.w800)),
+                style: TextStyle(
+                    color: ink, fontSize: 30, fontWeight: FontWeight.w800)),
           ),
         );
 
@@ -171,7 +175,10 @@ class _StoppagePadState extends State<StoppagePad> {
       Expanded(
         child: Text(_mode == _Mode.set ? 'CORRECT STOPPAGE' : 'ADD STOPPAGE',
             style: TextStyle(
-                color: dim, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                color: dim,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1)),
       ),
       if (widget.current > 0 && _mode == null)
         InkWell(
@@ -179,9 +186,11 @@ class _StoppagePadState extends State<StoppagePad> {
           onTap: () => _open(_Mode.set, widget.current),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(color: faint, borderRadius: BorderRadius.circular(999)),
+            decoration: BoxDecoration(
+                color: faint, borderRadius: BorderRadius.circular(999)),
             child: Text("+${widget.current}' added · Correct",
-                style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.w700)),
+                style: TextStyle(
+                    color: accent, fontSize: 11, fontWeight: FontWeight.w700)),
           ),
         ),
     ]);
@@ -199,7 +208,8 @@ class _StoppagePadState extends State<StoppagePad> {
             const SizedBox(width: 8),
           ],
           Expanded(
-            child: pill('More', widget.busy ? null : () => _open(_Mode.add, 10), size: 14),
+            child: pill('More', widget.busy ? null : () => _open(_Mode.add, 10),
+                size: 14),
           ),
         ]),
       ]);
@@ -216,7 +226,8 @@ class _StoppagePadState extends State<StoppagePad> {
           borderRadius: BorderRadius.circular(26),
           border: dark ? null : Border.all(color: p.line),
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
             stepper('−', -1),
             Expanded(
@@ -227,7 +238,10 @@ class _StoppagePadState extends State<StoppagePad> {
                 children: [
                   if (_mode == _Mode.add)
                     Text('+',
-                        style: TextStyle(color: accent, fontSize: 26, fontWeight: FontWeight.w800)),
+                        style: TextStyle(
+                            color: accent,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800)),
                   IntrinsicWidth(
                     child: TextField(
                       controller: _ctrl,
@@ -239,7 +253,8 @@ class _StoppagePadState extends State<StoppagePad> {
                       textAlign: TextAlign.center,
                       onChanged: (v) {
                         final parsed = int.tryParse(v);
-                        setState(() => _n = parsed == null ? _min : _clamp(parsed));
+                        setState(
+                            () => _n = parsed == null ? _min : _clamp(parsed));
                       },
                       onSubmitted: (_) => _setN(_n),
                       style: TextStyle(
@@ -259,7 +274,10 @@ class _StoppagePadState extends State<StoppagePad> {
                     ),
                   ),
                   Text("'",
-                      style: TextStyle(color: accent, fontSize: 26, fontWeight: FontWeight.w800)),
+                      style: TextStyle(
+                          color: accent,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800)),
                 ],
               ),
             ),
@@ -273,11 +291,15 @@ class _StoppagePadState extends State<StoppagePad> {
                 borderRadius: BorderRadius.circular(999),
                 onTap: () => _setN(_n + d),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration:
-                      BoxDecoration(color: faint, borderRadius: BorderRadius.circular(999)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                      color: faint, borderRadius: BorderRadius.circular(999)),
                   child: Text('+$d',
-                      style: TextStyle(color: ink, fontSize: 12, fontWeight: FontWeight.w700)),
+                      style: TextStyle(
+                          color: ink,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700)),
                 ),
               ),
             ],
@@ -286,7 +308,11 @@ class _StoppagePadState extends State<StoppagePad> {
           Row(children: [
             if (!widget.startExpanded || _mode == _Mode.set) ...[
               Expanded(
-                child: pill('Cancel', widget.startExpanded ? () => setState(() => _mode = _Mode.add) : _close,
+                child: pill(
+                    'Cancel',
+                    widget.startExpanded
+                        ? () => setState(() => _mode = _Mode.add)
+                        : _close,
                     size: 14),
               ),
               const SizedBox(width: 8),
@@ -306,12 +332,15 @@ class _StoppagePadState extends State<StoppagePad> {
               ),
             ),
           ]),
-          if (widget.startExpanded && widget.current > 0 && _mode == _Mode.add) ...[
+          if (widget.startExpanded &&
+              widget.current > 0 &&
+              _mode == _Mode.add) ...[
             const SizedBox(height: 8),
             Center(
               child: TextButton(
                 onPressed: () => _open(_Mode.set, widget.current),
-                child: Text("+${widget.current}' added so far · Correct the total",
+                child: Text(
+                    "+${widget.current}' added so far · Correct the total",
                     style: TextStyle(color: dim, fontSize: 12)),
               ),
             ),

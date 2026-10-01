@@ -11,7 +11,8 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
-import 'package:sportpadi_mobile/shared/widgets/team_tile.dart' show kitGradient;
+import 'package:sportpadi_mobile/shared/widgets/team_tile.dart'
+    show kitGradient;
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// The tournament-scoped team profile: this team AS IT IS in THIS tournament.
@@ -29,11 +30,13 @@ class TournamentTeamScreen extends ConsumerStatefulWidget {
   final String groupId;
   final String eventId;
   final String teamId;
+
   /// Deep link from a call-up notification — scroll the respond card into view.
   final bool respond;
 
   @override
-  ConsumerState<TournamentTeamScreen> createState() => _TournamentTeamScreenState();
+  ConsumerState<TournamentTeamScreen> createState() =>
+      _TournamentTeamScreenState();
 }
 
 class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
@@ -75,17 +78,24 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('Withdraw from this squad?'),
-          content: Text("You'll be taken off ${sq.teamName}'s squad for ${sq.eventTitle}."),
+          content: Text(
+              "You'll be taken off ${sq.teamName}'s squad for ${sq.eventTitle}."),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Withdraw')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel')),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Withdraw')),
           ],
         ),
       );
       if (ok != true) return;
     }
     await _run(
-      () => ref.read(tournamentsRepositoryProvider).respondCall(widget.eventId, id, accept: accept),
+      () => ref
+          .read(tournamentsRepositoryProvider)
+          .respondCall(widget.eventId, id, accept: accept),
       success: accept ? "You're in the squad" : 'Response sent',
     );
   }
@@ -221,7 +231,8 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(d.teamName,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -240,8 +251,8 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
         // Which competition, and in what capacity.
         InkWell(
           onTap: d.hostGroupId != null
-              ? () =>
-                  context.push('/groups/${d.hostGroupId}/tournaments/${d.eventId}')
+              ? () => context
+                  .push('/groups/${d.hostGroupId}/tournaments/${d.eventId}')
               : null,
           borderRadius: BorderRadius.circular(16),
           child: Container(
@@ -278,8 +289,7 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
                     ]),
               ),
               if (d.hostGroupId != null)
-                Icon(Icons.chevron_right_rounded,
-                    size: 20, color: p.orangeInk),
+                Icon(Icons.chevron_right_rounded, size: 20, color: p.orangeInk),
             ]),
           ),
         ),
@@ -348,7 +358,8 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
           color: p.hero,
           borderRadius: BorderRadius.circular(26),
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
             const SpIconTile(Icons.campaign_rounded,
                 bg: Color(0x29FFB57D),
@@ -402,17 +413,19 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
                 color: p.onHero.withAlpha(18),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('${d.myCalledByName ?? 'Your coach'} says',
-                    style: const TextStyle(
-                        color: Color(0xFFFFB57D),
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700)),
-                const SizedBox(height: 3),
-                Text(d.myCallNote!.trim(),
-                    style: TextStyle(
-                        color: p.onHero, fontSize: 13, height: 1.4)),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('${d.myCalledByName ?? 'Your coach'} says',
+                        style: const TextStyle(
+                            color: Color(0xFFFFB57D),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 3),
+                    Text(d.myCallNote!.trim(),
+                        style: TextStyle(
+                            color: p.onHero, fontSize: 13, height: 1.4)),
+                  ]),
             ),
           ],
           if (d.eventDescription != null &&
@@ -541,7 +554,9 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
               child: Material(
                 color: _tab == i ? p.hero : p.surface,
                 shape: StadiumBorder(
-                    side: _tab == i ? BorderSide.none : BorderSide(color: p.line)),
+                    side: _tab == i
+                        ? BorderSide.none
+                        : BorderSide(color: p.line)),
                 child: InkWell(
                   customBorder: const StadiumBorder(),
                   onTap: () => setState(() => _tab = i),
@@ -620,8 +635,8 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
                                 () => repo.addSquadPlayer(widget.eventId,
                                     d.tournamentTeamId, m.playerId),
                                 success: 'Added to squad'),
-                        style: TextButton.styleFrom(
-                            foregroundColor: p.greenText),
+                        style:
+                            TextButton.styleFrom(foregroundColor: p.greenText),
                         child: const Text('Add',
                             style: TextStyle(
                                 fontSize: 13, fontWeight: FontWeight.w700)),
@@ -713,7 +728,8 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
           ]),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Flexible(
                   child: Text(m.name,
@@ -763,8 +779,8 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
           const SizedBox(width: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration:
-                BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+            decoration: BoxDecoration(
+                color: bg, borderRadius: BorderRadius.circular(999)),
             child: Text(status,
                 style: TextStyle(
                     color: fg, fontSize: 10.5, fontWeight: FontWeight.w700)),
@@ -817,7 +833,8 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
         ),
         Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Text(
               d.accepted.isEmpty
                   ? 'The formation is built from players who accepted the call-up. Call players first.'
@@ -881,9 +898,8 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
                               ),
                               Text('${t.score}',
                                   style: TextStyle(
-                                      color: t.result == 'loss'
-                                          ? p.muted
-                                          : p.ink,
+                                      color:
+                                          t.result == 'loss' ? p.muted : p.ink,
                                       fontSize: 15,
                                       fontWeight: FontWeight.w800)),
                             ]),
@@ -947,11 +963,14 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(label, style: TextStyle(color: p.heroMuted, fontSize: 11)),
             Text(value,
                 style: TextStyle(
-                    color: p.onHero, fontSize: 13, fontWeight: FontWeight.w700)),
+                    color: p.onHero,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700)),
             if (sub != null)
               Text(sub, style: TextStyle(color: p.heroMuted, fontSize: 11.5)),
           ]),
@@ -981,9 +1000,10 @@ class _MiniPitch extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     final r = Rect.fromLTWH(14, 12, size.width - 28, size.height - 24);
-    canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(8)), line);
-    canvas.drawLine(Offset(size.width / 2, r.top),
-        Offset(size.width / 2, r.bottom), line);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(r, const Radius.circular(8)), line);
+    canvas.drawLine(
+        Offset(size.width / 2, r.top), Offset(size.width / 2, r.bottom), line);
     canvas.drawCircle(Offset(size.width / 2, size.height / 2), 30, line);
   }
 
@@ -1004,7 +1024,9 @@ class _CallPlayersSheet extends StatefulWidget {
 typedef CallRequest = ({List<String> playerIds, bool all, String? note});
 
 class _CallPlayersSheetState extends State<_CallPlayersSheet> {
-  late final Set<String> _sel = {for (final u in widget.squad.uncalled) u.playerId};
+  late final Set<String> _sel = {
+    for (final u in widget.squad.uncalled) u.playerId
+  };
   final _note = TextEditingController();
 
   @override
@@ -1013,8 +1035,7 @@ class _CallPlayersSheetState extends State<_CallPlayersSheet> {
     super.dispose();
   }
 
-  String? get _noteText =>
-      _note.text.trim().isEmpty ? null : _note.text.trim();
+  String? get _noteText => _note.text.trim().isEmpty ? null : _note.text.trim();
 
   @override
   Widget build(BuildContext context) {
@@ -1022,16 +1043,27 @@ class _CallPlayersSheetState extends State<_CallPlayersSheet> {
     final sq = widget.squad;
     final rows = <({String id, String name, String sub, String? avatar})>[
       for (final u in sq.uncalled)
-        (id: u.playerId, name: u.name, sub: u.positions.join(' · '), avatar: u.profile?.avatarUrl),
+        (
+          id: u.playerId,
+          name: u.name,
+          sub: u.positions.join(' · '),
+          avatar: u.profile?.avatarUrl
+        ),
       for (final m in sq.notPlaying)
         (
           id: m.playerId,
           name: m.name,
-          sub: [if (m.positions.isNotEmpty) m.positions.join(' · '), 'call again'].join(' · '),
+          sub: [
+            if (m.positions.isNotEmpty) m.positions.join(' · '),
+            'call again'
+          ].join(' · '),
           avatar: m.profile?.avatarUrl
         ),
     ];
-    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+    return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           SpSheetHeader(
             icon: Icons.campaign_rounded,
             iconBg: p.orangeTint,
@@ -1075,7 +1107,8 @@ class _CallPlayersSheetState extends State<_CallPlayersSheet> {
             )
           else
             ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
+              constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.5),
               child: ListView(
                 shrinkWrap: true,
                 children: [
@@ -1085,10 +1118,17 @@ class _CallPlayersSheetState extends State<_CallPlayersSheet> {
                       contentPadding: EdgeInsets.zero,
                       controlAffinity: ListTileControlAffinity.leading,
                       value: _sel.contains(r.id),
-                      onChanged: (v) => setState(() => v == true ? _sel.add(r.id) : _sel.remove(r.id)),
-                      title: Text(r.name, style: TextStyle(color: p.ink, fontSize: 13.5)),
-                      subtitle: r.sub.isEmpty ? null : Text(r.sub, style: TextStyle(color: p.muted, fontSize: 11.5)),
-                      secondary: ClipOval(child: Crest(logoUrl: r.avatar, label: r.name, size: 32)),
+                      onChanged: (v) => setState(
+                          () => v == true ? _sel.add(r.id) : _sel.remove(r.id)),
+                      title: Text(r.name,
+                          style: TextStyle(color: p.ink, fontSize: 13.5)),
+                      subtitle: r.sub.isEmpty
+                          ? null
+                          : Text(r.sub,
+                              style: TextStyle(color: p.muted, fontSize: 11.5)),
+                      secondary: ClipOval(
+                          child: Crest(
+                              logoUrl: r.avatar, label: r.name, size: 32)),
                     ),
                 ],
               ),
@@ -1109,8 +1149,8 @@ class _CallPlayersSheetState extends State<_CallPlayersSheet> {
                   'Meet at the clubhouse 45 minutes before kick-off — bring the away kit.',
               hintStyle: TextStyle(color: p.muted, fontSize: 12),
               counterStyle: TextStyle(color: p.muted, fontSize: 10),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
             ),
           ),
           const SizedBox(height: 6),
@@ -1133,17 +1173,16 @@ class _CallPlayersSheetState extends State<_CallPlayersSheet> {
                   (playerIds: const <String>[], all: true, note: _noteText)),
               child: SizedBox(
                 height: 48,
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.groups_2_outlined, size: 17, color: p.ink),
-                      const SizedBox(width: 6),
-                      Text('Call whole roster',
-                          style: TextStyle(
-                              color: p.ink,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700)),
-                    ]),
+                child:
+                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.groups_2_outlined, size: 17, color: p.ink),
+                  const SizedBox(width: 6),
+                  Text('Call whole roster',
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
+                ]),
               ),
             ),
           ),
@@ -1166,16 +1205,18 @@ class _StatsTab extends ConsumerWidget {
               padding: const EdgeInsets.all(24),
               child: Text('Loading stats…',
                   style: TextStyle(color: p.muted, fontSize: 13)))),
-      error: (e, _) =>
-          Center(child: Text('$e', style: TextStyle(color: p.muted, fontSize: 13))),
+      error: (e, _) => Center(
+          child: Text('$e', style: TextStyle(color: p.muted, fontSize: 13))),
       data: (d) {
         final games = (d['games'] as num?)?.toInt() ?? 0;
-        final players = d['players'] is List ? (d['players'] as List) : const [];
+        final players =
+            d['players'] is List ? (d['players'] as List) : const [];
         // Columns come from the category's own activity schema — goals,
         // assists, yellows and reds for soccer, whatever another sport
         // declares for itself.
         final fields = [
-          for (final f in (d['fields'] is List ? d['fields'] as List : const []))
+          for (final f
+              in (d['fields'] is List ? d['fields'] as List : const []))
             if (f is Map) Map<String, dynamic>.from(f)
         ];
         final cats = [
@@ -1229,93 +1270,96 @@ class _StatsTab extends ConsumerWidget {
         // readable on a phone and the stat columns run off to the right.
         return GlassCard(
           padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Player stats',
                 style: TextStyle(
                     color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(children: [
-                    SizedBox(
-                        width: 140,
-                        child: Text('PLAYER',
-                            style: TextStyle(
-                                color: p.muted,
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.4))),
-                    head('GP'),
-                    head('ST'),
-                    head('W-D-L', width: 52),
-                    for (final f in fields)
-                      head(
-                          '${parseStr(f['icon']) ?? ''}${parseStr(f['label']) ?? parseStr(f['key']) ?? ''}',
-                          width: 58),
-                  ]),
-                ),
-                for (final r in rows)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: InkWell(
-                      onTap: parseStr(r['playerId']) != null
-                          ? () => context.push(
-                              '/players/${parseStr(r['playerId'])}/tournaments/$eventId')
-                          : null,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 7),
-                        decoration: BoxDecoration(
-                          border: Border(
-                              top: BorderSide(color: p.surface2)),
-                        ),
-                        child: Row(children: [
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(children: [
                         SizedBox(
-                          width: 140,
-                          child: Row(children: [
-                            if (parseInt(r['jerseyNumber']) != null) ...[
-                              Text('#${parseInt(r['jerseyNumber'])}',
-                                  style: TextStyle(
-                                      color: p.muted, fontSize: 11)),
-                              const SizedBox(width: 4),
-                            ],
-                            Expanded(
-                              child: Text(
-                                (r['profile'] is Map
-                                        ? parseStr(
-                                            (r['profile'] as Map)['displayName'])
-                                        : null) ??
-                                    'Player',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                            width: 140,
+                            child: Text('PLAYER',
                                 style: TextStyle(
-                                    color: p.ink,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                          ]),
-                        ),
-                        cell('${parseInt(r['games']) ?? 0}'),
-                        cell('${parseInt(r['starts']) ?? 0}'),
-                        cell(
-                            '${parseInt(r['wins']) ?? 0}-${parseInt(r['draws']) ?? 0}-${parseInt(r['losses']) ?? 0}',
-                            width: 52),
+                                    color: p.muted,
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.4))),
+                        head('GP'),
+                        head('ST'),
+                        head('W-D-L', width: 52),
                         for (final f in fields)
-                          () {
-                            final v = parseInt(
-                                    (r['counts'] as Map?)?[parseStr(f['key']) ?? '']) ??
-                                0;
-                            return cell('$v',
-                                dim: v == 0, bold: v > 0, width: 58);
-                          }(),
+                          head(
+                              '${parseStr(f['icon']) ?? ''}${parseStr(f['label']) ?? parseStr(f['key']) ?? ''}',
+                              width: 58),
                       ]),
-                      ),
                     ),
-                  ),
-              ]),
+                    for (final r in rows)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: InkWell(
+                          onTap: parseStr(r['playerId']) != null
+                              ? () => context.push(
+                                  '/players/${parseStr(r['playerId'])}/tournaments/$eventId')
+                              : null,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 7),
+                            decoration: BoxDecoration(
+                              border:
+                                  Border(top: BorderSide(color: p.surface2)),
+                            ),
+                            child: Row(children: [
+                              SizedBox(
+                                width: 140,
+                                child: Row(children: [
+                                  if (parseInt(r['jerseyNumber']) != null) ...[
+                                    Text('#${parseInt(r['jerseyNumber'])}',
+                                        style: TextStyle(
+                                            color: p.muted, fontSize: 11)),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  Expanded(
+                                    child: Text(
+                                      (r['profile'] is Map
+                                              ? parseStr((r['profile']
+                                                  as Map)['displayName'])
+                                              : null) ??
+                                          'Player',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                          color: p.ink,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ]),
+                              ),
+                              cell('${parseInt(r['games']) ?? 0}'),
+                              cell('${parseInt(r['starts']) ?? 0}'),
+                              cell(
+                                  '${parseInt(r['wins']) ?? 0}-${parseInt(r['draws']) ?? 0}-${parseInt(r['losses']) ?? 0}',
+                                  width: 52),
+                              for (final f in fields)
+                                () {
+                                  final v = parseInt((r['counts'] as Map?)?[
+                                          parseStr(f['key']) ?? '']) ??
+                                      0;
+                                  return cell('$v',
+                                      dim: v == 0, bold: v > 0, width: 58);
+                                }(),
+                            ]),
+                          ),
+                        ),
+                      ),
+                  ]),
             ),
             const SizedBox(height: 2),
             Text(

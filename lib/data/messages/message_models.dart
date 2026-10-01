@@ -118,8 +118,7 @@ class ConversationItem {
         staffName: staffName,
       );
 
-  factory ConversationItem.fromJson(Map<String, dynamic> j) =>
-      ConversationItem(
+  factory ConversationItem.fromJson(Map<String, dynamic> j) => ConversationItem(
         id: parseStr(j['id']) ?? '',
         groupId: parseStr(j['groupId']) ?? '',
         groupName: parseStr(j['groupName']) ?? 'Group',
@@ -242,12 +241,12 @@ class ConversationInfo {
   bool get isStaffSide => mySide == 'staff';
   bool get isClosed => status == 'closed';
   bool get isLocked => status == 'locked';
-  bool get isMuted =>
-      mutedUntil != null && mutedUntil!.isAfter(DateTime.now());
+  bool get isMuted => mutedUntil != null && mutedUntil!.isAfter(DateTime.now());
 
   /// "Muted until turned back on" is stored as a date far in the future.
   bool get isMutedForever =>
-      isMuted && mutedUntil!.isAfter(DateTime.now().add(const Duration(days: 3650)));
+      isMuted &&
+      mutedUntil!.isAfter(DateTime.now().add(const Duration(days: 3650)));
 
   factory ConversationInfo.fromJson(Map<String, dynamic> j) => ConversationInfo(
         id: parseStr(j['id']) ?? '',
@@ -367,9 +366,9 @@ class ConversationThread {
   factory ConversationThread.fromJson(Map<String, dynamic> j) =>
       ConversationThread(
         conversation: ConversationInfo.fromJson(_map(j['conversation'])),
-        messages: [for (final m in _maps(j['messages'])) ChatMessage.fromJson(m)]
-            .where((m) => m.id.isNotEmpty)
-            .toList(),
+        messages: [
+          for (final m in _maps(j['messages'])) ChatMessage.fromJson(m)
+        ].where((m) => m.id.isNotEmpty).toList(),
         nextBefore: parseStr(j['nextBefore']),
       );
 }
@@ -481,8 +480,10 @@ class StartOptions {
 
   /// Contact-the-admins entries worth offering: an admin doesn't write to
   /// the admins about themselves (their wards still can be).
-  List<StartFor> get adminContacts =>
-      [for (final c in contactAdmins) if (!(c.isMe && isAdmin)) c];
+  List<StartFor> get adminContacts => [
+        for (final c in contactAdmins)
+          if (!(c.isMe && isAdmin)) c
+      ];
 
   factory StartOptions.fromJson(Map<String, dynamic> j) => StartOptions(
         group: MessageGroupRef.fromJson(_map(j['group'])),
@@ -601,7 +602,8 @@ class MessageReport {
         status: parseStr(j['status']) ?? 'open',
         createdAt: parseDate(j['createdAt']),
         messageId: parseStr(j['messageId']),
-        messageBody: j['messageBody'] is String ? j['messageBody'] as String : null,
+        messageBody:
+            j['messageBody'] is String ? j['messageBody'] as String : null,
         messageSenderName: parseStr(j['messageSenderName']),
         messageDeleted: _bool(j['messageDeleted']),
         conversationId: parseStr(j['conversationId']),

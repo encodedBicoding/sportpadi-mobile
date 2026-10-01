@@ -37,8 +37,8 @@ class NotificationsRepository {
 
   Future<void> markRead(List<String> ids) async {
     try {
-      await _dio
-          .post('/api/mobile/notifications', data: {'action': 'read', 'ids': ids});
+      await _dio.post('/api/mobile/notifications',
+          data: {'action': 'read', 'ids': ids});
     } catch (_) {
       // Best-effort — the tap should still navigate.
     }

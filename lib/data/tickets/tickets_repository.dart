@@ -16,10 +16,12 @@ class TicketsRepository {
 
   Future<List<ManagedTicket>> list(String groupId) async {
     try {
-      final res = await _dio.get(_path(groupId), queryParameters: {'view': 'list'});
+      final res =
+          await _dio.get(_path(groupId), queryParameters: {'view': 'list'});
       final list = res.data is List ? res.data as List : const [];
       return [
-        for (final t in list) ManagedTicket.fromJson(Map<String, dynamic>.from(t as Map)),
+        for (final t in list)
+          ManagedTicket.fromJson(Map<String, dynamic>.from(t as Map)),
       ];
     } catch (e) {
       throw apiError(e, fallback: 'Could not load tickets.');
@@ -49,8 +51,8 @@ class TicketsRepository {
 
   /// Apply what [checkPayment] found. The server re-checks first and only
   /// applies [action] if it's still the right one.
-  Future<({String? applied, List<String> warnings, PaymentCheck? check})> reconcilePayment(
-      String paymentId, String action) async {
+  Future<({String? applied, List<String> warnings, PaymentCheck? check})>
+      reconcilePayment(String paymentId, String action) async {
     try {
       final res = await _dio.post('/api/mobile/ticket-payments',
           data: {'paymentId': paymentId, 'action': action});
@@ -58,10 +60,14 @@ class TicketsRepository {
       return (
         applied: m['applied'] as String?,
         warnings: m['warnings'] is List
-            ? [for (final w in m['warnings'] as List) if (w is String) w]
+            ? [
+                for (final w in m['warnings'] as List)
+                  if (w is String) w
+              ]
             : const <String>[],
         check: m['check'] is Map
-            ? PaymentCheck.fromJson(Map<String, dynamic>.from(m['check'] as Map))
+            ? PaymentCheck.fromJson(
+                Map<String, dynamic>.from(m['check'] as Map))
             : null,
       );
     } catch (e) {
@@ -85,7 +91,9 @@ class TicketsRepository {
         if (r != null && r.isNotEmpty) 'reason': r,
         if (amountMinor != null && amountMinor > 0) 'amountMinor': amountMinor,
       });
-      final m = res.data is Map ? Map<String, dynamic>.from(res.data as Map) : const <String, dynamic>{};
+      final m = res.data is Map
+          ? Map<String, dynamic>.from(res.data as Map)
+          : const <String, dynamic>{};
       return parseInt(m['refundedMinor']) ?? 0;
     } catch (e) {
       throw apiError(e, fallback: 'Could not refund this payment.');
@@ -105,9 +113,11 @@ class TicketsRepository {
     }
   }
 
-  Future<void> update(String groupId, String id, Map<String, dynamic> body) async {
+  Future<void> update(
+      String groupId, String id, Map<String, dynamic> body) async {
     try {
-      await _dio.post(_path(groupId), data: {'action': 'update', 'id': id, ...body});
+      await _dio
+          .post(_path(groupId), data: {'action': 'update', 'id': id, ...body});
     } catch (e) {
       throw apiError(e, fallback: 'Could not save the ticket.');
     }
@@ -128,8 +138,8 @@ class TicketsRepository {
   /// server checks group admin.
   Future<Map<String, dynamic>> redeem(String code) async {
     try {
-      final res = await _dio
-          .post('/api/mobile/tickets/redeem', data: {'code': code});
+      final res =
+          await _dio.post('/api/mobile/tickets/redeem', data: {'code': code});
       return res.data is Map
           ? Map<String, dynamic>.from(res.data as Map)
           : <String, dynamic>{};
@@ -147,8 +157,8 @@ class TicketsRepository {
   }
 }
 
-final ticketsRepositoryProvider =
-    Provider<TicketsRepository>((ref) => TicketsRepository(ref.watch(dioProvider)));
+final ticketsRepositoryProvider = Provider<TicketsRepository>(
+    (ref) => TicketsRepository(ref.watch(dioProvider)));
 
 final managedTicketsProvider = FutureProvider.autoDispose
     .family<List<ManagedTicket>, String>(

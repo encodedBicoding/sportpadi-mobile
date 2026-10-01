@@ -430,15 +430,18 @@ class _AppearanceCard extends ConsumerWidget {
             onTap: () => ref.read(themeModeProvider.notifier).set(m),
             child: SizedBox(
               height: 64,
-              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(icon, size: 20, color: on ? p.onHero : p.muted),
-                const SizedBox(height: 4),
-                Text(label,
-                    style: TextStyle(
-                        color: on ? p.onHero : p.ink,
-                        fontSize: 12.5,
-                        fontWeight: on ? FontWeight.w700 : FontWeight.w600)),
-              ]),
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, size: 20, color: on ? p.onHero : p.muted),
+                    const SizedBox(height: 4),
+                    Text(label,
+                        style: TextStyle(
+                            color: on ? p.onHero : p.ink,
+                            fontSize: 12.5,
+                            fontWeight:
+                                on ? FontWeight.w700 : FontWeight.w600)),
+                  ]),
             ),
           ),
         ),

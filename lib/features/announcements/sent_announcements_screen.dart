@@ -24,7 +24,8 @@ class SentAnnouncementsScreen extends ConsumerWidget {
     final p = context.palette;
     ref.watch(viewerTimezoneProvider); // repaint stamps on a zone change
     final sent = ref.watch(sentAnnouncementsProvider(groupId));
-    final composer = ref.watch(announcementComposerProvider(groupId)).valueOrNull;
+    final composer =
+        ref.watch(announcementComposerProvider(groupId)).valueOrNull;
     return Scaffold(
       backgroundColor: p.bg,
       body: SafeArea(
@@ -198,9 +199,7 @@ class _SentCard extends StatelessWidget {
         ClipRRect(
           borderRadius: BorderRadius.circular(99),
           child: LinearProgressIndicator(
-            value: total == 0
-                ? 0.0
-                : (a.seen >= total ? 1.0 : a.seen / total),
+            value: total == 0 ? 0.0 : (a.seen >= total ? 1.0 : a.seen / total),
             minHeight: 5,
             backgroundColor: p.surface2,
             color: p.accent,

@@ -26,8 +26,10 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
-import 'package:sportpadi_mobile/shared/widgets/team_tile.dart' show kitGradient;
+import 'package:sportpadi_mobile/shared/widgets/team_tile.dart'
+    show kitGradient;
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 
 /// Team page — mirrors the web team page: header + record, then scrollable
 /// tabs: Players (starters/subs, invite, add), Formation, Coaches, Games.
@@ -131,8 +133,7 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
                   return ref.refresh(teamDetailProvider(teamId).future);
                 },
                 child: CustomScrollView(slivers: [
-                  SliverToBoxAdapter(
-                      child: _Header(team: t, teamId: teamId)),
+                  SliverToBoxAdapter(child: _Header(team: t, teamId: teamId)),
                   // The team's pinned announcements — their own section,
                   // hidden when there are none — and Talk, as on the group
                   // page: Announcements (Open Inbox; Announce to team / Sent
@@ -161,8 +162,8 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
                   // team's coaches.
                   if (t.groupId != null)
                     SliverToBoxAdapter(
-                      child: _TeamEventButton(
-                          groupId: t.groupId!, teamId: teamId),
+                      child:
+                          _TeamEventButton(groupId: t.groupId!, teamId: teamId),
                     ),
                   // Tab chips pin while the header scrolls away.
                   SliverPersistentHeader(
@@ -191,9 +192,8 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
                                           horizontal: 16, vertical: 9),
                                       child: Text(tabs[i],
                                           style: TextStyle(
-                                              color: _tab == i
-                                                  ? p.onHero
-                                                  : p.ink,
+                                              color:
+                                                  _tab == i ? p.onHero : p.ink,
                                               fontSize: 13,
                                               fontWeight: _tab == i
                                                   ? FontWeight.w700
@@ -265,8 +265,7 @@ class _TeamEventButton extends ConsumerWidget {
         shape: StadiumBorder(side: BorderSide(color: p.line)),
         child: InkWell(
           customBorder: const StadiumBorder(),
-          onTap: () =>
-              context.push('/groups/$groupId/new-event?team=$teamId'),
+          onTap: () => context.push('/groups/$groupId/new-event?team=$teamId'),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 12),
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -379,8 +378,11 @@ class _Header extends ConsumerWidget {
         Wrap(spacing: 6, runSpacing: 6, children: [
           if (t.categoryName != null)
             _pill(p, t.categoryName!, p.accentTint, p.greenText),
-          _pill(p, '${t.members.length} player${t.members.length == 1 ? '' : 's'}',
-              p.surface2, p.ink),
+          _pill(
+              p,
+              '${t.members.length} player${t.members.length == 1 ? '' : 's'}',
+              p.surface2,
+              p.ink),
           if (t.homeVenue != null)
             _pill(p, t.homeVenue!, p.surface2, p.ink,
                 icon: Icons.place_outlined),
@@ -654,8 +656,8 @@ class _PlayersTab extends ConsumerWidget {
           .read(manageRepositoryProvider)
           .cancelWardInvite(team.id, i.inviteId);
       ref.invalidate(teamWardInvitesProvider(team.id));
-      messenger.showSnackBar(
-          const SnackBar(content: Text('Invitation cancelled.')));
+      messenger
+          .showSnackBar(const SnackBar(content: Text('Invitation cancelled.')));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
     }
@@ -777,12 +779,11 @@ class _PlayersTab extends ConsumerWidget {
       context,
       framed: false,
       builder: (ctx) => Container(
-        constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(ctx).size.height * 0.7),
+        constraints:
+            BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.7),
         decoration: BoxDecoration(
           color: p.bg,
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(28)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
         child: Column(
@@ -791,9 +792,7 @@ class _PlayersTab extends ConsumerWidget {
           children: [
             Text('Add player',
                 style: TextStyle(
-                    color: p.ink,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800)),
+                    color: p.ink, fontSize: 18, fontWeight: FontWeight.w800)),
             const SizedBox(height: 10),
             Flexible(
               child: ListView(shrinkWrap: true, children: [
@@ -829,9 +828,7 @@ class _PlayersTab extends ConsumerWidget {
                         ? const SpBadge('Invited',
                             icon: Icons.hourglass_top_rounded)
                         : null,
-                    onTap: u.invitePending
-                        ? null
-                        : () => Navigator.pop(ctx, u),
+                    onTap: u.invitePending ? null : () => Navigator.pop(ctx, u),
                   ),
               ]),
             ),
@@ -880,8 +877,8 @@ class _PlayerSheet extends ConsumerStatefulWidget {
 }
 
 class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
-  late final TextEditingController _jersey = TextEditingController(
-      text: widget.member.jerseyNumber?.toString() ?? '');
+  late final TextEditingController _jersey =
+      TextEditingController(text: widget.member.jerseyNumber?.toString() ?? '');
   late final List<String> _positions = List.of(widget.member.positions);
   bool _busy = false;
 
@@ -915,8 +912,8 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
     final p = context.palette;
     final m = widget.member;
     final card = ref
-        .watch(playerCardProvider(
-            (teamId: widget.team.id, playerId: m.playerId)))
+        .watch(
+            playerCardProvider((teamId: widget.team.id, playerId: m.playerId)))
         .valueOrNull;
     // A ward whose guardians keep their card private: short name, no photo.
     final restricted = card?.restricted ?? false;
@@ -924,8 +921,8 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
     final avatarUrl = restricted ? null : m.avatarUrl;
     final username = restricted ? null : m.username;
     return Container(
-      constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85),
+      constraints:
+          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
       decoration: BoxDecoration(
         color: p.bg,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
@@ -970,6 +967,16 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
               ),
             ),
           ]),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () {
+              // Close the sheet first, then open their profile.
+              Navigator.of(context).pop();
+              openPlayerProfile(context, ref, m.playerId);
+            },
+            icon: const Icon(Icons.person_outline_rounded, size: 18),
+            label: const Text('View profile'),
+          ),
           const SizedBox(height: 14),
           if (card == null)
             const Center(
@@ -991,18 +998,16 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
                       .trim()),
               const SizedBox(height: 6),
               GlassCard(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 child: Column(children: [
                   for (final f in card.setup)
                     Padding(
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 3),
+                      padding: const EdgeInsets.symmetric(vertical: 3),
                       child: Row(children: [
                         Expanded(
                           child: Text(f.label,
-                              style: TextStyle(
-                                  color: p.muted, fontSize: 12.5)),
+                              style: TextStyle(color: p.muted, fontSize: 12.5)),
                         ),
                         Flexible(
                           child: Text(f.value,
@@ -1028,8 +1033,8 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
             else
               Wrap(spacing: 8, runSpacing: 8, children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: p.surface2,
                     borderRadius: BorderRadius.circular(10),
@@ -1044,8 +1049,8 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
                 ),
                 for (final t in card.tallies)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: p.surface,
                       borderRadius: BorderRadius.circular(10),
@@ -1068,8 +1073,7 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
             TextField(
               controller: _jersey,
               keyboardType: TextInputType.number,
-              decoration:
-                  const InputDecoration(labelText: 'Jersey number'),
+              decoration: const InputDecoration(labelText: 'Jersey number'),
             ),
             if (widget.team.positionOptions.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -1099,15 +1103,13 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(999),
                           border: Border.all(
-                              color: _positions.contains(o)
-                                  ? p.accent
-                                  : p.line),
+                              color:
+                                  _positions.contains(o) ? p.accent : p.line),
                         ),
                         child: Text(o,
                             style: TextStyle(
-                              color: _positions.contains(o)
-                                  ? Colors.white
-                                  : p.ink,
+                              color:
+                                  _positions.contains(o) ? Colors.white : p.ink,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             )),
@@ -1125,12 +1127,9 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
               onTap: _busy
                   ? null
                   : () => _run(() async {
-                        await ref
-                            .read(manageRepositoryProvider)
-                            .updateMember(
+                        await ref.read(manageRepositoryProvider).updateMember(
                               m.memberId,
-                              jerseyNumber:
-                                  int.tryParse(_jersey.text.trim()),
+                              jerseyNumber: int.tryParse(_jersey.text.trim()),
                               positions: _positions,
                             );
                       }, close: true),
@@ -1142,10 +1141,9 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
                   onTap: _busy
                       ? null
                       : () => _run(() async {
-                            await ref
-                                .read(manageRepositoryProvider)
-                                .setCaptain(widget.team.id,
-                                    m.isCaptain ? null : m.playerId);
+                            await ref.read(manageRepositoryProvider).setCaptain(
+                                widget.team.id,
+                                m.isCaptain ? null : m.playerId);
                           }, close: true),
                   child: Center(
                     child: Text(
@@ -1195,9 +1193,7 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
     );
     if (ok == true) {
       await _run(
-          () => ref
-              .read(manageRepositoryProvider)
-              .removeMember(m.memberId),
+          () => ref.read(manageRepositoryProvider).removeMember(m.memberId),
           close: true);
     }
   }
@@ -1218,9 +1214,12 @@ class _TournamentsTab extends ConsumerWidget {
     return rows.when(
       loading: () => Padding(
         padding: const EdgeInsets.all(24),
-        child: Center(child: Text('Loading…', style: TextStyle(color: p.muted, fontSize: 13))),
+        child: Center(
+            child: Text('Loading…',
+                style: TextStyle(color: p.muted, fontSize: 13))),
       ),
-      error: (e, _) => Center(child: Text('$e', style: TextStyle(color: p.muted, fontSize: 13))),
+      error: (e, _) => Center(
+          child: Text('$e', style: TextStyle(color: p.muted, fontSize: 13))),
       data: (list) {
         if (list.isEmpty) {
           return GlassCard(
@@ -1229,7 +1228,8 @@ class _TournamentsTab extends ConsumerWidget {
               Icon(Icons.emoji_events_outlined, size: 32, color: p.muted),
               const SizedBox(height: 8),
               Text('No tournaments yet',
-                  style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
+                  style: TextStyle(
+                      color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
               const SizedBox(height: 4),
               Text(
                 'When this team is invited to a friendly, league or tournament, its squad and formation for that event live here.',
@@ -1239,83 +1239,86 @@ class _TournamentsTab extends ConsumerWidget {
             ]),
           );
         }
-        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          SpSectionTitle('Tournaments', count: list.length),
-          const SizedBox(height: 4),
-          Text(
-            'Squads and formations are set per tournament — open one to call players and set the line-up.',
-            style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.4),
-          ),
-          const SizedBox(height: 10),
-          SpListCard(children: [
-            for (final TeamTournamentEntry r in list)
-              InkWell(
-                borderRadius: BorderRadius.circular(18),
-                onTap: () => context.push(
-                    '/groups/${r.hostGroupId ?? team.groupId ?? '-'}/tournaments/${r.eventId}/teams/${team.id}'),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
-                  child: Row(children: [
-                    SpIconTile(Icons.emoji_events_outlined,
-                        bg: p.orangeTint, fg: p.orangeInk),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(r.eventTitle,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    color: p.ink,
-                                    fontSize: 14.5,
-                                    fontWeight: FontWeight.w700)),
-                            Text(
-                              [
-                                r.kind,
-                                if (r.eventDate != null)
-                                  formatDayYear(r.eventDate),
-                                r.eventStatus,
-                              ].join(' · '),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: p.muted, fontSize: 12),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              '${r.accepted} in squad'
-                              '${r.pending > 0 ? ' · ${r.pending} awaiting' : ''}'
-                              '${r.formationName != null ? ' · ${r.formationName}' : ''}',
-                              style: TextStyle(
-                                  color: p.greenText,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                          ]),
-                    ),
-                    if (r.status != 'approved' && r.role != 'host') ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                            color: p.orangeTint,
-                            borderRadius: BorderRadius.circular(999)),
-                        child: Text(r.status,
-                            style: TextStyle(
-                                color: p.orangeInk,
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w700)),
-                      ),
-                    ],
-                    Icon(Icons.chevron_right_rounded,
-                        color: p.muted, size: 20),
-                  ]),
-                ),
+        return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SpSectionTitle('Tournaments', count: list.length),
+              const SizedBox(height: 4),
+              Text(
+                'Squads and formations are set per tournament — open one to call players and set the line-up.',
+                style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.4),
               ),
-          ]),
-        ]);
+              const SizedBox(height: 10),
+              SpListCard(children: [
+                for (final TeamTournamentEntry r in list)
+                  InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () => context.push(
+                        '/groups/${r.hostGroupId ?? team.groupId ?? '-'}/tournaments/${r.eventId}/teams/${team.id}'),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 11),
+                      child: Row(children: [
+                        SpIconTile(Icons.emoji_events_outlined,
+                            bg: p.orangeTint, fg: p.orangeInk),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(r.eventTitle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        color: p.ink,
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w700)),
+                                Text(
+                                  [
+                                    r.kind,
+                                    if (r.eventDate != null)
+                                      formatDayYear(r.eventDate),
+                                    r.eventStatus,
+                                  ].join(' · '),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style:
+                                      TextStyle(color: p.muted, fontSize: 12),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  '${r.accepted} in squad'
+                                  '${r.pending > 0 ? ' · ${r.pending} awaiting' : ''}'
+                                  '${r.formationName != null ? ' · ${r.formationName}' : ''}',
+                                  style: TextStyle(
+                                      color: p.greenText,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                              ]),
+                        ),
+                        if (r.status != 'approved' && r.role != 'host') ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                                color: p.orangeTint,
+                                borderRadius: BorderRadius.circular(999)),
+                            child: Text(r.status,
+                                style: TextStyle(
+                                    color: p.orangeInk,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700)),
+                          ),
+                        ],
+                        Icon(Icons.chevron_right_rounded,
+                            color: p.muted, size: 20),
+                      ]),
+                    ),
+                  ),
+              ]),
+            ]);
       },
     );
   }
@@ -1357,53 +1360,58 @@ class _CoachesTab extends ConsumerWidget {
           const SizedBox(height: 10),
           SpListCard(children: [
             for (final c in coaches)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                child: Row(children: [
-                  ClipOval(
-                    child: Crest(
-                        logoUrl: c.avatarUrl, label: c.displayName, size: 40),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(c.displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: p.ink,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700)),
-                        Text(c.role,
-                            style: TextStyle(
-                                color: p.greenText,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600)),
-                      ],
+              InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: () => openPlayerProfile(context, ref, c.userId),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                  child: Row(children: [
+                    ClipOval(
+                      child: Crest(
+                          logoUrl: c.avatarUrl, label: c.displayName, size: 40),
                     ),
-                  ),
-                  if (team.canManage)
-                    IconButton(
-                      tooltip: 'Remove',
-                      onPressed: () async {
-                        try {
-                          await ref
-                              .read(teamsRepositoryProvider)
-                              .removeCoach(team.id, c.id);
-                          ref.invalidate(teamCoachesProvider(team.id));
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('$e')));
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(c.displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: p.ink,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700)),
+                          Text(c.role,
+                              style: TextStyle(
+                                  color: p.greenText,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                    if (team.canManage)
+                      IconButton(
+                        tooltip: 'Remove',
+                        onPressed: () async {
+                          try {
+                            await ref
+                                .read(teamsRepositoryProvider)
+                                .removeCoach(team.id, c.id);
+                            ref.invalidate(teamCoachesProvider(team.id));
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(SnackBar(content: Text('$e')));
+                            }
                           }
-                        }
-                      },
-                      icon: Icon(Icons.close_rounded, size: 18, color: p.muted),
-                    ),
-                ]),
+                        },
+                        icon:
+                            Icon(Icons.close_rounded, size: 18, color: p.muted),
+                      ),
+                  ]),
+                ),
               ),
           ]),
         ],
@@ -1413,8 +1421,7 @@ class _CoachesTab extends ConsumerWidget {
             label: 'Add coach',
             icon: Icons.sports_rounded,
             expand: true,
-            onTap: () =>
-                _addCoach(context, ref, roleOptions, coaches),
+            onTap: () => _addCoach(context, ref, roleOptions, coaches),
           ),
         ],
       ],
@@ -1426,18 +1433,16 @@ class _CoachesTab extends ConsumerWidget {
     final p = context.palette;
     List<GroupMemberItem> members;
     try {
-      final page =
-          await ref.read(groupMembersProvider(team.groupId!).future);
+      final page = await ref.read(groupMembersProvider(team.groupId!).future);
       members = page.items;
     } catch (_) {
       members = const [];
     }
     if (!context.mounted) return;
     final existingIds = existing.map((c) => c.userId).toSet();
-    final candidates =
-        members
-            .where((m) => !existingIds.contains(m.userId) && !m.isWard)
-            .toList();
+    final candidates = members
+        .where((m) => !existingIds.contains(m.userId) && !m.isWard)
+        .toList();
     if (candidates.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Every group member is already on the staff.')));
@@ -1450,20 +1455,17 @@ class _CoachesTab extends ConsumerWidget {
       framed: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) => Container(
-          constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(ctx).size.height * 0.8),
+          constraints:
+              BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.8),
           decoration: BoxDecoration(
             color: p.bg,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(22)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
           ),
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           child: ListView(shrinkWrap: true, children: [
             Text('Add a coach',
                 style: TextStyle(
-                    color: p.ink,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700)),
+                    color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
             const SizedBox(height: 10),
             Wrap(spacing: 6, runSpacing: 6, children: [
               for (final r in roleOptions)
@@ -1478,13 +1480,12 @@ class _CoachesTab extends ConsumerWidget {
                           horizontal: 11, vertical: 6),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                            color: role == r ? p.accent : p.line),
+                        border:
+                            Border.all(color: role == r ? p.accent : p.line),
                       ),
                       child: Text(r,
                           style: TextStyle(
-                            color:
-                                role == r ? Colors.white : p.ink,
+                            color: role == r ? Colors.white : p.ink,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           )),
@@ -1499,9 +1500,7 @@ class _CoachesTab extends ConsumerWidget {
                 contentPadding: EdgeInsets.zero,
                 leading: ClipOval(
                     child: Crest(
-                        logoUrl: m.avatarUrl,
-                        label: m.displayName,
-                        size: 32)),
+                        logoUrl: m.avatarUrl, label: m.displayName, size: 32)),
                 title: Text(m.displayName,
                     style: TextStyle(color: p.ink, fontSize: 14)),
                 trailing: userId == m.userId
@@ -1514,9 +1513,7 @@ class _CoachesTab extends ConsumerWidget {
             SpButton(
               label: 'Add coach',
               expand: true,
-              onTap: userId != null
-                  ? () => Navigator.pop(ctx, true)
-                  : null,
+              onTap: userId != null ? () => Navigator.pop(ctx, true) : null,
             ),
           ]),
         ),
@@ -1524,9 +1521,7 @@ class _CoachesTab extends ConsumerWidget {
     );
     if (ok != true || userId == null || !context.mounted) return;
     try {
-      await ref
-          .read(teamsRepositoryProvider)
-          .addCoach(team.id, userId!, role);
+      await ref.read(teamsRepositoryProvider).addCoach(team.id, userId!, role);
       ref.invalidate(teamCoachesProvider(team.id));
     } catch (e) {
       if (context.mounted) {
@@ -1591,8 +1586,8 @@ class _GamesTab extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(18),
                   onTap: () => context.push('/games/${g.id}'),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 11),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
                     child: Row(children: [
                       Container(
                         width: 42,
@@ -1647,7 +1642,6 @@ class _GamesTab extends ConsumerWidget {
     );
   }
 }
-
 
 /// Pins the team tab bar to the top of the scroll view.
 class _PinnedTeamTabs extends SliverPersistentHeaderDelegate {
