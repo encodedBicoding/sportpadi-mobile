@@ -29,12 +29,27 @@ Future<void> openServedAd(WidgetRef ref, ServedAd ad) async {
   await openAnnouncementUrl(ref, ad.clickUrl);
 }
 
-/// The picture, or a coloured panel with soft circles when there isn't one.
+/// The picture — always whole, never cropped — or a coloured panel with
+/// soft circles when there isn't one ([aspectRatio] sizes the panel).
+///
+/// A picture shows at its own shape ([fixed] false), capped at [maxHeight]
+/// (default: 55% of the screen) and letterboxed if taller. In a [fixed] box
+/// (carousel cards share one height) it's fitted inside [aspectRatio],
+/// letterboxed rather than cut.
 class PromoArt extends StatelessWidget {
-  const PromoArt({super.key, required this.ad, this.aspectRatio = 16 / 8, this.compact = false});
+  const PromoArt({
+    super.key,
+    required this.ad,
+    this.aspectRatio = 16 / 8,
+    this.compact = false,
+    this.fixed = false,
+    this.maxHeight,
+  });
   final ServedAd ad;
   final double aspectRatio;
   final bool compact;
+  final bool fixed;
+  final double? maxHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -68,16 +83,36 @@ class PromoArt extends StatelessWidget {
         ),
       ]),
     );
-    return AspectRatio(
-      aspectRatio: aspectRatio,
-      child: ad.hasImage
-          ? CachedNetworkImage(
-              imageUrl: ad.imageUrl,
-              fit: BoxFit.cover,
-              placeholder: (_, __) => Container(color: p.surface2),
-              errorWidget: (_, __, ___) => panel,
-            )
-          : panel,
+    if (!ad.hasImage) return AspectRatio(aspectRatio: aspectRatio, child: panel);
+    if (fixed) {
+      return AspectRatio(
+        aspectRatio: aspectRatio,
+        child: ColoredBox(
+          color: p.surface2,
+          child: CachedNetworkImage(
+            imageUrl: ad.imageUrl,
+            fit: BoxFit.contain,
+            placeholder: (_, __) => const SizedBox.shrink(),
+            errorWidget: (_, __, ___) => panel,
+          ),
+        ),
+      );
+    }
+    final cap = maxHeight ?? MediaQuery.sizeOf(context).height * 0.55;
+    return ColoredBox(
+      color: p.surface2,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: cap),
+        child: CachedNetworkImage(
+          imageUrl: ad.imageUrl,
+          // Full width at the picture's own height (contain keeps all of it
+          // when the cap kicks in).
+          width: double.infinity,
+          fit: BoxFit.contain,
+          placeholder: (_, __) => AspectRatio(aspectRatio: 16 / 9, child: Container(color: p.surface2)),
+          errorWidget: (_, __, ___) => AspectRatio(aspectRatio: aspectRatio, child: panel),
+        ),
+      ),
     );
   }
 }
@@ -204,7 +239,16 @@ class PromoCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Stack(children: [
-            GestureDetector(onTap: onOpen, child: PromoArt(ad: ad, aspectRatio: 16 / 7, compact: true)),
+            GestureDetector(
+                onTap: onOpen,
+                // In a carousel every card is one height: fit the picture in
+                // its box. On its own, show it at its own shape.
+                child: PromoArt(
+                    ad: ad,
+                    aspectRatio: 16 / 7,
+                    compact: true,
+                    fixed: clamp,
+                    maxHeight: 360)),
             // Left, so the close button never covers the disclosure.
             Positioned(left: 8, top: 8, child: AdBadge(ad: ad)),
             if (onClose != null)
