@@ -7,19 +7,23 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
 import 'package:sportpadi_mobile/data/groups/members_repository.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
+import 'package:sportpadi_mobile/features/groups/group_detail_screen.dart'
+    show showGroupInviteSheet;
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/features/inbox/message_entry_points.dart';
 import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
-import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 
-/// Members / followers of a group — mirrors the web pages: role-badged member
-/// rows; followers get the admin tip + "Make member" promotion.
+/// Members / followers of a group (2026, the web /groups/[id]/members and
+/// /followers pages): the round-back header with "Group · N members", a
+/// search card, and rows in one card — members with Admin / Ward tags and
+/// earned titles; followers with select-to-promote and a "Make N members"
+/// bar.
 class GroupPeopleScreen extends ConsumerWidget {
   const GroupPeopleScreen(
       {super.key, required this.groupId, required this.kind});
@@ -30,32 +34,32 @@ class GroupPeopleScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final p = context.palette;
     final group = ref.watch(groupProvider(groupId)).valueOrNull;
-    return Scaffold(
-      appBar: AppBar(
-        leading: const SpLeading(),
-        backgroundColor: p.bg,
-        surfaceTintColor: p.bg,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(isMembers ? 'Members' : 'Followers',
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-            if (group != null)
-              Text(group.name,
-                  style: TextStyle(color: p.muted, fontSize: 11.5)),
-          ],
-        ),
-      ),
+    final name = group?.name ?? 'Group';
+    final canManage = group?.canManage ?? false;
+    final int? count = isMembers
+        ? group?.memberCount
+        : ref.watch(groupFollowersProvider(groupId)).valueOrNull?.length ??
+            group?.followerCount;
+    final noun = isMembers ? 'member' : 'follower';
+    return SpSubPage(
+      title: isMembers ? 'Members' : 'Followers',
+      subtitle:
+          count != null ? '$name · $count $noun${count == 1 ? '' : 's'}' : name,
+      actions: [
+        if (isMembers && canManage)
+          SpPill(
+            label: 'Invite',
+            icon: Icons.person_add_alt_1_rounded,
+            onTap: () => showGroupInviteSheet(context, groupId),
+          ),
+      ],
       body: isMembers
           ? _MembersList(
               groupId: groupId,
-              canManage: group?.canManage ?? false,
+              canManage: canManage,
               myUserId: ref.watch(meProvider).valueOrNull?.userId)
-          : _FollowersList(
-              groupId: groupId, canManage: group?.canManage ?? false),
+          : _FollowersList(groupId: groupId, canManage: canManage),
     );
   }
 }
@@ -128,6 +132,7 @@ class _MembersListState extends ConsumerState<_MembersList> {
       _loading = true;
       _loadingMore = false; // an older page still in flight is dropped
       _error = null;
+      _next = null; // a failed reload must not page on with the old cursor
     });
     try {
       final page = await ref
@@ -170,6 +175,10 @@ class _MembersListState extends ConsumerState<_MembersList> {
         _next = page.nextCursor;
         _loadingMore = false;
       });
+      // Still not filling the screen? Keep going.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _onScroll();
+      });
     } catch (_) {
       if (mounted && gen == _gen) setState(() => _loadingMore = false);
     }
@@ -185,6 +194,7 @@ class _MembersListState extends ConsumerState<_MembersList> {
           content: Text(role == 'admin'
               ? '${m.displayName} is now an admin — they can check you in and run events.'
               : '${m.displayName} is a member again.')));
+      if (!mounted) return;
       ref.invalidate(groupMembersProvider(widget.groupId));
       ref.invalidate(groupProvider(widget.groupId));
       await _reload();
@@ -193,36 +203,11 @@ class _MembersListState extends ConsumerState<_MembersList> {
     }
   }
 
+  /// Message (staff), and for admins a role menu — never on your own row
+  /// (the server also refuses to change the creator's role); wards can't
+  /// sign in, so they're never made admins.
   Widget _trailing(GroupMemberItem m) {
     final p = context.palette;
-    final titles = ref
-            .watch(groupProgressionProvider(widget.groupId))
-            .valueOrNull
-            ?.titles[m.userId] ??
-        const <String>[];
-    final role = _roleBadge(context, m.role);
-    // Community titles earned in this group (gamification).
-    final badge = titles.isEmpty
-        ? role
-        : Row(mainAxisSize: MainAxisSize.min, children: [
-            for (final t in titles.take(1))
-              Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                      color: p.amber.withAlpha(36),
-                      borderRadius: BorderRadius.circular(99)),
-                  child: Text(t,
-                      style: TextStyle(
-                          color: p.amber,
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w800)),
-                ),
-              ),
-            role,
-          ]);
     // Staff: message this member (a ward: their guardians). Hides itself for
     // anyone the viewer can't reach.
     final message = MessageMemberButton(
@@ -231,19 +216,14 @@ class _MembersListState extends ConsumerState<_MembersList> {
       name: m.displayName,
       isWard: m.isWard,
     );
-    final withMessage =
-        Row(mainAxisSize: MainAxisSize.min, children: [message, badge]);
-    // Nobody edits their own row (the server also refuses to change the
-    // creator's role). Wards can't sign in, so they're never made admins.
-    if (!widget.canManage || m.userId == widget.myUserId) return withMessage;
-    if (m.isWard && m.role != 'admin') return withMessage;
+    if (!widget.canManage || m.userId == widget.myUserId) return message;
+    if (m.isWard && m.role != 'admin') return message;
     final isAdmin = m.role == 'admin';
     return Row(mainAxisSize: MainAxisSize.min, children: [
       message,
-      badge,
       PopupMenuButton<String>(
         tooltip: 'Role',
-        icon: Icon(Icons.more_vert_rounded, size: 18, color: p.muted),
+        icon: Icon(Icons.more_vert_rounded, size: 19, color: p.muted),
         onSelected: (v) => _setRole(m, v),
         itemBuilder: (_) => [
           PopupMenuItem(
@@ -258,121 +238,89 @@ class _MembersListState extends ConsumerState<_MembersList> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final titles =
+        ref.watch(groupProgressionProvider(widget.groupId)).valueOrNull?.titles;
     final admins = _items.where((m) => m.role == 'admin').length;
     // Single-admin groups get told why a second admin matters: nobody can
     // check themselves in, including the organiser.
-    final tip = widget.canManage && _term.isEmpty && !_loading && admins <= 1
-        ? Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: GlassCard(
-              child:
-                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Icon(Icons.admin_panel_settings_outlined,
-                    size: 18, color: p.accent),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    "You're the only admin. Nobody can check themselves in — so make a trusted member an admin (tap the ⋮ on their row) and they can check you in on match day, and run things when you're away.",
-                    style:
-                        TextStyle(color: p.muted, fontSize: 12.5, height: 1.4),
-                  ),
-                ),
-              ]),
-            ),
-          )
-        : null;
+    final showTip = widget.canManage &&
+        _term.isEmpty &&
+        !_loading &&
+        _error == null &&
+        _items.isNotEmpty &&
+        admins <= 1;
 
-    // Keyed so the field keeps focus while the tip above it comes and goes.
-    final search = Padding(
-      key: const ValueKey('members-search'),
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextField(
-        controller: _search,
-        onChanged: _onSearch,
-        textInputAction: TextInputAction.search,
-        decoration: InputDecoration(
-          hintText: 'Search members...',
-          prefixIcon: const Icon(Icons.search_rounded, size: 20),
-          suffixIcon: _search.text.isEmpty
-              ? null
-              : IconButton(
-                  tooltip: 'Clear',
-                  icon: const Icon(Icons.close_rounded, size: 18),
-                  onPressed: () {
-                    _search.clear();
-                    _onSearch('');
-                  },
-                ),
-          isDense: true,
-        ),
-      ),
-    );
-
-    Widget body;
-    if (_loading) {
-      body = const Padding(
-        padding: EdgeInsets.only(top: 60),
-        child: Center(child: CircularProgressIndicator()),
+    Widget content;
+    // A refresh keeps the rows on screen (the pull indicator shows instead).
+    if (_loading && _items.isEmpty) {
+      content = const Padding(
+        padding: EdgeInsets.only(top: 48),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
     } else if (_error != null) {
-      body = Padding(
-        padding: const EdgeInsets.only(top: 40),
+      content = GlassCard(
         child: Column(children: [
           Text('$_error',
-              textAlign: TextAlign.center, style: TextStyle(color: p.muted)),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: p.muted, fontSize: 13)),
           TextButton(onPressed: _reload, child: const Text('Try again')),
         ]),
       );
     } else if (_items.isEmpty) {
-      body = Padding(
-        padding: const EdgeInsets.only(top: 60),
-        child: Center(
-          child: Text(
-              _term.isEmpty ? 'Nobody here yet.' : 'No members match “$_term”.',
-              style: TextStyle(color: p.muted, fontSize: 13)),
-        ),
+      content = SpEmpty(
+        icon: _term.isEmpty ? Icons.people_outline_rounded : Icons.search_rounded,
+        text: _term.isEmpty ? 'No members yet.' : 'No members match “$_term”.',
       );
     } else {
-      body = const SizedBox.shrink();
+      content = Column(children: [
+        SpListCard(children: [
+          for (final m in _items)
+            _MemberRow(
+              person: m,
+              titles: titles?[m.userId] ?? const <String>[],
+              trailing: _trailing(m),
+            ),
+        ]),
+        if (_loadingMore)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2)),
+            ),
+          ),
+      ]);
     }
 
-    final showRows = !_loading && _error == null && _items.isNotEmpty;
     return RefreshIndicator(
       onRefresh: _reload,
-      child: ListView.builder(
+      child: ListView(
         controller: _scroll,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        itemCount: 1 + (showRows ? _items.length : 0) + 1,
-        itemBuilder: (_, i) {
-          if (i == 0) {
-            return Column(children: [
-              if (tip != null) tip,
-              search,
-              if (!showRows) body,
-            ]);
-          }
-          final idx = i - 1;
-          if (showRows && idx < _items.length) {
-            final m = _items[idx];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _PersonRow(person: m, trailing: _trailing(m)),
-            );
-          }
-          // Footer: the next page loading.
-          return _loadingMore
+        padding: EdgeInsets.fromLTRB(
+            20, 12, 20, 32 + MediaQuery.of(context).padding.bottom),
+        children: [
+          // The tip's slot is always here so the search card below keeps its
+          // place (and focus) when the tip comes and goes.
+          showTip
               ? const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Center(
-                    child: SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2)),
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: SpTipCard(
+                    "You're the only admin. Nobody can check themselves in — so make a trusted member an admin (tap the ⋮ on their row) and they can check you in on match day, and run things when you're away.",
+                    icon: Icons.admin_panel_settings_outlined,
                   ),
                 )
-              : const SizedBox(height: 8);
-        },
+              : const SizedBox.shrink(),
+          SpSearchCard(
+            controller: _search,
+            hint: 'Search members',
+            onChanged: _onSearch,
+          ),
+          const SizedBox(height: 12),
+          content,
+        ],
       ),
     );
   }
@@ -413,6 +361,7 @@ class _FollowersListState extends ConsumerState<_FollowersList> {
           content: Text(userIds.length == 1
               ? 'Added as member!'
               : 'Added ${userIds.length} members!')));
+      if (!mounted) return;
       setState(() => _selected.removeAll(userIds));
       ref.invalidate(groupFollowersProvider(widget.groupId));
       ref.invalidate(groupMembersProvider(widget.groupId));
@@ -457,116 +406,87 @@ class _FollowersListState extends ConsumerState<_FollowersList> {
         // Drop selections that no longer exist (promoted / refetched).
         _selected.removeWhere(
             (id) => !items.any((f) => f.userId == id && !f.isMember));
+        final bottomInset = MediaQuery.of(context).padding.bottom;
 
         return Stack(children: [
           RefreshIndicator(
             onRefresh: () async =>
                 ref.refresh(groupFollowersProvider(widget.groupId).future),
             child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.fromLTRB(
-                  16, 16, 16, _selected.isNotEmpty ? 96 : 16),
+                  20, 12, 20, (_selected.isNotEmpty ? 96 : 32) + bottomInset),
               children: [
-                if (canManage && promotable.isNotEmpty) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color.fromRGBO(23, 166, 94, 0.06),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: const Color.fromRGBO(23, 166, 94, 0.3)),
-                    ),
-                    child: Text(
-                      'Tip: promote followers into group members so they can access member-only features — tap "Make member" on a follower, or select several and use the bar below.',
-                      style: TextStyle(color: p.ink, fontSize: 12, height: 1.4),
-                    ),
+                if (items.isNotEmpty) ...[
+                  // Fixed slot, judged on the whole list (not the search
+                  // results), so the search card never moves while typing.
+                  canManage && items.any((f) => !f.isMember)
+                      ? const Padding(
+                          padding: EdgeInsets.only(bottom: 12),
+                          child: SpTipCard(
+                              'Promote followers into group members so they can access member-only features. Add any follower on their row, or select several and use the bar at the bottom.'),
+                        )
+                      : const SizedBox.shrink(),
+                  SpSearchCard(
+                    key: const ValueKey('followers-search'),
+                    controller: _search,
+                    hint: 'Search followers',
+                    onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 12),
-                ],
-                if (items.isNotEmpty) ...[
-                  TextField(
-                    controller: _search,
-                    onChanged: (_) => setState(() {}),
-                    decoration: InputDecoration(
-                      hintText: 'Search followers...',
-                      prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                      isDense: true,
-                      suffixIcon: q.isEmpty
-                          ? null
-                          : IconButton(
-                              icon: const Icon(Icons.close_rounded, size: 18),
-                              onPressed: () {
-                                _search.clear();
-                                setState(() {});
-                              },
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-                if (canManage && promotable.isNotEmpty) ...[
-                  Row(children: [
-                    InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () => setState(() {
-                        if (allSelected) {
-                          _selected.clear();
-                        } else {
-                          _selected.addAll(promotable.map((f) => f.userId));
-                        }
-                      }),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 4),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(
-                              allSelected
-                                  ? Icons.check_box_rounded
-                                  : Icons.check_box_outline_blank_rounded,
-                              size: 18,
-                              color: allSelected ? p.accent : p.muted),
-                          const SizedBox(width: 6),
-                          Text('Select all eligible',
-                              style: TextStyle(color: p.muted, fontSize: 12)),
-                        ]),
+                  if (canManage && promotable.isNotEmpty) ...[
+                    Row(children: [
+                      InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => setState(() {
+                          if (allSelected) {
+                            _selected.clear();
+                          } else {
+                            _selected.addAll(promotable.map((f) => f.userId));
+                          }
+                        }),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 4, vertical: 4),
+                          child:
+                              Row(mainAxisSize: MainAxisSize.min, children: [
+                            _Check(checked: allSelected, size: 18),
+                            const SizedBox(width: 8),
+                            Text('Select all eligible',
+                                style: TextStyle(
+                                    color: p.muted,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600)),
+                          ]),
+                        ),
                       ),
-                    ),
-                    const Spacer(),
-                    Text('${_selected.length} selected',
-                        style: TextStyle(color: p.muted, fontSize: 12)),
-                  ]),
-                  const SizedBox(height: 8),
+                      const Spacer(),
+                      Text('${_selected.length} selected',
+                          style: TextStyle(color: p.muted, fontSize: 12)),
+                      const SizedBox(width: 4),
+                    ]),
+                    const SizedBox(height: 8),
+                  ],
                 ],
                 if (items.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 100),
-                    child: Column(children: [
-                      Icon(Icons.how_to_reg_rounded,
-                          size: 44, color: p.muted.withAlpha(120)),
-                      const SizedBox(height: 10),
-                      Text('No followers yet.',
-                          style: TextStyle(color: p.muted, fontSize: 13)),
-                      const SizedBox(height: 4),
-                      Text(
-                        'When people follow your group or check into events, they\'ll appear here.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: p.muted.withAlpha(180), fontSize: 11.5),
-                      ),
-                    ]),
+                  const SpEmpty(
+                    icon: Icons.how_to_reg_rounded,
+                    title: 'No followers yet',
+                    text:
+                        "When people follow your group or check into events, they'll appear here.",
                   )
                 else if (filtered.isEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(top: 40),
+                    padding: const EdgeInsets.symmetric(vertical: 32),
                     child: Center(
-                      child: Text('No followers match "${_search.text.trim()}"',
-                          style: TextStyle(color: p.muted, fontSize: 13)),
+                      child: Text('No followers match “${_search.text.trim()}”',
+                          style: TextStyle(color: p.muted, fontSize: 13.5)),
                     ),
                   )
                 else
-                  for (final f in filtered)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _FollowerRow(
+                  SpListCard(children: [
+                    for (final f in filtered)
+                      _FollowerRow(
                         person: f,
                         canManage: canManage,
                         selected: _selected.contains(f.userId),
@@ -575,7 +495,7 @@ class _FollowersListState extends ConsumerState<_FollowersList> {
                         onToggle: () => _toggle(f.userId),
                         onPromote: () => _promote([f.userId]),
                       ),
-                    ),
+                  ]),
               ],
             ),
           ),
@@ -584,28 +504,28 @@ class _FollowersListState extends ConsumerState<_FollowersList> {
               left: 0,
               right: 0,
               bottom: 0,
+              // Web's sticky footer: Cancel + "Make N members".
               child: Container(
-                padding: EdgeInsets.fromLTRB(
-                    16, 10, 16, 10 + MediaQuery.of(context).padding.bottom),
-                decoration: BoxDecoration(
-                  color: p.bg,
-                  border: Border(top: BorderSide(color: p.line)),
-                ),
+                padding: EdgeInsets.fromLTRB(20, 10, 20, 12 + bottomInset),
+                color: p.bg.withAlpha(235),
                 child: Row(children: [
-                  TextButton(
-                    onPressed: _promoting
+                  SpPill(
+                    label: 'Cancel',
+                    tone: SpPillTone.soft,
+                    height: 46,
+                    onTap: _promoting
                         ? null
                         : () => setState(() => _selected.clear()),
-                    child: const Text('Cancel'),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: SpButton(
+                    child: SpPill(
                       label: _promoting
                           ? 'Adding…'
                           : 'Make ${_selected.length} member${_selected.length == 1 ? '' : 's'}',
                       icon: Icons.person_add_alt_1_rounded,
                       expand: true,
+                      height: 46,
                       onTap: _promoting
                           ? null
                           : () => _promote(_selected.toList()),
@@ -620,6 +540,34 @@ class _FollowersListState extends ConsumerState<_FollowersList> {
   }
 }
 
+/// A rounded checkbox in the brand green.
+class _Check extends StatelessWidget {
+  const _Check({required this.checked, this.size = 20});
+  final bool checked;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 120),
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: checked ? p.accentDeep : p.surface,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: checked ? p.accentDeep : p.line, width: 1.5),
+      ),
+      child: checked
+          ? Icon(Icons.check_rounded, size: size - 5, color: Colors.white)
+          : null,
+    );
+  }
+}
+
+/// One follower: a checkbox for those who can be promoted, avatar + name
+/// (open their profile), "@handle · followed X ago", then a Member tag or a
+/// "Make member" pill (a plain "Follower" label while selecting).
 class _FollowerRow extends StatelessWidget {
   const _FollowerRow({
     required this.person,
@@ -644,168 +592,170 @@ class _FollowerRow extends StatelessWidget {
     final f = person;
     final eligible = canManage && !f.isMember;
     final followed = f.createdAt != null ? timeAgo(f.createdAt) : '';
-    return GlassCard(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      onTap: eligible ? onToggle : null,
-      child: Row(children: [
-        if (canManage) ...[
-          eligible
-              ? Icon(
-                  selected
-                      ? Icons.check_box_rounded
-                      : Icons.check_box_outline_blank_rounded,
-                  size: 20,
-                  color: selected ? p.accent : p.muted)
-              : const SizedBox(width: 20),
-          const SizedBox(width: 8),
-        ],
-        // Avatar + name open their profile; the rest of the row selects.
-        PlayerTap(
-          userId: f.userId,
-          borderRadius: 18,
-          child: ClipOval(
-            child: Crest(logoUrl: f.avatarUrl, label: f.displayName, size: 36),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: PlayerTap(
-              userId: f.userId,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(f.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w600)),
-                  if (f.username != null)
-                    Text('@${f.username}',
-                        style: TextStyle(color: p.muted, fontSize: 11.5)),
-                ],
+    final sub = [
+      if (f.username != null && f.username!.isNotEmpty) '@${f.username}',
+      if (followed.isNotEmpty) followed,
+    ].join(' · ');
+    return Material(
+      color: selected ? p.accentTint : Colors.transparent,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: eligible ? onToggle : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          child: Row(children: [
+            if (canManage) ...[
+              eligible
+                  ? _Check(checked: selected)
+                  : const SizedBox(width: 20),
+              const SizedBox(width: 12),
+            ],
+            // Avatar + name open their profile; the rest of the row selects.
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: PlayerTap(
+                  userId: f.userId,
+                  borderRadius: 22,
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    PersonAvatar(url: f.avatarUrl, name: f.displayName),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(f.displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: p.ink,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700)),
+                          if (sub.isNotEmpty)
+                            Text(sub,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style:
+                                    TextStyle(color: p.muted, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ]),
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 8),
+            if (f.isMember)
+              SpTag('Member', bg: p.accentTint, fg: p.greenText)
+            else if (eligible && !selecting)
+              SpPill(
+                label: 'Add',
+                icon: Icons.person_add_alt_1_rounded,
+                tone: SpPillTone.outline,
+                height: 34,
+                onTap: promoting ? null : onPromote,
+              )
+            else
+              Text('FOLLOWER',
+                  style: TextStyle(
+                      color: p.muted,
+                      fontSize: 10,
+                      letterSpacing: 0.4,
+                      fontWeight: FontWeight.w700)),
+          ]),
         ),
-        const SizedBox(width: 8),
-        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text(f.isMember ? 'MEMBER' : 'FOLLOWER',
-              style: TextStyle(
-                  color: f.isMember ? p.accent : p.muted,
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.8)),
-          if (followed.isNotEmpty)
-            Text(followed, style: TextStyle(color: p.muted, fontSize: 10)),
-        ]),
-        if (eligible && !selecting) ...[
-          const SizedBox(width: 8),
-          Material(
-            color: p.surface2,
-            borderRadius: BorderRadius.circular(10),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: promoting ? null : onPromote,
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.person_add_alt_1_rounded,
-                      size: 14, color: p.accent),
-                  const SizedBox(width: 4),
-                  Text('Make member',
-                      style: TextStyle(
-                          color: p.accent,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700)),
-                ]),
-              ),
-            ),
-          ),
-        ],
-      ]),
+      ),
     );
   }
 }
 
-/// Admin / Member pill (shared by the members list and its role menu).
-Widget _roleBadge(BuildContext context, String? role) {
-  final p = context.palette;
-  final admin = role == 'admin';
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-    decoration: BoxDecoration(
-      color:
-          admin ? const Color.fromRGBO(23, 166, 94, 0.12) : Colors.transparent,
-      borderRadius: BorderRadius.circular(999),
-      border: Border.all(color: admin ? p.accent : p.line),
-    ),
-    child: Text(
-      admin ? 'Admin' : 'Member',
-      style: TextStyle(
-        color: admin ? p.accent : p.muted,
-        fontSize: 10.5,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
-  );
-}
-
-class _PersonRow extends ConsumerWidget {
-  const _PersonRow({required this.person, this.trailing});
+/// One member: avatar, name with Admin / Ward tags, "@handle · Ward of X",
+/// the titles they've earned here — the row opens their profile (yours: your
+/// Profile tab); the trailing buttons keep their own taps.
+class _MemberRow extends ConsumerWidget {
+  const _MemberRow({required this.person, this.titles = const [], this.trailing});
   final GroupMemberItem person;
+  final List<String> titles;
   final Widget? trailing;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
     final m = person;
-    // The row opens their profile (yours: your Profile tab); the trailing
-    // buttons keep their own taps.
-    return GlassCard(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    final sub = [
+      if (m.username != null && m.username!.isNotEmpty) '@${m.username}',
+      if (m.isWard && m.wardOf != null) 'Ward of ${m.wardOf}',
+    ].join(' · ');
+    // Transparent material so the ripple shows on the card's white.
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+      borderRadius: BorderRadius.circular(18),
       onTap: () => openPlayerProfile(context, ref, m.userId),
-      child: Row(children: [
-        ClipOval(
-          child: Crest(logoUrl: m.avatarUrl, label: m.displayName, size: 36),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(children: [
-                Flexible(
-                  child: Text(m.displayName,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        child: Row(children: [
+          PersonAvatar(url: m.avatarUrl, name: m.displayName),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Flexible(
+                    child: Text(m.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700)),
+                  ),
+                  if (m.role == 'admin') ...[
+                    const SizedBox(width: 6),
+                    SpTag('Admin', bg: p.accentTint, fg: p.greenText),
+                  ],
+                  if (m.isWard) ...[
+                    const SizedBox(width: 6),
+                    const WardBadge(),
+                  ],
+                ]),
+                if (sub.isNotEmpty)
+                  Text(sub,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          color: p.ink,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w600)),
-                ),
-                if (m.isWard) ...[
-                  const SizedBox(width: 6),
-                  const WardBadge(),
+                          color: m.isWard && m.username == null
+                              ? p.wardInk
+                              : p.muted,
+                          fontSize: 12)),
+                // Community titles earned in this group (gamification).
+                if (titles.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Wrap(spacing: 4, runSpacing: 4, children: [
+                    for (final t in titles)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                            color: p.orangeTint,
+                            borderRadius: BorderRadius.circular(99)),
+                        child: Text(t,
+                            style: TextStyle(
+                                color: p.orangeInk,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                  ]),
                 ],
-              ]),
-              if (m.isWard && m.wardOf != null)
-                Text('Ward of ${m.wardOf}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: p.wardInk, fontSize: 11.5))
-              else if (m.username != null)
-                Text('@${m.username}',
-                    style: TextStyle(color: p.muted, fontSize: 11.5)),
-            ],
+              ],
+            ),
           ),
-        ),
-        if (trailing != null) ...[const SizedBox(width: 8), trailing!],
-      ]),
+          if (trailing != null) ...[const SizedBox(width: 4), trailing!],
+        ]),
+      ),
+      ),
     );
   }
 }
