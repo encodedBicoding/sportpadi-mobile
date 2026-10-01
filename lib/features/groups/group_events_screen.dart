@@ -6,13 +6,14 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/event_models.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
+import 'package:sportpadi_mobile/features/groups/group_event_row.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
-import 'package:sportpadi_mobile/shared/widgets/event_tile_square.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
-/// Per-group events page — upcoming / past toggle over a square-tile grid
-/// with paging (the web /groups/[id]/events page).
+/// A group's events (2026, the web /groups/[id]/events page): the round-back
+/// header with "Group · N events" and a New pill, an Upcoming / Past switch,
+/// then date-tile rows in one card, paged as you scroll.
 class GroupEventsScreen extends ConsumerStatefulWidget {
   const GroupEventsScreen({super.key, required this.groupId});
   final String groupId;
@@ -22,49 +23,91 @@ class GroupEventsScreen extends ConsumerStatefulWidget {
 }
 
 class _GroupEventsScreenState extends ConsumerState<GroupEventsScreen> {
+  static const _scopes = ['upcoming', 'past'];
   String _scope = 'upcoming';
+  final _scroll = ScrollController();
   final List<EventSummary> _items = [];
   int? _nextCursor;
   bool _loading = true;
   bool _loadingMore = false;
   String? _error;
 
+  /// Bumped on every fresh load so a slow old page can't land in a new list.
+  int _gen = 0;
+
   @override
   void initState() {
     super.initState();
-    _load(reset: true);
+    _scroll.addListener(_onScroll);
+    _reload();
   }
 
-  Future<void> _load({bool reset = false}) async {
-    if (reset) {
-      setState(() {
-        _loading = true;
-        _error = null;
-        _items.clear();
-        _nextCursor = null;
-      });
-    }
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scroll.hasClients) return;
+    if (_scroll.position.extentAfter < 600) _loadMore();
+  }
+
+  Future<void> _reload() async {
+    final gen = ++_gen;
+    setState(() {
+      _loading = true;
+      _loadingMore = false; // an older page still in flight is dropped
+      _error = null;
+      _nextCursor = null; // a failed reload must not page on with the old cursor
+    });
     try {
-      final page = await ref.read(eventsRepositoryProvider).forGroupPaged(
-            widget.groupId,
-            scope: _scope,
-            cursor: reset ? null : _nextCursor,
-          );
-      if (!mounted) return;
+      final page = await ref
+          .read(eventsRepositoryProvider)
+          .forGroupPaged(widget.groupId, scope: _scope);
+      if (!mounted || gen != _gen) return;
       setState(() {
-        _items.addAll(page.items);
+        _items
+          ..clear()
+          ..addAll(page.items);
         _nextCursor = page.nextCursor;
         _loading = false;
-        _loadingMore = false;
+      });
+      // A short first page may not fill the screen — keep going.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _onScroll();
       });
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = '$e';
-          _loading = false;
-          _loadingMore = false;
-        });
-      }
+      if (!mounted || gen != _gen) return;
+      setState(() {
+        _error = '$e';
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    final cursor = _nextCursor;
+    if (cursor == null || _loading || _loadingMore) return;
+    final gen = _gen;
+    setState(() => _loadingMore = true);
+    try {
+      final page = await ref
+          .read(eventsRepositoryProvider)
+          .forGroupPaged(widget.groupId, scope: _scope, cursor: cursor);
+      if (!mounted || gen != _gen) return;
+      setState(() {
+        final have = {for (final e in _items) e.id};
+        _items.addAll(page.items.where((e) => !have.contains(e.id)));
+        _nextCursor = page.nextCursor;
+        _loadingMore = false;
+      });
+      // Still not filling the screen? Keep going.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _onScroll();
+      });
+    } catch (_) {
+      if (mounted && gen == _gen) setState(() => _loadingMore = false);
     }
   }
 
@@ -80,135 +123,90 @@ class _GroupEventsScreenState extends ConsumerState<GroupEventsScreen> {
                     .valueOrNull
                     ?.canCreate ??
                 false));
-    return Scaffold(
-      appBar: AppBar(
-        leading: const SpLeading(),
-        backgroundColor: p.bg,
-        surfaceTintColor: p.bg,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Events',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-            if (group != null)
-              Text(group.name,
-                  style: TextStyle(color: p.muted, fontSize: 11.5)),
-          ],
-        ),
-        actions: [
-          if (canCreate)
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Center(
-                child: SpButton(
-                  label: 'New',
-                  icon: Icons.add_rounded,
-                  onTap: () =>
-                      context.push('/groups/${widget.groupId}/new-event'),
-                ),
-              ),
+    final name = group?.name ?? 'Group';
+    final count = group?.eventsCount;
+
+    Widget content;
+    // A refresh keeps the rows on screen (the pull indicator shows instead).
+    if (_loading && _items.isEmpty) {
+      content = const Padding(
+        padding: EdgeInsets.symmetric(vertical: 60),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    } else if (_error != null) {
+      content = GlassCard(
+        child: Column(children: [
+          Text(_error!,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: p.danger, fontSize: 13)),
+          TextButton(onPressed: _reload, child: const Text('Try again')),
+        ]),
+      );
+    } else if (_items.isEmpty) {
+      content = SpEmpty(
+        icon: Icons.calendar_today_outlined,
+        text: 'No $_scope events${_scope == 'upcoming' ? ' yet' : ''}.',
+      );
+    } else {
+      content = Column(children: [
+        SpListCard(children: [
+          for (final e in _items) GroupEventRow(event: e),
+        ]),
+        if (_loadingMore)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2)),
             ),
-        ],
-      ),
+          ),
+      ]);
+    }
+
+    return SpSubPage(
+      title: 'Events',
+      subtitle: count != null
+          ? '$name · $count event${count == 1 ? '' : 's'}'
+          : name,
+      actions: [
+        if (canCreate)
+          SpPill(
+            label: 'New',
+            icon: Icons.add_rounded,
+            onTap: () => context.push('/groups/${widget.groupId}/new-event'),
+          ),
+      ],
       body: RefreshIndicator(
-        onRefresh: () => _load(reset: true),
+        onRefresh: _reload,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          controller: _scroll,
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(
+              20, 12, 20, 32 + MediaQuery.of(context).padding.bottom),
           children: [
-            // Scope toggle (web's pill switcher).
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: p.surface2,
-                borderRadius: BorderRadius.circular(12),
+            // Web's compact switcher (not full width).
+            Align(
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: 220,
+                child: SpSegmented(
+                  options: const ['Upcoming', 'Past'],
+                  index: _scopes.indexOf(_scope),
+                  onChanged: (i) {
+                    if (_scopes[i] == _scope) return;
+                    setState(() {
+                      _scope = _scopes[i];
+                      _items.clear(); // the other list, not this one's rows
+                    });
+                    _reload();
+                  },
+                ),
               ),
-              child: Row(children: [
-                for (final k in const ['upcoming', 'past'])
-                  Expanded(
-                    child: Material(
-                      color: _scope == k ? p.surface : Colors.transparent,
-                      borderRadius: BorderRadius.circular(9),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(9),
-                        onTap: () {
-                          if (_scope == k) return;
-                          setState(() => _scope = k);
-                          _load(reset: true);
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Text(
-                            k == 'upcoming' ? 'Upcoming' : 'Past',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: _scope == k ? p.ink : p.muted,
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ]),
             ),
-            const SizedBox(height: 14),
-            if (_loading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 60),
-                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-              )
-            else if (_error != null)
-              GlassCard(
-                child: Text(_error!,
-                    style: TextStyle(color: p.danger, fontSize: 13)),
-              )
-            else if (_items.isEmpty)
-              GlassCard(
-                child: Center(
-                  child: Text(
-                    'No $_scope events${_scope == 'upcoming' ? ' yet' : ''}.',
-                    style: TextStyle(color: p.muted, fontSize: 13),
-                  ),
-                ),
-              )
-            else ...[
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                padding: EdgeInsets.zero,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                children: [
-                  for (final e in _items) EventTileSquare(event: e),
-                ],
-              ),
-              if (_nextCursor != null) ...[
-                const SizedBox(height: 12),
-                Center(
-                  child: _loadingMore
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2))
-                      : InkWell(
-                          onTap: () {
-                            setState(() => _loadingMore = true);
-                            _load();
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Text('Load more',
-                                style: TextStyle(
-                                    color: p.accent,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700)),
-                          ),
-                        ),
-                ),
-              ],
-            ],
+            const SizedBox(height: 16),
+            content,
           ],
         ),
       ),

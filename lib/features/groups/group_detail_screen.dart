@@ -25,6 +25,7 @@ import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
 import 'package:sportpadi_mobile/features/announcements/announcement_entry_points.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/groups/group_admin_sheets.dart';
+import 'package:sportpadi_mobile/features/groups/group_event_row.dart';
 import 'package:sportpadi_mobile/features/groups/group_invitations.dart';
 import 'package:sportpadi_mobile/features/groups/group_talk_section.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
@@ -34,7 +35,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
-import 'package:sportpadi_mobile/shared/widgets/event_audience.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/team_tile.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
@@ -571,13 +571,17 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
     );
   }
 
-  void _openInvite(BuildContext context) {
-    showSpSheet<void>(
-      context,
-      framed: false,
-      builder: (_) => _InviteSheet(groupId: groupId),
-    );
-  }
+  void _openInvite(BuildContext context) =>
+      showGroupInviteSheet(context, groupId);
+}
+
+/// The admin's "Invite people" sheet (group page and the Members page).
+void showGroupInviteSheet(BuildContext context, String groupId) {
+  showSpSheet<void>(
+    context,
+    framed: false,
+    builder: (_) => _InviteSheet(groupId: groupId),
+  );
 }
 
 /// "+ New tournament" for every group. Entitled groups go straight to the
@@ -823,12 +827,9 @@ class _EventsTab extends ConsumerWidget {
   const _EventsTab({required this.groupId});
   final String groupId;
 
-  static const _wd = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final events = ref.watch(groupEventsProvider(groupId));
-    final p = context.palette;
     return AsyncView(
       value: events,
       onRetry: () => ref.invalidate(groupEventsProvider(groupId)),
@@ -838,106 +839,7 @@ class _EventsTab extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
               children: [
                 SpListCard(children: [
-                  for (final e in list)
-                    Builder(builder: (context) {
-                      final d = e.eventDate?.toUtc();
-                      final live = e.isLive || e.status == 'kicked_off';
-                      final sub = [
-                        if (formatClock(e.startTime) != null)
-                          formatClock(e.startTime)!,
-                        if (e.locationName != null) e.locationName!,
-                      ].join(' · ');
-                      return InkWell(
-                        borderRadius: BorderRadius.circular(18),
-                        onTap: () => e.isTournament
-                            ? context.push('/tournaments/${e.id}')
-                            : context.push(
-                                '/events/${e.slug.isNotEmpty ? e.slug : e.id}'),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 10),
-                          child: Row(children: [
-                            Container(
-                              width: 46,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                color: live
-                                    ? p.hero
-                                    : e.isTournament
-                                        ? p.orangeTint
-                                        : p.surface2,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(d != null ? _wd[d.weekday - 1] : '—',
-                                        style: TextStyle(
-                                            color: live
-                                                ? p.heroMuted
-                                                : e.isTournament
-                                                    ? p.orangeInk
-                                                    : p.muted,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w700)),
-                                    Text(d != null ? '${d.day}' : '—',
-                                        style: TextStyle(
-                                            color: live
-                                                ? p.onHero
-                                                : e.isTournament
-                                                    ? p.orangeInk
-                                                    : p.ink,
-                                            fontSize: 19,
-                                            height: 1.05,
-                                            fontWeight: FontWeight.w800)),
-                                  ]),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                        '${e.categoryEmoji != null ? '${e.categoryEmoji} ' : ''}${e.title}',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                            color: p.ink,
-                                            fontSize: 14.5,
-                                            fontWeight: FontWeight.w700)),
-                                    if (sub.isNotEmpty)
-                                      Text(sub,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                              color: p.muted, fontSize: 12)),
-                                    if (e.audienceTeams.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
-                                      AudienceBadge(e.audienceTeams),
-                                    ],
-                                  ]),
-                            ),
-                            const SizedBox(width: 8),
-                            if (live)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                    color: p.danger,
-                                    borderRadius: BorderRadius.circular(999)),
-                                child: const Text('LIVE',
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w800)),
-                              )
-                            else
-                              Icon(Icons.chevron_right_rounded,
-                                  size: 20, color: p.muted),
-                          ]),
-                        ),
-                      );
-                    }),
+                  for (final e in list) GroupEventRow(event: e),
                 ]),
               ],
             ),
