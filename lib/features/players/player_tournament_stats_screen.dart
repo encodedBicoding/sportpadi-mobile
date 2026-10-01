@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/players/player_record.dart';
+import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
 import 'package:sportpadi_mobile/shared/format/event_time.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
@@ -57,7 +58,9 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
       backgroundColor: p.bg,
       body: SafeArea(
         bottom: false,
-        child: AsyncView(
+        child: isPrivateRecordError(data.error)
+            ? const PlayerPrivateView(title: 'Record')
+            : AsyncView(
         value: data,
         onRetry: () => ref.invalidate(playerTournamentStatsProvider(key)),
         data: (m) {
@@ -79,6 +82,8 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
           final hostGroupId = parseStr(event['hostGroupId']);
           final when = formatEventTimeJson(event);
           final cat = mapOf(event['category']);
+          // The tournament's sport picks the design (artwork + stats block).
+          final family = cat.isEmpty ? null : familyOf(cat);
 
           final kindTitle = kind[0].toUpperCase() + kind.substring(1);
           final jersey = squad == null ? null : parseInt(squad['jerseyNumber']);
@@ -102,6 +107,8 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
 
                 // Who, which competition, and the headline numbers.
                 RecordHero(
+                  family: family,
+                  emoji: parseStr(cat['emoji']),
                   name: parseStr(player['displayName']) ?? 'Player',
                   avatarUrl: parseStr(player['avatarUrl']),
                   onPlayerTap: () => context.push('/players/$userId'),
@@ -243,6 +250,7 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
                 const SizedBox(height: 14),
                 ScopeBlock(
                   title: "$first's record in this $kind",
+                  family: family ?? SportFamily.generic,
                   collapseKey: 'tournament-record',
                   tally: record,
                   fields: fields,

@@ -18,6 +18,7 @@ class MainActivity : FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         createNotificationChannel()
+        createMessagingChannels()
     }
 
     /**
@@ -106,7 +107,79 @@ class MainActivity : FlutterActivity() {
         manager.createNotificationChannel(channel)
     }
 
+    /**
+     * Messaging channels (docs/design/wards-and-messaging.md, B6): one per
+     * kind of message, so each can be tuned in system settings and they look
+     * and sound different. The server names them in
+     * android.notification.channel_id; lib/core/push/push_service.dart uses
+     * the same ids for foreground pushes. `sportpadi_high` above stays for
+     * everything that doesn't name one of these.
+     *
+     *   announcements         group/team/event announcements — high
+     *   announcements_urgent  urgent ones — high, sound + vibration; this is
+     *                         what still gets through when a group is muted
+     *   messages              conversations with staff (Messaging 2) — high
+     *   activity              app notifications and SportPadi news — default
+     *
+     * Same caveat as above: importance and sound only apply at creation.
+     */
+    private fun createMessagingChannels() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = getSystemService(NotificationManager::class.java) ?: return
+        val sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        val audio = AudioAttributes.Builder()
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+            .build()
+
+        val announcements = NotificationChannel(
+            CHANNEL_ANNOUNCEMENTS,
+            "Announcements",
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = "News from your groups, teams and event organisers."
+            setShowBadge(true)
+        }
+
+        val urgent = NotificationChannel(
+            CHANNEL_ANNOUNCEMENTS_URGENT,
+            "Urgent announcements",
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = "Time-critical news from your groups, with sound and a heads-up alert."
+            enableVibration(true)
+            vibrationPattern = longArrayOf(0, 250, 150, 250)
+            enableLights(true)
+            setShowBadge(true)
+            setSound(sound, audio)
+        }
+
+        val messages = NotificationChannel(
+            CHANNEL_MESSAGES,
+            "Messages",
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = "Conversations with your coaches and group staff."
+            setShowBadge(true)
+        }
+
+        val activity = NotificationChannel(
+            CHANNEL_ACTIVITY,
+            "Activity",
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ).apply {
+            description = "Check-ins, results, invites, payments and SportPadi news."
+            setShowBadge(true)
+        }
+
+        manager.createNotificationChannels(listOf(announcements, urgent, messages, activity))
+    }
+
     private companion object {
         const val CHANNEL_ID = "sportpadi_high"
+        const val CHANNEL_ANNOUNCEMENTS = "announcements"
+        const val CHANNEL_ANNOUNCEMENTS_URGENT = "announcements_urgent"
+        const val CHANNEL_MESSAGES = "messages"
+        const val CHANNEL_ACTIVITY = "activity"
     }
 }

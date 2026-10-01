@@ -5,6 +5,10 @@ import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/data/announcements/announcements_repository.dart'
+    show pinnedAnnouncementsProvider;
+import 'package:sportpadi_mobile/data/groups/groups_repository.dart'
+    show teamTalkCountsProvider;
 import 'package:sportpadi_mobile/data/manage/manage_models.dart';
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
@@ -13,6 +17,10 @@ import 'package:sportpadi_mobile/data/tournaments/squad_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
 import 'package:sportpadi_mobile/data/groups/members_repository.dart';
+import 'package:sportpadi_mobile/features/announcements/announcement_entry_points.dart';
+import 'package:sportpadi_mobile/features/groups/group_talk_section.dart';
+import 'package:sportpadi_mobile/features/inbox/message_entry_points.dart';
+import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
@@ -31,14 +39,73 @@ class TeamDetailScreen extends ConsumerStatefulWidget {
   ConsumerState<TeamDetailScreen> createState() => _TeamDetailScreenState();
 }
 
-class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
+class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
+    with WidgetsBindingObserver {
   int _tab = 0; // 0 players, 1 tournaments, 2 coaches, 3 games
 
+  // Back-on-top detection: the router's changes, checked against this
+  // page's route once the frame has settled.
+  GoRouter? _router;
+  ModalRoute<dynamic>? _route;
+  bool _onTop = true;
+
   String get teamId => widget.teamId;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _route = ModalRoute.of(context);
+    final router = GoRouter.of(context);
+    if (!identical(router, _router)) {
+      _router?.routerDelegate.removeListener(_onRouteChanged);
+      _router = router;
+      router.routerDelegate.addListener(_onRouteChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    _router?.routerDelegate.removeListener(_onRouteChanged);
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshLive();
+  }
+
+  /// The router moved (a push or a pop somewhere): once the frame has
+  /// settled, see whether this page just came back on top.
+  void _onRouteChanged() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final onTop = _route?.isCurrent ?? true;
+      if (onTop && !_onTop) _refreshLive();
+      _onTop = onTop;
+    });
+  }
+
+  /// What can change while the page is out of sight: the Talk badges and
+  /// the pinned announcements (opening one marks it seen).
+  void _refreshLive() {
+    final groupId = ref.read(teamDetailProvider(teamId)).valueOrNull?.groupId;
+    if (groupId == null) return;
+    ref.invalidate(teamTalkCountsProvider((groupId: groupId, teamId: teamId)));
+    ref.invalidate(
+        pinnedAnnouncementsProvider((groupId: groupId, teamId: teamId)));
+  }
 
   void _refetch() {
     ref.invalidate(teamDetailProvider(teamId));
     ref.invalidate(teamStatsProvider(teamId));
+    ref.invalidate(teamWardInvitesProvider(teamId));
   }
 
   @override
@@ -59,11 +126,44 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
               // opens.
               const tabs = ['Players', 'Tournaments', 'Coaches', 'Games'];
               return RefreshIndicator(
-                onRefresh: () async =>
-                    ref.refresh(teamDetailProvider(teamId).future),
+                onRefresh: () {
+                  _refreshLive();
+                  return ref.refresh(teamDetailProvider(teamId).future);
+                },
                 child: CustomScrollView(slivers: [
                   SliverToBoxAdapter(
                       child: _Header(team: t, teamId: teamId)),
+                  // The team's pinned announcements — their own section,
+                  // hidden when there are none — and Talk, as on the group
+                  // page: Announcements (Open Inbox; Announce to team / Sent
+                  // for its coaches and the group's admins), Messages
+                  // (Message coach for its players and their guardians;
+                  // Message a player for its staff) and Discussions (the
+                  // team's) as tiles with badges, each opening a sheet.
+                  if (t.groupId != null)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            GroupPinnedAnnouncementsSection(
+                                groupId: t.groupId!, teamId: teamId),
+                            GroupTalkSection.team(
+                                groupId: t.groupId!,
+                                teamId: teamId,
+                                teamName: t.name),
+                          ],
+                        ),
+                      ),
+                    ),
+                  // "Create team event" for the group's admins and this
+                  // team's coaches.
+                  if (t.groupId != null)
+                    SliverToBoxAdapter(
+                      child: _TeamEventButton(
+                          groupId: t.groupId!, teamId: teamId),
+                    ),
                   // Tab chips pin while the header scrolls away.
                   SliverPersistentHeader(
                     pinned: true,
@@ -138,6 +238,52 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
               ),
             ),
         ]),
+      ),
+    );
+  }
+}
+
+/// "Create team event" — opens event creation preselected to this team. Shown
+/// when the event-audiences endpoint lists the team (admins: every team;
+/// coaches: the teams they coach); hidden for everyone else.
+class _TeamEventButton extends ConsumerWidget {
+  const _TeamEventButton({required this.groupId, required this.teamId});
+  final String groupId;
+  final String teamId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final options = ref.watch(eventAudiencesProvider(groupId)).valueOrNull;
+    if (options == null || !options.hasTeam(teamId)) {
+      return const SizedBox.shrink();
+    }
+    final p = context.palette;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 6, 20, 4),
+      child: Material(
+        color: p.surface,
+        shape: StadiumBorder(side: BorderSide(color: p.line)),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: () =>
+              context.push('/groups/$groupId/new-event?team=$teamId'),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 12),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(Icons.event_available_outlined, size: 17, color: p.ink),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text('Create team event',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: p.ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700)),
+              ),
+            ]),
+          ),
+        ),
       ),
     );
   }
@@ -404,8 +550,26 @@ class _PlayersTab extends ConsumerWidget {
     final p = context.palette;
     // One roster pool: starters/subs are decided per tournament on the squad.
     final roster = team.members;
+    // Admins: wards invited onto the team, waiting for a guardian's yes.
+    final waiting = team.canManage
+        ? ref.watch(teamWardInvitesProvider(team.id)).valueOrNull ??
+            const <TeamWardInvite>[]
+        : const <TeamWardInvite>[];
+    final waitingSection = waiting.isEmpty
+        ? const <Widget>[]
+        : <Widget>[
+            const SizedBox(height: 22),
+            SpSectionTitle('Waiting for a guardian', count: waiting.length),
+            const SizedBox(height: 4),
+            Text('Wards join once one of their guardians accepts.',
+                style: TextStyle(color: p.muted, fontSize: 12)),
+            const SizedBox(height: 10),
+            SpListCard(children: [
+              for (final i in waiting) _waitingRow(context, ref, i),
+            ]),
+          ];
     if (roster.isEmpty) {
-      return GlassCard(
+      final empty = GlassCard(
         padding: const EdgeInsets.all(22),
         child: Column(children: [
           const SpIconTile(Icons.groups_outlined, size: 52, iconSize: 24),
@@ -417,6 +581,11 @@ class _PlayersTab extends ConsumerWidget {
           ),
         ]),
       );
+      if (waitingSection.isEmpty) return empty;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [empty, ...waitingSection],
+      );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -426,8 +595,70 @@ class _PlayersTab extends ConsumerWidget {
         SpListCard(children: [
           for (final m in roster) _memberRow(context, ref, m),
         ]),
+        ...waitingSection,
       ],
     );
+  }
+
+  Widget _waitingRow(BuildContext context, WidgetRef ref, TeamWardInvite i) {
+    final p = context.palette;
+    final sub = [
+      if (i.positions.isNotEmpty) i.positions.join(' · '),
+      if (i.jerseyNumber != null) '#${i.jerseyNumber}',
+      'Invited',
+    ].join(' · ');
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      child: Row(children: [
+        ClipOval(
+          child: Crest(logoUrl: i.avatarUrl, label: i.displayName, size: 36),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Flexible(
+                  child: Text(i.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
+                ),
+                const SizedBox(width: 6),
+                const WardBadge(),
+              ]),
+              Text(sub,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: p.orangeInk, fontSize: 12)),
+            ],
+          ),
+        ),
+        TextButton(
+          onPressed: () => _cancelWardInvite(context, ref, i),
+          child: const Text('Cancel'),
+        ),
+      ]),
+    );
+  }
+
+  Future<void> _cancelWardInvite(
+      BuildContext context, WidgetRef ref, TeamWardInvite i) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref
+          .read(manageRepositoryProvider)
+          .cancelWardInvite(team.id, i.inviteId);
+      ref.invalidate(teamWardInvitesProvider(team.id));
+      messenger.showSnackBar(
+          const SnackBar(content: Text('Invitation cancelled.')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    }
   }
 
   Widget _memberRow(BuildContext context, WidgetRef ref, TeamMember m) {
@@ -486,6 +717,10 @@ class _PlayersTab extends ConsumerWidget {
                               fontWeight: FontWeight.w800)),
                     ),
                   ],
+                  if (m.isWard) ...[
+                    const SizedBox(width: 6),
+                    const WardBadge(),
+                  ],
                 ]),
                 if (m.positions.isNotEmpty)
                   Text(m.positions.join(' · '),
@@ -495,6 +730,14 @@ class _PlayersTab extends ConsumerWidget {
               ],
             ),
           ),
+          // Staff: message the player (a ward: their guardians).
+          if (team.groupId != null)
+            MessageMemberButton(
+              groupId: team.groupId!,
+              memberId: m.playerId,
+              name: m.displayName,
+              isWard: m.isWard,
+            ),
           Icon(Icons.chevron_right_rounded, size: 20, color: p.muted),
         ]),
       ),
@@ -558,14 +801,37 @@ class _PlayersTab extends ConsumerWidget {
                   ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
+                    enabled: !u.invitePending,
                     leading: ClipOval(
                         child: Crest(
                             logoUrl: u.avatarUrl,
                             label: u.displayName,
                             size: 32)),
-                    title: Text(u.displayName,
-                        style: TextStyle(color: p.ink, fontSize: 14)),
-                    onTap: () => Navigator.pop(ctx, u),
+                    title: Row(children: [
+                      Flexible(
+                        child: Text(u.displayName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: u.invitePending ? p.muted : p.ink,
+                                fontSize: 14)),
+                      ),
+                      if (u.isWard) ...[
+                        const SizedBox(width: 6),
+                        const WardBadge(),
+                      ],
+                    ]),
+                    subtitle: u.isWard && !u.invitePending
+                        ? Text('Their guardians will be asked',
+                            style: TextStyle(color: p.muted, fontSize: 11.5))
+                        : null,
+                    trailing: u.invitePending
+                        ? const SpBadge('Invited',
+                            icon: Icons.hourglass_top_rounded)
+                        : null,
+                    onTap: u.invitePending
+                        ? null
+                        : () => Navigator.pop(ctx, u),
                   ),
               ]),
             ),
@@ -575,10 +841,19 @@ class _PlayersTab extends ConsumerWidget {
     );
     if (picked == null || !context.mounted) return;
     try {
-      await ref
+      final r = await ref
           .read(manageRepositoryProvider)
           .addMember(team.id, playerId: picked.userId);
       onChanged();
+      // A ward isn't added directly: their guardians were invited.
+      final msg = r.wardMessage;
+      if (msg != null) {
+        ref.invalidate(teamWardInvitesProvider(team.id));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(msg)));
+        }
+      }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
@@ -643,6 +918,11 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
         .watch(playerCardProvider(
             (teamId: widget.team.id, playerId: m.playerId)))
         .valueOrNull;
+    // A ward whose guardians keep their card private: short name, no photo.
+    final restricted = card?.restricted ?? false;
+    final name = restricted ? card!.displayName : m.displayName;
+    final avatarUrl = restricted ? null : m.avatarUrl;
+    final username = restricted ? null : m.username;
     return Container(
       constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.85),
@@ -657,22 +937,31 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
         children: [
           Row(children: [
             ClipOval(
-              child: Crest(
-                  logoUrl: m.avatarUrl, label: m.displayName, size: 44),
+              child: Crest(logoUrl: avatarUrl, label: name, size: 44),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(m.displayName,
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700)),
+                  Row(children: [
+                    Flexible(
+                      child: Text(name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: p.ink,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                    if (m.isWard || restricted) ...[
+                      const SizedBox(width: 6),
+                      const WardBadge(),
+                    ],
+                  ]),
                   Text(
                     [
-                      if (m.username != null) '@${m.username}',
+                      if (username != null) '@$username',
                       if (m.isCaptain) 'Captain',
                     ].join(' · '),
                     style: TextStyle(color: p.muted, fontSize: 12),
@@ -692,6 +981,9 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
                     child: CircularProgressIndicator(strokeWidth: 2)),
               ),
             )
+          else if (card.restricted)
+            const WardPrivateNote(
+                text: "Their guardians keep this player's stats private.")
           else ...[
             if (card.setup.isNotEmpty) ...[
               Eyebrow(
@@ -1143,7 +1435,9 @@ class _CoachesTab extends ConsumerWidget {
     if (!context.mounted) return;
     final existingIds = existing.map((c) => c.userId).toSet();
     final candidates =
-        members.where((m) => !existingIds.contains(m.userId)).toList();
+        members
+            .where((m) => !existingIds.contains(m.userId) && !m.isWard)
+            .toList();
     if (candidates.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Every group member is already on the staff.')));

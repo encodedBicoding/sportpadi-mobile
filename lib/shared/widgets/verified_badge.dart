@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+
 /// Gold used for the group verification badge (web: VERIFIED_GOLD).
 const kVerifiedGold = Color(0xFFF0A500);
 
@@ -25,6 +28,96 @@ class VerifiedBadge extends StatelessWidget {
         child: CustomPaint(
           size: Size.square(size),
           painter: _BadgePainter(),
+        ),
+      ),
+    );
+  }
+}
+
+/// The badge, tappable: opens a short sheet on what it means — SportPadi's
+/// stamp that the group is genuine and authentic (web: VerifiedBadgeButton).
+class VerifiedBadgeButton extends StatelessWidget {
+  const VerifiedBadgeButton({super.key, this.size = 20, this.groupName});
+  final double size;
+  final String? groupName;
+
+  void _explain(BuildContext context) {
+    final who = (groupName ?? '').trim().isEmpty ? 'This group' : groupName!.trim();
+    showSpSheet<void>(
+      context,
+      builder: (ctx) {
+        final p = ctx.palette;
+        Widget point(String t) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 1),
+                  child: Icon(Icons.check_rounded, size: 15, color: kVerifiedGold),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                    child: Text(t,
+                        style: TextStyle(color: p.ink, fontSize: 12.5, height: 1.35))),
+              ]),
+            );
+        return Column(mainAxisSize: MainAxisSize.min, children: [
+          const SizedBox(height: 8),
+          Container(
+            width: 72,
+            height: 72,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: kVerifiedGold.withAlpha(38),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const VerifiedBadge(size: 44),
+          ),
+          const SizedBox(height: 14),
+          Text('Verified by SportPadi',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: p.ink, fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          Text(
+            'A stamp of genuineness and authenticity. SportPadi has confirmed that $who is the real group it says it is.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: p.muted, fontSize: 13.5, height: 1.45),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+            decoration: BoxDecoration(
+                color: p.surface2, borderRadius: BorderRadius.circular(16)),
+            child: Column(children: [
+              point('Given only by SportPadi, after checking the group is who it claims to be.'),
+              point("It can't be bought and has nothing to do with the group's plan."),
+              point("It's removed if a group stops being genuine."),
+            ]),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Got it'),
+            ),
+          ),
+        ]);
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Verified by SportPadi — what this means',
+      child: InkResponse(
+        onTap: () => _explain(context),
+        radius: size,
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: ExcludeSemantics(child: VerifiedBadge(size: size)),
         ),
       ),
     );

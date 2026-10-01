@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/payments/payment_models.dart';
 import 'package:sportpadi_mobile/data/payments/payments_repository.dart';
+import 'package:sportpadi_mobile/data/wards/ward_models.dart';
+import 'package:sportpadi_mobile/data/wards/wards_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
@@ -92,8 +94,8 @@ class _RecipientSheetState extends ConsumerState<_RecipientSheet> {
         final res =
             await ref.read(paymentsRepositoryProvider).searchRecipients(query);
         if (!mounted) return;
-        setState(() => _results =
-            res.where((r) => !_others.any((o) => o.userId == r.userId)).toList());
+        setState(() =>
+            _results = res.where((r) => !_picked(r.userId)).toList());
       } catch (_) {
         if (mounted) setState(() => _results = const []);
       } finally {
@@ -102,9 +104,30 @@ class _RecipientSheetState extends ConsumerState<_RecipientSheet> {
     });
   }
 
+  bool _picked(String userId) => _others.any((o) => o.userId == userId);
+
+  /// Tap a ward chip: add them (the guardian pays, the ward holds the
+  /// ticket), or take them off again.
+  void _toggleWard(Ward w) => setState(() {
+        if (_picked(w.userId)) {
+          _others.removeWhere((o) => o.userId == w.userId);
+        } else if (!_full) {
+          _others.add(RecipientUser(
+            userId: w.userId,
+            displayName: w.displayName,
+            username: w.username ?? '',
+            avatarUrl: w.avatarUrl,
+          ));
+        }
+      });
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    // My wards, as one-tap chips — they can't be found by search.
+    final wards =
+        ref.watch(myWardsProvider).valueOrNull?.wards ?? const <Ward>[];
+    final wardIds = {for (final w in wards) w.userId};
     final priceSum = _count * widget.priceMinor;
     final feeSum = _count * widget.feeMinor;
     final total = priceSum + feeSum;
@@ -131,12 +154,50 @@ class _RecipientSheetState extends ConsumerState<_RecipientSheet> {
                         ? "You'll get a ticket + receipt of your own."
                         : "You're paying for others only — no receipt for you."),
               ),
+              if (wards.isNotEmpty) ...[
+                Text('Your wards',
+                    style: TextStyle(
+                        color: p.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                Wrap(spacing: 6, runSpacing: 6, children: [
+                  for (final w in wards)
+                    FilterChip(
+                      avatar: Icon(Icons.supervisor_account_rounded,
+                          size: 16, color: p.wardInk),
+                      label: Text(w.firstName),
+                      labelStyle: TextStyle(
+                          color: p.wardInk,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700),
+                      selected: _picked(w.userId),
+                      showCheckmark: false,
+                      selectedColor: p.wardTint,
+                      backgroundColor: p.surface,
+                      side: BorderSide(
+                          color: _picked(w.userId) ? p.ward : p.line),
+                      visualDensity: VisualDensity.compact,
+                      onSelected: !_picked(w.userId) && _full
+                          ? null
+                          : (_) => _toggleWard(w),
+                    ),
+                ]),
+                const SizedBox(height: 6),
+                Text(
+                    'You pay; they hold the ticket — its QR shows under '
+                    'your purchases.',
+                    style: TextStyle(color: p.muted, fontSize: 11.5)),
+                const SizedBox(height: 4),
+              ],
               for (final r in _others)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: _avatar(r),
                   title: Text(r.displayName),
-                  subtitle: Text('@${r.username}'),
+                  subtitle: Text(wardIds.contains(r.userId)
+                      ? 'Your ward'
+                      : '@${r.username}'),
                   trailing: IconButton(
                     icon: const Icon(Icons.close_rounded, size: 18),
                     onPressed: () => setState(() => _others.remove(r)),

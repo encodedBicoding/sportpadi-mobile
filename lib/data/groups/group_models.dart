@@ -1,3 +1,5 @@
+import 'package:sportpadi_mobile/shared/format/parse.dart';
+
 class GroupSummary {
   const GroupSummary({
     required this.id,
@@ -73,6 +75,8 @@ class GroupDetail {
     this.canManage = false,
     this.isMember = false,
     this.isOwner = false,
+    this.isFollower = false,
+    this.membershipRequest,
   });
 
   final String id;
@@ -88,8 +92,19 @@ class GroupDetail {
   final bool canManage;
   final bool isMember;
 
-  /// The creator flag — what unlocks "transfer ownership".
+  /// The creator flag — what unlocks "transfer ownership" and the
+  /// membership-requests queue.
   final bool isOwner;
+
+  /// I follow the group (members usually do too — check [isMember] for
+  /// membership, never this).
+  final bool isFollower;
+
+  /// My latest request to join, or null when I never asked.
+  final GroupMembershipRequestRef? membershipRequest;
+
+  /// A request of mine is waiting on the owner.
+  bool get hasPendingRequest => membershipRequest?.isPending ?? false;
 
   bool get isVerified =>
       verificationBadge != null &&
@@ -110,6 +125,102 @@ class GroupDetail {
         canManage: j['canManage'] == true,
         isMember: j['isMember'] == true,
         isOwner: j['isOwner'] == true,
+        isFollower: j['isFollower'] == true,
+        membershipRequest:
+            GroupMembershipRequestRef.fromJson(j['membershipRequest']),
+      );
+}
+
+/// My latest request to join a group (group detail's `membershipRequest`).
+class GroupMembershipRequestRef {
+  const GroupMembershipRequestRef(
+      {required this.id, required this.status, this.createdAt});
+  final String id;
+
+  /// `pending` · `approved` · `declined` · `cancelled`.
+  final String status;
+  final DateTime? createdAt;
+
+  bool get isPending => status == 'pending';
+
+  static GroupMembershipRequestRef? fromJson(dynamic v) {
+    if (v is! Map) return null;
+    final id = parseStr(v['id']);
+    final status = parseStr(v['status']);
+    if (id == null || status == null) return null;
+    return GroupMembershipRequestRef(
+        id: id, status: status, createdAt: parseDate(v['createdAt']));
+  }
+}
+
+/// A membership request in the owner's queue
+/// (`GET /api/mobile/groups/:id/membership-requests`).
+class MembershipRequestItem {
+  const MembershipRequestItem({
+    required this.id,
+    required this.userId,
+    required this.displayName,
+    this.username,
+    this.avatarUrl,
+    this.message,
+    this.status = 'pending',
+    this.createdAt,
+    this.decidedAt,
+    this.followingSince,
+  });
+  final String id;
+  final String userId;
+  final String displayName;
+  final String? username;
+  final String? avatarUrl;
+  final String? message;
+
+  /// `pending` · `approved` · `declined` · `cancelled`.
+  final String status;
+  final DateTime? createdAt;
+  final DateTime? decidedAt;
+  final DateTime? followingSince;
+
+  bool get isPending => status == 'pending';
+
+  factory MembershipRequestItem.fromJson(Map<String, dynamic> j) =>
+      MembershipRequestItem(
+        id: parseStr(j['id']) ?? '',
+        userId: parseStr(j['userId']) ?? '',
+        displayName: parseStr(j['displayName']) ?? 'Unknown',
+        username: parseStr(j['username']),
+        avatarUrl: parseStr(j['avatarUrl']),
+        message: parseStr(j['message']),
+        status: parseStr(j['status']) ?? 'pending',
+        createdAt: parseDate(j['createdAt']),
+        decidedAt: parseDate(j['decidedAt']),
+        followingSince: parseDate(j['followingSince']),
+      );
+}
+
+/// Badges for the group page's Talk tiles
+/// (`GET /api/mobile/groups/:id/talk-counts`): unseen announcements (and how
+/// many of them are urgent), conversations with unread messages, discussions
+/// with new activity.
+class GroupTalkCounts {
+  const GroupTalkCounts({
+    this.announcements = 0,
+    this.urgent = 0,
+    this.messages = 0,
+    this.discussions = 0,
+  });
+  final int announcements;
+  final int urgent;
+  final int messages;
+  final int discussions;
+
+  static const none = GroupTalkCounts();
+
+  factory GroupTalkCounts.fromJson(Map<String, dynamic> j) => GroupTalkCounts(
+        announcements: parseInt(j['announcements']) ?? 0,
+        urgent: parseInt(j['urgent']) ?? 0,
+        messages: parseInt(j['messages']) ?? 0,
+        discussions: parseInt(j['discussions']) ?? 0,
       );
 }
 
@@ -130,9 +241,13 @@ class LeaderboardRow {
     this.prevRank,
     this.move,
     this.isNew = false,
+    this.isWard = false,
   });
   final String playerId;
   final String displayName;
+
+  /// A ward (a player a guardian runs).
+  final bool isWard;
   final String? avatarUrl;
   final String? username;
 
@@ -176,6 +291,7 @@ class LeaderboardRow {
       prevRank: (j['prevRank'] as num?)?.toInt(),
       move: (j['move'] as num?)?.toInt(),
       isNew: j['isNew'] == true,
+      isWard: j['isWard'] == true,
     );
   }
 }

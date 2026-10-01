@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/features/sports/sport_artwork.dart';
+import 'package:sportpadi_mobile/features/sports/sport_blocks.dart';
+import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
 /// The per-sport record blocks, shared by the public player profile and the
@@ -67,6 +72,10 @@ class CategoryControl extends StatelessWidget {
   String _tag(Map<String, dynamic> c) {
     final games = statInt(mapOf(c['overall'])['games']);
     if (games > 0) return '· $games game${games == 1 ? '' : 's'}';
+    final checkIns = statInt(mapOf(c['attendance'])['checkIns']);
+    if (checkIns > 0) {
+      return '· $checkIns check-in${checkIns == 1 ? '' : 's'}';
+    }
     if (listOf(c['setup']).isNotEmpty) return '· profile only';
     return '· no record';
   }
@@ -180,46 +189,12 @@ class NothingOnRecord extends StatelessWidget {
   }
 }
 
-/// True when a category has neither settings nor games for this player.
+/// True when a category has neither settings, games nor check-ins for this
+/// player.
 bool nothingOnRecord(Map<String, dynamic> cat) =>
-    listOf(cat['setup']).isEmpty && statInt(mapOf(cat['overall'])['games']) == 0;
-
-/// A stat tile (2026): quiet filled square, big number, plain label.
-Widget _tile(AppPalette p, String label, String value, {String? hint}) =>
-    Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-      decoration: BoxDecoration(
-        color: p.surface2,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    color: p.ink,
-                    fontSize: 20,
-                    height: 1.1,
-                    letterSpacing: -0.3,
-                    fontWeight: FontWeight.w800)),
-            const SizedBox(height: 3),
-            Text(label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    color: p.muted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600)),
-            if (hint != null)
-              Text(hint,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: p.muted, fontSize: 9.5)),
-          ]),
-    );
+    listOf(cat['setup']).isEmpty &&
+    statInt(mapOf(cat['overall'])['games']) == 0 &&
+    statInt(mapOf(cat['attendance'])['checkIns']) == 0;
 
 /// What the player has SET UP for this sport — preferred positions, strong
 /// foot, and whatever else the category's stat schema asks for (the same data
@@ -270,8 +245,11 @@ class SportSetup extends StatelessWidget {
 ///
 /// Deliberately NOT a side-by-side comparison: the two levels are different
 /// competitions, and reading them as a race ("12 vs 3") says less than reading
-/// each on its own terms. Every metric the sport defines is shown, zeros
-/// included — no cards is a fact worth seeing, not an absence to hide.
+/// each on its own terms.
+///
+/// 2026 sport records: a thin wrapper over the sport's own design — its
+/// record block, then its stats block (and "More stats") — inside a card that
+/// folds away (docs/design/sport-records.md §7).
 class ScopeBlock extends StatelessWidget {
   const ScopeBlock({
     super.key,
@@ -279,6 +257,7 @@ class ScopeBlock extends StatelessWidget {
     required this.tally,
     required this.fields,
     required this.empty,
+    this.family = SportFamily.generic,
     this.accent = false,
     this.rank = const {},
     this.collapseKey,
@@ -287,6 +266,9 @@ class ScopeBlock extends StatelessWidget {
   final Map<String, dynamic> tally;
   final List<Map<String, dynamic>> fields;
   final String empty;
+
+  /// Which sport's design the numbers use.
+  final SportFamily family;
   final bool accent;
   final Map<String, dynamic> rank;
   /// Which remembered fold state this card shares (defaults: local /
@@ -296,7 +278,6 @@ class ScopeBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final counts = mapOf(tally['counts']);
     final games = statInt(tally['games']);
     return CollapsibleStatCard(
       // Remembered per card kind: fold "tournaments" once, it stays folded.
@@ -309,48 +290,20 @@ class ScopeBlock extends StatelessWidget {
           : null,
       summary: games == 0
           ? empty
-          : '$games game${games == 1 ? '' : 's'} · ${statInt(tally['wins'])}-${statInt(tally['draws'])}-${statInt(tally['losses'])} · ${statInt(tally['winRate'])}% wins',
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          : [
+              // Soccer ("P 23 …") and golf ("12 rounds …") already lead
+              // their record line with the count.
+              if (family != SportFamily.soccer && family != SportFamily.golf)
+                gamesPhrase(family, games),
+              recordLineFor(family, tally),
+            ].join(' · '),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         if (games == 0)
           Text(empty, style: TextStyle(color: p.muted, fontSize: 12.5))
         else ...[
-          GridView.count(
-            crossAxisCount: 3,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            childAspectRatio: 1.3,
-            children: [
-              _tile(p, 'Games', '$games'),
-              _tile(p, 'Starts', '${statInt(tally['starts'])}'),
-              // W–D–L as ONE tile, not three: it reads as a record, and
-              // separate boxes beside it would state the same thing twice.
-              _tile(p, 'W–D–L',
-                  '${statInt(tally['wins'])}-${statInt(tally['draws'])}-${statInt(tally['losses'])}'),
-              _tile(p, 'Win rate', '${statInt(tally['winRate'])}%'),
-              _tile(p, 'Points', '${statInt(tally['points'])}', hint: '3/1/0'),
-            ],
-          ),
-          if (fields.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            GridView.count(
-              crossAxisCount: 3,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              childAspectRatio: 1.3,
-              children: [
-                for (final f in fields)
-                  _tile(
-                    p,
-                    '${parseStr(f['icon']) != null ? '${f['icon']} ' : ''}${parseStr(f['label']) ?? ''}',
-                    '${statInt(counts[parseStr(f['key'])])}',
-                  ),
-              ],
-            ),
-          ],
+          SportRecordBlock(family: family, tally: tally),
+          const BlockDivider(),
+          SportStatsBlock(family: family, fields: fields, tally: tally),
         ],
       ]),
     );
@@ -531,7 +484,7 @@ class _CollapsibleStatCardState extends State<CollapsibleStatCard> {
           ]),
         ),
         if (_open) ...[
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           widget.child,
         ] else if ((widget.summary ?? '').isNotEmpty) ...[
           const SizedBox(height: 6),
@@ -590,6 +543,8 @@ class RecordHero extends StatelessWidget {
     this.meta,
     this.stats = const [],
     this.pills = const [],
+    this.family,
+    this.emoji,
   });
   final String name;
   final String? avatarUrl;
@@ -605,16 +560,39 @@ class RecordHero extends StatelessWidget {
   final List<(String, String)> stats;
   final List<Widget> pills;
 
+  /// The sport of the record shown: paints its artwork (design §4) behind
+  /// the card. Null keeps the plain dark card.
+  final SportFamily? family;
+
+  /// The category's emoji — the generic artwork's watermark.
+  final String? emoji;
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final art = family;
+    final accent = art == null ? recordMint : sportTheme(art).accent;
+    final content = _content(p, accent, art != null);
+    if (art != null) {
+      return SportArtPanel(
+        family: art,
+        emoji: emoji,
+        padding: const EdgeInsets.all(18),
+        child: content,
+      );
+    }
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: p.hero,
         borderRadius: BorderRadius.circular(28),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      child: content,
+    );
+  }
+
+  Widget _content(AppPalette p, Color accent, bool painted) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           InkWell(
             onTap: onPlayerTap,
@@ -623,7 +601,7 @@ class RecordHero extends StatelessWidget {
               padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: recordMint, width: 2),
+                border: Border.all(color: accent, width: 2),
               ),
               child: ClipOval(
                 child: Crest(
@@ -661,8 +639,8 @@ class RecordHero extends StatelessWidget {
         const SizedBox(height: 16),
         if (eyebrow != null && eyebrow!.isNotEmpty) ...[
           Text(eyebrow!.toUpperCase(),
-              style: const TextStyle(
-                  color: recordMint,
+              style: TextStyle(
+                  color: accent,
                   fontSize: 11,
                   letterSpacing: 1.4,
                   fontWeight: FontWeight.w700)),
@@ -692,7 +670,9 @@ class RecordHero extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
                   decoration: BoxDecoration(
-                    color: p.onHero.withAlpha(18),
+                    color: painted
+                        ? const Color(0x38000000)
+                        : p.onHero.withAlpha(18),
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Column(children: [
@@ -701,7 +681,7 @@ class RecordHero extends StatelessWidget {
                       child: Text(stats[i].$1,
                           maxLines: 1,
                           style: TextStyle(
-                              color: i == 0 ? recordMint : p.onHero,
+                              color: i == 0 ? accent : p.onHero,
                               fontSize: 22,
                               fontWeight: FontWeight.w800)),
                     ),
@@ -719,8 +699,7 @@ class RecordHero extends StatelessWidget {
           const SizedBox(height: 14),
           Wrap(spacing: 8, runSpacing: 8, children: pills),
         ],
-      ]),
-    );
+      ]);
   }
 }
 
@@ -804,24 +783,33 @@ class RecordSectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    // The title shrinks (ellipsis) before anything overflows — titles carry
+    // sport names ("American football tournaments") on a 360dp screen.
     return Row(children: [
-      Text(title,
-          style: TextStyle(
-              color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
-      if (count != null) ...[
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-              color: p.surface2, borderRadius: BorderRadius.circular(999)),
-          child: Text('$count',
-              style: TextStyle(
-                  color: p.muted,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700)),
-        ),
-      ],
-      const Spacer(),
+      Expanded(
+        child: Row(children: [
+          Flexible(
+            child: Text(title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
+          ),
+          if (count != null) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                  color: p.surface2, borderRadius: BorderRadius.circular(999)),
+              child: Text('$count',
+                  style: TextStyle(
+                      color: p.muted,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ]),
+      ),
       if (trailing != null) trailing!,
     ]);
   }
@@ -983,6 +971,42 @@ class RecordEmpty extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.45)),
       ]),
+    );
+  }
+}
+
+/// The stats routes answer 403 when the player is a ward whose guardians
+/// keep their record private from this viewer.
+bool isPrivateRecordError(Object? e) =>
+    e is ApiException && e.statusCode == 403;
+
+/// What a record page shows instead of numbers the viewer may not see.
+class PlayerPrivateView extends StatelessWidget {
+  const PlayerPrivateView({super.key, required this.title});
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
+      children: [
+        SpHeader(title: title),
+        const SizedBox(height: 40),
+        Center(
+          child: SpIconTile(Icons.lock_outline_rounded,
+              bg: p.wardTint, fg: p.wardInk, size: 56, iconSize: 26),
+        ),
+        const SizedBox(height: 14),
+        Text('This record is private',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 6),
+        Text("Their guardians manage who can see this player's stats.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: p.muted, fontSize: 13, height: 1.4)),
+      ],
     );
   }
 }

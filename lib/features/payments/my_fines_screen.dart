@@ -5,13 +5,15 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/payments/payment_models.dart';
 import 'package:sportpadi_mobile/data/payments/payments_repository.dart';
 import 'package:sportpadi_mobile/features/payments/checkout_flow.dart';
+import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 
 /// My fines (2026) — what's owed up top, then the list by state; active
-/// ones are settled via hosted checkout.
+/// ones are settled via hosted checkout. My wards' fines are listed too
+/// ("Ward · Tobi"): any of their guardians may pay them (Wards 3).
 class MyFinesScreen extends ConsumerStatefulWidget {
   const MyFinesScreen({super.key});
 
@@ -257,6 +259,10 @@ class _FineRowState extends ConsumerState<_FineRow> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: p.muted, fontSize: 12)),
+                if (f.forWard case final ward?) ...[
+                  const SizedBox(height: 6),
+                  WardForChip(ward.firstName),
+                ],
               ],
             ),
           ),
@@ -277,7 +283,11 @@ class _FineRowState extends ConsumerState<_FineRow> {
         if (f.isActive) ...[
           const SizedBox(height: 14),
           SpButton(
-            label: _busy ? 'Opening checkout…' : 'Pay fine',
+            label: _busy
+                ? 'Opening checkout…'
+                : f.forWard == null
+                    ? 'Pay fine'
+                    : 'Pay for ${f.forWard!.firstName}',
             icon: Icons.lock_outline_rounded,
             expand: true,
             onTap: _busy ? null : _pay,

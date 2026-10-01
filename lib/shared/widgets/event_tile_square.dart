@@ -113,6 +113,25 @@ class EventTileSquare extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Team event: "For U12 Lions".
+                  if (audienceLabel(e.audienceTeams) case final String who)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: Row(children: [
+                        const Icon(Icons.shield_outlined,
+                            size: 10, color: Colors.white),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(who,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800)),
+                        ),
+                      ]),
+                    ),
                   Text(e.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,

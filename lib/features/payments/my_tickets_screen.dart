@@ -9,7 +9,9 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/payments/payment_models.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/payments/payments_repository.dart';
+import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
+import 'package:sportpadi_mobile/shared/format/ticket_validity.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
@@ -17,23 +19,65 @@ import 'package:sportpadi_mobile/shared/widgets/sheet_scroll.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// My purchases — paid tickets as ticket stubs (2026), each opening its
-/// gate QR. Unused tickets lead; used ones sit under their own tab.
+/// gate QR. Unused tickets lead; used ones — scanned, or used up when their
+/// recurring cycle ended — sit under their own tab. My
+/// wards' tickets are here too ("Ward · Tobi") — I show their QR at the gate.
+/// [openCode] (from `/tickets/<code>`) opens that receipt straight away.
 class MyTicketsScreen extends ConsumerStatefulWidget {
-  const MyTicketsScreen({super.key});
+  const MyTicketsScreen({super.key, this.openCode});
+  final String? openCode;
 
   @override
   ConsumerState<MyTicketsScreen> createState() => _MyTicketsScreenState();
 }
 
+/// Not scanned yet, and its cycle (recurring tickets) hasn't ended.
+bool _isReady(MyTicket t) => t.redeemedAt == null && t.expiredAt == null;
+
 class _MyTicketsScreenState extends ConsumerState<MyTicketsScreen> {
   bool _used = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final code = widget.openCode;
+    if (code != null && code.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openReceipt(code));
+    }
+  }
+
+  /// A ticket from my list when it's there (mine or my ward's), else the
+  /// receipt itself (e.g. one I bought for someone else).
+  Future<MyTicket> _ticketFor(String code) async {
+    final list = await ref.read(myTicketsProvider.future);
+    for (final t in list) {
+      if (t.code == code) return t;
+    }
+    return ref.read(paymentsRepositoryProvider).receipt(code);
+  }
+
+  Future<void> _openReceipt(String code) async {
+    try {
+      final t = await _ticketFor(code);
+      if (!mounted) return;
+      await showSpSheet<void>(
+        context,
+        framed: false,
+        builder: (_) => _LiveTicketSheet(ticket: t),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('$e')));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
     final tickets = ref.watch(myTicketsProvider);
     final all = tickets.valueOrNull ?? const <MyTicket>[];
-    final ready = all.where((t) => t.redeemedAt == null).length;
+    final ready = all.where(_isReady).length;
     final used = all.length - ready;
     return Scaffold(
       backgroundColor: p.bg,
@@ -69,7 +113,7 @@ class _MyTicketsScreenState extends ConsumerState<MyTicketsScreen> {
                 data: (list) {
                   final shown = [
                     for (final t in list)
-                      if ((t.redeemedAt != null) == _used) t
+                      if (_isReady(t) != _used) t
                   ];
                   // Groups the holder neither belongs to nor follows → nudge
                   // a follow so their events stay on the home page.
@@ -108,7 +152,7 @@ class _MyTicketsScreenState extends ConsumerState<MyTicketsScreen> {
                         const SizedBox(height: 4),
                         Text(
                             _used
-                                ? 'Tickets move here once they\'re scanned at the gate.'
+                                ? 'Tickets move here once they\'re scanned at the gate, or when their cycle ends.'
                                 : 'Tickets you buy — or get gifted — land here, ready to show at the gate.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
@@ -149,18 +193,26 @@ class _TicketStub extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final t = ticket;
-    final ready = t.redeemedAt == null;
+    // Its recurring cycle ended before it was scanned: paid, but it no longer
+    // admits anyone.
+    final usedUp = t.usedUp;
+    final ready = _isReady(t);
     final bg = ready ? p.hero : p.surface;
     final fg = ready ? p.onHero : p.ink;
     final muted = ready ? p.heroMuted : p.muted;
-    final eyebrow = t.giftedByName != null
+    final ward = t.forWard;
+    final eyebrow = ward == null && t.giftedByName != null
         ? 'GIFTED BY ${t.giftedByName!.toUpperCase()}'
         : ready
             ? 'READY TO SCAN'
-            : 'USED ${formatDayYear(t.redeemedAt).toUpperCase()}';
+            : usedUp
+                ? 'CYCLE ENDED'
+                : 'USED ${formatDayYear(t.redeemedAt).toUpperCase()}';
+    final valid = validityRange(t.validFrom, t.validUntil);
     final meta = [
       if (t.groupName != null) t.groupName!,
       if (t.eventDate != null) formatDayYear(t.eventDate),
+      if (valid != null) 'Valid $valid',
     ].join(' · ');
 
     return Material(
@@ -190,21 +242,42 @@ class _TicketStub extends StatelessWidget {
                         style: TextStyle(
                             color: ready
                                 ? const Color(0xFF6EDC9E)
-                                : t.giftedByName != null
+                                : ward == null && t.giftedByName != null
                                     ? p.orangeInk
                                     : p.muted,
                             fontSize: 11,
                             letterSpacing: 1.3,
                             fontWeight: FontWeight.w700)),
                     const SizedBox(height: 6),
-                    Text(t.eventTitle ?? t.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: fg,
-                            fontSize: 18,
-                            height: 1.25,
-                            fontWeight: FontWeight.w800)),
+                    Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Expanded(
+                        child: Text(t.eventTitle ?? t.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: fg,
+                                fontSize: 18,
+                                height: 1.25,
+                                fontWeight: FontWeight.w800)),
+                      ),
+                      if (usedUp) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          margin: const EdgeInsets.only(top: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: p.surface2,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text('Used up',
+                              style: TextStyle(
+                                  color: p.muted,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                      ],
+                    ]),
                     if (t.eventTitle != null)
                       Text(t.title,
                           maxLines: 1,
@@ -219,6 +292,10 @@ class _TicketStub extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(color: muted, fontSize: 12.5)),
+                    ],
+                    if (ward != null) ...[
+                      const SizedBox(height: 8),
+                      WardForChip(ward.firstName, onDark: ready),
                     ],
                   ]),
             ),
@@ -415,7 +492,7 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
   void initState() {
     super.initState();
     _t = widget.ticket;
-    if (_t.redeemedAt == null) {
+    if (_t.redeemedAt == null && _t.showsQr) {
       _poll = Timer.periodic(const Duration(seconds: 4), (_) => _refresh());
     }
   }
@@ -450,6 +527,10 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
     final p = context.palette;
     final t = _t;
     final used = t.redeemedAt != null;
+    // Its recurring cycle ended: paid, but no longer admits anyone.
+    final usedUp = t.usedUp;
+    final valid = validityRange(t.validFrom, t.validUntil);
+    final ward = t.forWard;
     return Container(
       constraints:
           BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.92),
@@ -503,9 +584,11 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
                       Row(children: [
                         Expanded(
                           child: Text(
-                              t.giftedByName != null
-                                  ? 'GIFTED BY ${t.giftedByName!.toUpperCase()}'
-                                  : 'MATCH TICKET',
+                              ward != null
+                                  ? 'FOR ${ward.firstName.toUpperCase()}'
+                                  : t.giftedByName != null
+                                      ? 'GIFTED BY ${t.giftedByName!.toUpperCase()}'
+                                      : 'MATCH TICKET',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -523,11 +606,20 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
                                 : p.onHero.withAlpha(30),
                             borderRadius: BorderRadius.circular(999),
                           ),
-                          child: Text(used ? 'Used' : 'Valid',
+                          child: Text(
+                              used
+                                  ? 'Used'
+                                  : usedUp
+                                      ? 'Used up'
+                                      : t.status == 'paid'
+                                          ? 'Valid'
+                                          : capitalizeFirst(t.status),
                               style: TextStyle(
                                   color: used
                                       ? const Color(0xFF6EDC9E)
-                                      : p.onHero,
+                                      : usedUp
+                                          ? p.heroMuted
+                                          : p.onHero,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700)),
                         ),
@@ -550,6 +642,7 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
                           [
                             if (t.groupName != null) t.groupName!,
                             if (t.eventDate != null) formatDayYear(t.eventDate),
+                            if (valid != null) 'Valid $valid',
                           ].join(' · '),
                           style:
                               TextStyle(color: p.heroMuted, fontSize: 12.5)),
@@ -589,7 +682,70 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
                                   color: p.muted, fontSize: 12.5)),
                         ]),
                       )
-                    : Column(children: [
+                    : usedUp
+                        // Cycle ended — no QR: it would only be turned away
+                        // at the gate.
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 26, horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: p.surface2,
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                            child: Column(children: [
+                              Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                    color: p.surface, shape: BoxShape.circle),
+                                child: Icon(Icons.event_busy_outlined,
+                                    size: 30, color: p.muted),
+                              ),
+                              const SizedBox(height: 12),
+                              Text('Used up',
+                                  style: TextStyle(
+                                      color: p.ink,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800)),
+                              const SizedBox(height: 2),
+                              Text(
+                                  'Used up — this cycle has ended'
+                                  '${t.validUntil != null ? ' (last day ${shortDay(t.validUntil!)})' : ''}. '
+                                  'Used-up tickets can\'t be refunded.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      color: p.muted,
+                                      fontSize: 12.5,
+                                      height: 1.45)),
+                            ]),
+                          )
+                    : !t.showsQr
+                        // Not mine to present (a ticket I bought for someone
+                        // else) or not paid yet: the receipt, no QR.
+                        ? Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: p.surface2,
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Row(children: [
+                              Icon(Icons.qr_code_2_rounded,
+                                  size: 20, color: p.muted),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  t.status != 'paid'
+                                      ? 'This payment is ${t.status} — the gate QR appears once it has gone through.'
+                                      : 'The gate QR is with ${t.holderName ?? 'the ticket holder'} — they show it at the gate.',
+                                  style: TextStyle(
+                                      color: p.muted,
+                                      fontSize: 12.5,
+                                      height: 1.4),
+                                ),
+                              ),
+                            ]),
+                          )
+                        : Column(children: [
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
@@ -611,9 +767,15 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
                                 color: p.accent, shape: BoxShape.circle),
                           ),
                           const SizedBox(width: 6),
-                          Text('Show this at the gate — it updates when scanned',
-                              style: TextStyle(
-                                  color: p.muted, fontSize: 12)),
+                          Flexible(
+                            child: Text(
+                                ward != null
+                                    ? 'Show this at the gate for ${ward.firstName}'
+                                    : 'Show this at the gate — it updates when scanned',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    color: p.muted, fontSize: 12)),
+                          ),
                         ]),
                       ]),
               ),
@@ -676,6 +838,17 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
               _kv(p, 'Total paid',
                   formatMoney(t.totalMinor, t.currency, t.currencyExponent),
                   bold: true),
+              if (t.refundedMinor > 0)
+                _kv(
+                    p,
+                    t.status == 'refunded' ? 'Refunded' : 'Refunded so far',
+                    formatMoney(
+                        t.refundedMinor, t.currency, t.currencyExponent)),
+              if (ward != null) _kv(p, 'For', ward.displayName),
+              if (ward == null &&
+                  !t.canPresent &&
+                  t.holderName != null)
+                _kv(p, 'For', t.holderName!),
               if (t.groupName != null) _kv(p, 'Group', t.groupName!),
               if (t.eventTitle != null) _kv(p, 'Event', t.eventTitle!),
               if (t.eventDate != null)
@@ -683,8 +856,11 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
               if (t.paidAt != null) _kv(p, 'Paid', formatDayYear(t.paidAt)),
               if (t.giftedByName != null)
                 _kv(p, 'Paid for by', t.giftedByName!),
+              if (valid != null) _kv(p, 'Valid', valid),
               if (t.redeemedAt != null)
                 _kv(p, 'Used', formatDayYear(t.redeemedAt)),
+              // The cycle's last day (when it was closed can be the morning after).
+              if (usedUp) _kv(p, 'Cycle ended', shortDay(t.validUntil ?? t.expiredAt!)),
             ]),
           ),
         ]),

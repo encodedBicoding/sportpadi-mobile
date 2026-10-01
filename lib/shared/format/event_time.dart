@@ -1,8 +1,8 @@
-import 'package:flutter_timezone/flutter_timezone.dart';
-import 'package:timezone/data/latest_10y.dart' as tzdata;
+import 'package:intl/intl.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
+import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 
 /// Zone-aware event times — the Dart half of `packages/lib/src/time.ts`.
@@ -21,24 +21,13 @@ import 'package:sportpadi_mobile/shared/format/parse.dart';
 /// Flutter has no tz database of its own, which is why this needs the
 /// `timezone` package; the web side gets the same data free from ICU.
 
-String? _deviceTz;
-bool _ready = false;
+/// Load the tz database and read the device's zone (shared with instant
+/// formatting — see `instant.dart`). Safe to call more than once; failures
+/// leave the app on venue-time-only, which is never wrong, just less helpful.
+Future<void> initEventTime() => initTimeZones();
 
-/// Load the tz database and read the device's zone. Safe to call more than
-/// once; failures leave the app on venue-time-only, which is never wrong, just
-/// less helpful.
-Future<void> initEventTime() async {
-  if (_ready) return;
-  try {
-    // latest_10y: the full database is ~1MB, this trim is a fraction of that
-    // and covers every event anyone will schedule.
-    tzdata.initializeTimeZones();
-    _deviceTz = await FlutterTimezone.getLocalTimezone();
-    _ready = true;
-  } catch (_) {
-    _ready = true; // don't retry on every frame
-  }
-}
+/// Same shape as `formatDay` ("Sat, 12 Oct"), for the viewer's own day.
+final _viewerDay = DateFormat('EEE, d MMM');
 
 tz.Location? _loc(String? name) {
   if (name == null || name.isEmpty) return null;
@@ -122,7 +111,9 @@ EventTimeParts formatEventTime({
       tz.TZDateTime(venue, d.year, d.month, d.day, t.hour, t.minute);
   final venueZone = _zoneLabel(instant);
 
-  final viewer = _loc(_deviceTz);
+  // The viewer's zone: the one they picked in Settings, else the device's —
+  // the same zone every message and notification timestamp is shown in.
+  final viewer = _loc(viewerTimezone);
   if (viewer == null ||
       viewer.name == venue.name ||
       instant.timeZoneOffset == tz.TZDateTime.from(instant, viewer).timeZoneOffset) {
@@ -134,8 +125,10 @@ EventTimeParts formatEventTime({
   // Include the weekday when the conversion lands on another day — a bare
   // "9:30 AM" would be quietly wrong.
   final rolled = mine.day != instant.day;
-  final viewerTime =
-      rolled ? '${formatDay(mine)}, ${formatClock(mine)}' : formatClock(mine);
+  // Format [mine]'s own fields: formatDay()/formatClock() read the UTC face
+  // (right for the stored venue wall clock, wrong for a zoned instant).
+  final clock = formatTime12('${mine.hour}:${mine.minute}');
+  final viewerTime = rolled ? '${_viewerDay.format(mine)}, $clock' : clock;
 
   return EventTimeParts(
     day: day,

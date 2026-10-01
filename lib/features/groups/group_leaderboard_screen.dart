@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/data/groups/group_models.dart';
 import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
+import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
@@ -40,6 +41,18 @@ class _GroupLeaderboardScreenState
   String _board = 'performance';
   String? _seasonId; // null = the current season (or all time)
   int _view = 0; // 0 = ranking, 1 = full table
+  String _ageBand = 'all'; // all | u12 | u16 | u18 | adults
+
+  static const _ageBands = [
+    (key: 'all', label: 'All ages'),
+    (key: 'u12', label: 'Under 12'),
+    (key: 'u16', label: 'Under 16'),
+    (key: 'u18', label: 'Under 18'),
+    (key: 'adults', label: 'Adults'),
+  ];
+
+  ({String groupId, String? categoryId, String ageBand}) get _boardKey =>
+      (groupId: groupId, categoryId: _categoryId, ageBand: _ageBand);
   String _sortKey = 'points'; // games | points | goals | assists
   bool _sortDesc = true;
 
@@ -66,7 +79,7 @@ class _GroupLeaderboardScreenState
           _categoryId;
     }
     final board = ref.watch(groupLeaderboardProvider(
-        (groupId: groupId, categoryId: _categoryId)));
+        _boardKey));
     final group = ref.watch(groupProvider(groupId)).valueOrNull;
     final me = ref.watch(meProvider).valueOrNull?.userId;
 
@@ -170,9 +183,48 @@ class _GroupLeaderboardScreenState
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
         ]);
       }
+      // Age bands — styled like the sport chips (juniors get their own
+      // table, from date of birth).
+      children.addAll([
+        SizedBox(
+          height: 36,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              for (final b in _ageBands)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Material(
+                    color: _ageBand == b.key ? p.accentTint : p.surface2,
+                    shape: const StadiumBorder(),
+                    child: InkWell(
+                      customBorder: const StadiumBorder(),
+                      onTap: () => setState(() => _ageBand = b.key),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 13, vertical: 8),
+                        child: Text(
+                          b.label,
+                          style: TextStyle(
+                              color:
+                                  _ageBand == b.key ? p.greenText : p.ink,
+                              fontSize: 12.5,
+                              fontWeight: _ageBand == b.key
+                                  ? FontWeight.w700
+                                  : FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+      ]);
       children.add(board.when(
         loading: () => const Padding(
           padding: EdgeInsets.all(40),
@@ -187,7 +239,7 @@ class _GroupLeaderboardScreenState
             SpButton(
                 label: 'Retry',
                 onTap: () => ref.invalidate(groupLeaderboardProvider(
-                    (groupId: groupId, categoryId: _categoryId)))),
+                    _boardKey))),
           ]),
         ),
         data: (rows) {
@@ -198,16 +250,22 @@ class _GroupLeaderboardScreenState
                 const SpIconTile(Icons.leaderboard_outlined,
                     size: 56, iconSize: 26),
                 const SizedBox(height: 12),
-                Text('No completed games yet',
+                Text(
+                    _ageBand == 'all'
+                        ? 'No completed games yet'
+                        : 'No players in this age group yet.',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                         color: p.ink,
                         fontSize: 15,
                         fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 Text(
-                  (cats ?? const []).length > 1
-                      ? 'Nothing finished in this sport yet — try another one above.'
-                      : 'Once games finish, players show up here.',
+                  _ageBand != 'all'
+                      ? 'Try another age group above.'
+                      : (cats ?? const []).length > 1
+                          ? 'Nothing finished in this sport yet — try another one above.'
+                          : 'Once games finish, players show up here.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: p.muted, fontSize: 13),
                 ),
@@ -289,7 +347,7 @@ class _GroupLeaderboardScreenState
         bottom: false,
         child: RefreshIndicator(
           onRefresh: () async => ref.refresh(groupLeaderboardProvider(
-                  (groupId: groupId, categoryId: _categoryId))
+                  _boardKey)
               .future),
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
@@ -437,13 +495,22 @@ class _GroupLeaderboardScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(mine ? 'You' : r.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: p.ink,
-                      fontSize: 14,
-                      fontWeight: mine ? FontWeight.w800 : FontWeight.w700)),
+              Row(children: [
+                Flexible(
+                  child: Text(mine ? 'You' : r.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 14,
+                          fontWeight:
+                              mine ? FontWeight.w800 : FontWeight.w700)),
+                ),
+                if (r.isWard) ...[
+                  const SizedBox(width: 6),
+                  const WardBadge(),
+                ],
+              ]),
               Text(
                 [
                   '${r.wins}-${r.draws}-${r.losses}',

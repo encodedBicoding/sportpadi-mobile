@@ -9,9 +9,12 @@ import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/event_audience.dart';
 import 'package:sportpadi_mobile/features/home/suggested_events_section.dart';
 import 'package:sportpadi_mobile/features/home/past_events_section.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart' show showSideMenu;
+import 'package:sportpadi_mobile/features/inbox/inbox_button.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart'
+    show SideMenuAttentionCount, showSideMenu;
 import 'package:sportpadi_mobile/data/notifications/notifications_repository.dart'
     show unreadCountProvider;
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart'
@@ -34,7 +37,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  String _range = 'today'; // live | today | upcoming | kids | all
+  String _range = 'today'; // live | today | upcoming | all
   String? _sport; // category name filter, null = All
   // A day picked on the calendar's week strip ("yyyy-mm-dd"); overrides
   // [_range] until a range chip is tapped again.
@@ -67,10 +70,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return k.compareTo(_todayKey()) > 0;
   }
 
-  // Kids/wards aren't implemented yet — the tab only appears once the user
-  // actually has a ward linked to their account (wire this up when wards
-  // land).
-  bool get _hasWards => false;
+  /// "Ward · Tobi, Zara" — which of my wards an event is on my feed for.
+  static String? _wardChip(EventSummary e) => e.forWards.isEmpty
+      ? null
+      : 'Ward · ${e.forWards.map((w) => w.name).join(', ')}';
 
   @override
   Widget build(BuildContext context) {
@@ -139,9 +142,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const _HomeHeader(),
 
                 // Local ads — invisible until the owner activates mobile
-                // slots with this key; location-targeted server-side.
+                // slots with this key; location-targeted server-side. Also
+                // "home_top": SportPadi messages at the top of Home (a slot
+                // set to Top bar or Card in the console), drawn first.
                 const SizedBox(height: 12),
-                const AdDisplay(slots: ['mobile_home'], carousel: true),
+                const AdDisplay(slots: ['home_top', 'mobile_home'], carousel: true),
 
                 // Quick actions
                 const SizedBox(height: 6),
@@ -347,10 +352,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return '${_wd3[d.weekday - 1]} ${d.day} ${_mo[d.month - 1].substring(0, 3)}';
   }
 
-  /// The dashboard calendar (2026): one card with a two-week day strip
-  /// (dots mark days with events, red when something's live), range chips
-  /// (Live / Today / Upcoming / All — Kids when wards exist), and an agenda
-  /// grouped by day on a timeline.
+  /// The dashboard calendar (2026): one card with a two-week day strip,
+  /// range chips (Live / Today / Upcoming / All) and an agenda grouped by day
+  /// on a timeline. Wards' events are part of the same calendar: under each
+  /// day a green dot marks your events (red when live) and a violet dot marks
+  /// ward events; ward rows carry a "Ward · Tobi" badge.
   Widget _calendarPanel(
       BuildContext context,
       AppPalette p,
@@ -363,12 +369,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final days = [for (var i = 0; i < 14; i++) today.add(Duration(days: i))];
-    // Which strip days have something on (and whether any of it is live).
-    final onDay = <String, bool>{};
+    // Per strip day: your own events, whether any is live, and your wards'
+    // events (an event a ward is going to counts as ward activity).
+    final onDay = <String, ({bool mine, bool live, bool ward})>{};
     for (final e in all) {
       final k = _eventKey(e);
       if (k == null) continue;
-      onDay[k] = (onDay[k] ?? false) || _live(e);
+      final d = onDay[k] ?? (mine: false, live: false, ward: false);
+      final isWard = e.forWards.isNotEmpty;
+      onDay[k] = (
+        mine: d.mine || !isWard,
+        live: d.live || _live(e),
+        ward: d.ward || isWard,
+      );
     }
     final selectedDay = _day;
     final monthLabel = selectedDay != null
@@ -385,7 +398,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         count: upcomingList.length,
         live: false
       ),
-      if (_hasWards) (key: 'kids', label: 'Kids', count: 0, live: false),
       (key: 'all', label: 'All', count: all.length, live: false),
     ];
 
@@ -434,8 +446,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final k = _key(d);
       final isToday = k == _key(today);
       final selected = _day == k || (_day == null && _range == 'today' && isToday);
-      final has = onDay.containsKey(k);
-      final live = onDay[k] == true;
+      final info = onDay[k];
+      final live = info?.live ?? false;
+      final mineDot = info != null && (info.mine || info.live);
+      final wardDot = info?.ward ?? false;
       return Padding(
         padding: const EdgeInsets.only(right: 6),
         child: GestureDetector(
@@ -474,19 +488,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       height: 1.1,
                       fontWeight: FontWeight.w800)),
               const SizedBox(height: 5),
-              Container(
-                width: 5,
+              SizedBox(
                 height: 5,
-                decoration: BoxDecoration(
-                  color: !has
-                      ? Colors.transparent
-                      : live
-                          ? const Color(0xFFE02424)
-                          : selected
-                              ? const Color(0xFF6EDC9E)
-                              : p.accent,
-                  shape: BoxShape.circle,
-                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  if (mineDot)
+                    Container(
+                      width: 5,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: live
+                            ? const Color(0xFFE02424)
+                            : selected
+                                ? const Color(0xFF6EDC9E)
+                                : p.accent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  if (mineDot && wardDot) const SizedBox(width: 3),
+                  if (wardDot)
+                    Container(
+                      width: 5,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: selected ? p.wardTint : p.ward,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                ]),
               ),
             ]),
           ),
@@ -505,11 +533,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     final Widget agenda;
-    if (_range == 'kids' && _day == null) {
-      agenda = _calendarEmpty(p, Icons.child_care_rounded,
-          'Kids & wards are coming soon',
-          "You'll be able to follow your kids' events across their groups right here.");
-    } else if (panelList.isEmpty) {
+    if (panelList.isEmpty) {
       agenda = _calendarEmpty(
         p,
         Icons.event_available_outlined,
@@ -671,7 +695,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
 
   /// One agenda row on the timeline: start (and end) time, a dot on the
-  /// rail, then title, group and venue. Live rows go red; tournaments orange.
+  /// rail, then title, group and venue. Live rows go red; ward events violet
+  /// (with a "Ward · Tobi" badge); tournaments orange.
   Widget _eventRow(BuildContext context, AppPalette p, EventSummary e,
       {bool last = false}) {
     final live = _live(e);
@@ -680,9 +705,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final end = formatClock(e.endTime);
     final railColor = live
         ? p.danger
-        : t
-            ? p.orange
-            : p.accent;
+        : e.forWards.isNotEmpty
+            ? p.ward
+            : t
+                ? p.orange
+                : p.accent;
     final sub = [
       if (e.groupName != null) e.groupName!,
       if (e.locationName != null) e.locationName!,
@@ -774,6 +801,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               overflow: TextOverflow.ellipsis,
                               style:
                                   TextStyle(color: p.muted, fontSize: 12)),
+                        if (_wardChip(e) != null ||
+                            e.audienceTeams.isNotEmpty) ...[
+                          const SizedBox(height: 5),
+                          Wrap(spacing: 6, runSpacing: 4, children: [
+                            if (_wardChip(e) case final String chip)
+                              SpBadge(chip,
+                                  icon: Icons.supervisor_account_rounded,
+                                  tone: p.wardInk),
+                            // Team event: "For U12 Lions".
+                            if (e.audienceTeams.isNotEmpty)
+                              AudienceBadge(e.audienceTeams),
+                          ]),
+                        ],
                       ]),
                 ),
                 if (live) ...[
@@ -933,7 +973,8 @@ class _HomeHeader extends ConsumerWidget {
         : h < 17
             ? 'Good afternoon'
             : 'Good evening';
-    final first = (me?.displayName.trim().split(RegExp(r'\s+')).first ?? '');
+    final first =
+        capitalizeFirst(me?.displayName.trim().split(RegExp(r'\s+')).first);
     final initial = first.isNotEmpty ? first[0].toUpperCase() : '?';
     return Padding(
       padding: const EdgeInsets.only(top: 4),
@@ -953,6 +994,9 @@ class _HomeHeader extends ConsumerWidget {
                     height: 1.15)),
           ]),
         ),
+        // Inbox (announcements) sits beside the bell with its own badge.
+        const InboxHeaderButton(),
+        const SizedBox(width: 8),
         Semantics(
           button: true,
           label: unread > 0 ? 'Notifications, $unread unread' : 'Notifications',
@@ -1012,6 +1056,12 @@ class _HomeHeader extends ConsumerWidget {
                                 color: p.onHero, fontWeight: FontWeight.w700, fontSize: 15))
                         : null,
                   ),
+                ),
+                // What's waiting in the menu this avatar opens.
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: SideMenuAttentionCount(border: p.bg),
                 ),
                 if (week != null)
                   Positioned(
@@ -1121,6 +1171,10 @@ class _NextUpCard extends StatelessWidget {
               if (e.locationName != null && e.locationName!.trim().isNotEmpty)
                 _line(p, Icons.place_outlined, e.locationName!),
               if (e.groupName != null) _line(p, Icons.groups_outlined, e.groupName!),
+              if (_HomeScreenState._wardChip(e) case final String chip)
+                _line(p, Icons.supervisor_account_rounded, chip),
+              if (audienceLabel(e.audienceTeams) case final String who)
+                _line(p, Icons.shield_outlined, who),
               const SizedBox(height: 12),
               Row(children: [
                 Expanded(

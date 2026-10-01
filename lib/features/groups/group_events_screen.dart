@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/event_models.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
+import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_tile_square.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
@@ -71,6 +72,14 @@ class _GroupEventsScreenState extends ConsumerState<GroupEventsScreen> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final group = ref.watch(groupProvider(widget.groupId)).valueOrNull;
+    // Admins, and coaches for the teams they coach.
+    final canCreate = group?.canManage == true ||
+        (group?.isMember == true &&
+            (ref
+                    .watch(eventAudiencesProvider(widget.groupId))
+                    .valueOrNull
+                    ?.canCreate ??
+                false));
     return Scaffold(
       appBar: AppBar(
         leading: const SpLeading(),
@@ -87,7 +96,7 @@ class _GroupEventsScreenState extends ConsumerState<GroupEventsScreen> {
           ],
         ),
         actions: [
-          if (group?.canManage == true)
+          if (canCreate)
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: Center(
@@ -170,6 +179,7 @@ class _GroupEventsScreenState extends ConsumerState<GroupEventsScreen> {
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
+                padding: EdgeInsets.zero,
                 physics: const NeverScrollableScrollPhysics(),
                 mainAxisSpacing: 8,
                 crossAxisSpacing: 8,

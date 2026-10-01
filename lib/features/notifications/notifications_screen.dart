@@ -6,16 +6,42 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/notifications/notification_models.dart';
 import 'package:sportpadi_mobile/data/notifications/notifications_repository.dart';
 import 'package:sportpadi_mobile/features/notifications/notification_permission_sheet.dart';
+import 'package:sportpadi_mobile/features/settings/timezone_provider.dart';
 import 'package:sportpadi_mobile/features/shell/notification_target.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
+import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+
+/// `notifications.type = 'announcement'` is SportPadi's own platform news
+/// (owner broadcasts). Group announcements live in the Inbox; these must
+/// never be called "Announcement" here (docs/design/wards-and-messaging.md B2).
+bool isSportPadiNews(AppNotification n) => n.type == 'announcement';
+
+/// The small kind label shown beside the time, when a kind has one.
+String? notificationKindLabel(AppNotification n) =>
+    isSportPadiNews(n) ? 'SportPadi news' : null;
 
 /// How a notification looks in the list: an icon and its tile colours,
 /// picked from its type and title. Unknown kinds get a quiet bell.
 ({IconData icon, Color bg, Color fg}) notificationLook(
     AppPalette p, AppNotification n) {
+  // Platform news first: its title can say anything ("New events near
+  // you"…), and the keyword rules below would dress it up as something else.
+  if (isSportPadiNews(n)) {
+    return (icon: Icons.newspaper_rounded, bg: p.hero, fg: p.onHero);
+  }
+  // Comments and replies on discussions.
+  if (n.type == 'discussion') {
+    return (icon: Icons.forum_outlined, bg: p.accentTint, fg: p.greenText);
+  }
+  // Event reminders, "Are you coming?" nudges and their digest: the event's
+  // own title can say anything ("Kick-off…", "Team training"), so the type
+  // decides — the calendar look.
+  if (n.type == 'event_reminder') {
+    return (icon: Icons.calendar_today_outlined, bg: p.surface2, fg: p.muted);
+  }
   final k = '${n.type} ${n.title}'.toLowerCase();
   bool has(List<String> words) => words.any(k.contains);
   if (has(['achievement', 'unlocked', 'badge', 'xp', 'level', 'streak', 'quest'])) {
@@ -98,13 +124,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   /// Today / Yesterday / This week / Earlier, on the viewer's own clock.
-  static String _bucket(DateTime? at) {
+  static String _bucket(DateTime? at, DateTime now) {
     if (at == null) return 'Earlier';
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final l = at.toLocal();
-    final day = DateTime(l.year, l.month, l.day);
-    final diff = today.difference(day).inDays;
+    // Whole calendar days between the two, on the viewer's calendar (UTC
+    // midnights, so a DST change can't shave an hour off a day).
+    final diff = DateTime.parse('${dayKey(now)}T00:00:00Z')
+        .difference(DateTime.parse('${dayKey(at)}T00:00:00Z'))
+        .inDays;
     if (diff <= 0) return 'Today';
     if (diff == 1) return 'Yesterday';
     if (diff < 7) return 'This week';
@@ -114,6 +140,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     final feed = ref.watch(notificationsFeedProvider);
+    ref.watch(viewerTimezoneProvider); // repaint stamps on a zone change
     final p = context.palette;
     final items = feed.valueOrNull?.items ?? const <AppNotification>[];
     final unread = items.where((n) => !n.read).length;
@@ -197,8 +224,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   }
                   // Group into day buckets, keeping the feed's order.
                   final groups = <String, List<AppNotification>>{};
+                  final now = DateTime.now();
                   for (final n in list) {
-                    groups.putIfAbsent(_bucket(n.createdAt), () => []).add(n);
+                    groups
+                        .putIfAbsent(_bucket(n.createdAt, now), () => [])
+                        .add(n);
                   }
                   return ListView(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -256,7 +286,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                             color: p.muted, fontSize: 12.5, height: 1.45)),
                   ),
                 const SizedBox(height: 4),
-                Text(timeAgo(n.createdAt),
+                Text(
+                    [
+                      if (notificationKindLabel(n) != null)
+                        notificationKindLabel(n)!,
+                      fmtRelative(n.createdAt),
+                    ].where((s) => s.isNotEmpty).join(' · '),
                     style: TextStyle(color: p.muted, fontSize: 11.5)),
               ],
             ),
@@ -297,6 +332,7 @@ class NotificationDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
+    ref.watch(viewerTimezoneProvider); // repaint stamps on a zone change
     final n = notification;
     final canOpen = hasDestination(n.url);
     final text = n.fullBody ?? n.body ?? '';
@@ -309,7 +345,8 @@ class NotificationDetailScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               children: [
-                const SpHeader(title: 'Notification'),
+                SpHeader(
+                    title: isSportPadiNews(n) ? 'SportPadi news' : 'Notification'),
                 const SizedBox(height: 18),
                 GlassCard(
                   padding: const EdgeInsets.all(20),
@@ -323,7 +360,7 @@ class NotificationDetailScreen extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             n.createdAt != null
-                                ? '${timeAgo(n.createdAt)} · ${formatDayYear(n.createdAt)}'
+                                ? '${timeAgo(n.createdAt)} · ${fmtInstant(n.createdAt, style: InstantStyle.full)}'
                                 : '',
                             style: TextStyle(color: p.muted, fontSize: 12.5),
                           ),

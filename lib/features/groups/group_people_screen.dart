@@ -6,6 +6,8 @@ import 'package:sportpadi_mobile/data/groups/member_models.dart';
 import 'package:sportpadi_mobile/data/groups/members_repository.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
+import 'package:sportpadi_mobile/features/inbox/message_entry_points.dart';
+import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
@@ -138,11 +140,24 @@ class _MembersList extends ConsumerWidget {
                         ),
                       role,
                     ]);
+              // Staff: message this member (a ward: their guardians). Hides
+              // itself for anyone the viewer can't reach.
+              final message = MessageMemberButton(
+                groupId: groupId,
+                memberId: m.userId,
+                name: m.displayName,
+                isWard: m.isWard,
+              );
+              final withMessage =
+                  Row(mainAxisSize: MainAxisSize.min, children: [message, badge]);
               // Nobody edits their own row (the server also refuses to
               // change the creator's role).
-              if (!canManage || m.userId == myUserId) return badge;
+              // Wards can't sign in, so they're never made admins.
+              if (!canManage || m.userId == myUserId) return withMessage;
+              if (m.isWard && m.role != 'admin') return withMessage;
               final isAdmin = m.role == 'admin';
               return Row(mainAxisSize: MainAxisSize.min, children: [
+                message,
                 badge,
                 PopupMenuButton<String>(
                   tooltip: 'Role',
@@ -596,14 +611,27 @@ class _PersonRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(m.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: p.ink,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600)),
-              if (m.username != null)
+              Row(children: [
+                Flexible(
+                  child: Text(m.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600)),
+                ),
+                if (m.isWard) ...[
+                  const SizedBox(width: 6),
+                  const WardBadge(),
+                ],
+              ]),
+              if (m.isWard && m.wardOf != null)
+                Text('Ward of ${m.wardOf}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: p.wardInk, fontSize: 11.5))
+              else if (m.username != null)
                 Text('@${m.username}',
                     style: TextStyle(color: p.muted, fontSize: 11.5)),
             ],

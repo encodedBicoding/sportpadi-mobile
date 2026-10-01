@@ -9,6 +9,9 @@ class GroupMemberItem {
     this.role,
     this.isMember = false,
     this.createdAt,
+    this.isWard = false,
+    this.wardOf,
+    this.wardOfUserId,
   });
 
   final String userId;
@@ -21,6 +24,14 @@ class GroupMemberItem {
   /// Followers list only: when they followed.
   final DateTime? createdAt;
 
+  /// A ward (a player a guardian runs). Limited wards come back with a short
+  /// name, no photo and an empty username.
+  final bool isWard;
+
+  /// The guardian's name ("Ward of Ada Obi"), when the viewer may see it.
+  final String? wardOf;
+  final String? wardOfUserId;
+
   factory GroupMemberItem.fromJson(Map<String, dynamic> j) => GroupMemberItem(
         userId: (j['userId'] ?? j['playerId'] ?? j['id'] ?? '') as String,
         displayName: (j['displayName'] ?? j['name'] ?? 'Member') as String,
@@ -29,6 +40,9 @@ class GroupMemberItem {
         role: parseStr(j['role']),
         isMember: j['isMember'] == true,
         createdAt: parseDate(j['createdAt']),
+        isWard: j['isWard'] == true,
+        wardOf: parseStr(j['wardOf']),
+        wardOfUserId: parseStr(j['wardOfUserId']),
       );
 }
 

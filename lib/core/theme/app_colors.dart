@@ -98,6 +98,15 @@ class AppPalette {
   );
 }
 
+/// Wards (violet): events one of your wards is going to — kept apart from
+/// green (yours), red (live) and orange (tournaments) on the calendar.
+extension WardColorsX on AppPalette {
+  bool get _dark => bg.computeLuminance() < 0.2;
+  Color get ward => _dark ? const Color(0xFF9580FF) : const Color(0xFF7C5CFF);
+  Color get wardTint => _dark ? const Color(0xFF262046) : const Color(0xFFEFEBFF);
+  Color get wardInk => _dark ? const Color(0xFFC4B5FF) : const Color(0xFF5A3FD6);
+}
+
 /// Convenience access to the active palette from a [BuildContext].
 extension PaletteX on BuildContext {
   AppPalette get palette => Theme.of(this).brightness == Brightness.dark

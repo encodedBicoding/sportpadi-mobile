@@ -24,6 +24,9 @@ class ManagedTicket {
     this.salesEndAt,
     this.capacity,
     this.createdAt,
+    this.validFrom,
+    this.validUntil,
+    this.cycleNo = 1,
   });
   final String id;
   final String groupId;
@@ -46,6 +49,31 @@ class ManagedTicket {
   final DateTime? salesEndAt;
   final int? capacity;
   final DateTime? createdAt;
+
+  /// VALIDITY of a recurring ticket's cycle — how long a purchase admits you
+  /// (start of the first day → end of the last day). Set by SportPadi at
+  /// creation and never edited; null for one-time tickets. Not the sales
+  /// window ([salesStartAt]/[salesEndAt]), which is only when it can be bought.
+  final DateTime? validFrom;
+  final DateTime? validUntil;
+
+  /// Which cycle of the series this row is (1 = the first).
+  final int cycleNo;
+
+  bool get isRecurring => recurrence != 'one_time';
+
+  /// The next cycle, already on sale before it starts.
+  bool get isNextCycle {
+    final from = validFrom;
+    return isRecurring && from != null && from.isAfter(DateTime.now());
+  }
+
+  /// An old cycle: once its last day is over the server switches it off and a
+  /// fresh ticket row runs the next cycle.
+  bool get isEndedCycle {
+    final until = validUntil;
+    return !isActive && isRecurring && until != null && until.isBefore(DateTime.now());
+  }
 
   bool get soldOut => capacity != null && soldCount >= capacity!;
   String get soldLabel => capacity == null
@@ -79,6 +107,9 @@ class ManagedTicket {
       salesEndAt: parseDate(j['salesEndAt']),
       capacity: parseInt(j['capacity']),
       createdAt: parseDate(j['createdAt']),
+      validFrom: parseDate(j['validFrom']),
+      validUntil: parseDate(j['validUntil']),
+      cycleNo: parseInt(j['cycleNo']) ?? 1,
     );
   }
 }
@@ -98,7 +129,17 @@ class TicketSale {
     this.paidAt,
     this.redeemedAt,
     this.reconciled = false,
-  });
+    this.groupShare,
+    this.feeBearer = 'buyer',
+    this.platformFee,
+    this.provider,
+    this.canRefund = false,
+    this.refundBlocked,
+    this.expiredAt,
+    this.refundFailReason,
+    this.refundedMinor = 0,
+    int? refundableMinor,
+  }) : _refundableMinor = refundableMinor;
   final String id;
   final String buyerName;
   final String? buyerUsername;
@@ -112,6 +153,44 @@ class TicketSale {
   final DateTime? redeemedAt;
   /// An admin has put this payment right against the provider at least once.
   final bool reconciled;
+  /// What the group receives — the price, or the price less the fees when the
+  /// group paid them. Null from older servers (use [amount]).
+  final int? groupShare;
+  /// Who covered the fees on this sale: 'buyer' | 'group'.
+  final String feeBearer;
+  /// SportPadi's processing fee on this sale (non-refundable).
+  final int? platformFee;
+  /// Who took the money: stripe | paystack | flutterwave — null when the
+  /// ticket was issued outside SportPadi.
+  final String? provider;
+  /// The admin can refund this purchase from here (paid, provider-paid, not
+  /// used up). [refundBlocked] says why not.
+  final bool canRefund;
+  final String? refundBlocked;
+  /// When a recurring purchase was used up (its cycle ended).
+  final DateTime? expiredAt;
+  /// Why the last refund attempt failed, if it did (the sale is still paid).
+  final String? refundFailReason;
+  /// Partial refunds: how much of the price has been given back so far. A
+  /// partly refunded sale is still 'paid' and its ticket still valid.
+  final int refundedMinor;
+  final int? _refundableMinor;
+  /// What can still be refunded (the price less what's been refunded; the fee
+  /// never is). Older servers don't send it — fall back to the whole price.
+  int get refundableMinor =>
+      _refundableMinor ?? (status == 'paid' ? amount - refundedMinor : 0);
+
+  /// The provider's name for people: Stripe, Paystack, Flutterwave.
+  String? get providerLabel => switch (provider) {
+        'stripe' => 'Stripe',
+        'paystack' => 'Paystack',
+        'flutterwave' => 'Flutterwave',
+        final String other => other[0].toUpperCase() + other.substring(1),
+        null => null,
+      };
+
+  /// What this sale is worth to the group.
+  int get received => groupShare ?? amount;
 
   factory TicketSale.fromJson(Map<String, dynamic> j) => TicketSale(
         id: (j['id'] ?? '') as String,
@@ -126,6 +205,16 @@ class TicketSale {
         paidAt: parseDate(j['paidAt']),
         redeemedAt: parseDate(j['redeemedAt']),
         reconciled: j['reconciled'] == true,
+        groupShare: parseInt(j['groupShare']),
+        feeBearer: parseStr(j['feeBearer']) ?? 'buyer',
+        platformFee: parseInt(j['platformFee']),
+        provider: parseStr(j['provider']),
+        canRefund: j['canRefund'] == true,
+        refundBlocked: parseStr(j['refundBlocked']),
+        expiredAt: parseDate(j['expiredAt']),
+        refundFailReason: parseStr(j['refundFailReason']),
+        refundedMinor: parseInt(j['refundedMinor']) ?? 0,
+        refundableMinor: parseInt(j['refundableMinor']),
       );
 }
 

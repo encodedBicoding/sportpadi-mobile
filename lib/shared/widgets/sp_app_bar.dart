@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/data/attention/attention_repository.dart';
 import 'package:sportpadi_mobile/data/notifications/notifications_repository.dart';
+import 'package:sportpadi_mobile/features/inbox/inbox_button.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
+import 'package:sportpadi_mobile/data/wards/wards_repository.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/shell/home_shell.dart'
     show homeTabIndexProvider;
@@ -29,6 +34,11 @@ class SpAppBar extends ConsumerWidget implements PreferredSizeWidget {
       title: const AppLogo(height: 34),
       actions: [
         IconButton(
+          tooltip: 'Inbox',
+          onPressed: () => context.push('/inbox'),
+          icon: const InboxIcon(),
+        ),
+        IconButton(
           tooltip: 'Notifications',
           onPressed: () => context.push('/notifications'),
           icon: NotificationBell(count: unread, color: p.danger),
@@ -36,7 +46,11 @@ class SpAppBar extends ConsumerWidget implements PreferredSizeWidget {
         IconButton(
           tooltip: 'Menu',
           onPressed: () => showSideMenu(context),
-          icon: const Icon(Icons.menu_rounded),
+          // What's waiting inside the menu, on the button that opens it.
+          icon: const Stack(clipBehavior: Clip.none, children: [
+            Icon(Icons.menu_rounded),
+            Positioned(top: -1, right: -1, child: SideMenuAttentionCount()),
+          ]),
         ),
         const SizedBox(width: 4),
       ],
@@ -45,9 +59,12 @@ class SpAppBar extends ConsumerWidget implements PreferredSizeWidget {
 }
 
 /// The side menu, sliding in from the right (2026): who you are on a dark
-/// card, quick actions, the main destinations and your own pages, and sign
+/// card, quick actions, the main destinations and your own pages (each with
+/// what's waiting there — [attentionProvider], re-read as it opens), and sign
 /// out pinned to the bottom.
 Future<void> showSideMenu(BuildContext context) {
+  ProviderScope.containerOf(context, listen: false)
+      .invalidate(attentionProvider);
   return showGeneralDialog(
     context: context,
     barrierDismissible: true,
@@ -76,8 +93,22 @@ class _SideMenu extends ConsumerWidget {
     final p = context.palette;
     final me = ref.watch(meProvider).valueOrNull;
     final tab = ref.watch(homeTabIndexProvider);
-    final unread = ref.watch(unreadCountProvider).valueOrNull ?? 0;
+    // What's waiting where, in one call: Inbox (unread announcements +
+    // conversations), Notifications, Discussions, fines and tournament
+    // requests (invites to my groups + squad call-ups).
+    final waiting = ref.watch(attentionProvider).valueOrNull;
+    // My wards: co-guardian invites + team invitations waiting on me.
+    final wardsO = ref.watch(myWardsProvider).valueOrNull;
+    final wardTeamInvites = (wardsO?.wards.isNotEmpty ?? false)
+        ? ref.watch(wardTeamInvitesProvider('')).valueOrNull?.length ?? 0
+        : 0;
+    final wardBadge = (wardsO?.invites.length ?? 0) + wardTeamInvites;
     final width = MediaQuery.sizeOf(context).width;
+
+    // Outlives the menu: a page opened from it can clear what's waiting
+    // (reading the inbox, paying a fine), so the badges are re-read once it
+    // closes.
+    final container = ProviderScope.containerOf(context, listen: false);
 
     void go(String v) {
       Navigator.pop(context); // close the menu first
@@ -85,7 +116,9 @@ class _SideMenu extends ConsumerWidget {
         ref.read(homeTabIndexProvider.notifier).state =
             int.parse(v.substring(4));
       } else {
-        context.push(v);
+        unawaited(context
+            .push<Object?>(v)
+            .whenComplete(() => container.invalidate(attentionProvider)));
       }
     }
 
@@ -276,7 +309,7 @@ class _SideMenu extends ConsumerWidget {
                     item(Icons.groups_outlined, 'Groups', 'tab:2',
                         active: tab == 2),
                     item(Icons.emoji_events_outlined, 'Tournaments', 'tab:3',
-                        active: tab == 3),
+                        badge: waiting?.tournaments.total, active: tab == 3),
                   ]),
 
                   const SizedBox(height: 18),
@@ -285,12 +318,24 @@ class _SideMenu extends ConsumerWidget {
                     child: Eyebrow('You'),
                   ),
                   SpListCard(children: [
+                    item(Icons.campaign_outlined, 'Inbox', '/inbox',
+                        badge: waiting?.inbox.total),
                     item(Icons.notifications_none_rounded, 'Notifications',
                         '/notifications',
-                        badge: unread),
+                        badge: waiting?.notifications),
+                    item(Icons.forum_outlined, 'Discussions', '/discussions',
+                        badge: waiting?.discussions),
+                    item(Icons.supervisor_account_rounded, 'My wards',
+                        '/profile/wards',
+                        badge: wardBadge),
+                    item(Icons.sports_soccer_outlined, 'My sports',
+                        '/profile/sports'),
+                    item(Icons.insights_rounded, 'My records',
+                        '/profile/records'),
                     item(Icons.confirmation_num_outlined, 'My purchases',
                         '/tickets'),
-                    item(Icons.receipt_long_outlined, 'My fines', '/fines'),
+                    item(Icons.receipt_long_outlined, 'My fines', '/fines',
+                        badge: waiting?.fines),
                     item(Icons.settings_outlined, 'Settings', '/settings'),
                   ]),
                 ],
@@ -338,6 +383,69 @@ class _SideMenu extends ConsumerWidget {
                       fontWeight: FontWeight.w600)),
             ),
           ]),
+        ),
+      ),
+    );
+  }
+}
+
+/// The round Menu button on the tab pages' headers, with a dot when anything
+/// in the menu is waiting ([SideMenuAttentionCount]), placed like the bell's.
+class SideMenuButton extends StatelessWidget {
+  const SideMenuButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(clipBehavior: Clip.none, children: [
+      SpRoundButton(
+        icon: Icons.menu_rounded,
+        tooltip: 'Menu',
+        onTap: () => showSideMenu(context),
+      ),
+      // Inside the button, where the bell's dot sits.
+      Positioned(
+        top: 10,
+        right: 11,
+        child: SideMenuAttentionCount(border: context.palette.surface),
+      ),
+    ]);
+  }
+}
+
+/// What's waiting in the side menu, for whatever opens it: a small dot, like
+/// the notification bell's — not a count. Shown when anything in the menu
+/// wants attention ([attentionProvider] plus My wards' invitations); red
+/// while an urgent announcement is waiting. Nothing when nothing is waiting.
+class SideMenuAttentionCount extends ConsumerWidget {
+  const SideMenuAttentionCount({super.key, this.border});
+
+  /// A ring in the colour behind it, so it reads on top of a button or an
+  /// avatar.
+  final Color? border;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final a = ref.watch(attentionProvider).valueOrNull;
+    // My wards' row has its own badge in the menu; it counts here too.
+    final wardsO = ref.watch(myWardsProvider).valueOrNull;
+    final wardTeamInvites = (wardsO?.wards.isNotEmpty ?? false)
+        ? ref.watch(wardTeamInvitesProvider('')).valueOrNull?.length ?? 0
+        : 0;
+    final wardInvites = (wardsO?.invites.length ?? 0) + wardTeamInvites;
+    final waiting = (a?.total ?? 0) + wardInvites;
+    if (waiting <= 0) return const SizedBox.shrink();
+    final p = context.palette;
+    final urgent = a?.urgent ?? false;
+    return Semantics(
+      label: urgent ? 'Something urgent in the menu' : 'Something new in the menu',
+      excludeSemantics: true,
+      child: Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(
+          color: urgent ? p.danger : p.orange,
+          shape: BoxShape.circle,
+          border: Border.all(color: border ?? p.surface, width: 2),
         ),
       ),
     );

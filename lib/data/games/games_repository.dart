@@ -70,6 +70,22 @@ class GamesRepository {
       gameId, {'action': 'phase', 'phaseAction': phaseAction},
       fallback: 'Could not change the period.');
 
+  /// Team timeout: 'call' | 'undo' | 'end' (basketball / volleyball).
+  Future<void> timeout(String gameId, String teamId, String timeoutAction) => _post(
+      gameId, {'action': 'timeout', 'teamId': teamId, 'timeoutAction': timeoutAction},
+      fallback: 'Could not update the timeout.');
+
+  /// Basketball shot clock: back to the full count, or the short one
+  /// ([short]) after an offensive rebound.
+  Future<void> shotClock(String gameId, {bool short = false}) => _post(
+      gameId, {'action': 'shotClock', 'shotAction': short ? 'resetShort' : 'reset'},
+      fallback: 'Could not reset the shot clock.');
+
+  /// Volleyball: 'startNext' (next set) | 'sidesSwitched' (ends changed).
+  Future<void> volleyballSet(String gameId, String setAction) => _post(
+      gameId, {'action': 'volleyballSet', 'setAction': setAction},
+      fallback: 'Could not update the set.');
+
   Future<void> shootout(String gameId, String teamId, String outcome) => _post(
       gameId, {'action': 'shootout', 'teamId': teamId, 'outcome': outcome},
       fallback: 'Could not record the penalty.');

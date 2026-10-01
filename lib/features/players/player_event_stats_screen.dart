@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/players/player_record.dart';
+import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
 import 'package:sportpadi_mobile/shared/format/event_time.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
@@ -54,7 +55,9 @@ class PlayerEventStatsScreen extends ConsumerWidget {
       backgroundColor: p.bg,
       body: SafeArea(
         bottom: false,
-        child: AsyncView(
+        child: isPrivateRecordError(data.error)
+            ? const PlayerPrivateView(title: 'Record in event')
+            : AsyncView(
           value: data,
           onRetry: () => ref.invalidate(playerEventStatsProvider(key)),
           data: (m) {
@@ -83,6 +86,8 @@ class PlayerEventStatsScreen extends ConsumerWidget {
             final record = mapOf(m['record']);
             final matches = listOf(m['matches']);
             final cat = mapOf(event['category']);
+            // The event's sport picks the design (artwork + stats block).
+            final family = cat.isEmpty ? null : familyOf(cat);
             final when = formatEventTimeJson(event);
             final slug = parseStr(event['slug']) ?? eventId;
             final groupId = parseStr(event['groupId']);
@@ -112,6 +117,8 @@ class PlayerEventStatsScreen extends ConsumerWidget {
 
                   // Who, where, and the headline numbers.
                   RecordHero(
+                    family: family,
+                    emoji: parseStr(cat['emoji']),
                     name: shownName,
                     avatarUrl: parseStr(player['avatarUrl']),
                     nameSub: aka != null ? parseStr(player['displayName']) : null,
@@ -180,6 +187,7 @@ class PlayerEventStatsScreen extends ConsumerWidget {
                   else
                     ScopeBlock(
                       title: "$first's record in this event",
+                      family: family ?? SportFamily.generic,
                       collapseKey: 'event-record',
                       tally: record,
                       fields: fields,

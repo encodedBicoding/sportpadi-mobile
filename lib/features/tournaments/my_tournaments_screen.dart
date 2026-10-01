@@ -10,8 +10,7 @@ import 'package:sportpadi_mobile/data/tournaments/squad_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart' show showSideMenu;
-import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart' show SideMenuButton;
 import 'package:sportpadi_mobile/shared/widgets/team_tile.dart' show kitGradient;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
@@ -85,11 +84,7 @@ class MyTournamentsScreen extends ConsumerWidget {
                       ),
                       const SizedBox(width: 8),
                     ],
-                    SpRoundButton(
-                      icon: Icons.menu_rounded,
-                      tooltip: 'Menu',
-                      onTap: () => showSideMenu(context),
-                    ),
+                    const SideMenuButton(),
                   ]),
                   const SizedBox(height: 2),
                   Text(

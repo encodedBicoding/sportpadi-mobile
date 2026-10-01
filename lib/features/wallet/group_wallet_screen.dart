@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/payments/payment_models.dart';
 import 'package:sportpadi_mobile/data/wallet/wallet_models.dart';
 import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
+import 'package:sportpadi_mobile/features/wallet/fee_bearer_card.dart';
 import 'package:sportpadi_mobile/features/wallet/wallet_tips.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
@@ -63,6 +64,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
 
   void _refetch() {
     ref.invalidate(walletOverviewProvider(widget.groupId));
+    ref.invalidate(feeSettingProvider(widget.groupId));
     ref.invalidate(walletWithdrawalsProvider(widget.groupId));
     ref.invalidate(walletLedgerProvider(widget.groupId));
   }
@@ -285,6 +287,9 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
       // (No "add a primary card for renewals" prompt here: it's subscription
       // billing, which the app must not surface — App Store 3.1.1.)
       _balanceCard(o, policy, acct, p),
+      const SizedBox(height: 14),
+      // One-time: who covers the fees on tickets, fines and tournament fees.
+      FeeBearerCard(groupId: widget.groupId, disabled: o.paused),
       const SizedBox(height: 14),
       _sectionTitle('Settlement account', p,
           tip: _tips(o).settlementAccount,

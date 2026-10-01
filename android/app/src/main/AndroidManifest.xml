@@ -56,9 +56,14 @@
                 <data android:pathPrefix="/tournaments"/>
                 <data android:pathPrefix="/join/"/>
                 <data android:pathPrefix="/join-team/"/>
+                <!-- Wards 3: a ward's account hand-over link. -->
+                <data android:pathPrefix="/claim/"/>
                 <data android:pathPrefix="/tickets"/>
                 <data android:pathPrefix="/fines"/>
                 <data android:pathPrefix="/notifications"/>
+                <data android:pathPrefix="/inbox"/>
+                <data android:pathPrefix="/discussions/"/>
+                <data android:path="/discussions"/>
                 <data android:pathPrefix="/my-qr"/>
                 <data android:pathPrefix="/scan"/>
                 <data android:pathPrefix="/profile"/>

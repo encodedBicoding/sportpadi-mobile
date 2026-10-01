@@ -77,6 +77,11 @@ LinkTarget resolveLink(String? url) {
 
   RegExpMatch? m;
 
+  // ── Handing a ward's account over (Wards 3) ──────────────────────────────
+  // The emailed link; the screen is public (the token is the credential).
+  m = RegExp(r'^/claim/([^/]+)/?$').firstMatch(path);
+  if (m != null) return _route('/claim/${m[1]}');
+
   // ── Tournaments inside a group ────────────────────────────────────────────
   // Squad pages carry ?respond= from a call-up, and the web page addresses its
   // formation editor with ?tab=formation where the app has a real route.
@@ -107,15 +112,56 @@ LinkTarget resolveLink(String? url) {
   m = RegExp(r'^/groups/([^/]+)/wallet').firstMatch(path);
   if (m != null) return _route('/groups/${m[1]}/wallet');
 
-  // Everything the app has a dedicated group sub-screen for, one to one.
+  // Everything the app has a dedicated group sub-screen for, one to one
+  // (`requests`: the owner's membership requests — "X asked to join").
   m = RegExp(
-    r'^/groups/([^/]+)/(tickets|leaderboard|members|followers|events|outstanding|invites|plan|fines)/?$',
+    r'^/groups/([^/]+)/(tickets|leaderboard|members|followers|events|outstanding|invites|plan|fines|requests)/?$',
   ).firstMatch(path);
   if (m != null) return _route('/groups/${m[1]}/${m[2]}');
+
+  // Announcements (Messaging 1): the staff composer and sent list.
+  m = RegExp(r'^/groups/([^/]+)/announcements/new/?$').firstMatch(path);
+  if (m != null) return _route('/groups/${m[1]}/announcements/new');
+  m = RegExp(r'^/groups/([^/]+)/announcements/?$').firstMatch(path);
+  if (m != null) return _route('/groups/${m[1]}/announcements');
+  // Messages oversight (admins): every conversation, and reports.
+  m = RegExp(r'^/groups/([^/]+)/(messages|reports)/?$').firstMatch(path);
+  if (m != null) {
+    return _route(m[2] == 'reports' || query['tab'] == 'reports'
+        ? '/groups/${m[1]}/messages?tab=reports'
+        : '/groups/${m[1]}/messages');
+  }
+
+  // Discussions: a group's list (optionally one space) and the composer.
+  m = RegExp(r'^/groups/([^/]+)/discussions/new/?$').firstMatch(path);
+  if (m != null) {
+    final team = query['team'];
+    return _route(team != null && team.isNotEmpty
+        ? '/groups/${m[1]}/discussions/new?team=${Uri.encodeQueryComponent(team)}'
+        : '/groups/${m[1]}/discussions/new');
+  }
+  m = RegExp(r'^/groups/([^/]+)/discussions/?$').firstMatch(path);
+  if (m != null) {
+    final team = query['team'];
+    return _route(team != null && team.isNotEmpty
+        ? '/groups/${m[1]}/discussions?team=${Uri.encodeQueryComponent(team)}'
+        : '/groups/${m[1]}/discussions');
+  }
+
+  // A team addressed through its group (announcement links use this shape).
+  m = RegExp(r'^/groups/([^/]+)/teams/([^/]+)/?$').firstMatch(path);
+  if (m != null) return _route('/teams/${m[2]}');
 
   // Anything else group-scoped (billing, upgrade, edit…) → the group.
   m = RegExp(r'^/groups/([^/]+)').firstMatch(path);
   if (m != null) return _route('/groups/${m[1]}');
+
+  // ── Discussions ───────────────────────────────────────────────────────────
+  // Every discussion I can see (the side menu's Discussions).
+  if (RegExp(r'^/discussions/?$').hasMatch(path)) return _route('/discussions');
+  // The canonical thread link; comment and reply notifications carry it.
+  m = RegExp(r'^/discussions/([^/]+)/?$').firstMatch(path);
+  if (m != null) return _route('/discussions/${m[1]}');
 
   // ── Players ───────────────────────────────────────────────────────────────
   m = RegExp(r'^/players/([^/]+)/groups/([^/]+)/?$').firstMatch(path);
@@ -124,10 +170,17 @@ LinkTarget resolveLink(String? url) {
   if (m != null) return _route('/players/${m[1]}/tournaments/${m[2]}');
   m = RegExp(r'^/players/([^/]+)/events/([^/]+)/?$').firstMatch(path);
   if (m != null) return _route('/players/${m[1]}/events/${m[2]}');
+  // One sport's record (sport records, 2026).
+  m = RegExp(r'^/players/([^/]+)/records/([^/]+)/?$').firstMatch(path);
+  if (m != null) return _route('/players/${m[1]}/records/${m[2]}');
   m = RegExp(r'^/players/([^/]+)/?$').firstMatch(path);
   if (m != null) {
-    // ?sport= addresses a category on the web page; the app keeps its own
-    // picker state, so the id is enough.
+    // ?sport=<categoryId> (older web links) named one sport on the profile;
+    // that sport now has its own record page.
+    final sport = query['sport'];
+    if (sport != null && RegExp(r'^[A-Za-z0-9-]+$').hasMatch(sport)) {
+      return _route('/players/${m[1]}/records/$sport');
+    }
     return _route('/players/${m[1]}');
   }
 
@@ -140,6 +193,9 @@ LinkTarget resolveLink(String? url) {
   if (m != null) return _route('/join-team/${m[1]}');
 
   // ── Events, games, invites ────────────────────────────────────────────────
+  // Bare /events: the event-reminder digest ("3 events coming up"). The web
+  // folds it into Discover, but the reader's own upcoming events are Home.
+  if (RegExp(r'^/events/?$').hasMatch(path)) return _tab(HomeTab.home);
   m = RegExp(r'^/events/([^/]+)').firstMatch(path);
   if (m != null) return _route('/events/${m[1]}');
   // The live scoresheet — the most shared screen in the app, and the one this
@@ -166,13 +222,42 @@ LinkTarget resolveLink(String? url) {
   }
 
   // ── The player's own pages ────────────────────────────────────────────────
+  // One receipt (`/tickets/<code>`, from "ticket paid" notifications).
+  m = RegExp(r'^/tickets/([^/]+)/?$').firstMatch(path);
+  if (m != null) return _route('/tickets/${m[1]}');
   if (path.startsWith('/tickets')) return _route('/tickets');
   if (path.startsWith('/fines')) return _route('/fines');
   if (path.startsWith('/my-qr')) return _route('/my-qr');
   if (path.startsWith('/notifications')) return _route('/notifications');
+  // Inbox. Pushes carry /inbox/announcements/<id> or /inbox/messages/<id>;
+  // /inbox?tab=messages (or /inbox/messages) opens the Messages tab.
+  m = RegExp(r'^/inbox/announcements/([^/]+)/?$').firstMatch(path);
+  if (m != null) return _route('/inbox/announcements/${m[1]}');
+  m = RegExp(r'^/inbox/messages/([^/]+)/?$').firstMatch(path);
+  if (m != null) return _route('/inbox/messages/${m[1]}');
+  if (RegExp(r'^/inbox/messages/?$').hasMatch(path) ||
+      (RegExp(r'^/inbox/?$').hasMatch(path) && query['tab'] == 'messages')) {
+    return _route('/inbox?tab=messages');
+  }
+  if (RegExp(r'^/inbox(/.*)?$').hasMatch(path)) return _route('/inbox');
   if (path.startsWith('/scan')) return _route('/scan');
   if (path.startsWith('/settings')) return _route('/settings');
   if (path.startsWith('/leaderboards')) return _route('/leaderboards');
+  // Wards: the list (co-guardian invite notifications land here) and one ward.
+  m = RegExp(r'^/profile/wards/([^/]+)/?$').firstMatch(path);
+  if (m != null) return _route('/profile/wards/${m[1]}');
+  if (RegExp(r'^/profile/wards/?$').hasMatch(path)) {
+    return _route('/profile/wards');
+  }
+  // My sports and My records — their own pages since the records redesign.
+  if (RegExp(r'^/profile/sports/?$').hasMatch(path)) {
+    return _route('/profile/sports');
+  }
+  m = RegExp(r'^/profile/records/([^/]+)/?$').firstMatch(path);
+  if (m != null) return _route('/profile/records/${m[1]}');
+  if (RegExp(r'^/profile/records/?$').hasMatch(path)) {
+    return _route('/profile/records');
+  }
   // Profile anchors that name the progress block open the full progress page.
   if (path.startsWith('/profile') && (uri?.fragment ?? '') == 'achievements') {
     return _route('/progress');

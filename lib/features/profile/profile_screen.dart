@@ -14,7 +14,7 @@ import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/features/players/aka_card.dart';
 import 'package:sportpadi_mobile/features/players/player_profile_screen.dart'
-    show playerStatsProvider;
+    show playerRecordsProvider, playerStatsProvider;
 import 'package:sportpadi_mobile/features/players/player_record.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
@@ -24,14 +24,17 @@ import 'package:sportpadi_mobile/shared/widgets/sheet_scroll.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
+import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// Profile (2026) — dark pitch cover with QR / menu round buttons, identity
 /// card with the avatar sitting on its edge (upload, frame, @username copy,
-/// Edit profile / Public view), progression, My sports, My record, pinned
-/// pill tabs (Groups / Tournaments / Events / Posts). The menu is a bottom
-/// sheet: quick tab tiles, then personal pages as icon rows.
+/// Edit profile / Public view), the Wards card, progression, pinned pill tabs
+/// (Groups / Tournaments / Events / Posts) across all sports. My sports and
+/// My records live on their own pages, under the menu's "Activity & stats".
+/// The menu is a bottom sheet: quick tab tiles, then personal pages as icon
+/// rows.
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
@@ -40,10 +43,6 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   int _tab = 0; // 0 groups, 1 tournaments, 2 events, 3 posts
-  // The sport is a screen-level setting: once chosen, the record and the
-  // groups / tournaments tabs all narrow to it. Same rule as the public
-  // profile, so what you see here is what a scout sees of you.
-  String? _catId;
 
   @override
   Widget build(BuildContext context) {
@@ -84,39 +83,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               : ref.watch(playerStatsProvider(userId)).valueOrNull;
           final categories = listOf(stats?['categories']);
           final tournaments = listOf(stats?['tournaments']);
-          final selected = _catId ?? defaultCategoryId(categories);
-          final cat = categories.isEmpty
+          // Progression's "Your game" follows the most-played sport — the
+          // stats payload lists categories most-played first.
+          final topCategoryId = categories.isEmpty
               ? null
-              : categories.firstWhere(
-                  (c) => parseStr(c['categoryId']) == selected,
-                  orElse: () => categories.first,
-                );
-          final catTournaments = cat == null
-              ? tournaments
-              : [
-                  for (final t in tournaments)
-                    if (parseStr(t['categoryId']) ==
-                        parseStr(cat['categoryId']))
-                      t
-                ];
-          final sportGroupIds = <String>{
-            for (final g in listOf(cat?['groups']))
-              if (parseStr(g['id']) != null) parseStr(g['id'])!
-          };
-          final allGroups = ref.watch(myGroupsProvider).valueOrNull ??
+              : parseStr(categories.first['categoryId']);
+          // No sport picker here any more: the tabs cover every sport.
+          final groups = ref.watch(myGroupsProvider).valueOrNull ??
               const <GroupSummary>[];
-          final groups = sportGroupIds.isEmpty
-              ? allGroups
-              : [
-                  for (final g in allGroups)
-                    if (sportGroupIds.contains(g.id)) g
-                ];
           final akas = ref.watch(myGroupAkasProvider).valueOrNull ??
               const <String, String>{};
 
           return RefreshIndicator(
             onRefresh: () async {
-              if (userId != null) ref.invalidate(playerStatsProvider(userId));
+              // The records provider is the cache; the stats one follows it.
+              if (userId != null) {
+                ref.invalidate(playerRecordsProvider(userId));
+              }
               ref.invalidate(myGroupAkasProvider);
               return ref.refresh(meProvider.future);
             },
@@ -129,10 +112,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Guardians: their wards and any co-guardian invites,
+                      // right under the cover (nothing for everyone else).
+                      WardsProfileCard(
+                          onOpen: () => context.push('/profile/wards')),
                       // Gamification: level, streak, "Your game", achievements.
                       ProfileProgressionSection(
                         userId: userId,
-                        categoryId: parseStr(cat?['categoryId']),
+                        categoryId: topCategoryId,
                         categoryNames: {
                           for (final c in categories)
                             if (parseStr(c['categoryId']) != null)
@@ -140,50 +127,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   parseStr(c['name']) ?? 'Sport',
                         },
                       ),
-                      const _SportsSection(),
-                      const SizedBox(height: 22),
-                      const SpSectionTitle('My record'),
-                      const SizedBox(height: 10),
-                      if (categories.isNotEmpty) ...[
-                        CategoryControl(
-                          categories: categories,
-                          selectedId: parseStr(cat?['categoryId']),
-                          onSelect: (id) => setState(() => _catId = id),
-                          playerName: profile.displayName,
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                      if (cat == null)
-                        const _EmptyNote(
-                          icon: Icons.emoji_events_outlined,
-                          title: 'No sports set up yet',
-                          text:
-                              'Add a sport above and your record for it appears here.',
-                        )
-                      else if (nothingOnRecord(cat))
-                        NothingOnRecord(
-                            sportName: parseStr(cat['name']) ?? 'this sport')
-                      else ...[
-                        SportSetup(category: cat),
-                        const SizedBox(height: 12),
-                        ScopeBlock(
-                          title:
-                              '${parseStr(cat['emoji']) ?? ''} ${parseStr(cat['name']) ?? 'Sport'} · local group games',
-                          tally: mapOf(cat['local']),
-                          fields: listOf(cat['fields']),
-                          empty: 'No completed local games in this sport yet.',
-                        ),
-                        const SizedBox(height: 12),
-                        ScopeBlock(
-                          title:
-                              '${parseStr(cat['emoji']) ?? ''} ${parseStr(cat['name']) ?? 'Sport'} · tournaments',
-                          tally: mapOf(cat['tournament']),
-                          fields: listOf(cat['fields']),
-                          accent: true,
-                          empty: 'No tournament games in this sport yet.',
-                        ),
-                      ],
-                      const SizedBox(height: 18),
                     ],
                   ),
                 ),
@@ -199,7 +142,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         tab: _tab,
                         counts: [
                           groups.length,
-                          catTournaments.length,
+                          tournaments.length,
                           0,
                           0,
                         ],
@@ -216,13 +159,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           groups: groups,
                           akas: akas,
                           userId: userId,
-                          note: sportGroupIds.isNotEmpty && cat != null
-                              ? 'Groups you play ${parseStr(cat['name']) ?? 'this sport'} in.'
-                              : null,
                         )
                       else if (_tab == 1)
                         TournamentList(
-                          rows: catTournaments,
+                          rows: tournaments,
                           playerId: userId,
                           title: 'My tournaments',
                         )
@@ -556,14 +496,10 @@ class _ProfileCover extends CustomPainter {
 /// Quiet secondary pill (surface2) — the partner of the ink [SpButton].
 class _SoftPill extends StatelessWidget {
   const _SoftPill(
-      {required this.icon,
-      required this.label,
-      required this.onTap,
-      this.compact = false});
+      {required this.icon, required this.label, required this.onTap});
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -575,13 +511,11 @@ class _SoftPill extends StatelessWidget {
         customBorder: const StadiumBorder(),
         onTap: onTap,
         child: Padding(
-          padding: EdgeInsets.symmetric(
-              horizontal: compact ? 12 : 14, vertical: compact ? 7 : 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
-            mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: compact ? 15 : 17, color: p.ink),
+              Icon(icon, size: 17, color: p.ink),
               const SizedBox(width: 6),
               Flexible(
                 child: Text(label,
@@ -589,7 +523,7 @@ class _SoftPill extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         color: p.ink,
-                        fontSize: compact ? 12.5 : 14,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700)),
               ),
             ],
@@ -789,9 +723,22 @@ class _ProfileMenuSheet extends StatelessWidget {
               const SizedBox(height: 16),
               const Padding(
                 padding: EdgeInsets.only(left: 4, bottom: 8),
+                child: Eyebrow('Activity & stats'),
+              ),
+              SpListCard(children: [
+                row('/profile/sports', Icons.sports_soccer_outlined,
+                    'My sports', 'The sports you play and how',
+                    p.accentTint, p.greenText),
+                row('/profile/records', Icons.insights_rounded, 'My records',
+                    'Your numbers, sport by sport', p.orangeTint, p.orangeInk),
+              ]),
+              const SizedBox(height: 16),
+              const Padding(
+                padding: EdgeInsets.only(left: 4, bottom: 8),
                 child: Eyebrow('You'),
               ),
               SpListCard(children: [
+                WardsMenuRow(onTap: () => onPick('/profile/wards')),
                 row('/notifications', Icons.notifications_outlined,
                     'Notifications', "What's new for you", p.surface2, p.ink),
                 row('/settings', Icons.settings_outlined, 'Settings',
@@ -916,446 +863,6 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
 }
 
 // ---------------------------------------------------------------------------
-// My Sports — the web PlayerSportsStats: my sports with answers, add/edit/
-// remove, fields driven by each category's statSchema.
-// ---------------------------------------------------------------------------
-
-class _SportsSection extends ConsumerWidget {
-  const _SportsSection();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final p = context.palette;
-    final setup = ref.watch(sportsSetupProvider);
-    final data = setup.valueOrNull;
-    if (data == null) {
-      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const SpSectionTitle('My sports'),
-        const SizedBox(height: 10),
-        GlassCard(
-          child: Text(
-            setup.hasError ? 'Could not load your sports.' : 'Loading…',
-            style: TextStyle(color: p.muted, fontSize: 13),
-          ),
-        ),
-      ]);
-    }
-    final byId = {for (final c in data.categories) c.id: c};
-    final mine = data.mine.where((m) => byId.containsKey(m.categoryId)).toList();
-    final mineIds = mine.map((m) => m.categoryId).toSet();
-    final others =
-        data.categories.where((c) => !mineIds.contains(c.id)).toList();
-
-    Future<void> addSport() async {
-      // Web's "Add a sport" dialog, as a bottom sheet: pick from the sports
-      // you haven't added yet.
-      await showSpSheet<void>(
-      context,
-      framed: false,
-      builder: (ctx) => Container(
-          constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(ctx).size.height * 0.8),
-          decoration: BoxDecoration(
-            color: p.bg,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: SafeArea(
-            top: false,
-            child: SheetScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _Grabber(),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text('Add a sport',
-                        style: TextStyle(
-                            color: p.ink,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800)),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(4, 2, 4, 14),
-                    child: Text('Pick one you play — you can set it up next.',
-                        style: TextStyle(color: p.muted, fontSize: 13)),
-                  ),
-                  SpListCard(children: [
-                    for (final c in others)
-                      InkWell(
-                        borderRadius: BorderRadius.circular(18),
-                        onTap: () async {
-                          Navigator.pop(ctx);
-                          try {
-                            await ref
-                                .read(profileRepositoryProvider)
-                                .upsertSport(c.id, const {});
-                            ref.invalidate(sportsSetupProvider);
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('$e')));
-                            }
-                          }
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 10),
-                          child: Row(children: [
-                            _EmojiTile(c.emoji),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(c.name,
-                                  style: TextStyle(
-                                      color: p.ink,
-                                      fontSize: 14.5,
-                                      fontWeight: FontWeight.w700)),
-                            ),
-                            SpIconTile(Icons.add_rounded,
-                                bg: p.accentTint,
-                                fg: p.greenText,
-                                size: 32,
-                                iconSize: 18),
-                          ]),
-                        ),
-                      ),
-                  ]),
-                ],
-              ),
-            ),
-          ),
-        ),
-    );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SpSectionTitle(
-          'My sports',
-          count: mine.isEmpty ? null : mine.length,
-          trailing: others.isEmpty
-              ? null
-              : _SoftPill(
-                  icon: Icons.add_rounded,
-                  label: 'Add',
-                  compact: true,
-                  onTap: addSport,
-                ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'The sports you play. Tap one to say how you play — it helps balance teams.',
-          style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.4),
-        ),
-        const SizedBox(height: 10),
-        if (mine.isEmpty)
-          GlassCard(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-            child: Column(children: [
-              SpIconTile(Icons.sports_soccer_rounded,
-                  bg: p.accentTint, fg: p.greenText, size: 52, iconSize: 24),
-              const SizedBox(height: 12),
-              Text("You haven't added any sports yet.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: p.muted, fontSize: 13)),
-              const SizedBox(height: 14),
-              SpButton(
-                label: 'Add a sport',
-                icon: Icons.add_rounded,
-                onTap: addSport,
-              ),
-            ]),
-          )
-        else
-          for (final m in mine)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _SportRow(category: byId[m.categoryId]!, mine: m),
-            ),
-      ],
-    );
-  }
-}
-
-/// A sport's emoji on a quiet rounded tile.
-class _EmojiTile extends StatelessWidget {
-  const _EmojiTile(this.emoji, {this.size = 40});
-  final String? emoji;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        width: size,
-        height: size,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: context.palette.surface2,
-          borderRadius: BorderRadius.circular(size * 0.34),
-        ),
-        child: Text(emoji ?? '🏅', style: TextStyle(fontSize: size * 0.48)),
-      );
-}
-
-class _SportRow extends ConsumerWidget {
-  const _SportRow({required this.category, required this.mine});
-  final SportCategory category;
-  final MySport mine;
-
-  String _summary(StatField f) {
-    final v = mine.answers[f.key];
-    if (f.type == 'multi') {
-      final arr = v is List ? v : const [];
-      return arr.isEmpty ? '—' : arr.join(', ');
-    }
-    return v is String && v.isNotEmpty ? v : '—';
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final p = context.palette;
-    return GlassCard(
-      onTap: () => _edit(context, ref),
-      padding: const EdgeInsets.all(14),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _EmojiTile(category.emoji, size: 44),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(category.name,
-                    style: TextStyle(
-                        color: p.ink,
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w800)),
-              ),
-              const SizedBox(height: 6),
-              if (category.fields.isEmpty)
-                Text('Nothing to set up for this sport.',
-                    style: TextStyle(color: p.muted, fontSize: 12))
-              else
-                Wrap(spacing: 6, runSpacing: 6, children: [
-                  for (final f in category.fields)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 9, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: p.surface2,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text.rich(
-                        TextSpan(children: [
-                          TextSpan(
-                              text: '${f.label} · ',
-                              style: TextStyle(color: p.muted)),
-                          TextSpan(
-                              text: _summary(f),
-                              style: TextStyle(
-                                  color: p.ink, fontWeight: FontWeight.w700)),
-                        ]),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 11.5),
-                      ),
-                    ),
-                ]),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        SpIconTile(Icons.edit_outlined,
-            bg: p.surface2, fg: p.muted, size: 32, iconSize: 15),
-      ]),
-    );
-  }
-
-  Future<void> _edit(BuildContext context, WidgetRef ref) async {
-    final saved = await showSpSheet<bool>(
-      context,
-      framed: false,
-      builder: (_) => _SportEditSheet(category: category, mine: mine),
-    );
-    if (saved == true) ref.invalidate(sportsSetupProvider);
-  }
-}
-
-class _SportEditSheet extends ConsumerStatefulWidget {
-  const _SportEditSheet({required this.category, required this.mine});
-  final SportCategory category;
-  final MySport mine;
-
-  @override
-  ConsumerState<_SportEditSheet> createState() => _SportEditSheetState();
-}
-
-class _SportEditSheetState extends ConsumerState<_SportEditSheet> {
-  late final Map<String, dynamic> _draft =
-      Map<String, dynamic>.from(widget.mine.answers);
-  bool _busy = false;
-
-  void _toggle(StatField f, String option) {
-    setState(() {
-      if (f.type == 'multi') {
-        final list = _draft[f.key] is List
-            ? List<String>.from(
-                (_draft[f.key] as List).map((x) => '$x'))
-            : <String>[];
-        if (list.contains(option)) {
-          list.remove(option);
-        } else {
-          if (f.max != null && list.length >= f.max!) return;
-          list.add(option);
-        }
-        _draft[f.key] = list;
-      } else {
-        _draft[f.key] = _draft[f.key] == option ? '' : option;
-      }
-    });
-  }
-
-  bool _selected(StatField f, String option) {
-    final v = _draft[f.key];
-    return f.type == 'multi'
-        ? v is List && v.contains(option)
-        : v == option;
-  }
-
-  Future<void> _save() async {
-    setState(() => _busy = true);
-    try {
-      await ref
-          .read(profileRepositoryProvider)
-          .upsertSport(widget.category.id, _draft);
-      if (mounted) Navigator.of(context).pop(true);
-    } catch (e) {
-      if (mounted) {
-        setState(() => _busy = false);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
-      }
-    }
-  }
-
-  Future<void> _remove() async {
-    setState(() => _busy = true);
-    try {
-      await ref
-          .read(profileRepositoryProvider)
-          .removeSport(widget.category.id);
-      if (mounted) Navigator.of(context).pop(true);
-    } catch (e) {
-      if (mounted) {
-        setState(() => _busy = false);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    final c = widget.category;
-    return Container(
-      constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.8),
-      decoration: BoxDecoration(
-        color: p.bg,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
-      child: ListView(
-        shrinkWrap: true,
-        children: [
-          const _Grabber(),
-          const SizedBox(height: 16),
-          Row(children: [
-            _EmojiTile(c.emoji, size: 44),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(c.name,
-                  style: TextStyle(
-                      color: p.ink,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800)),
-            ),
-            InkWell(
-              onTap: _busy ? null : _remove,
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Text('Remove',
-                    style: TextStyle(
-                        color: p.danger,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ]),
-          const SizedBox(height: 16),
-          if (c.fields.isEmpty)
-            Text('Nothing to set up for this sport.',
-                style: TextStyle(color: p.muted, fontSize: 13))
-          else
-            for (final f in c.fields) ...[
-              Text(
-                f.type == 'multi' && f.max != null
-                    ? '${f.label} (up to ${f.max})'
-                    : f.label,
-                style: TextStyle(
-                    color: p.muted,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 6),
-              Wrap(spacing: 6, runSpacing: 6, children: [
-                for (final o in f.options)
-                  Material(
-                    color: _selected(f, o) ? p.ink : p.surface,
-                    borderRadius: BorderRadius.circular(999),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(999),
-                      onTap: () => _toggle(f, o),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 7),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                              color: _selected(f, o)
-                                  ? p.ink
-                                  : p.line),
-                        ),
-                        child: Text(o,
-                            style: TextStyle(
-                              color: _selected(f, o)
-                                  ? p.bg
-                                  : p.ink,
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
-                            )),
-                      ),
-                    ),
-                  ),
-              ]),
-              const SizedBox(height: 14),
-            ],
-          SpButton(
-            label: _busy ? 'Saving…' : 'Save',
-            expand: true,
-            onTap: _busy ? null : _save,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Tabs — Events / Posts / Groups (web profile tabs replica).
 // ---------------------------------------------------------------------------
 
@@ -1460,6 +967,7 @@ class _AttendedEventsGrid extends ConsumerWidget {
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
+      padding: EdgeInsets.zero,
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 8,
       crossAxisSpacing: 8,
@@ -1492,13 +1000,11 @@ class _MyGroupsList extends StatelessWidget {
     required this.groups,
     required this.akas,
     required this.userId,
-    this.note,
   });
 
   final List<GroupSummary> groups;
   final Map<String, String> akas;
   final String? userId;
-  final String? note;
 
   @override
   Widget build(BuildContext context) {
@@ -1509,97 +1015,90 @@ class _MyGroupsList extends StatelessWidget {
         text: "You're not in any groups yet.",
       );
     }
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      if (note != null)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8, left: 4),
-          child: Text(note!, style: TextStyle(color: p.muted, fontSize: 12)),
-        ),
-      SpListCard(children: [
-        for (final g in groups)
-          InkWell(
-            borderRadius: BorderRadius.circular(18),
-            onTap: userId == null
-                ? null
-                : () => context.push('/players/$userId/groups/${g.id}'),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-              child: Row(children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Crest(logoUrl: g.logoUrl, label: g.name, size: 44),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        Flexible(
-                          child: Text(g.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  color: p.ink,
-                                  fontSize: 14.5,
-                                  fontWeight: FontWeight.w700)),
-                        ),
-                        if (g.role == 'admin') ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 7, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: p.accentTint,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text('Admin',
-                                style: TextStyle(
-                                    color: p.greenText,
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w700)),
-                          ),
-                        ],
-                      ]),
-                      const SizedBox(height: 2),
-                      Text(
-                          akas[g.id] != null
-                              ? 'Known here as ${akas[g.id]}'
-                              : 'See your record here',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: p.muted, fontSize: 12)),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // The group itself, one tap away.
-                Material(
-                  color: p.surface2,
-                  shape: const StadiumBorder(),
-                  child: InkWell(
-                    customBorder: const StadiumBorder(),
-                    onTap: () => context.push('/groups/${g.id}'),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Text('Group',
+    return SpListCard(children: [
+      for (final g in groups)
+        InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: userId == null
+              ? null
+              : () => context.push('/players/$userId/groups/${g.id}'),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            child: Row(children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Crest(logoUrl: g.logoUrl, label: g.name, size: 44),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Flexible(
+                        child: Text(g.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                                 color: p.ink,
-                                fontSize: 11.5,
+                                fontSize: 14.5,
                                 fontWeight: FontWeight.w700)),
-                        const SizedBox(width: 2),
-                        Icon(Icons.north_east_rounded,
-                            size: 12, color: p.ink),
-                      ]),
-                    ),
+                      ),
+                      if (g.role == 'admin') ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: p.accentTint,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text('Admin',
+                              style: TextStyle(
+                                  color: p.greenText,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                      ],
+                    ]),
+                    const SizedBox(height: 2),
+                    Text(
+                        akas[g.id] != null
+                            ? 'Known here as ${akas[g.id]}'
+                            : 'See your record here',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: p.muted, fontSize: 12)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              // The group itself, one tap away.
+              Material(
+                color: p.surface2,
+                shape: const StadiumBorder(),
+                child: InkWell(
+                  customBorder: const StadiumBorder(),
+                  onTap: () => context.push('/groups/${g.id}'),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 6),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Text('Group',
+                          style: TextStyle(
+                              color: p.ink,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700)),
+                      const SizedBox(width: 2),
+                      Icon(Icons.north_east_rounded,
+                          size: 12, color: p.ink),
+                    ]),
                   ),
                 ),
-              ]),
-            ),
+              ),
+            ]),
           ),
-      ]),
+        ),
     ]);
   }
 }

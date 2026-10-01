@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/data/manage/manage_models.dart';
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
+import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
@@ -45,7 +46,7 @@ class ManageRosterScreen extends ConsumerWidget {
     );
     if (edit == null) return;
     try {
-      await ref.read(manageRepositoryProvider).addMember(
+      final r = await ref.read(manageRepositoryProvider).addMember(
             teamId,
             playerId: picked.userId,
             positions: edit.positions,
@@ -53,6 +54,13 @@ class ManageRosterScreen extends ConsumerWidget {
             isStarter: edit.starter,
           );
       ref.invalidate(teamDetailProvider(teamId));
+      ref.invalidate(eligibleMembersProvider(teamId));
+      // A ward isn't added: their guardians get the invitation.
+      final msg = r.wardMessage;
+      if (msg != null) {
+        ref.invalidate(teamWardInvitesProvider(teamId));
+        if (context.mounted) _snack(context, msg);
+      }
     } on ApiException catch (e) {
       if (context.mounted) _snack(context, e.message);
     }
@@ -78,6 +86,20 @@ class ManageRosterScreen extends ConsumerWidget {
             isStarter: edit.starter,
           );
       ref.invalidate(teamDetailProvider(teamId));
+    } on ApiException catch (e) {
+      if (context.mounted) _snack(context, e.message);
+    }
+  }
+
+  Future<void> _cancelInvite(
+      BuildContext context, WidgetRef ref, TeamWardInvite i) async {
+    try {
+      await ref
+          .read(manageRepositoryProvider)
+          .cancelWardInvite(teamId, i.inviteId);
+      ref.invalidate(teamWardInvitesProvider(teamId));
+      ref.invalidate(eligibleMembersProvider(teamId));
+      if (context.mounted) _snack(context, 'Invitation cancelled.');
     } on ApiException catch (e) {
       if (context.mounted) _snack(context, e.message);
     }
@@ -116,6 +138,10 @@ class ManageRosterScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final team = ref.watch(teamDetailProvider(teamId));
+    // Wards invited onto the team, waiting for a guardian (admin only; a
+    // failure just hides the section).
+    final waiting =
+        ref.watch(teamWardInvitesProvider(teamId)).valueOrNull ?? const [];
     final p = context.palette;
     return Scaffold(
       appBar: AppBar(leading: const SpLeading(), title: const Text('Manage squad')),
@@ -131,16 +157,48 @@ class ManageRosterScreen extends ConsumerWidget {
         value: team,
         onRetry: () => ref.invalidate(teamDetailProvider(teamId)),
         data: (t) {
-          if (t.members.isEmpty) {
+          if (t.members.isEmpty && waiting.isEmpty) {
             return const Center(child: Text('No players yet. Add your squad.'));
           }
-          return ListView.separated(
+          return ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
-            itemCount: t.members.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (_, i) {
-              final m = t.members[i];
-              return GlassCard(
+            children: [
+              if (waiting.isNotEmpty) ...[
+                SpSectionTitle('Waiting for a guardian', count: waiting.length),
+                const SizedBox(height: 4),
+                Text(
+                  'Wards join once one of their guardians accepts.',
+                  style: TextStyle(color: p.muted, fontSize: 12),
+                ),
+                const SizedBox(height: 10),
+                SpListCard(children: [
+                  for (final i in waiting)
+                    _WaitingRow(
+                      invite: i,
+                      onCancel: () => _cancelInvite(context, ref, i),
+                    ),
+                ]),
+                const SizedBox(height: 20),
+                if (t.members.isNotEmpty) ...[
+                  SpSectionTitle('Squad', count: t.members.length),
+                  const SizedBox(height: 10),
+                ],
+              ],
+              for (var i = 0; i < t.members.length; i++) ...[
+                if (i > 0) const SizedBox(height: 8),
+                _memberCard(context, ref, t, t.members[i]),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _memberCard(
+      BuildContext context, WidgetRef ref, TeamDetail t, TeamMember m) {
+    final p = context.palette;
+    return GlassCard(
                 padding: const EdgeInsets.all(10),
                 child: Row(children: [
                   Crest(logoUrl: m.avatarUrl, label: m.displayName, size: 40),
@@ -157,6 +215,10 @@ class ManageRosterScreen extends ConsumerWidget {
                         if (m.isCaptain) ...[
                           const SizedBox(width: 6),
                           Icon(Icons.star_rounded, size: 15, color: p.amber),
+                        ],
+                        if (m.isWard) ...[
+                          const SizedBox(width: 6),
+                          const WardBadge(),
                         ],
                       ]),
                       Text([
@@ -182,10 +244,54 @@ class ManageRosterScreen extends ConsumerWidget {
                   ),
                 ]),
               );
-            },
-          );
-        },
-      ),
+  }
+}
+
+/// A ward invited onto the team, waiting for a guardian — Cancel withdraws it.
+class _WaitingRow extends StatelessWidget {
+  const _WaitingRow({required this.invite, required this.onCancel});
+  final TeamWardInvite invite;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final sub = [
+      if (invite.positions.isNotEmpty) invite.positions.join(' · '),
+      if (invite.jerseyNumber != null) '#${invite.jerseyNumber}',
+      'Invited — waiting for a guardian',
+    ].join('  ·  ');
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      child: Row(children: [
+        ClipOval(
+          child: Crest(
+              logoUrl: invite.avatarUrl, label: invite.displayName, size: 38),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Flexible(
+                child: Text(invite.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: p.ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(width: 6),
+              const WardBadge(),
+            ]),
+            Text(sub,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: p.orangeInk, fontSize: 12)),
+          ]),
+        ),
+        TextButton(onPressed: onCancel, child: const Text('Cancel')),
+      ]),
     );
   }
 }
@@ -216,11 +322,32 @@ class _EligiblePicker extends ConsumerWidget {
                       itemCount: list.length,
                       itemBuilder: (_, i) {
                         final u = list[i];
+                        final sub = [
+                          if (u.username != null) '@${u.username}',
+                          if (u.isWard && !u.invitePending)
+                            'Their guardians will be asked',
+                        ].join(' · ');
                         return ListTile(
+                          enabled: !u.invitePending,
                           leading: Crest(logoUrl: u.avatarUrl, label: u.displayName, size: 38),
-                          title: Text(u.displayName),
-                          subtitle: u.username != null ? Text('@${u.username}') : null,
-                          onTap: () => Navigator.pop(context, u),
+                          title: Row(children: [
+                            Flexible(
+                              child: Text(u.displayName,
+                                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                            ),
+                            if (u.isWard) ...[
+                              const SizedBox(width: 6),
+                              const WardBadge(),
+                            ],
+                          ]),
+                          subtitle: sub.isNotEmpty ? Text(sub) : null,
+                          trailing: u.invitePending
+                              ? const SpBadge('Invited',
+                                  icon: Icons.hourglass_top_rounded)
+                              : null,
+                          onTap: u.invitePending
+                              ? null
+                              : () => Navigator.pop(context, u),
                         );
                       },
                     ),

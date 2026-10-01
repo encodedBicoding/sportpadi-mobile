@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/analytics/analytics_service.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/core/links/deep_links.dart';
+import 'package:sportpadi_mobile/features/ads/popup_messages.dart';
 import 'package:sportpadi_mobile/features/browse/browse_screen.dart';
 import 'package:sportpadi_mobile/features/home/guest_home_screen.dart';
 import 'package:sportpadi_mobile/features/shell/home_shell.dart'
@@ -41,6 +42,14 @@ class _GuestShellState extends ConsumerState<GuestShell> {
     // A visitor can arrive on a shared link too; the same resolver handles
     // it, and the router turns anything members-only into a sign-in.
     WidgetsBinding.instance.addPostFrameCallback((_) => _initDeepLinks());
+    // Pop-up messages meant for visitors (audience "signed-out"), once the
+    // first screen has landed.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Future<void>.delayed(const Duration(milliseconds: 2500));
+      if (!mounted) return;
+      // ignore: discarded_futures
+      PopupMessages.maybeShow(context, ref);
+    });
   }
 
   Future<void> _initDeepLinks() async {

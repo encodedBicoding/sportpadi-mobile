@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/ads/admob.dart';
+import 'package:sportpadi_mobile/features/ads/popup_messages.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_dock.dart';
 import 'package:sportpadi_mobile/core/analytics/analytics_service.dart';
@@ -13,10 +14,17 @@ import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart'
     show myTournamentsActiveProvider;
 import 'package:sportpadi_mobile/data/notifications/notifications_repository.dart'
     show notificationsFeedProvider, unreadCountProvider;
+import 'package:sportpadi_mobile/data/announcements/announcements_repository.dart'
+    show announcementsInboxProvider, announcementsUnreadProvider;
+import 'package:sportpadi_mobile/data/messages/messages_repository.dart'
+    show conversationProvider, messagesListProvider, messagesUnreadProvider;
+import 'package:sportpadi_mobile/data/attention/attention_repository.dart'
+    show attentionProvider;
 import 'package:sportpadi_mobile/core/links/deep_links.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/home/home_screen.dart';
 import 'package:sportpadi_mobile/features/notifications/notification_permission_sheet.dart';
+import 'package:sportpadi_mobile/features/settings/timezone_provider.dart';
 import 'package:sportpadi_mobile/features/shell/notification_target.dart';
 import 'package:sportpadi_mobile/features/browse/browse_screen.dart';
 import 'package:sportpadi_mobile/features/groups/groups_list_screen.dart';
@@ -44,10 +52,18 @@ class _HomeShellState extends ConsumerState<HomeShell>
     // notification feed/badge. The OS permission dialog is never fired cold:
     // once the shell has settled we show the in-app explainer first, and only
     // ask the OS if the user says yes.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _initPush());
+    // Then — once the explainer (if any) is out of the way — any pop-up
+    // message for this person (PopupMessages: on open and on sign-in).
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _initPush().whenComplete(_maybePopup));
     // Deep links, started after the first frame so there's a router to push
     // onto when the link is the one that launched the app.
     WidgetsBinding.instance.addPostFrameCallback((_) => _initDeepLinks());
+    // Timestamps in the viewer's zone: load their setting and, on automatic,
+    // tell the server the phone's zone (this mount is also "just signed in").
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(timezoneControllerProvider.notifier).sync();
+    });
   }
 
   /// Universal Links / App Links. Same resolver as push notifications, so a
@@ -74,15 +90,42 @@ class _HomeShellState extends ConsumerState<HomeShell>
     super.dispose();
   }
 
+  /// When the app went to the background (for "opening it again" later).
+  DateTime? _awaySince;
+
+  void _maybePopup() {
+    if (!mounted) return;
+    // ignore: discarded_futures
+    PopupMessages.maybeShow(context, ref);
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Back from Settings (or anywhere): pick up a permission change and
     // register the device if notifications were just turned on.
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      _awaySince ??= DateTime.now();
+    }
     if (state == AppLifecycleState.resumed) {
+      // Back after a long while counts as opening the app again.
+      final away = _awaySince;
+      _awaySince = null;
+      if (away != null &&
+          DateTime.now().difference(away) >= PopupMessages.resumeAfter) {
+        _maybePopup();
+      }
       // A push that arrived while backgrounded doesn't hit onMessage — refresh
       // the bell and feed the moment the app is back in front.
       ref.invalidate(unreadCountProvider);
       ref.invalidate(notificationsFeedProvider);
+      // Same for the Inbox badges (announcements and messages).
+      ref.invalidate(announcementsUnreadProvider);
+      ref.invalidate(messagesUnreadProvider);
+      // And the side-menu button's dot (everything waiting, in one call).
+      ref.invalidate(attentionProvider);
+      // Crossed a border while away? Re-read the phone's zone.
+      // ignore: discarded_futures
+      ref.read(timezoneControllerProvider.notifier).sync();
       ref.read(pushServiceProvider).onAppResumed().then((s) {
         if (mounted) ref.read(pushStatusProvider.notifier).state = s;
       });
@@ -109,9 +152,25 @@ class _HomeShellState extends ConsumerState<HomeShell>
       ref.read(referralStoreProvider).claim(ref.read(dioProvider), userId);
     }
     final status = await push.init(
-      onMessage: () {
+      onMessage: (data) {
+        if (!mounted) return;
         ref.invalidate(notificationsFeedProvider);
         ref.invalidate(unreadCountProvider);
+        // An announcement push: the Inbox badge and list are stale too.
+        ref.invalidate(announcementsUnreadProvider);
+        ref.invalidate(announcementsInboxProvider);
+        ref.invalidate(attentionProvider);
+        if (data['category'] == 'message') {
+          // A message: the Messages badge and list, and — if that thread is
+          // the one on screen — the thread itself (no banner is shown then).
+          ref.invalidate(messagesUnreadProvider);
+          ref.invalidate(messagesListProvider);
+          final id = data['conversationId'];
+          if (id is String && id == push.activeConversationId) {
+            // ignore: discarded_futures
+            ref.read(conversationProvider(id).notifier).refreshLatest();
+          }
+        }
       },
       // Tapped: its page if it names one, otherwise the Notifications inbox.
       onOpened: (url) {
@@ -159,7 +218,12 @@ class _HomeShellState extends ConsumerState<HomeShell>
     // Bottom-tab switches don't touch the router — log them as screens too.
     ref.listen<int>(homeTabIndexProvider, (prev, next) {
       // Cheap and keeps the bell honest between polls.
-      if (prev != next) ref.invalidate(unreadCountProvider);
+      if (prev != next) {
+        ref.invalidate(unreadCountProvider);
+        ref.invalidate(announcementsUnreadProvider);
+        ref.invalidate(messagesUnreadProvider);
+        ref.invalidate(attentionProvider);
+      }
       const names = ['/tab/home', '/tab/browse', '/tab/groups', '/tab/tournaments', '/tab/profile'];
       if (next >= 0 && next < names.length) {
         ref.read(analyticsServiceProvider).logScreen(names[next]);

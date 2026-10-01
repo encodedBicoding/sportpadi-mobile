@@ -211,6 +211,7 @@ class ProgressScreen extends ConsumerWidget {
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
+              padding: EdgeInsets.zero,
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,

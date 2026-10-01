@@ -123,11 +123,14 @@ class EventsRepository {
     }
   }
 
-  /// Toggle my interest in an event. Returns the new state.
-  Future<bool> toggleInterest(String eventId) async {
+  /// Toggle my interest in an event — or, with [forPlayerId], one of my
+  /// wards' (a guardian RSVPing for them). Returns the new state.
+  Future<bool> toggleInterest(String eventId, {String? forPlayerId}) async {
     try {
-      final res = await _dio
-          .post('/api/mobile/event-actions/$eventId', data: {'action': 'interest'});
+      final res = await _dio.post('/api/mobile/event-actions/$eventId', data: {
+        'action': 'interest',
+        if (forPlayerId != null) 'forPlayerId': forPlayerId,
+      });
       return res.data is Map && (res.data as Map)['interested'] == true;
     } catch (e) {
       throw apiError(e, fallback: 'Could not update interest.');
@@ -275,10 +278,14 @@ class EventsRepository {
   }
 
   /// Player scans an event QR. Returns the outcome status + event title.
-  Future<Map<String, dynamic>> checkInByQr(String qrCode) async {
+  /// [forPlayerId]: a guardian checking in one of their wards.
+  Future<Map<String, dynamic>> checkInByQr(String qrCode,
+      {String? forPlayerId}) async {
     try {
-      final res =
-          await _dio.post('/api/mobile/checkin-qr', data: {'qrCode': qrCode});
+      final res = await _dio.post('/api/mobile/checkin-qr', data: {
+        'qrCode': qrCode,
+        if (forPlayerId != null) 'forPlayerId': forPlayerId,
+      });
       return res.data is Map
           ? Map<String, dynamic>.from(res.data as Map)
           : <String, dynamic>{};
@@ -294,6 +301,29 @@ class EventsRepository {
           data: {'action': 'update', ...patch});
     } catch (e) {
       throw apiError(e, fallback: 'Could not update the event.');
+    }
+  }
+
+  /// The event's reminder schedule + whether I muted it.
+  Future<EventReminders> reminders(String eventId) async {
+    try {
+      final res = await _dio.get('/api/mobile/event-actions/$eventId',
+          queryParameters: {'view': 'reminders'});
+      return EventReminders.fromJson(res.data is Map
+          ? Map<String, dynamic>.from(res.data as Map)
+          : const <String, dynamic>{});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load reminders.');
+    }
+  }
+
+  /// Mute (or unmute) this event's reminders for me.
+  Future<void> setRemindersMuted(String eventId, bool muted) async {
+    try {
+      await _dio.post('/api/mobile/event-actions/$eventId',
+          data: {'action': 'mute-reminders', 'muted': muted});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not update reminders.');
     }
   }
 
@@ -591,6 +621,8 @@ class EventsRepository {
     String? homeTeamId,
     Map<String, String> teamColors = const {},
     List<String> officiantIds = const [],
+    Map<String, dynamic>? basketball,
+    Map<String, dynamic>? volleyball,
   }) async {
     try {
       final attributes = <String, dynamic>{
@@ -608,6 +640,8 @@ class EventsRepository {
               {'teamId': e.key, 'color': e.value},
           ],
         if (officiantIds.isNotEmpty) 'officiantIds': officiantIds,
+        if (basketball != null) 'basketball': basketball,
+        if (volleyball != null) 'volleyball': volleyball,
       });
       return res.data is Map ? (res.data as Map)['id'] as String? : null;
     } catch (e) {
@@ -660,6 +694,10 @@ final groupEventsProvider = FutureProvider.autoDispose
 final eventDetailProvider = FutureProvider.autoDispose
     .family<EventDetail, String>(
         (ref, slug) => ref.watch(eventsRepositoryProvider).bySlug(slug));
+
+final eventRemindersProvider = FutureProvider.autoDispose
+    .family<EventReminders, String>((ref, eventId) =>
+        ref.watch(eventsRepositoryProvider).reminders(eventId));
 
 final eventTeamsProvider = FutureProvider.autoDispose
     .family<List<EventTeam>, String>((ref, eventId) =>

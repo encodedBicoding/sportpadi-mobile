@@ -18,17 +18,41 @@ import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
+import 'package:sportpadi_mobile/data/teams/team_models.dart'
+    show AudienceTeamOption;
+import 'package:sportpadi_mobile/data/teams/teams_repository.dart'
+    show eventAudiencesProvider;
 import 'package:sportpadi_mobile/data/groups/members_repository.dart';
+import 'package:sportpadi_mobile/features/events/event_menu.dart';
 import 'package:sportpadi_mobile/features/events/event_tickets_card.dart';
+import 'package:sportpadi_mobile/features/games/basketball_widgets.dart';
+import 'package:sportpadi_mobile/features/games/volleyball_widgets.dart';
+import 'package:sportpadi_mobile/features/wards/ward_pickers.dart';
+import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/shared/widgets/event_audience.dart';
+import 'package:sportpadi_mobile/shared/widgets/event_reminders.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/core/referral/referral.dart';
 import 'package:sportpadi_mobile/features/events/rsvp_info_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+
+const _cancelRepeatingCopy =
+    'Anyone who paid for a ticket gets the ticket price back automatically. '
+    'This is a repeating event — cancelling stops the series; it will not be '
+    're-created. This cannot be undone.';
+const _cancelOnceCopy =
+    'Anyone who paid for a ticket gets the ticket price back automatically. '
+    'If no money ever changed hands, the event is removed entirely. This '
+    'cannot be undone.';
+const _processingFeeNote =
+    "SportPadi's processing fee is non-refundable: buyers get the ticket price "
+    "back, and if your group covers the fees, the processing fee on each sale "
+    "isn't returned to your group either.";
 
 /// Event detail — a faithful mobile port of the web /events/[slug] page:
 /// photos, info, hosted-by (follow), stats, interest/check-in, organizer QR,
@@ -399,6 +423,35 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         .showSnackBar(const SnackBar(content: Text('Link copied')));
   }
 
+  /// Organizers: the event's photos, in a sheet (from the "More" menu). It
+  /// follows the live event, so adds / removes / a new cover show at once.
+  Future<void> _openPhotos() async {
+    await showSpSheet<void>(
+      context,
+      builder: (_) => Consumer(builder: (context, ref, _) {
+        final p = context.palette;
+        final ev = ref.watch(eventDetailProvider(slug)).valueOrNull;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SpSheetHeader(
+              icon: Icons.add_photo_alternate_outlined,
+              iconBg: p.accentTint,
+              iconFg: p.greenText,
+              title: 'Event photos',
+              subtitle: 'Tap a photo to make it the cover or remove it',
+            ),
+            if (ev == null)
+              const Center(child: CircularProgressIndicator())
+            else
+              _PhotoManager(event: ev, onChanged: _refetch),
+          ],
+        );
+      }),
+    );
+  }
+
   Future<void> _openEdit(EventDetail e) async {
     final saved = await showSpSheet<bool>(
       context,
@@ -434,12 +487,9 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     // arrivals land in the available pool.
     final canCheckIn =
         e.status == 'open' || (e.status == 'kicked_off' && e.hasLatePool);
-
+    // Photos, Message participants and Reminders live in the "More" menu
+    // beside Share (EventMenuButton), each in its own sheet.
     final children = <Widget>[
-      if (e.canManage && e.status != 'completed') ...[
-        _PhotoManager(event: e, onChanged: _refetch),
-        const SizedBox(height: 12),
-      ],
       if (e.groupId != null) ...[
         _HostedByCard(
             groupId: e.groupId!,
@@ -628,6 +678,12 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         event: e,
         onShare: () => _share(e),
         onEdit: e.canManage && e.status == 'open' ? () => _openEdit(e) : null,
+        menu: EventMenuButton(
+          event: e,
+          onPhotos: e.canManage && e.status != 'completed'
+              ? () => _openPhotos()
+              : null,
+        ),
       ),
     );
     final ti = children.indexWhere((w) => w is _TabRow);
@@ -670,13 +726,9 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Cancel this event?'),
-        content: Text(e.repeats
-            ? 'Anyone who paid for a ticket is refunded automatically. This is '
-                'a repeating event — cancelling stops the series; it will not '
-                'be re-created. This cannot be undone.'
-            : 'Anyone who paid for a ticket is refunded automatically. If no '
-                'money ever changed hands, the event is removed entirely. This '
-                'cannot be undone.'),
+        content: Text(
+          '${e.repeats ? _cancelRepeatingCopy : _cancelOnceCopy}\n\n$_processingFeeNote',
+        ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -765,10 +817,13 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 // ---------------------------------------------------------------------------
 
 class _EventHero extends StatefulWidget {
-  const _EventHero({required this.event, required this.onShare, this.onEdit});
+  const _EventHero(
+      {required this.event, required this.onShare, this.onEdit, this.menu});
   final EventDetail event;
   final VoidCallback onShare;
   final VoidCallback? onEdit;
+  /// The "More" menu (EventMenuButton), beside Share.
+  final Widget? menu;
 
   @override
   State<_EventHero> createState() => _EventHeroState();
@@ -896,6 +951,10 @@ class _EventHeroState extends State<_EventHero> {
               icon: Icons.ios_share_rounded,
               tooltip: 'Share',
               onTap: widget.onShare),
+          if (widget.menu != null) ...[
+            const SizedBox(width: 8),
+            widget.menu!,
+          ],
         ]),
       ),
       Padding(
@@ -921,9 +980,15 @@ class _EventHeroState extends State<_EventHero> {
             Icon(icon, size: 13, color: fg),
             const SizedBox(width: 4),
           ],
-          Text(label,
-              style: TextStyle(
-                  color: fg, fontSize: 11.5, fontWeight: FontWeight.w700)),
+          // Flexible: long team names ("For U12 Lions, U14 Hawks") ellipsize
+          // inside the header Wrap instead of overflowing.
+          Flexible(
+            child: Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: fg, fontSize: 11.5, fontWeight: FontWeight.w700)),
+          ),
         ]),
       );
 
@@ -976,8 +1041,12 @@ class _EventHeroState extends State<_EventHero> {
           if (level != null) _pill(level, p.orangeTint, p.orangeInk),
           if (status != null) status,
           if (e.isPrivate)
-            _pill('Members only', p.surface2, p.muted,
+            _pill(e.audienceTeams.isEmpty ? 'Members only' : 'Team only',
+                p.surface2, p.muted,
                 icon: Icons.lock_outline_rounded),
+          // Team event: "For U12 Lions".
+          if (audienceLabel(e.audienceTeams) case final String who)
+            _pill(who, p.accentTint, p.greenText, icon: Icons.shield_outlined),
         ]),
         const SizedBox(height: 12),
         Text(e.title,
@@ -1300,6 +1369,16 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
     }
   }
 
+  /// Guardians: RSVP themselves and/or their wards from one sheet.
+  Future<void> _pickWhoIsGoing() async {
+    if (_busy) return;
+    final joined = await showWhoIsGoingSheet(context, event: widget.event);
+    if (!mounted) return;
+    widget.onChanged();
+    _refreshProgression(ref);
+    if (joined == true) await RsvpInfoSheet.maybeShow(context);
+  }
+
   Future<void> _checkOut() async {
     if (_busy) return;
     final sure = await showDialog<bool>(
@@ -1340,6 +1419,23 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
     final p = context.palette;
     final e = widget.event;
     final open = e.status == 'open';
+    // Guardians RSVP for themselves and their wards through one sheet.
+    final hasWards = e.myWards.isNotEmpty;
+    final goingNames = [
+      if (e.myInterested) 'You',
+      for (final w in e.myWards)
+        if (w.interested) w.firstName,
+    ];
+    final going = hasWards ? goingNames.isNotEmpty : e.myInterested;
+    final wardChips = [
+      for (final w in e.myWards)
+        if (w.checkedIn)
+          SpBadge('${w.firstName} · checked in',
+              icon: Icons.check_circle_rounded, tone: p.greenText)
+        else if (w.interested)
+          SpBadge('${w.firstName} · going',
+              icon: Icons.event_available_rounded),
+    ];
 
     Widget pill({
       required String label,
@@ -1406,13 +1502,19 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
             if (open)
               Expanded(
                 child: pill(
-                  label: e.myInterested ? "You're going" : "RSVP — I'm in",
-                  icon: e.myInterested
+                  label: hasWards
+                      ? (going
+                          ? 'Going: ${goingNames.join(', ')}'
+                          : "RSVP — who's going?")
+                      : (e.myInterested ? "You're going" : "RSVP — I'm in"),
+                  icon: going
                       ? Icons.event_available_rounded
                       : Icons.add_rounded,
-                  bg: e.myInterested ? p.accentTint : p.hero,
-                  fg: e.myInterested ? p.greenText : p.onHero,
-                  onTap: _busy ? null : _toggleInterest,
+                  bg: going ? p.accentTint : p.hero,
+                  fg: going ? p.greenText : p.onHero,
+                  onTap: _busy
+                      ? null
+                      : (hasWards ? _pickWhoIsGoing : _toggleInterest),
                 ),
               ),
             if (open && e.myCheckedIn) const SizedBox(width: 10),
@@ -1428,7 +1530,12 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
                 ),
               ),
           ]),
-          if (!e.myCheckedIn) ...[
+          if (wardChips.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(spacing: 6, runSpacing: 6, children: wardChips),
+          ],
+          // A guardian who's already in can still scan for a ward.
+          if (!e.myCheckedIn || e.myWards.any((w) => !w.checkedIn)) ...[
             if (open) const SizedBox(height: 10),
             pill(
               label: 'Scan to check in',
@@ -1449,7 +1556,12 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
               style: TextStyle(color: p.muted, fontSize: 12),
             ),
           ],
-          if (open && e.myInterested && !e.myCheckedIn) ...[
+          if (open && hasWards) ...[
+            const SizedBox(height: 2),
+            Text('Tap the RSVP button to choose who’s going — you and your wards.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: p.muted, fontSize: 11.5)),
+          ] else if (open && e.myInterested && !e.myCheckedIn) ...[
             const SizedBox(height: 2),
             Text('Tap “You\'re going” to take your RSVP back.',
                 textAlign: TextAlign.center,
@@ -1922,6 +2034,12 @@ class _GamesTab extends ConsumerWidget {
     var useOfficiants = false;
     var officiantQuery = '';
     final duration = TextEditingController();
+    // Basketball: quarters or first-to-N, and the foul rules.
+    final isBb = isBasketballSport(event.categoryName, event.categoryEmoji);
+    var bbRules = const BasketballRules();
+    // Volleyball: one set, best of 3 or best of 5.
+    final isVb = isVolleyballSport(event.categoryName, event.categoryEmoji);
+    var vbRules = const VolleyballRules();
     const palette = [
       '#22C55E', '#3B82F6', '#EAB308', '#EF4444',
       '#8B5CF6', '#EC4899', '#F97316', '#14B8A6',
@@ -1947,11 +2065,15 @@ class _GamesTab extends ConsumerWidget {
             displayName: a.displayName,
             username: a.username,
             avatarUrl: a.avatarUrl,
+            isWard: a.isWard,
           ),
       ];
     }
-    candidates = [...candidates]
-      ..sort((a, b) =>
+    // Wards can't sign in to run a game, so they never officiate.
+    candidates = [
+      for (final c in candidates)
+        if (!c.isWard) c
+    ]..sort((a, b) =>
           a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()));
     if (!context.mounted) return;
 
@@ -2162,6 +2284,17 @@ class _GamesTab extends ConsumerWidget {
                         ),
                       ),
                   const SizedBox(height: 4),
+                  if (isBb)
+                    BasketballFormatFields(
+                      value: bbRules,
+                      onChanged: (v) => setSheet(() => bbRules = v),
+                    )
+                  else if (isVb)
+                    VolleyballFormatFields(
+                      value: vbRules,
+                      onChanged: (v) => setSheet(() => vbRules = v),
+                    )
+                  else ...[
                   Row(children: [
                     Expanded(
                       child: Text('Duration (minutes, optional)',
@@ -2193,6 +2326,7 @@ class _GamesTab extends ConsumerWidget {
                         'A reference length — the live match clock counts up and stoppage time is added during the game.',
                         style: TextStyle(color: p.muted, fontSize: 10.5)),
                   ),
+                  ],
                   ...[
                     CheckboxListTile(
                       dense: true,
@@ -2289,7 +2423,9 @@ class _GamesTab extends ConsumerWidget {
       final gameId = await ref.read(eventsRepositoryProvider).createGame(
             event.id,
             ids,
-            durationMinutes: int.tryParse(duration.text.trim()),
+            durationMinutes: isBb || isVb ? null : int.tryParse(duration.text.trim()),
+            basketball: isBb ? bbRules.toJson() : null,
+            volleyball: isVb ? vbRules.toJson() : null,
             homeTeamId: vsMode && useHomeAway ? homeId : null,
             teamColors: uniqueColors
                 ? {
@@ -2586,11 +2722,17 @@ class _InterestedList extends StatelessWidget {
                   color: p.accentTint,
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: Text(x.displayName,
-                    style: TextStyle(
-                        color: p.greenText,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text(x.displayName,
+                      style: TextStyle(
+                          color: p.greenText,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600)),
+                  if (x.isWard) ...[
+                    const SizedBox(width: 5),
+                    const WardBadge(),
+                  ],
+                ]),
               ),
           ]),
         ),
@@ -2655,13 +2797,21 @@ class _CheckinsList extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(e.attendees[i].displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: p.ink,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600)),
+                        Row(children: [
+                          Flexible(
+                            child: Text(e.attendees[i].displayName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: p.ink,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600)),
+                          ),
+                          if (e.attendees[i].isWard) ...[
+                            const SizedBox(width: 6),
+                            const WardBadge(),
+                          ],
+                        ]),
                         if (e.attendees[i].checkedInAt != null)
                           Text('Checked in ${timeAgo(e.attendees[i].checkedInAt)}',
                               style: TextStyle(color: p.muted, fontSize: 12)),
@@ -2745,6 +2895,48 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
   bool _busy = false;
   String? _error;
 
+  // Who it's for: the whole group, or team(s). Sent only when changed.
+  late final bool _initialForTeams = widget.event.audienceTeams.isNotEmpty;
+  late final Set<String> _initialTeamIds = {
+    for (final t in widget.event.audienceTeams) t.id
+  };
+  late bool _forTeams = _initialForTeams;
+  late final Set<String> _teamIds = {..._initialTeamIds};
+
+  // Reminder schedule: loaded from `?view=reminders`; sent only when changed.
+  List<String>? _initialReminders;
+  Set<String>? _reminders;
+  bool _remindersFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReminders();
+  }
+
+  Future<void> _loadReminders() async {
+    try {
+      final r = await ref
+          .read(eventsRepositoryProvider)
+          .reminders(widget.event.id);
+      if (!mounted) return;
+      final slots = orderReminderSlots(r.slots);
+      setState(() {
+        _initialReminders = slots;
+        _reminders = {...slots};
+      });
+    } catch (_) {
+      if (mounted) setState(() => _remindersFailed = true);
+    }
+  }
+
+  bool get _audienceChanged {
+    if (_forTeams != _initialForTeams) return true;
+    if (!_forTeams) return false;
+    return _teamIds.length != _initialTeamIds.length ||
+        !_teamIds.containsAll(_initialTeamIds);
+  }
+
   static const _recurrences = {
     'once': 'One-off',
     'daily': 'Daily',
@@ -2806,6 +2998,26 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
       setState(() => _error = 'Title is required.');
       return;
     }
+    // Only touch the audience when the picker was actually shown and changed.
+    final groupId = widget.event.groupId;
+    final sendAudience = groupId != null &&
+        ref.read(eventAudiencesProvider(groupId)).valueOrNull != null &&
+        _audienceChanged;
+    if (sendAudience && _forTeams && _teamIds.isEmpty) {
+      setState(() => _error = 'Pick the team this event is for.');
+      return;
+    }
+    // Null = unchanged (or never loaded) → not sent.
+    final reminders = _reminders;
+    final initialReminders = _initialReminders;
+    final reminderPatch = reminders != null &&
+            initialReminders != null &&
+            !sameReminderSlots(reminders, initialReminders)
+        ? orderReminderSlots(reminders)
+        : null;
+    // The sheet can be swiped away mid-save: invalidate through the
+    // container, never `ref` after an await.
+    final container = ProviderScope.containerOf(context, listen: false);
     setState(() {
       _busy = true;
       _error = null;
@@ -2823,7 +3035,20 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
         'recurrence': _recurrence,
         'visibility': _private ? 'private' : 'public',
         'competitiveLevel': _competitive,
+        // [] would mean "whole group" too; null says it explicitly.
+        if (sendAudience) 'teamIds': _forTeams ? _teamIds.toList() : null,
+        // [] = no reminders.
+        if (reminderPatch != null) 'reminders': reminderPatch,
       });
+      if (reminderPatch != null) {
+        container.invalidate(eventRemindersProvider(widget.event.id));
+      }
+      // sendAudience is only true when groupId != null, and Dart promotes
+      // groupId through that final bool — no second check needed.
+      if (sendAudience) {
+        container.invalidate(myFeedProvider);
+        container.invalidate(groupEventsProvider(groupId));
+      }
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {
@@ -2839,6 +3064,22 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final groupId = widget.event.groupId;
+    final audience = groupId == null
+        ? null
+        : ref.watch(eventAudiencesProvider(groupId)).valueOrNull;
+    // Teams already on the event that this viewer can't pick stay listed, so
+    // they can be seen (and removed).
+    final audienceTeams = audience == null
+        ? const <AudienceTeamOption>[]
+        : [
+            ...audience.teams,
+            for (final t in widget.event.audienceTeams)
+              if (!audience.hasTeam(t.id))
+                AudienceTeamOption(id: t.id, name: t.name),
+          ];
+    final showAudience =
+        audience != null && (audience.canCreate || _initialForTeams);
     return Padding(
       padding: EdgeInsets.only(bottom: bottom),
       child: Container(
@@ -2925,10 +3166,30 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
               value: _competitive,
               onChanged: (v) => setState(() => _competitive = v),
             ),
+            if (audience != null && showAudience) ...[
+              const SizedBox(height: 14),
+              EventAudiencePicker(
+                groupName: widget.event.groupName,
+                teams: audienceTeams,
+                // Only admins can widen to the whole group; keep it
+                // visible when the event already is one.
+                allowEveryone: audience.canGeneral || !_initialForTeams,
+                forTeams: _forTeams,
+                selected: _teamIds,
+                isPrivate: _private,
+                onForTeamsChanged: (v) => setState(() => _forTeams = v),
+                onToggleTeam: (id) => setState(() {
+                  if (!_teamIds.remove(id)) _teamIds.add(id);
+                }),
+              ),
+            ],
             const SizedBox(height: 10),
             Row(children: [
               Expanded(
-                child: Text('Private event (members only)',
+                child: Text(
+                    _forTeams
+                        ? 'Private (only this team can open it)'
+                        : 'Private event (members only)',
                     style: TextStyle(color: p.ink, fontSize: 13.5)),
               ),
               Switch(
@@ -2936,6 +3197,18 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
                 onChanged: (v) => setState(() => _private = v),
               ),
             ]),
+            if (!_remindersFailed) ...[
+              const SizedBox(height: 10),
+              if (_reminders == null)
+                Text('Loading reminders…',
+                    style: TextStyle(color: p.muted, fontSize: 12))
+              else
+                EventRemindersPicker(
+                  selected: _reminders!,
+                  enabled: !_busy,
+                  onChanged: (v) => setState(() => _reminders = v),
+                ),
+            ],
             if (_error != null) ...[
               const SizedBox(height: 8),
               Text(_error!, style: TextStyle(color: p.danger, fontSize: 12.5)),

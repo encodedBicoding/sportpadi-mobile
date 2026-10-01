@@ -1,5 +1,6 @@
 import 'package:intl/intl.dart';
 
+import 'instant.dart';
 import 'parse.dart';
 
 final _day = DateFormat('EEE, d MMM');
@@ -20,7 +21,7 @@ String formatDayYear(dynamic v) {
 /// Event start/end times arrive as ISO datetimes (often on the 1970 epoch day);
 /// we only want the wall-clock time — displayed 12-hour ("8:00 PM").
 String? formatClock(dynamic v) {
-  final d = parseDate(v);
+  final d = v is DateTime ? v : parseDate(v);
   if (d == null) return null;
   final u = d.toUtc();
   return _to12h(u.hour, u.minute);
@@ -28,7 +29,7 @@ String? formatClock(dynamic v) {
 
 /// Machine form ("HH:mm", 24-hour) — for edit fields and API payloads.
 String? formatClock24(dynamic v) {
-  final d = parseDate(v);
+  final d = v is DateTime ? v : parseDate(v);
   if (d == null) return null;
   final u = d.toUtc();
   final h = u.hour.toString().padLeft(2, '0');
@@ -53,7 +54,10 @@ String _to12h(int h, int m) {
   return '$hour:${m.toString().padLeft(2, '0')} $suffix';
 }
 
-/// "2 hours ago" style relative time for the notification feed.
+/// "2 hours ago" style elapsed time ("5m ago", "3h ago", "2d ago"), for
+/// sentences like "Sent 5m ago". Elapsed durations don't depend on a zone;
+/// past a week it falls back to the date on the VIEWER's clock (see
+/// `instant.dart`). For list/thread stamps prefer `fmtRelative`.
 String timeAgo(dynamic v) {
   final d = v is DateTime ? v : parseDate(v);
   if (d == null) return '';
@@ -62,8 +66,31 @@ String timeAgo(dynamic v) {
   if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
   if (diff.inHours < 24) return '${diff.inHours}h ago';
   if (diff.inDays < 7) return '${diff.inDays}d ago';
-  // formatDayYear() coerces to UTC — right for the bare @db.Time values it was
-  // written for, wrong for a real instant like "accepted at", which should read
-  // in the viewer's own zone.
-  return _dayYear.format(d.toLocal());
+  // Not formatDayYear(): that reads the UTC face, right for bare @db.Date
+  // values, wrong for a real instant like "accepted at".
+  return fmtInstant(d, style: InstantStyle.date);
+}
+
+/// Upper-case the first letter and leave the rest alone:
+/// "sportpadi" → "Sportpadi", "deShawn" → "DeShawn", "" → "".
+/// Only the first character changes, so deliberate capitals in names
+/// (McDonald) survive. Works on runes so a leading emoji or accented letter
+/// isn't split. Web twin: capitalizeFirst in packages/lib/src/text.ts.
+String capitalizeFirst(String? s) {
+  if (s == null || s.isEmpty) return '';
+  final first = String.fromCharCode(s.runes.first);
+  return first.toUpperCase() + s.substring(first.length);
+}
+
+final _ymdDate = DateFormat('MMM d, y', 'en_US');
+
+/// A plain calendar date ("2028-06-01" → "Jun 1, 2028"): a birthday, an
+/// "until" date. Not an instant, so no zone conversion — the digits are the
+/// day. Returns the input unchanged when it isn't YYYY-MM-DD, '' for null.
+String formatYmd(String? ymd) {
+  if (ymd == null || ymd.isEmpty) return '';
+  final m = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(ymd);
+  if (m == null) return ymd;
+  return _ymdDate.format(
+      DateTime(int.parse(m[1]!), int.parse(m[2]!), int.parse(m[3]!)));
 }

@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/players/aka_card.dart';
 import 'package:sportpadi_mobile/features/players/player_record.dart';
+import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
@@ -61,7 +62,9 @@ class _PlayerGroupStatsScreenState
       backgroundColor: p.bg,
       body: SafeArea(
         bottom: false,
-        child: AsyncView(
+        child: isPrivateRecordError(data.error)
+            ? const PlayerPrivateView(title: 'Record in group')
+            : AsyncView(
         value: data,
         onRetry: () => ref.invalidate(playerGroupStatsProvider(key)),
         data: (m) {
@@ -96,6 +99,8 @@ class _PlayerGroupStatsScreenState
           final local = cat == null ? const <String, dynamic>{} : mapOf(cat['local']);
           final fields = cat == null ? const <Map<String, dynamic>>[] : listOf(cat['fields']);
           final rank = cat == null ? const <String, dynamic>{} : mapOf(cat['rank']);
+          // The chosen sport's design (artwork + stats blocks).
+          final family = cat == null ? null : familyOf(cat);
 
           return RefreshIndicator(
             onRefresh: () =>
@@ -109,6 +114,8 @@ class _PlayerGroupStatsScreenState
                 // Who, which group, and the local-games headline for the
                 // chosen sport. Local only: tournaments get their own card.
                 RecordHero(
+                  family: family,
+                  emoji: parseStr(cat?['emoji']),
                   name: shownName,
                   avatarUrl: parseStr(player['avatarUrl']),
                   nameSub: aka != null ? parseStr(player['displayName']) : null,
@@ -184,6 +191,7 @@ class _PlayerGroupStatsScreenState
                     const SizedBox(height: 12),
                     ScopeBlock(
                       title: 'Local group games',
+                      family: family ?? SportFamily.generic,
                       tally: local,
                       fields: fields,
                       empty: 'No completed local games in this sport yet.',
@@ -192,6 +200,7 @@ class _PlayerGroupStatsScreenState
                     const SizedBox(height: 12),
                     ScopeBlock(
                       title: 'Tournaments',
+                      family: family ?? SportFamily.generic,
                       tally: mapOf(cat['tournament']),
                       fields: fields,
                       accent: true,

@@ -4,13 +4,24 @@ import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/analytics/analytics_service.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
+import 'package:sportpadi_mobile/features/auth/claim_account_screen.dart';
 import 'package:sportpadi_mobile/features/auth/sign_in_screen.dart';
 import 'package:sportpadi_mobile/features/auth/forgot_password_screen.dart';
 import 'package:sportpadi_mobile/features/auth/verify_email_screen.dart';
+import 'package:sportpadi_mobile/features/discussions/discussion_composer_screen.dart';
+import 'package:sportpadi_mobile/features/discussions/discussion_screen.dart';
+import 'package:sportpadi_mobile/features/discussions/discussions_screen.dart';
+import 'package:sportpadi_mobile/features/discussions/my_discussions_screen.dart';
 import 'package:sportpadi_mobile/features/events/event_detail_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_detail_screen.dart';
 import 'package:sportpadi_mobile/features/join/join_group_screen.dart';
 import 'package:sportpadi_mobile/features/notifications/notifications_screen.dart';
+import 'package:sportpadi_mobile/features/announcements/announcement_composer_screen.dart';
+import 'package:sportpadi_mobile/features/announcements/sent_announcements_screen.dart';
+import 'package:sportpadi_mobile/features/inbox/announcement_detail_screen.dart';
+import 'package:sportpadi_mobile/features/inbox/conversation_screen.dart';
+import 'package:sportpadi_mobile/features/inbox/inbox_screen.dart';
+import 'package:sportpadi_mobile/features/groups/group_messages_screen.dart';
 import 'package:sportpadi_mobile/features/join/join_team_screen.dart';
 import 'package:sportpadi_mobile/features/manage/create_event_screen.dart';
 import 'package:sportpadi_mobile/features/manage/create_team_screen.dart';
@@ -27,8 +38,12 @@ import 'package:sportpadi_mobile/features/groups/group_events_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_leaderboard_screen.dart';
 import 'package:sportpadi_mobile/features/progression/progression_screens.dart';
 import 'package:sportpadi_mobile/features/groups/group_people_screen.dart';
+import 'package:sportpadi_mobile/features/groups/membership_requests_screen.dart';
 import 'package:sportpadi_mobile/features/payments/outstanding_tickets_screen.dart';
 import 'package:sportpadi_mobile/features/profile/my_qr_screen.dart';
+import 'package:sportpadi_mobile/features/profile/my_sports_screen.dart';
+import 'package:sportpadi_mobile/features/sports/my_records_screen.dart';
+import 'package:sportpadi_mobile/features/sports/sport_record_screen.dart';
 import 'package:sportpadi_mobile/features/settings/settings_screen.dart';
 import 'package:sportpadi_mobile/features/payments/my_tickets_screen.dart';
 import 'package:sportpadi_mobile/features/scan/scan_screen.dart';
@@ -47,6 +62,8 @@ import 'package:sportpadi_mobile/features/tournaments/tournament_invitations_scr
 import 'package:sportpadi_mobile/features/tournaments/my_team_tournaments_screen.dart';
 import 'package:sportpadi_mobile/features/tournaments/tournament_detail_screen.dart';
 import 'package:sportpadi_mobile/features/tournaments/tournament_team_screen.dart';
+import 'package:sportpadi_mobile/features/wards/ward_detail_screen.dart';
+import 'package:sportpadi_mobile/features/wards/wards_screen.dart';
 
 /// Declarative routes with an auth-aware redirect. Join links stay reachable
 /// while signed out (the join screen prompts sign-in itself), matching the web
@@ -133,10 +150,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         // anything. Everything else — an event, a group, a profile — needs
         // an account, and we remember where they were headed so sign-in
         // drops them there rather than back on Home.
+        // `/claim/<token>`: a ward taking over their account (Wards 3) has
+        // no session yet — the link's token is the credential.
         if (loc == '/sign-in' ||
             loc == '/forgot-password' ||
             loc == '/home' ||
-            loc.startsWith('/join')) {
+            loc.startsWith('/join') ||
+            loc.startsWith('/claim/')) {
           return null;
         }
         if (loc == '/') return '/home';
@@ -167,8 +187,31 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
           path: '/verify-email', builder: (_, __) => const VerifyEmailScreen()),
+      // A guardian handed this account over: choose a password (public).
+      GoRoute(
+        path: '/claim/:token',
+        builder: (_, st) =>
+            ClaimAccountScreen(token: st.pathParameters['token']!),
+      ),
       GoRoute(path: '/home', builder: (_, __) => const _HomeGate()),
       GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
+      // Inbox: announcements (Messaging 1) and messages (Messaging 2).
+      // Announcement pushes deep-link to /inbox/announcements/<id>, message
+      // pushes to /inbox/messages/<id>; /inbox?tab=messages opens Messages.
+      GoRoute(
+        path: '/inbox',
+        builder: (_, st) =>
+            InboxScreen(initialTab: st.uri.queryParameters['tab']),
+      ),
+      GoRoute(
+        path: '/inbox/announcements/:id',
+        builder: (_, st) =>
+            AnnouncementDetailScreen(id: st.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/inbox/messages/:id',
+        builder: (_, st) => ConversationScreen(id: st.pathParameters['id']!),
+      ),
       // Gamification (docs/gamification/phase-2.md).
       GoRoute(path: '/progress', builder: (_, __) => const ProgressScreen()),
       GoRoute(path: '/leaderboards', builder: (_, __) => const LeaderboardsScreen()),
@@ -186,6 +229,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const TournamentInvitationsScreen(),
       ),
       // Declared before /players/:id's own route so the literal segment wins.
+      // One sport's record (docs/design/sport-records.md §3).
+      GoRoute(
+        path: '/players/:id/records/:categoryId',
+        builder: (_, st) => SportRecordScreen(
+          userId: st.pathParameters['id']!,
+          categoryId: st.pathParameters['categoryId']!,
+        ),
+      ),
       GoRoute(
         path: '/players/:id/tournaments/:eventId',
         builder: (_, st) => PlayerTournamentStatsScreen(
@@ -230,7 +281,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/groups/:id/new-event',
-        builder: (_, s) => CreateEventScreen(groupId: s.pathParameters['id']!),
+        // ?team=<id>[,<id>] opens it as a team event for those teams.
+        builder: (_, s) => CreateEventScreen(
+            groupId: s.pathParameters['id']!,
+            initialTeamIds: [
+              for (final id
+                  in (s.uri.queryParameters['team'] ?? '').split(','))
+                if (id.trim().isNotEmpty) id.trim()
+            ]),
       ),
       GoRoute(
         path: '/groups/:id/new-team',
@@ -242,15 +300,96 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/groups/:id/new-tournament',
         builder: (_, s) => CreateTournamentScreen(groupId: s.pathParameters['id']!),
       ),
+      // Announcements for staff: compose (optionally aimed at a team or an
+      // event) and the sent list with seen counts.
+      GoRoute(
+        path: '/groups/:id/announcements/new',
+        builder: (_, s) => AnnouncementComposerScreen(
+          groupId: s.pathParameters['id']!,
+          teamId: s.uri.queryParameters['team'],
+          eventId: s.uri.queryParameters['event'],
+        ),
+      ),
+      GoRoute(
+        path: '/groups/:id/announcements',
+        builder: (_, s) =>
+            SentAnnouncementsScreen(groupId: s.pathParameters['id']!),
+      ),
+      // Admins: every conversation in the group (read-only) and reports.
+      GoRoute(
+        path: '/groups/:id/messages',
+        builder: (_, s) => GroupMessagesScreen(
+          groupId: s.pathParameters['id']!,
+          initialTab: s.uri.queryParameters['tab'],
+        ),
+      ),
+      // Discussions: a group's list (?team=<teamId|group> opens one space),
+      // the composer (?team= preselects where), and one thread — the
+      // canonical /discussions/<id> that comment notifications link to.
+      GoRoute(
+        path: '/groups/:id/discussions',
+        builder: (_, s) => DiscussionsScreen(
+          groupId: s.pathParameters['id']!,
+          initialSpace: s.uri.queryParameters['team'],
+        ),
+      ),
+      GoRoute(
+        path: '/groups/:id/discussions/new',
+        builder: (_, s) => DiscussionComposerScreen(
+          groupId: s.pathParameters['id']!,
+          initialSpace: s.uri.queryParameters['team'],
+        ),
+      ),
+      // Every discussion I can see, across all my groups (the side menu).
+      GoRoute(
+        path: '/discussions',
+        builder: (_, __) => const MyDiscussionsScreen(),
+      ),
+      GoRoute(
+        path: '/discussions/:id',
+        builder: (_, s) => DiscussionScreen(id: s.pathParameters['id']!),
+      ),
       GoRoute(
         path: '/groups/:id/invites',
         builder: (_, s) => TournamentInvitesScreen(groupId: s.pathParameters['id']!),
       ),
       GoRoute(path: '/scan', builder: (_, __) => const ScanScreen()),
       GoRoute(path: '/tickets', builder: (_, __) => const MyTicketsScreen()),
+      // One receipt (the "ticket paid" notification and receipt emails link
+      // to /tickets/<code>): the list, with that ticket open.
+      GoRoute(
+        path: '/tickets/:code',
+        builder: (_, st) =>
+            MyTicketsScreen(openCode: st.pathParameters['code']),
+      ),
       GoRoute(path: '/fines', builder: (_, __) => const MyFinesScreen()),
       GoRoute(path: '/my-qr', builder: (_, __) => const MyQrScreen()),
       GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+      // Activity & stats (profile menu): the sports I play, and my records
+      // sport by sport. The own record page is the public one plus the
+      // owner's actions.
+      GoRoute(
+          path: '/profile/sports', builder: (_, __) => const MySportsScreen()),
+      GoRoute(
+          path: '/profile/records',
+          builder: (_, __) => const MyRecordsScreen()),
+      GoRoute(
+        path: '/profile/records/:categoryId',
+        builder: (_, st) => SportRecordScreen(
+          userId:
+              ref.read(authControllerProvider).valueOrNull?.user?.id ?? '',
+          categoryId: st.pathParameters['categoryId']!,
+          isMe: true,
+        ),
+      ),
+      // Wards (players a guardian manages). Co-guardian invite notifications
+      // link to /profile/wards.
+      GoRoute(
+          path: '/profile/wards', builder: (_, __) => const WardsScreen()),
+      GoRoute(
+        path: '/profile/wards/:id',
+        builder: (_, st) => WardDetailScreen(wardId: st.pathParameters['id']!),
+      ),
       GoRoute(
         path: '/groups/:id/events',
         builder: (_, st) =>
@@ -296,6 +435,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/groups/:id/followers',
         builder: (_, st) => GroupPeopleScreen(
             groupId: st.pathParameters['id']!, kind: 'followers'),
+      ),
+      // The owner's membership requests (the "asked to join" notification).
+      GoRoute(
+        path: '/groups/:id/requests',
+        builder: (_, st) =>
+            MembershipRequestsScreen(groupId: st.pathParameters['id']!),
       ),
       GoRoute(
         path: '/games/:id',

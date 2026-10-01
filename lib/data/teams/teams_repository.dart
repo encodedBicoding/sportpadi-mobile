@@ -34,6 +34,18 @@ class TeamsRepository {
     }
   }
 
+  /// "Who's it for?" options for a new/edited event in [groupId].
+  Future<EventAudienceOptions> eventAudiences(String groupId) async {
+    try {
+      final res =
+          await _dio.get('/api/mobile/groups/$groupId/event-audiences');
+      return EventAudienceOptions.fromJson(
+          res.data is Map ? Map<String, dynamic>.from(res.data as Map) : const {});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load your teams.');
+    }
+  }
+
   Future<TeamDetail> get(String teamId) async {
     try {
       final res = await _dio.get('/api/mobile/teams/$teamId');
@@ -118,6 +130,12 @@ final groupTeamsProvider = FutureProvider.autoDispose
 final teamAllowanceProvider = FutureProvider.autoDispose
     .family<TeamAllowance, String>(
         (ref, groupId) => ref.watch(teamsRepositoryProvider).allowance(groupId));
+
+/// What events this viewer may create in a group — whole group (admins)
+/// and/or the teams they coach. See [EventAudienceOptions].
+final eventAudiencesProvider = FutureProvider.autoDispose
+    .family<EventAudienceOptions, String>((ref, groupId) =>
+        ref.watch(teamsRepositoryProvider).eventAudiences(groupId));
 
 final teamDetailProvider = FutureProvider.autoDispose
     .family<TeamDetail, String>(

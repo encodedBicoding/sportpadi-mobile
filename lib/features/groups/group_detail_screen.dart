@@ -8,10 +8,12 @@ import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/data/announcements/announcements_repository.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/groups/group_models.dart';
 import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
+import 'package:sportpadi_mobile/data/groups/membership_requests_repository.dart';
 import 'package:sportpadi_mobile/data/payments/payment_models.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
@@ -20,13 +22,17 @@ import 'package:sportpadi_mobile/data/tournaments/tournament_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/data/billing/iap_repository.dart';
 import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
+import 'package:sportpadi_mobile/features/announcements/announcement_entry_points.dart';
+import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/groups/group_admin_sheets.dart';
+import 'package:sportpadi_mobile/features/groups/group_talk_section.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/features/shell/home_shell.dart' show ShellBottomBar;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/shared/widgets/event_audience.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/team_tile.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
@@ -155,8 +161,15 @@ class _Header extends ConsumerStatefulWidget {
   ConsumerState<_Header> createState() => _HeaderState();
 }
 
-class _HeaderState extends ConsumerState<_Header> {
+class _HeaderState extends ConsumerState<_Header>
+    with WidgetsBindingObserver {
   String? _uploading; // 'logo' | 'cover'
+
+  // Back-on-top detection: the router's changes, checked against this
+  // page's route once the frame has settled.
+  GoRouter? _router;
+  ModalRoute<dynamic>? _route;
+  bool _onTop = true;
 
   GroupDetail get group => widget.group;
   String get groupId => group.id;
@@ -164,6 +177,61 @@ class _HeaderState extends ConsumerState<_Header> {
   String? get description => group.description;
   String? get logoUrl => group.logoUrl;
   bool get canManage => group.canManage;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _route = ModalRoute.of(context);
+    final router = GoRouter.of(context);
+    if (!identical(router, _router)) {
+      _router?.routerDelegate.removeListener(_onRouteChanged);
+      _router = router;
+      router.routerDelegate.addListener(_onRouteChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    _router?.routerDelegate.removeListener(_onRouteChanged);
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshLive();
+  }
+
+  /// The router moved (a push or a pop somewhere): once the frame has
+  /// settled, see whether this page just came back on top.
+  void _onRouteChanged() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final onTop = _route?.isCurrent ?? true;
+      if (onTop && !_onTop) _refreshLive();
+      _onTop = onTop;
+    });
+  }
+
+  /// What can change while the page is out of sight: the Talk badges, the
+  /// pinned announcements (opening one marks it seen), the owner's pending
+  /// requests — and, while my own request is pending, the group itself
+  /// (an approval makes me a member).
+  void _refreshLive() {
+    ref.invalidate(groupTalkCountsProvider(groupId));
+    ref.invalidate(
+        pinnedAnnouncementsProvider((groupId: groupId, teamId: null)));
+    if (group.isOwner) {
+      ref.invalidate(membershipRequestCountProvider(groupId));
+    }
+    if (group.hasPendingRequest) ref.invalidate(groupProvider(groupId));
+  }
 
   Future<void> _pickAndUpload(String kind) async {
     final picked = await ImagePicker().pickImage(
@@ -236,7 +304,16 @@ class _HeaderState extends ConsumerState<_Header> {
     final memberCount = group.memberCount;
     final followerCount = group.followerCount;
     final canPop = context.canPop() || Navigator.of(context).canPop();
+    final signedIn =
+        ref.watch(authControllerProvider).valueOrNull?.isAuthenticated ??
+            false;
     final desc = description?.trim() ?? '';
+    // Coaches (members who don't manage the group) can create events for
+    // the teams they coach.
+    final coachCanCreate = !canManage &&
+        group.isMember &&
+        (ref.watch(eventAudiencesProvider(groupId)).valueOrNull?.canCreate ??
+            false);
 
     final cover = ClipRRect(
       borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
@@ -335,7 +412,7 @@ class _HeaderState extends ConsumerState<_Header> {
                     ),
                     if (group.isVerified) ...[
                       const SizedBox(width: 5),
-                      const VerifiedBadge(size: 20),
+                      VerifiedBadgeButton(size: 20, groupName: name),
                     ],
                   ]),
                   const SizedBox(height: 2),
@@ -346,7 +423,9 @@ class _HeaderState extends ConsumerState<_Header> {
                               ? 'You manage this group'
                               : group.isMember
                                   ? 'You\'re a member'
-                                  : 'Public group',
+                                  : group.isFollower
+                                      ? 'You follow this group'
+                                      : 'Public group',
                       style: TextStyle(color: p.muted, fontSize: 12.5)),
                 ]),
           ),
@@ -391,11 +470,30 @@ class _HeaderState extends ConsumerState<_Header> {
               ),
             ),
             const SizedBox(width: 8),
-            _ManageMenu(groupId: groupId),
+            _ManageMenu(groupId: groupId, isOwner: group.isOwner),
           ]),
+        ] else if (coachCanCreate) ...[
+          const SizedBox(height: 14),
+          SpButton(
+            label: 'New team event',
+            icon: Icons.add_rounded,
+            expand: true,
+            onTap: () => context.push('/groups/$groupId/new-event'),
+          ),
         ] else if (!group.isMember) ...[
           const SizedBox(height: 14),
-          _FollowButton(groupId: groupId),
+          _FollowButton(groupId: groupId, initialFollowing: group.isFollower),
+          // Followers (and visitors) can ask the owner to let them in.
+          if (signedIn) ...[
+            const SizedBox(height: 10),
+            _JoinRequestControl(group: group),
+          ],
+        ],
+        // An owner who doesn't manage the group still decides who joins
+        // (managers find it in the ⋯ menu).
+        if (group.isOwner && !canManage) ...[
+          const SizedBox(height: 10),
+          _MembershipRequestsButton(groupId: groupId),
         ],
       ]),
     );
@@ -426,6 +524,12 @@ class _HeaderState extends ConsumerState<_Header> {
                 _cameraBadge('cover', size: 44),
                 const SizedBox(width: 8),
               ],
+              // Members: mute this group's announcements (and, for staff,
+              // compose / sent).
+              if (group.isMember || canManage) ...[
+                GroupAnnouncementsButton(groupId: groupId, groupName: name),
+                const SizedBox(width: 8),
+              ],
               SpRoundButton(
                   icon: Icons.ios_share_rounded,
                   tooltip: 'Share',
@@ -444,6 +548,19 @@ class _HeaderState extends ConsumerState<_Header> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _OverviewSection(groupId: groupId, canManage: canManage),
+              // Pinned announcements: their own section, for members and
+              // followers alike (the server decides what each one gets).
+              GroupPinnedAnnouncementsSection(groupId: groupId),
+              // Talk: Announcements (Open Inbox, Announce / Sent, mute),
+              // Messages (Contact the admins / Message coach / Message a
+              // member / Conversations) and Discussions as three tiles with
+              // notification badges, each opening a sheet — so they don't
+              // crowd the page. Messages and Discussions are for members.
+              GroupTalkSection(
+                groupId: groupId,
+                groupName: name,
+                isMember: group.isMember || canManage,
+              ),
               // Group reputation (gamification): level, streak, achievements.
               GroupReputationCard(groupId: groupId),
             ],
@@ -511,13 +628,20 @@ void _handleNewTournament(BuildContext context, WidgetRef ref, String groupId) {
 }
 
 class _ManageMenu extends ConsumerWidget {
-  const _ManageMenu({required this.groupId});
+  const _ManageMenu({required this.groupId, required this.isOwner});
   final String groupId;
+
+  /// The creator: transfer ownership, and the membership-requests queue.
+  final bool isOwner;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
-    return Container(
+    // Requests waiting on the owner: a badge on the menu and on its item.
+    final pending = isOwner
+        ? ref.watch(membershipRequestCountProvider(groupId)).valueOrNull ?? 0
+        : 0;
+    final menu = Container(
       width: 46,
       height: 46,
       decoration: BoxDecoration(
@@ -578,11 +702,13 @@ class _ManageMenu extends ConsumerWidget {
             case 'transfer':
               showTransferOwnershipSheet(context, groupId);
               break;
+            case 'requests':
+              context.push('/groups/$groupId/requests');
+              break;
           }
         },
         itemBuilder: (_) {
           final ov = ref.read(groupOverviewProvider(groupId)).valueOrNull;
-          final isOwner = ref.read(groupProvider(groupId)).valueOrNull?.isOwner ?? false;
           // Fail open while the overview loads — the server still enforces.
           final canTournaments = ov?.canCreateTournaments ?? true;
           // Team building: plan OR promo code (same rule as web + server).
@@ -606,6 +732,10 @@ class _ManageMenu extends ConsumerWidget {
             if (!ios)
               _menuItem('promo', Icons.confirmation_number_outlined, 'Promo codes'),
             if (isOwner)
+              _menuItem('requests', Icons.how_to_reg_outlined,
+                  'Membership requests',
+                  badge: pending),
+            if (isOwner)
               _menuItem('transfer', Icons.swap_horiz_rounded, 'Transfer ownership'),
             const PopupMenuDivider(),
             if (canTeams)
@@ -622,16 +752,64 @@ class _ManageMenu extends ConsumerWidget {
         },
       ),
     );
+    return Stack(clipBehavior: Clip.none, children: [
+      menu,
+      if (pending > 0)
+        Positioned(
+          top: -4,
+          right: -4,
+          child: IgnorePointer(
+            child: _CountBadge(count: pending, border: p.surface),
+          ),
+        ),
+    ]);
   }
 
-  PopupMenuItem<String> _menuItem(String value, IconData icon, String label) {
+  PopupMenuItem<String> _menuItem(String value, IconData icon, String label,
+      {int badge = 0}) {
     return PopupMenuItem(
       value: value,
       child: Row(children: [
         Icon(icon, size: 18),
         const SizedBox(width: 10),
         Text(label),
+        if (badge > 0) ...[
+          const SizedBox(width: 8),
+          _CountBadge(count: badge),
+        ],
       ]),
+    );
+  }
+}
+
+/// A notification-style count pill ("9+" above 9).
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({required this.count, this.border});
+  final int count;
+
+  /// A ring in the surface colour, when the pill sits on another widget.
+  final Color? border;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final ring = border;
+    return Container(
+      height: 20,
+      constraints: const BoxConstraints(minWidth: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: p.accentDeep,
+        borderRadius: BorderRadius.circular(10),
+        border: ring != null ? Border.all(color: ring, width: 2) : null,
+      ),
+      child: Text(count > 9 ? '9+' : '$count',
+          style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              height: 1,
+              fontWeight: FontWeight.w800)),
     );
   }
 }
@@ -728,6 +906,10 @@ class _EventsTab extends ConsumerWidget {
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
                                               color: p.muted, fontSize: 12)),
+                                    if (e.audienceTeams.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      AudienceBadge(e.audienceTeams),
+                                    ],
                                   ]),
                             ),
                             const SizedBox(width: 8),
@@ -1113,10 +1295,12 @@ class _CoverWash extends StatelessWidget {
   }
 }
 
-/// Follow / Following for visitors (non-members).
+/// Follow / Following for visitors (non-members). Starts from the group's
+/// own `isFollower` and confirms it with the follow endpoint.
 class _FollowButton extends ConsumerStatefulWidget {
-  const _FollowButton({required this.groupId});
+  const _FollowButton({required this.groupId, this.initialFollowing = false});
   final String groupId;
+  final bool initialFollowing;
 
   @override
   ConsumerState<_FollowButton> createState() => _FollowButtonState();
@@ -1129,7 +1313,17 @@ class _FollowButtonState extends ConsumerState<_FollowButton> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialFollowing) _following = true;
     _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant _FollowButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The group was re-read (asking to join follows it, for one).
+    if (widget.initialFollowing != oldWidget.initialFollowing && !_busy) {
+      _following = widget.initialFollowing;
+    }
   }
 
   Future<void> _load() async {
@@ -1151,6 +1345,8 @@ class _FollowButtonState extends ConsumerState<_FollowButton> {
       await ref
           .read(eventsRepositoryProvider)
           .setFollow(widget.groupId, !was);
+      // The header's "You follow this group" and the follower count.
+      if (mounted) ref.invalidate(groupProvider(widget.groupId));
     } catch (e) {
       if (mounted) {
         setState(() => _following = was);
@@ -1192,6 +1388,218 @@ class _FollowButtonState extends ConsumerState<_FollowButton> {
         ),
       ),
     );
+  }
+}
+
+/// "Request to join" for signed-in followers and visitors, and the state of
+/// my request: pending → a "Requested" chip and "Cancel request"; declined
+/// or cancelled → ask again. An approval makes me a member, which takes
+/// this away (the page re-reads the group while a request is pending).
+class _JoinRequestControl extends ConsumerStatefulWidget {
+  const _JoinRequestControl({required this.group});
+  final GroupDetail group;
+
+  @override
+  ConsumerState<_JoinRequestControl> createState() =>
+      _JoinRequestControlState();
+}
+
+class _JoinRequestControlState extends ConsumerState<_JoinRequestControl> {
+  bool _busy = false;
+
+  String get _groupId => widget.group.id;
+
+  void _snack(String text) => ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(text)));
+
+  Future<void> _request() async {
+    final sent = await showSpSheet<bool>(
+      context,
+      builder: (_) => _RequestToJoinSheet(
+          groupId: _groupId, groupName: widget.group.name),
+    );
+    if (sent != true || !mounted) return;
+    ref.invalidate(groupProvider(_groupId));
+    _snack('Request sent — the group owner will review it.');
+  }
+
+  Future<void> _cancel() async {
+    setState(() => _busy = true);
+    try {
+      await ref.read(membershipRequestsRepositoryProvider).cancel(_groupId);
+      if (!mounted) return;
+      ref.invalidate(groupProvider(_groupId));
+      _snack('Request cancelled.');
+    } catch (e) {
+      if (mounted) _snack('$e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final req = widget.group.membershipRequest;
+    if (req != null && req.isPending) {
+      return Row(children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: p.accentTint,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.hourglass_top_rounded, size: 15, color: p.greenText),
+            const SizedBox(width: 6),
+            Text('Requested',
+                style: TextStyle(
+                    color: p.greenText,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700)),
+          ]),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+              req.createdAt != null
+                  ? 'Sent ${timeAgo(req.createdAt)}'
+                  : 'Waiting for the owner',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: p.muted, fontSize: 12)),
+        ),
+        TextButton(
+          onPressed: _busy ? null : _cancel,
+          child: const Text('Cancel request'),
+        ),
+      ]);
+    }
+    final declined = req?.status == 'declined';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _OutlineButton(
+          label: declined ? 'Request to join again' : 'Request to join',
+          icon: Icons.how_to_reg_outlined,
+          onTap: _busy ? null : _request,
+        ),
+        if (declined) ...[
+          const SizedBox(height: 6),
+          Text("Your last request wasn't approved — you can ask again.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: p.muted, fontSize: 12)),
+        ],
+      ],
+    );
+  }
+}
+
+/// The ask: an optional note for the owner (≤300 characters). Pops `true`
+/// once the request is in.
+class _RequestToJoinSheet extends ConsumerStatefulWidget {
+  const _RequestToJoinSheet({required this.groupId, required this.groupName});
+  final String groupId;
+  final String groupName;
+
+  @override
+  ConsumerState<_RequestToJoinSheet> createState() =>
+      _RequestToJoinSheetState();
+}
+
+class _RequestToJoinSheetState extends ConsumerState<_RequestToJoinSheet> {
+  static const _maxLength = 300;
+  final _message = TextEditingController();
+  bool _sending = false;
+
+  @override
+  void dispose() {
+    _message.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    setState(() => _sending = true);
+    try {
+      await ref
+          .read(membershipRequestsRepositoryProvider)
+          .request(widget.groupId, message: _message.text);
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _sending = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('$e')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SpSheetHeader(
+          icon: Icons.how_to_reg_outlined,
+          title: 'Request to join',
+          subtitle: widget.groupName,
+        ),
+        Text(
+            "The group's owner gets your request and decides. You'll follow "
+            'the group while you wait.',
+            style: TextStyle(color: p.muted, fontSize: 13, height: 1.45)),
+        const SizedBox(height: 14),
+        TextField(
+          controller: _message,
+          maxLength: _maxLength,
+          minLines: 3,
+          maxLines: 5,
+          enabled: !_sending,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            labelText: 'Message (optional)',
+            hintText: 'Say hello, or why you’d like to join',
+            alignLabelWithHint: true,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SpButton(
+          label: _sending ? 'Sending…' : 'Send request',
+          icon: Icons.send_rounded,
+          expand: true,
+          onTap: _sending ? null : _send,
+        ),
+      ],
+    );
+  }
+}
+
+/// The owner's way into the membership-requests queue (with the pending
+/// count) when they don't have the managers' ⋯ menu.
+class _MembershipRequestsButton extends ConsumerWidget {
+  const _MembershipRequestsButton({required this.groupId});
+  final String groupId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pending =
+        ref.watch(membershipRequestCountProvider(groupId)).valueOrNull ?? 0;
+    return Stack(clipBehavior: Clip.none, children: [
+      _OutlineButton(
+        label: 'Membership requests',
+        icon: Icons.how_to_reg_outlined,
+        onTap: () => context.push('/groups/$groupId/requests'),
+      ),
+      if (pending > 0)
+        Positioned(
+          top: -6,
+          right: 6,
+          child: IgnorePointer(
+            child: _CountBadge(
+                count: pending, border: context.palette.surface),
+          ),
+        ),
+    ]);
   }
 }
 
@@ -1533,7 +1941,7 @@ class _OutlineButton extends StatelessWidget {
       {required this.label, required this.icon, required this.onTap});
   final String label;
   final IconData icon;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
