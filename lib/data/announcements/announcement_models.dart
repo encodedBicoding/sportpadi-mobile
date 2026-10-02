@@ -206,7 +206,7 @@ class AnnouncementItem {
       groupName: parseStr(j['groupName']) ?? 'Group',
       groupImageUrl: parseStr(j['groupImageUrl']),
       senderId: parseStr(j['senderId']) ?? '',
-      senderName: parseStr(j['senderName']) ?? 'Group staff',
+      senderName: parseStr(j['senderName']) ?? 'Group admins',
       senderAvatarUrl: parseStr(j['senderAvatarUrl']),
       senderRole: role == 'coach' || role == 'organiser' ? role! : 'admin',
       audienceKind: parseStr(j['audienceKind']) ?? 'group',

@@ -1349,14 +1349,14 @@ class _CoachesTab extends ConsumerWidget {
               const SpIconTile(Icons.sports_rounded, size: 52, iconSize: 24),
               const SizedBox(height: 10),
               Text(
-                'No coaching staff yet${team.canManage ? ' — add from your group members.' : '.'}',
+                'No coaches yet${team.canManage ? ' — add from your group members.' : '.'}',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 13),
               ),
             ]),
           )
         else ...[
-          SpSectionTitle('Coaching staff', count: coaches.length),
+          SpSectionTitle('Coaches', count: coaches.length),
           const SizedBox(height: 10),
           SpListCard(children: [
             for (final c in coaches)
@@ -1445,7 +1445,7 @@ class _CoachesTab extends ConsumerWidget {
         .toList();
     if (candidates.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Every group member is already on the staff.')));
+          content: Text('Every group member already coaches this team.')));
       return;
     }
     String role = roleOptions.isNotEmpty ? roleOptions.first : 'Coach';

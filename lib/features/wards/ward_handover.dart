@@ -307,7 +307,8 @@ class _HandoverSheetState extends ConsumerState<_HandoverSheet> {
               'Until their 18th birthday'
               '${adult == null ? '' : ' (${_longDate.format(adult)})'}, you '
               'stay on as their supervising guardian. You still get messages '
-              'from staff about $first and copies of announcements, but you '
+              "from their groups' admins and coaches about $first and copies "
+              'of announcements, but you '
               "can't act for them any more.")
         else
           point(
