@@ -93,7 +93,7 @@ class _OversightList extends ConsumerWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                    "Every conversation between this group's staff and its "
+                    "Every conversation between this group's admins or coaches and its "
                     "members. You can read them all; only the people in a "
                     'conversation can reply.',
                     style:

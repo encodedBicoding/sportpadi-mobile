@@ -92,7 +92,7 @@ class PushService {
     AndroidNotificationChannel(
       _chMessages,
       'Messages',
-      description: 'Conversations with your coaches and group staff',
+      description: 'Conversations with your group admins and coaches',
       importance: Importance.high,
     ),
     AndroidNotificationChannel(

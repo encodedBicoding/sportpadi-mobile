@@ -99,7 +99,7 @@ class ConversationRow extends StatelessWidget {
         (c.lastPreview ?? '').trim().replaceAll(RegExp(r'\s*\n\s*'), ' ');
     final sub = oversight
         ? [
-            'with ${c.staffName ?? 'Staff'}',
+            'with ${c.staffName ?? 'Admin or coach'}',
             if (c.subtitle.isNotEmpty && c.subtitle != c.groupName) c.subtitle,
           ].join(' · ')
         : [

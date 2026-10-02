@@ -489,8 +489,9 @@ class _MessageNotificationsCardState
             style: TextStyle(
                 color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700)),
         subtitle: Text(
-            'New messages from your admins and coaches (and, for staff, '
-            'from members). Mute a single conversation from its menu.',
+            'New messages from your admins and coaches (and, if you run a '
+            'group or coach a team, from members). Mute a single conversation '
+            'from its menu.',
             style: TextStyle(color: p.muted, fontSize: 12)),
         value: _pending ?? saved,
         onChanged: list == null ? null : _set,

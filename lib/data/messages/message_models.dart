@@ -210,7 +210,7 @@ class ConversationInfo {
     this.avatarUrl,
     this.aboutWard,
     this.guardians = const [],
-    this.staffName = 'Staff',
+    this.staffName = 'Admin or coach',
     this.mySide = 'member',
     this.canReply = false,
     this.canClose = false,
@@ -264,7 +264,7 @@ class ConversationInfo {
         guardians: [
           for (final g in _maps(j['guardians'])) ConversationPerson.fromJson(g)
         ],
-        staffName: parseStr(j['staffName']) ?? 'Staff',
+        staffName: parseStr(j['staffName']) ?? 'Admin or coach',
         mySide: switch (j['mySide']) {
           'staff' => 'staff',
           'oversight' => 'oversight',

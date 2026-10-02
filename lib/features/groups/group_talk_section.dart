@@ -151,7 +151,7 @@ class GroupTalkSection extends ConsumerWidget {
     if (counts.messages > 0) {
       messagesStatus = '${counts.messages} unread';
     } else if (selfBlocked && staff == null) {
-      messagesStatus = 'Your guardian contacts staff for you';
+      messagesStatus = 'Your guardian contacts admins for you';
     } else if (staff != null) {
       messagesStatus = staff.isAdmin ? 'Conversations' : 'Message a member';
     } else if (canContactAdmins && hasCoaches) {
@@ -259,7 +259,7 @@ class GroupTalkSection extends ConsumerWidget {
     if (counts.messages > 0) {
       messagesStatus = '${counts.messages} unread';
     } else if (selfBlocked && !toPlayers) {
-      messagesStatus = 'Your guardian contacts staff for you';
+      messagesStatus = 'Your guardian contacts admins for you';
     } else if (coaches.length == 1) {
       messagesStatus = 'Message ${coaches.first.name}';
     } else if (coaches.isNotEmpty) {

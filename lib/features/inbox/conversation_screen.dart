@@ -581,7 +581,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
     } else if (c.isLocked) {
       banner = c.mySide == 'member'
           ? "This conversation is locked — you're no longer in reach of this "
-              'staff member (you left the group or changed team).'
+              'admin or coach (you left the group or changed team).'
           : 'This conversation is locked — the member left the group, or the '
               'coach no longer coaches their team.';
     } else if (!c.canReply) {
