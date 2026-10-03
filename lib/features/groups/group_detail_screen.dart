@@ -874,12 +874,17 @@ class _EventsTab extends ConsumerWidget {
 
     Widget body;
     if (list == null && events.isLoading) {
-      body = _grid([
-        for (var i = 0; i < 2; i++)
-          DecoratedBox(
-            decoration: BoxDecoration(
-                color: p.surface2, borderRadius: BorderRadius.circular(22)),
+      body = Row(children: [
+        for (var i = 0; i < 2; i++) ...[
+          if (i > 0) const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              height: 230,
+              decoration: BoxDecoration(
+                  color: p.surface2, borderRadius: BorderRadius.circular(22)),
+            ),
           ),
+        ],
       ]);
     } else if (list == null) {
       body = GlassCard(
@@ -910,9 +915,7 @@ class _EventsTab extends ConsumerWidget {
         ),
       ]);
     } else {
-      body = _grid([
-        for (final e in list) EventTile(event: e, showGroup: false),
-      ]);
+      body = EventTileGrid(events: list, showGroup: false);
     }
 
     return RefreshIndicator(
@@ -925,18 +928,6 @@ class _EventsTab extends ConsumerWidget {
     );
   }
 
-  static Widget _grid(List<Widget> tiles) => GridView(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          mainAxisExtent: EventTile.height,
-        ),
-        shrinkWrap: true,
-        padding: EdgeInsets.zero,
-        physics: const NeverScrollableScrollPhysics(),
-        children: tiles,
-      );
 }
 
 class _TeamsTab extends ConsumerStatefulWidget {

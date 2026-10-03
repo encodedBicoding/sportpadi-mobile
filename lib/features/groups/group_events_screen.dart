@@ -150,20 +150,7 @@ class _GroupEventsScreenState extends ConsumerState<GroupEventsScreen> {
     } else {
       // The 2026 event tiles in two columns (as on Browse / the web).
       content = Column(children: [
-        GridView(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            mainAxisExtent: EventTile.height,
-          ),
-          shrinkWrap: true,
-          padding: EdgeInsets.zero,
-          physics: const NeverScrollableScrollPhysics(),
-          children: [
-            for (final e in _items) EventTile(event: e, showGroup: false),
-          ],
-        ),
+        EventTileGrid(events: _items, showGroup: false),
         if (_loadingMore)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
