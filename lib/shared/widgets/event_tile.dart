@@ -10,17 +10,15 @@ import 'package:sportpadi_mobile/shared/format/formatters.dart';
 /// group page's Events tab and events page: a cover (photo, or a pitch drawn
 /// in the sport's colour) carrying the sport and LIVE / members-only, then
 /// the title, when, the group ([showGroup]), the teams a team event is for,
-/// and "distance · n going". Lay it out in a 2-column grid with a
-/// mainAxisExtent of [EventTile.height].
+/// and "distance · n going" (not for past events). Each line takes room only
+/// when it's shown, so a card is exactly as tall as what it says. Lay several
+/// out with [EventTileGrid] (or [EventTileRow] per pair in a sliver list).
 class EventTile extends StatelessWidget {
   const EventTile({super.key, required this.event, this.showGroup = true});
   final EventSummary event;
 
   /// Off on a group's own pages (every event is that group's).
   final bool showGroup;
-
-  /// The tile's height in a grid (`mainAxisExtent`).
-  static const double height = 244;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +47,13 @@ class EventTile extends StatelessWidget {
       if (d != null) '${wd[d.weekday - 1]} ${d.day} ${mo[d.month - 1]}',
       if (formatClock(e.startTime) != null) formatClock(e.startTime)!,
     ].join(' · ');
-    final going = e.interestCount ?? 0;
+    // "n going" only means something before it happens: hidden once the
+    // event is over (completed, or its day has passed).
+    final now = DateTime.now();
+    final today = DateTime.utc(now.year, now.month, now.day);
+    final past = e.status == 'completed' ||
+        (d != null && DateTime.utc(d.year, d.month, d.day).isBefore(today));
+    final going = past ? 0 : (e.interestCount ?? 0);
     final foot = [
       if (e.distanceMiles != null) '${e.distanceMiles} mi',
       if (going > 0) '$going going',
@@ -94,8 +98,12 @@ class EventTile extends StatelessWidget {
                     : null,
             boxShadow: cardShadow(context),
           ),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          // Sized by its content: every line below the cover takes room only
+          // when it's shown — no reserved footer, no blank band.
+          child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
             // Cover, inset so the card's white frames it.
             Padding(
               padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
@@ -162,10 +170,10 @@ class EventTile extends StatelessWidget {
                 ),
               ),
             ),
-            Expanded(
-              child: Padding(
+            Padding(
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
                 child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(e.title,
@@ -176,8 +184,8 @@ class EventTile extends StatelessWidget {
                               fontSize: 13.5,
                               height: 1.25,
                               fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 4),
-                      if (when.isNotEmpty)
+                      if (when.isNotEmpty) ...[
+                        const SizedBox(height: 4),
                         Text(when,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -186,13 +194,13 @@ class EventTile extends StatelessWidget {
                                 fontSize: 11.5,
                                 fontWeight:
                                     live ? FontWeight.w700 : FontWeight.w500)),
+                      ],
                       if (showGroup && e.groupName != null)
                         Text(e.groupName!,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(color: p.muted, fontSize: 11.5)),
-                      // Team events: "For U12 Lions" — one compact line, so
-                      // the fixed-height tile never overflows.
+                      // Team events: "For U12 Lions" — one compact line.
                       if (audienceLabel(e.audienceTeams) case final aud?)
                         Row(children: [
                           Icon(Icons.shield_outlined,
@@ -208,8 +216,8 @@ class EventTile extends StatelessWidget {
                                     fontWeight: FontWeight.w600)),
                           ),
                         ]),
-                      const Spacer(),
-                      if (foot.isNotEmpty)
+                      if (foot.isNotEmpty) ...[
+                        const SizedBox(height: 6),
                         Text(foot,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -217,9 +225,9 @@ class EventTile extends StatelessWidget {
                                 color: t ? p.orangeInk : p.greenText,
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w700)),
+                      ],
                     ]),
               ),
-            ),
           ]),
         ),
       ),
@@ -249,4 +257,45 @@ class _CoverPitch extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _CoverPitch old) => old.color != color;
+}
+
+/// Two tiles side by side, each as tall as its own content (the second may
+/// be null for an odd count).
+class EventTileRow extends StatelessWidget {
+  const EventTileRow(
+      {super.key, required this.left, this.right, this.showGroup = true});
+  final EventSummary left;
+  final EventSummary? right;
+  final bool showGroup;
+
+  @override
+  Widget build(BuildContext context) =>
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(child: EventTile(event: left, showGroup: showGroup)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: right == null
+              ? const SizedBox.shrink()
+              : EventTile(event: right!, showGroup: showGroup),
+        ),
+      ]);
+}
+
+/// A 2-column grid of [EventTile]s for a non-lazy list (a group's events).
+class EventTileGrid extends StatelessWidget {
+  const EventTileGrid({super.key, required this.events, this.showGroup = true});
+  final List<EventSummary> events;
+  final bool showGroup;
+
+  @override
+  Widget build(BuildContext context) => Column(children: [
+        for (var i = 0; i < events.length; i += 2) ...[
+          if (i > 0) const SizedBox(height: 12),
+          EventTileRow(
+            left: events[i],
+            right: i + 1 < events.length ? events[i + 1] : null,
+            showGroup: showGroup,
+          ),
+        ],
+      ]);
 }

@@ -654,15 +654,6 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
     // native card between runs (Android only; on iOS the card is empty and
     // the runs simply abut). Slivers rather than one GridView.builder because
     // a fixed-column grid can't host a cell that spans both columns.
-    const gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: 2,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      // A fixed height, not an aspect ratio: the text block under the cover
-      // needs the same room on every phone width.
-      mainAxisExtent: EventTile.height,
-    );
-
     final slivers = <Widget>[];
     for (var start = 0; start < _items.length; start += _adEvery) {
       final run =
@@ -677,11 +668,17 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
           ),
         ));
       }
-      slivers.add(SliverGrid(
-        gridDelegate: gridDelegate,
+      // Rows of two; each card is as tall as its own content.
+      slivers.add(SliverList(
         delegate: SliverChildBuilderDelegate(
-          (context, i) => EventTile(event: run[i]),
-          childCount: run.length,
+          (context, r) => Padding(
+            padding: EdgeInsets.only(top: r == 0 ? 0 : 12),
+            child: EventTileRow(
+              left: run[r * 2],
+              right: r * 2 + 1 < run.length ? run[r * 2 + 1] : null,
+            ),
+          ),
+          childCount: (run.length + 1) ~/ 2,
         ),
       ));
     }
