@@ -17,22 +17,30 @@ import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
 /// Pinned announcements for a group page ([teamId] null) or a team page.
 /// [onOpen] replaces the default "push the announcement" (inside a sheet,
-/// which has to close first).
+/// which has to close first). [max] caps how many show (null = all) — the
+/// server sends urgent, then unread, then newest first.
 class PinnedAnnouncements extends ConsumerWidget {
   const PinnedAnnouncements(
-      {super.key, required this.groupId, this.teamId, this.onOpen});
+      {super.key,
+      required this.groupId,
+      this.teamId,
+      this.onOpen,
+      this.max});
   final String groupId;
   final String? teamId;
   final ValueChanged<AnnouncementItem>? onOpen;
+  final int? max;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final list = ref
+    final all = ref
             .watch(
                 pinnedAnnouncementsProvider((groupId: groupId, teamId: teamId)))
             .valueOrNull ??
         const <AnnouncementItem>[];
-    if (list.isEmpty) return const SizedBox.shrink();
+    if (all.isEmpty) return const SizedBox.shrink();
+    final cap = max;
+    final list = cap != null && all.length > cap ? all.take(cap).toList() : all;
     final open = onOpen;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -51,32 +59,80 @@ class PinnedAnnouncements extends ConsumerWidget {
   }
 }
 
-/// Group page: its own "Pinned" section (above Talk) with the group's
-/// pinned announcements — or, with [teamId], the team page's with the
-/// team's. Members and followers alike — the server decides what each viewer
-/// gets — and nothing at all when there are none.
+/// Group page: its own "Pinned" section (top of the page, above the
+/// overview tiles) with the group's pinned announcements — or, with
+/// [teamId], the team page's with the team's. Members and followers alike —
+/// the server decides what each viewer gets — and nothing at all when there
+/// are none. Only the top [_shown] appear; more sit behind "See all", in a
+/// sheet, so a busy group's pins never flood the page.
 class GroupPinnedAnnouncementsSection extends ConsumerWidget {
   const GroupPinnedAnnouncementsSection(
-      {super.key, required this.groupId, this.teamId});
+      {super.key,
+      required this.groupId,
+      this.teamId,
+      this.padding = const EdgeInsets.only(top: 18)});
   final String groupId;
   final String? teamId;
+  final EdgeInsets padding;
+
+  static const _shown = 2;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final p = context.palette;
     final list = ref
             .watch(
                 pinnedAnnouncementsProvider((groupId: groupId, teamId: teamId)))
             .valueOrNull ??
         const <AnnouncementItem>[];
     if (list.isEmpty) return const SizedBox.shrink();
+    final more = list.length > _shown;
     return Padding(
-      padding: const EdgeInsets.only(top: 18),
+      padding: padding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SpSectionTitle('Pinned', count: list.length > 1 ? list.length : null),
+          SpSectionTitle(
+            'Pinned',
+            count: list.length > 1 ? list.length : null,
+            trailing: more
+                ? TextButton(
+                    onPressed: () => _showAll(context),
+                    style: TextButton.styleFrom(
+                        foregroundColor: p.greenText,
+                        visualDensity: VisualDensity.compact),
+                    child: const Text('See all'),
+                  )
+                : null,
+          ),
           const SizedBox(height: 10),
-          PinnedAnnouncements(groupId: groupId, teamId: teamId),
+          PinnedAnnouncements(groupId: groupId, teamId: teamId, max: _shown),
+        ],
+      ),
+    );
+  }
+
+  void _showAll(BuildContext context) {
+    // The page's context, for opening one after the sheet closes.
+    final router = GoRouter.of(context);
+    showSpSheet<void>(
+      context,
+      builder: (sheet) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SpSheetHeader(
+            icon: Icons.push_pin_outlined,
+            title: 'Pinned',
+            subtitle: 'Urgent and unread first',
+          ),
+          PinnedAnnouncements(
+            groupId: groupId,
+            teamId: teamId,
+            onOpen: (a) {
+              Navigator.of(sheet).pop();
+              router.push('/inbox/announcements/${a.id}');
+            },
+          ),
         ],
       ),
     );

@@ -44,6 +44,16 @@ class ManageRepository {
     }
   }
 
+  /// Delete a group team (group admins). The server refuses while the team is
+  /// entered in a tournament that hasn't finished — its message says which.
+  Future<void> deleteTeam(String teamId) async {
+    try {
+      await _dio.delete('/api/mobile/teams/$teamId');
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not delete the team.');
+    }
+  }
+
   Future<Map<String, dynamic>> createTournament(
       Map<String, dynamic> body) async {
     try {

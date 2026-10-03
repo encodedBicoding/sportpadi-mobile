@@ -5,10 +5,12 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
+import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/category_dropdown.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
 /// Kit colours a team can pick from. The web form takes any hex through a
 /// colour input; on a phone a palette is quicker and every one of these reads
@@ -51,6 +53,10 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
   // Same defaults as the web form: green shirt, white trim.
   String _kitPrimary = '#16a34a';
   String _kitSecondary = '#ffffff';
+  // Adults or kids (same default as the web form) and, for kids, an optional
+  // age group — a guide shown when adding players, not a gate.
+  String _grade = 'adults';
+  int? _ageLimit;
   bool _busy = false;
   String? _error;
 
@@ -86,6 +92,8 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
           await ref.read(manageRepositoryProvider).createTeam(widget.groupId, {
         'categoryId': _categoryId,
         'name': _name.text.trim(),
+        'grade': _grade,
+        'ageLimit': _grade == 'kids' ? _ageLimit : null,
         'kitPrimary': _kitPrimary,
         'kitSecondary': _kitSecondary,
         'homeVenue': _venue.text.trim().isEmpty ? null : _venue.text.trim(),
@@ -152,6 +160,37 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
                 ],
               );
             }),
+            const SizedBox(height: 18),
+            const _Label('Grade'),
+            const SizedBox(height: 6),
+            SpSegmented(
+              options: const ['Adults', 'Kids'],
+              index: _grade == 'kids' ? 1 : 0,
+              onChanged: (i) => setState(() {
+                _grade = i == 1 ? 'kids' : 'adults';
+                if (_grade != 'kids') _ageLimit = null;
+              }),
+            ),
+            if (_grade == 'kids') ...[
+              const SizedBox(height: 14),
+              const _Label('Age group'),
+              const SizedBox(height: 6),
+              SpSegmented(
+                options: [
+                  'Any age',
+                  for (final n in teamAgeLimits) 'Under $n',
+                ],
+                index: _ageLimit == null
+                    ? 0
+                    : teamAgeLimits.indexOf(_ageLimit!) + 1,
+                onChanged: (i) => setState(
+                    () => _ageLimit = i == 0 ? null : teamAgeLimits[i - 1]),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                  "A guide, not a rule: when you add players you'll see each child's age, and anyone over the limit is flagged — you can still add them.",
+                  style: TextStyle(color: p.muted, fontSize: 12, height: 1.4)),
+            ],
             const SizedBox(height: 18),
             // Kit — what the crest will look like everywhere the team appears.
             Row(children: [
@@ -223,6 +262,17 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
       ),
     );
   }
+}
+
+class _Label extends StatelessWidget {
+  const _Label(this.text);
+  final String text;
+  @override
+  Widget build(BuildContext context) => Text(text,
+      style: TextStyle(
+          color: context.palette.ink,
+          fontSize: 13.5,
+          fontWeight: FontWeight.w700));
 }
 
 /// One row of kit swatches with the chosen one ringed.
