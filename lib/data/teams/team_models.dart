@@ -1,5 +1,20 @@
 import '../../shared/format/parse.dart';
 
+/// Kids teams' age groups ("Under N") — a guide shown on the team and in the
+/// add-player list, not a gate (docs/design/2026-redesign.md row 77).
+const teamAgeLimits = [12, 16, 18];
+
+int? _ageLimit(dynamic v) {
+  final n = parseInt(v);
+  return n != null && teamAgeLimits.contains(n) ? n : null;
+}
+
+/// "Kids · U12", "Kids", "Adults".
+String teamGradeLabel(String? grade, int? ageLimit) {
+  if (grade == 'kids') return ageLimit != null ? 'Kids · U$ageLimit' : 'Kids';
+  return 'Adults';
+}
+
 class TeamSummary {
   const TeamSummary({
     required this.id,
@@ -13,6 +28,7 @@ class TeamSummary {
     this.categoryEmoji,
     this.categoryName,
     this.grade,
+    this.ageLimit,
   });
 
   final String id;
@@ -26,6 +42,11 @@ class TeamSummary {
   final String? categoryEmoji;
   final String? grade;
   final String? categoryName;
+
+  /// Kids teams: "Under N" (12 / 16 / 18), or null for any age.
+  final int? ageLimit;
+
+  String get gradeLabel => teamGradeLabel(grade, ageLimit);
 
   factory TeamSummary.fromJson(Map<String, dynamic> j) {
     final cat = j['category'];
@@ -41,6 +62,7 @@ class TeamSummary {
       categoryEmoji: cat is Map ? parseStr(cat['emoji']) : null,
       categoryName: cat is Map ? parseStr(cat['name']) : null,
       grade: parseStr(j['grade']),
+      ageLimit: _ageLimit(j['ageLimit']),
     );
   }
 }
@@ -243,6 +265,8 @@ class TeamDetail {
     this.members = const [],
     this.formation = const FormationConfig(),
     this.canManage = false,
+    this.grade,
+    this.ageLimit,
   });
 
   final String id;
@@ -259,6 +283,10 @@ class TeamDetail {
   final List<TeamMember> members;
   final FormationConfig formation;
   final bool canManage;
+  final String? grade; // kids | adults
+  final int? ageLimit; // kids teams: Under N
+
+  String get gradeLabel => teamGradeLabel(grade, ageLimit);
 
   List<String> get positionOptions => formation.positions;
 
@@ -294,6 +322,8 @@ class TeamDetail {
       formation: FormationConfig.fromJson(
           formation is Map ? Map<String, dynamic>.from(formation) : null),
       canManage: j['canManage'] == true,
+      grade: parseStr(j['grade']),
+      ageLimit: _ageLimit(j['ageLimit']),
     );
   }
 }

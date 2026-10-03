@@ -58,6 +58,7 @@ class GroupPeopleScreen extends ConsumerWidget {
           ? _MembersList(
               groupId: groupId,
               canManage: canManage,
+              creatorId: group?.createdBy,
               myUserId: ref.watch(meProvider).valueOrNull?.userId)
           : _FollowersList(groupId: groupId, canManage: canManage),
     );
@@ -68,10 +69,12 @@ class _MembersList extends ConsumerStatefulWidget {
   const _MembersList({
     required this.groupId,
     required this.canManage,
+    this.creatorId,
     this.myUserId,
   });
   final String groupId;
   final bool canManage;
+  final String? creatorId;
   final String? myUserId;
 
   @override
@@ -206,8 +209,52 @@ class _MembersListState extends ConsumerState<_MembersList> {
   /// Message (staff), and for admins a role menu — never on your own row
   /// (the server also refuses to change the creator's role); wards can't
   /// sign in, so they're never made admins.
+  /// Admins: remove someone from the group (web: the red bin on the row).
+  /// Confirmed first — it also takes the wards who joined through them.
+  Future<void> _remove(GroupMemberItem m) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Remove ${m.displayName}?'),
+        content: Text(m.isWard
+            ? 'They leave the group and its teams.'
+            : 'They leave the group, along with any wards who joined through '
+                'them (unless another guardian is still a member).'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: TextButton.styleFrom(
+                  foregroundColor: context.palette.danger),
+              child: const Text('Remove')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final wards = await ref
+          .read(membersRepositoryProvider)
+          .removeMember(widget.groupId, m.userId);
+      messenger.showSnackBar(SnackBar(
+          content: Text(wards > 0
+              ? 'Member removed, with $wards ward${wards == 1 ? '' : 's'} who joined through them'
+              : 'Member removed')));
+      if (!mounted) return;
+      ref.invalidate(groupMembersProvider(widget.groupId));
+      ref.invalidate(groupProvider(widget.groupId));
+      await _reload();
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    }
+  }
+
+  /// The row's right side, as on the web: Message (staff), then for admins
+  /// a shield (make / remove admin; wards can't be admins) and a red bin
+  /// (remove from the group). Never on the creator's row or your own.
   Widget _trailing(GroupMemberItem m) {
-    final p = context.palette;
     // Staff: message this member (a ward: their guardians). Hides itself for
     // anyone the viewer can't reach.
     final message = MessageMemberButton(
@@ -216,21 +263,30 @@ class _MembersListState extends ConsumerState<_MembersList> {
       name: m.displayName,
       isWard: m.isWard,
     );
-    if (!widget.canManage || m.userId == widget.myUserId) return message;
-    if (m.isWard && m.role != 'admin') return message;
+    final isCreator = m.userId == widget.creatorId;
+    if (!widget.canManage || isCreator || m.userId == widget.myUserId) {
+      return message;
+    }
+    final p = context.palette;
     final isAdmin = m.role == 'admin';
     return Row(mainAxisSize: MainAxisSize.min, children: [
       message,
-      PopupMenuButton<String>(
-        tooltip: 'Role',
-        icon: Icon(Icons.more_vert_rounded, size: 19, color: p.muted),
-        onSelected: (v) => _setRole(m, v),
-        itemBuilder: (_) => [
-          PopupMenuItem(
-            value: isAdmin ? 'member' : 'admin',
-            child: Text(isAdmin ? 'Remove admin' : 'Make admin'),
-          ),
-        ],
+      if (!m.isWard || isAdmin) ...[
+        _RoundAction(
+          icon: isAdmin ? Icons.remove_moderator_outlined : Icons.shield_outlined,
+          tooltip: isAdmin ? 'Demote to member' : 'Promote to admin',
+          bg: p.surface2,
+          fg: p.ink,
+          onTap: () => _setRole(m, isAdmin ? 'member' : 'admin'),
+        ),
+        const SizedBox(width: 6),
+      ],
+      _RoundAction(
+        icon: Icons.delete_outline_rounded,
+        tooltip: 'Remove from group',
+        bg: p.liveTint,
+        fg: p.danger,
+        onTap: () => _remove(m),
       ),
     ]);
   }
@@ -277,6 +333,7 @@ class _MembersListState extends ConsumerState<_MembersList> {
           for (final m in _items)
             _MemberRow(
               person: m,
+              isCreator: m.userId == widget.creatorId,
               titles: titles?[m.userId] ?? const <String>[],
               trailing: _trailing(m),
             ),
@@ -308,7 +365,7 @@ class _MembersListState extends ConsumerState<_MembersList> {
               ? const Padding(
                   padding: EdgeInsets.only(bottom: 12),
                   child: SpTipCard(
-                    "You're the only admin. Nobody can check themselves in — so make a trusted member an admin (tap the ⋮ on their row) and they can check you in on match day, and run things when you're away.",
+                    "You're the only admin. Nobody can check themselves in — so make a trusted member an admin (tap the shield on their row) and they can check you in on match day, and run things when you're away.",
                     icon: Icons.admin_panel_settings_outlined,
                   ),
                 )
@@ -674,8 +731,13 @@ class _FollowerRow extends StatelessWidget {
 /// the titles they've earned here — the row opens their profile (yours: your
 /// Profile tab); the trailing buttons keep their own taps.
 class _MemberRow extends ConsumerWidget {
-  const _MemberRow({required this.person, this.titles = const [], this.trailing});
+  const _MemberRow(
+      {required this.person,
+      this.isCreator = false,
+      this.titles = const [],
+      this.trailing});
   final GroupMemberItem person;
+  final bool isCreator;
   final List<String> titles;
   final Widget? trailing;
 
@@ -712,7 +774,10 @@ class _MemberRow extends ConsumerWidget {
                             fontSize: 14,
                             fontWeight: FontWeight.w700)),
                   ),
-                  if (m.role == 'admin') ...[
+                  if (isCreator) ...[
+                    const SizedBox(width: 6),
+                    SpTag('Creator', bg: p.orangeTint, fg: p.orangeInk),
+                  ] else if (m.role == 'admin') ...[
                     const SizedBox(width: 6),
                     SpTag('Admin', bg: p.accentTint, fg: p.greenText),
                   ],
@@ -758,4 +823,35 @@ class _MemberRow extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// A 36px round icon button (the members row's admin actions).
+class _RoundAction extends StatelessWidget {
+  const _RoundAction({
+    required this.icon,
+    required this.tooltip,
+    required this.bg,
+    required this.fg,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String tooltip;
+  final Color bg;
+  final Color fg;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+        message: tooltip,
+        child: Material(
+          color: bg,
+          shape: const CircleBorder(),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: onTap,
+            child: SizedBox(
+                width: 36, height: 36, child: Icon(icon, size: 18, color: fg)),
+          ),
+        ),
+      );
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/core/update/app_update.dart';
 import 'package:sportpadi_mobile/data/ads/ads_repository.dart';
 import 'package:sportpadi_mobile/features/ads/promo_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
@@ -52,6 +53,8 @@ class PopupMessages {
       final repo = ref.read(adsRepositoryProvider);
       final slots = await repo.serveSlots(const [], popup: true);
       if (slots.isEmpty || slots.first.ads.isEmpty || !context.mounted) return;
+      // An update prompt is up — don't stack a message on top of it.
+      if (AppUpdateGate.showing) return;
       final route = ModalRoute.of(context);
       if (route != null && !route.isCurrent) {
         return; // something opened meanwhile

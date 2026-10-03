@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/core/router/app_router.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/core/theme/app_theme.dart';
 import 'package:sportpadi_mobile/core/theme/theme_mode.dart';
+import 'package:sportpadi_mobile/core/update/app_update.dart';
 import 'package:sportpadi_mobile/shared/widgets/push_banner.dart';
 
 class SportpadiApp extends ConsumerWidget {
@@ -54,8 +55,12 @@ class SportpadiApp extends ConsumerWidget {
                 dark ? Brightness.light : Brightness.dark,
           ),
           child: ExcludeSemantics(
-            child: AppOpenAdHost(
-              child: PushBannerHost(child: child ?? const SizedBox.shrink()),
+            // AppUpdateGate: once per session, "new version" card / required
+            // update screen over everything (core/update/app_update.dart).
+            child: AppUpdateGate(
+              child: AppOpenAdHost(
+                child: PushBannerHost(child: child ?? const SizedBox.shrink()),
+              ),
             ),
           ),
         );

@@ -21,6 +21,8 @@ class SimpleUser {
     this.avatarUrl,
     this.isWard = false,
     this.invitePending = false,
+    this.age,
+    this.overAgeLimit = false,
   });
   final String userId;
   final String displayName;
@@ -33,6 +35,13 @@ class SimpleUser {
   /// A team invitation for this ward is already waiting on a guardian.
   final bool invitePending;
 
+  /// Under-18s only (from their date of birth) — adults' ages aren't sent.
+  final int? age;
+
+  /// On a kids team with an age group: this child is at or over the limit.
+  /// A flag for the admin, not a block.
+  final bool overAgeLimit;
+
   factory SimpleUser.fromJson(Map<String, dynamic> j) => SimpleUser(
         userId: (j['userId'] ?? j['id'] ?? '') as String,
         displayName: (j['displayName'] ?? 'Member') as String,
@@ -40,6 +49,8 @@ class SimpleUser {
         avatarUrl: parseStr(j['avatarUrl']),
         isWard: j['isWard'] == true,
         invitePending: j['invitePending'] == true,
+        age: parseInt(j['age']),
+        overAgeLimit: j['overAgeLimit'] == true,
       );
 }
 

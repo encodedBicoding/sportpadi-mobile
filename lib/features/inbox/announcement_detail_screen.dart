@@ -42,6 +42,9 @@ class _AnnouncementDetailScreenState
   bool _synced = false;
   bool _ackedHere = false;
   bool _allPeople = false;
+  // Read receipts filter: 0 Not seen · 1 Seen · 2 Everyone (web twin:
+  // inbox/announcements/[id] ManagePanel).
+  int _receiptTab = 0;
   String? _busy; // 'ack' | 'unpin' | 'delete'
 
   void _snack(String m) {
@@ -369,18 +372,26 @@ class _AnnouncementDetailScreenState
   }
 
   Widget _receipts(AppPalette p, AnnouncementReceipts r) {
-    final people = [...r.people]..sort((x, y) {
-        if (x.seen != y.seen) return x.seen ? 1 : -1;
-        return x.displayName
-            .toLowerCase()
-            .compareTo(y.displayName.toLowerCase());
-      });
+    int byName(ReceiptPerson x, ReceiptPerson y) =>
+        x.displayName.toLowerCase().compareTo(y.displayName.toLowerCase());
+    final notSeen = [for (final x in r.people) if (!x.seen) x]..sort(byName);
+    // Seen: "Got it" first, then the rest who opened it.
+    final seen = [for (final x in r.people) if (x.seen) x]
+      ..sort((x, y) => x.acked != y.acked ? (x.acked ? -1 : 1) : byName(x, y));
+    final everyone = [...notSeen, ...seen];
+    final people = switch (_receiptTab) {
+      0 => notSeen,
+      1 => seen,
+      _ => everyone,
+    };
     const cap = 30;
     final shown = _allPeople ? people : people.take(cap).toList();
     final delivery = [
-      if (r.pushed > 0) 'pushed to ${r.pushed}',
-      if (r.emailed > 0) 'emailed ${r.emailed}',
+      if (r.pushed > 0) '${r.pushed} by push',
+      if (r.emailed > 0) '${r.emailed} by email',
     ];
+    final seenPct = r.total == 0 ? 0.0 : (r.seen / r.total).clamp(0.0, 1.0);
+    final ackPct = r.total == 0 ? 0.0 : (r.acked / r.total).clamp(0.0, 1.0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -388,43 +399,129 @@ class _AnnouncementDetailScreenState
         const SizedBox(height: 10),
         GlassCard(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Seen by ${r.seen} of ${r.total} · ${r.acked} tapped Got it',
-                  style: TextStyle(
-                      color: p.ink,
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w700)),
-              const SizedBox(height: 10),
+              Row(children: [
+                SpIconTile(Icons.visibility_outlined,
+                    bg: p.accentTint, fg: p.greenText, size: 40, iconSize: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text.rich(
+                          TextSpan(children: [
+                            TextSpan(text: 'Seen by ${r.seen} of ${r.total}'),
+                            TextSpan(
+                                text: ' · ${r.acked} tapped Got it',
+                                style: TextStyle(
+                                    color: p.muted,
+                                    fontWeight: FontWeight.w600)),
+                          ]),
+                          style: TextStyle(
+                              color: p.ink,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w800),
+                        ),
+                        Text(
+                            [
+                              '${r.deliveries} ${r.deliveries == 1 ? 'delivery' : 'deliveries'}',
+                              ...delivery,
+                            ].join(' · '),
+                            style: TextStyle(color: p.muted, fontSize: 11.5)),
+                      ]),
+                ),
+              ]),
+              const SizedBox(height: 12),
+              // Two layers, like the web: seen (light) under "Got it" (solid).
               ClipRRect(
                 borderRadius: BorderRadius.circular(99),
-                child: LinearProgressIndicator(
-                  value: r.total == 0 ? 0.0 : r.seen / r.total,
-                  minHeight: 6,
-                  backgroundColor: p.surface2,
-                  color: p.accent,
+                child: SizedBox(
+                  height: 8,
+                  child: Stack(children: [
+                    Positioned.fill(child: ColoredBox(color: p.surface2)),
+                    FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: seenPct,
+                      heightFactor: 1,
+                      child: ColoredBox(color: p.accent.withAlpha(102)),
+                    ),
+                    FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: ackPct,
+                      heightFactor: 1,
+                      child: ColoredBox(color: p.accent),
+                    ),
+                  ]),
                 ),
               ),
-              if (delivery.isNotEmpty) ...[
-                const SizedBox(height: 8),
+              if (r.total > 0) ...[
+                const SizedBox(height: 14),
+                SpSegmented(
+                  options: [
+                    'Not seen',
+                    'Seen · ${seen.length}',
+                    'All · ${everyone.length}',
+                  ],
+                  badges: [notSeen.length, null, null],
+                  index: _receiptTab,
+                  onChanged: (i) => setState(() {
+                    _receiptTab = i;
+                    _allPeople = false;
+                  }),
+                ),
+                const SizedBox(height: 4),
                 Text(
-                    '${r.deliveries} ${r.deliveries == 1 ? 'delivery' : 'deliveries'}'
-                    ' · ${delivery.join(' · ')}',
-                    style: TextStyle(color: p.muted, fontSize: 12)),
+                    switch (_receiptTab) {
+                      0 => notSeen.isEmpty
+                          ? 'Everyone has opened it'
+                          : '${notSeen.length} ${notSeen.length == 1 ? 'hasn\u2019t' : 'haven\u2019t'} opened it yet',
+                      1 => '${seen.length} opened it · ${r.acked} tapped Got it',
+                      _ => 'All ${everyone.length} who received it',
+                    },
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: p.muted, fontSize: 11.5)),
               ],
             ],
           ),
         ),
-        if (people.isNotEmpty) ...[
+        if (r.total > 0) ...[
           const SizedBox(height: 10),
-          SpListCard(children: [
-            for (final person in shown) _personRow(p, person),
-          ]),
-          if (!_allPeople && people.length > cap)
-            TextButton(
-              onPressed: () => setState(() => _allPeople = true),
-              child: Text('Show all ${people.length}'),
-            ),
+          if (people.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 22),
+              child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                        _receiptTab == 0
+                            ? Icons.done_all_rounded
+                            : Icons.visibility_off_outlined,
+                        size: 18,
+                        color: _receiptTab == 0 ? p.greenText : p.muted),
+                    const SizedBox(width: 6),
+                    Text(
+                        switch (_receiptTab) {
+                          0 => 'Everyone has seen it',
+                          1 => 'No one has opened it yet',
+                          _ => 'No one to show',
+                        },
+                        style: TextStyle(
+                            color: _receiptTab == 0 ? p.greenText : p.muted,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700)),
+                  ]),
+            )
+          else ...[
+            SpListCard(children: [
+              for (final person in shown) _personRow(p, person),
+            ]),
+            if (!_allPeople && people.length > cap)
+              TextButton(
+                onPressed: () => setState(() => _allPeople = true),
+                child: Text('Show all ${people.length}'),
+              ),
+          ],
         ],
       ],
     );

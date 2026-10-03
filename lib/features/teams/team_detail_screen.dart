@@ -3,13 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:sportpadi_mobile/features/manage/add_team_player.dart';
 import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/announcements/announcements_repository.dart'
     show pinnedAnnouncementsProvider;
 import 'package:sportpadi_mobile/data/groups/groups_repository.dart'
     show teamTalkCountsProvider;
-import 'package:sportpadi_mobile/data/manage/manage_models.dart';
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
@@ -383,6 +383,7 @@ class _Header extends ConsumerWidget {
               '${t.members.length} player${t.members.length == 1 ? '' : 's'}',
               p.surface2,
               p.ink),
+          if (t.grade != null) _pill(p, t.gradeLabel, p.surface2, p.ink),
           if (t.homeVenue != null)
             _pill(p, t.homeVenue!, p.surface2, p.ink,
                 icon: Icons.place_outlined),
@@ -485,11 +486,23 @@ class _Header extends ConsumerWidget {
         Positioned(
           right: 16,
           top: 12,
-          child: SpRoundButton(
-            icon: Icons.groups_outlined,
-            tooltip: 'Open group',
-            onTap: () => context.push('/groups/${t.groupId}'),
-          ),
+          child: Row(children: [
+            // Group admins: delete the team (confirmed; the server refuses
+            // while it's in an unfinished tournament).
+            if (t.canManage) ...[
+              SpRoundButton(
+                icon: Icons.delete_outline_rounded,
+                tooltip: 'Delete team',
+                onTap: () => _deleteTeam(context, ref, t),
+              ),
+              const SizedBox(width: 8),
+            ],
+            SpRoundButton(
+              icon: Icons.groups_outlined,
+              tooltip: 'Open group',
+              onTap: () => context.push('/groups/${t.groupId}'),
+            ),
+          ]),
         ),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, _bannerH - _overlap, 16, 8),
@@ -521,6 +534,57 @@ class _Header extends ConsumerWidget {
 }
 
 /// Soft diagonal kit stripes over the banner.
+/// "Delete <team>?" → delete → back to the group's Teams. The roster,
+/// coaches and team discussions go with it; finished tournaments it played
+/// in stop listing it. Refused (with the reason) while it's entered in a
+/// tournament that hasn't finished.
+Future<void> _deleteTeam(
+    BuildContext context, WidgetRef ref, TeamDetail t) async {
+  final p = context.palette;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text('Delete ${t.name}?'),
+      content: const Text(
+          'This removes the team, its roster and coaches, and its team '
+          'discussions. Finished tournaments it played in will no longer '
+          'list it. This cannot be undone.'),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel')),
+        TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: p.danger),
+            child: const Text('Delete team')),
+      ],
+    ),
+  );
+  if (ok != true || !context.mounted) return;
+  final messenger = ScaffoldMessenger.of(context);
+  final router = GoRouter.of(context);
+  final container = ProviderScope.containerOf(context, listen: false);
+  final groupId = t.groupId;
+  try {
+    await ref.read(manageRepositoryProvider).deleteTeam(t.id);
+    messenger.showSnackBar(SnackBar(content: Text('${t.name} deleted')));
+    if (groupId != null) {
+      // The Teams tab, and the sport is free again on one-per-sport plans.
+      container.invalidate(groupTeamsProvider(groupId));
+      container.invalidate(teamAllowanceProvider(groupId));
+    }
+    if (router.canPop()) {
+      router.pop();
+    } else if (groupId != null) {
+      router.go('/groups/$groupId');
+    } else {
+      router.go('/home');
+    }
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text('$e')));
+  }
+}
+
 class _StripesPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -755,109 +819,11 @@ class _PlayersTab extends ConsumerWidget {
   }
 
   /// Add a group member to [team] — shared with the header's Add player.
+  /// The web's Add player flow: member → positions / jersey → Add (wards:
+  /// their guardians are invited). See manage/add_team_player.dart.
   static Future<void> addPlayer(BuildContext context, WidgetRef ref,
-      TeamDetail team, VoidCallback onChanged) async {
-    final p = context.palette;
-    List<SimpleUser> eligible;
-    try {
-      eligible =
-          await ref.read(manageRepositoryProvider).eligibleMembers(team.id);
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
-      }
-      return;
-    }
-    if (!context.mounted) return;
-    if (eligible.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Every group member is already on the team.')));
-      return;
-    }
-    final picked = await showSpSheet<SimpleUser>(
-      context,
-      framed: false,
-      builder: (ctx) => Container(
-        constraints:
-            BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.7),
-        decoration: BoxDecoration(
-          color: p.bg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Add player',
-                style: TextStyle(
-                    color: p.ink, fontSize: 18, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 10),
-            Flexible(
-              child: ListView(shrinkWrap: true, children: [
-                for (final u in eligible)
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    enabled: !u.invitePending,
-                    leading: ClipOval(
-                        child: Crest(
-                            logoUrl: u.avatarUrl,
-                            label: u.displayName,
-                            size: 32)),
-                    title: Row(children: [
-                      Flexible(
-                        child: Text(u.displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: u.invitePending ? p.muted : p.ink,
-                                fontSize: 14)),
-                      ),
-                      if (u.isWard) ...[
-                        const SizedBox(width: 6),
-                        const WardBadge(),
-                      ],
-                    ]),
-                    subtitle: u.isWard && !u.invitePending
-                        ? Text('Their guardians will be asked',
-                            style: TextStyle(color: p.muted, fontSize: 11.5))
-                        : null,
-                    trailing: u.invitePending
-                        ? const SpBadge('Invited',
-                            icon: Icons.hourglass_top_rounded)
-                        : null,
-                    onTap: u.invitePending ? null : () => Navigator.pop(ctx, u),
-                  ),
-              ]),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (picked == null || !context.mounted) return;
-    try {
-      final r = await ref
-          .read(manageRepositoryProvider)
-          .addMember(team.id, playerId: picked.userId);
-      onChanged();
-      // A ward isn't added directly: their guardians were invited.
-      final msg = r.wardMessage;
-      if (msg != null) {
-        ref.invalidate(teamWardInvitesProvider(team.id));
-        if (context.mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(msg)));
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
-      }
-    }
-  }
+          TeamDetail team, VoidCallback onChanged) =>
+      addTeamPlayer(context, ref, team, onChanged: onChanged);
 }
 
 // ---------------------------------------------------------------------------

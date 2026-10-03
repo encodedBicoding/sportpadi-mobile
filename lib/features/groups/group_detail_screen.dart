@@ -25,7 +25,6 @@ import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
 import 'package:sportpadi_mobile/features/announcements/announcement_entry_points.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/groups/group_admin_sheets.dart';
-import 'package:sportpadi_mobile/features/groups/group_event_row.dart';
 import 'package:sportpadi_mobile/features/groups/group_invitations.dart';
 import 'package:sportpadi_mobile/features/groups/group_talk_section.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
@@ -38,6 +37,8 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/team_tile.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/shared/widgets/event_tile.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/core/referral/referral.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
@@ -548,10 +549,15 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Pinned announcements first — above the overview tiles
+              // (Leaderboard, Wallet…) — for members and followers alike (the
+              // server decides what each one gets). At most two; the rest
+              // behind "See all".
+              GroupPinnedAnnouncementsSection(
+                groupId: groupId,
+                padding: const EdgeInsets.only(top: 4, bottom: 18),
+              ),
               _OverviewSection(groupId: groupId, canManage: canManage),
-              // Pinned announcements: their own section, for members and
-              // followers alike (the server decides what each one gets).
-              GroupPinnedAnnouncementsSection(groupId: groupId),
               // Talk: Announcements (Open Inbox, Announce / Sent, mute),
               // Messages (Contact the admins / Message coach / Message a
               // member / Conversations) and Discussions as three tiles with
@@ -823,28 +829,114 @@ class _CountBadge extends StatelessWidget {
   }
 }
 
+/// The group page's Events tab (web: the group page's events tab): an
+/// "Upcoming · N" title with New (admins, and coaches for their teams) and
+/// View all, then the 2026 event tiles in two columns — the same tile as
+/// Browse. No upcoming events: say so, with a way to the past ones.
 class _EventsTab extends ConsumerWidget {
   const _EventsTab({required this.groupId});
   final String groupId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final p = context.palette;
     final events = ref.watch(groupEventsProvider(groupId));
-    return AsyncView(
-      value: events,
-      onRetry: () => ref.invalidate(groupEventsProvider(groupId)),
-      data: (list) => list.isEmpty
-          ? const _Empty('No upcoming events.', Icons.event_outlined)
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-              children: [
-                SpListCard(children: [
-                  for (final e in list) GroupEventRow(event: e),
-                ]),
-              ],
-            ),
+    final group = ref.watch(groupProvider(groupId)).valueOrNull;
+    final canCreate = group?.canManage == true ||
+        (group?.isMember == true &&
+            (ref.watch(eventAudiencesProvider(groupId)).valueOrNull?.canCreate ??
+                false));
+    final list = events.valueOrNull;
+
+    final header = SpSectionTitle(
+      'Upcoming',
+      count: list?.length,
+      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+        if (canCreate) ...[
+          SpPill(
+            label: 'New',
+            icon: Icons.add_rounded,
+            height: 32,
+            onTap: () => context.push('/groups/$groupId/new-event'),
+          ),
+          const SizedBox(width: 4),
+        ],
+        TextButton(
+          onPressed: () => context.push('/groups/$groupId/events'),
+          style: TextButton.styleFrom(
+              foregroundColor: p.greenText,
+              visualDensity: VisualDensity.compact),
+          child: const Text('View all',
+              style: TextStyle(fontWeight: FontWeight.w700)),
+        ),
+      ]),
+    );
+
+    Widget body;
+    if (list == null && events.isLoading) {
+      body = _grid([
+        for (var i = 0; i < 2; i++)
+          DecoratedBox(
+            decoration: BoxDecoration(
+                color: p.surface2, borderRadius: BorderRadius.circular(22)),
+          ),
+      ]);
+    } else if (list == null) {
+      body = GlassCard(
+        child: Column(children: [
+          Text('Could not load events.',
+              style: TextStyle(color: p.muted, fontSize: 13.5)),
+          TextButton(
+              onPressed: () => ref.invalidate(groupEventsProvider(groupId)),
+              child: const Text('Try again')),
+        ]),
+      );
+    } else if (list.isEmpty) {
+      body = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        SpEmpty(
+          icon: Icons.calendar_today_outlined,
+          text: canCreate
+              ? 'No upcoming events — create one to get started.'
+              : 'No upcoming events.',
+        ),
+        const SizedBox(height: 10),
+        Center(
+          child: SpPill(
+            label: 'Past events',
+            tone: SpPillTone.soft,
+            height: 34,
+            onTap: () => context.push('/groups/$groupId/events'),
+          ),
+        ),
+      ]);
+    } else {
+      body = _grid([
+        for (final e in list) EventTile(event: e, showGroup: false),
+      ]);
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async => ref.refresh(groupEventsProvider(groupId).future),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        children: [header, const SizedBox(height: 10), body],
+      ),
     );
   }
+
+  static Widget _grid(List<Widget> tiles) => GridView(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          mainAxisExtent: EventTile.height,
+        ),
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
+        physics: const NeverScrollableScrollPhysics(),
+        children: tiles,
+      );
 }
 
 class _TeamsTab extends ConsumerStatefulWidget {

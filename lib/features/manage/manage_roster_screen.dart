@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
-import 'package:sportpadi_mobile/data/manage/manage_models.dart';
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
+import 'package:sportpadi_mobile/features/manage/add_team_player.dart';
 import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
@@ -30,43 +30,9 @@ class ManageRosterScreen extends ConsumerWidget {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  Future<void> _add(
-      BuildContext context, WidgetRef ref, TeamDetail team) async {
-    final picked = await showSpSheet<SimpleUser>(
-      context,
-      scrollable: false,
-      padding: EdgeInsets.zero,
-      builder: (_) => _EligiblePicker(teamId: teamId),
-    );
-    if (picked == null || !context.mounted) return;
-    final edit = await showSpSheet<_MemberEdit>(
-      context,
-      builder: (_) => _MemberSheet(
-        title: picked.displayName,
-        options: team.positionOptions,
-      ),
-    );
-    if (edit == null) return;
-    try {
-      final r = await ref.read(manageRepositoryProvider).addMember(
-            teamId,
-            playerId: picked.userId,
-            positions: edit.positions,
-            jerseyNumber: edit.jersey,
-            isStarter: edit.starter,
-          );
-      ref.invalidate(teamDetailProvider(teamId));
-      ref.invalidate(eligibleMembersProvider(teamId));
-      // A ward isn't added: their guardians get the invitation.
-      final msg = r.wardMessage;
-      if (msg != null) {
-        ref.invalidate(teamWardInvitesProvider(teamId));
-        if (context.mounted) _snack(context, msg);
-      }
-    } on ApiException catch (e) {
-      if (context.mounted) _snack(context, e.message);
-    }
-  }
+  /// The web's Add player flow, shared with the team page.
+  Future<void> _add(BuildContext context, WidgetRef ref, TeamDetail team) =>
+      addTeamPlayer(context, ref, team);
 
   Future<void> _edit(BuildContext context, WidgetRef ref, TeamDetail team,
       TeamMember m) async {
@@ -310,73 +276,6 @@ class _WaitingRow extends StatelessWidget {
         ),
         TextButton(onPressed: onCancel, child: const Text('Cancel')),
       ]),
-    );
-  }
-}
-
-class _EligiblePicker extends ConsumerWidget {
-  const _EligiblePicker({required this.teamId});
-  final String teamId;
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final eligible = ref.watch(eligibleMembersProvider(teamId));
-    return Column(
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: SpSheetHeader(
-            icon: Icons.person_add_alt_1_outlined,
-            title: 'Add a group member',
-            subtitle: 'Pick who joins the team, then set their position.',
-          ),
-        ),
-        Expanded(
-          child: AsyncView(
-            value: eligible,
-            onRetry: () => ref.invalidate(eligibleMembersProvider(teamId)),
-            data: (list) => list.isEmpty
-                ? const Center(
-                    child:
-                        Text('Everyone in the group is already on the team.'))
-                : ListView.builder(
-                    itemCount: list.length,
-                    itemBuilder: (_, i) {
-                      final u = list[i];
-                      final sub = [
-                        if (u.username != null) '@${u.username}',
-                        if (u.isWard && !u.invitePending)
-                          'Their guardians will be asked',
-                      ].join(' · ');
-                      return ListTile(
-                        enabled: !u.invitePending,
-                        leading: Crest(
-                            logoUrl: u.avatarUrl,
-                            label: u.displayName,
-                            size: 38),
-                        title: Row(children: [
-                          Flexible(
-                            child: Text(u.displayName,
-                                maxLines: 1, overflow: TextOverflow.ellipsis),
-                          ),
-                          if (u.isWard) ...[
-                            const SizedBox(width: 6),
-                            const WardBadge(),
-                          ],
-                        ]),
-                        subtitle: sub.isNotEmpty ? Text(sub) : null,
-                        trailing: u.invitePending
-                            ? const SpBadge('Invited',
-                                icon: Icons.hourglass_top_rounded)
-                            : null,
-                        onTap: u.invitePending
-                            ? null
-                            : () => Navigator.pop(context, u),
-                      );
-                    },
-                  ),
-          ),
-        ),
-      ],
     );
   }
 }

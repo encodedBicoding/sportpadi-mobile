@@ -6,14 +6,14 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/event_models.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
-import 'package:sportpadi_mobile/features/groups/group_event_row.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
+import 'package:sportpadi_mobile/shared/widgets/event_tile.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
 /// A group's events (2026, the web /groups/[id]/events page): the round-back
 /// header with "Group · N events" and a New pill, an Upcoming / Past switch,
-/// then date-tile rows in one card, paged as you scroll.
+/// then the 2026 event tiles in two columns, paged as you scroll.
 class GroupEventsScreen extends ConsumerStatefulWidget {
   const GroupEventsScreen({super.key, required this.groupId});
   final String groupId;
@@ -148,10 +148,22 @@ class _GroupEventsScreenState extends ConsumerState<GroupEventsScreen> {
         text: 'No $_scope events${_scope == 'upcoming' ? ' yet' : ''}.',
       );
     } else {
+      // The 2026 event tiles in two columns (as on Browse / the web).
       content = Column(children: [
-        SpListCard(children: [
-          for (final e in _items) GroupEventRow(event: e),
-        ]),
+        GridView(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            mainAxisExtent: EventTile.height,
+          ),
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
+          physics: const NeverScrollableScrollPhysics(),
+          children: [
+            for (final e in _items) EventTile(event: e, showGroup: false),
+          ],
+        ),
         if (_loadingMore)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),

@@ -77,11 +77,15 @@ class GroupDetail {
     this.isOwner = false,
     this.isFollower = false,
     this.membershipRequest,
+    this.createdBy,
   });
 
   final String id;
   final String name;
   final String? slug;
+
+  /// The creator's user id (the "Creator" tag on the Members page).
+  final String? createdBy;
   final String? description;
   final String? logoUrl;
   final String? coverImageUrl;
@@ -128,6 +132,7 @@ class GroupDetail {
         isFollower: j['isFollower'] == true,
         membershipRequest:
             GroupMembershipRequestRef.fromJson(j['membershipRequest']),
+        createdBy: j['createdBy'] as String?,
       );
 }
 

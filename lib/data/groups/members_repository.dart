@@ -55,6 +55,19 @@ class MembersRepository {
     }
   }
 
+  /// Admins: remove someone from the group (not the creator). Returns how
+  /// many wards who joined through them left too.
+  Future<int> removeMember(String groupId, String userId) async {
+    try {
+      final res = await _dio.post('/api/mobile/groups/$groupId',
+          data: {'action': 'removeMember', 'userId': userId});
+      final d = res.data;
+      return d is Map ? ((d['wardsRemoved'] as num?)?.toInt() ?? 0) : 0;
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not remove the member.');
+    }
+  }
+
   Future<void> promoteFollowers(String groupId, List<String> userIds) async {
     try {
       await _dio.post('/api/mobile/groups/$groupId/followers',

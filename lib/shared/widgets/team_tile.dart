@@ -68,7 +68,7 @@ class TeamTile extends StatelessWidget {
                   color: const Color(0xEBFFFFFF),
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: Text(kids ? 'Kids' : 'Adults',
+                child: Text(t.gradeLabel,
                     style: TextStyle(
                         color: kids
                             ? const Color(0xFF9A4308)
