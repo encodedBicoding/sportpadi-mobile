@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/data/wards/wards_repository.dart';
 import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
@@ -53,13 +54,19 @@ class WardsScreen extends ConsumerWidget {
           Expanded(
             child: RefreshIndicator(
               onRefresh: () {
+                ref.invalidate(myWardsProvider);
                 ref.invalidate(wardTeamInvitesProvider(''));
-                return ref.refresh(myWardsProvider.future);
+                return settleAll([
+                  ref.read(myWardsProvider.future),
+                  ref.read(wardTeamInvitesProvider('').future),
+                ]);
               },
-              child: AsyncView(
+              // Loading / error aren't scrollable on their own.
+              child: _pullable(data, AsyncView(
                 value: data,
                 onRetry: () => ref.invalidate(myWardsProvider),
                 data: (o) => ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
                   children: [
                     Text(
@@ -156,7 +163,7 @@ class WardsScreen extends ConsumerWidget {
                     ],
                   ],
                 ),
-              ),
+              )),
             ),
           ),
         ]),
@@ -164,6 +171,13 @@ class WardsScreen extends ConsumerWidget {
     );
   }
 }
+
+/// [child] as is when [value] renders its (scrollable) data branch, else
+/// wrapped so the loader / error can still be pulled.
+Widget _pullable(AsyncValue<Object?> value, Widget child) => value.maybeWhen(
+      data: (_) => child,
+      orElse: () => PullableState(child: child),
+    );
 
 class _WardRow extends StatelessWidget {
   const _WardRow({required this.ward});

@@ -17,6 +17,7 @@ import 'package:sportpadi_mobile/features/sports/sport_hero.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
@@ -49,14 +50,17 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
 
   String get _userId => widget.userId;
 
-  Future<void> _refresh() async {
+  /// Pull to refresh, in every state: the record and the profile (name,
+  /// photo, private or not). Errors show on the page itself; the spinner just
+  /// stops once both are back.
+  Future<void> _refresh() {
     ref
       ..invalidate(playerProfileProvider(_userId))
       ..invalidate(playerRecordsProvider(_userId));
-    // Errors show on the page itself; the spinner just stops.
-    await ref
-        .read(playerRecordsProvider(_userId).future)
-        .then((_) {}, onError: (_) {});
+    return settleAll([
+      ref.read(playerProfileProvider(_userId).future),
+      ref.read(playerRecordsProvider(_userId).future),
+    ]);
   }
 
   @override
@@ -70,9 +74,13 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
     if (restricted || isPrivateRecordError(statsAsync.error)) {
       return Scaffold(
         backgroundColor: p.bg,
-        body: const SafeArea(
+        body: SafeArea(
           bottom: false,
-          child: PlayerPrivateView(title: 'Record'),
+          child: RefreshIndicator(
+            onRefresh: _refresh,
+            child: _alwaysPullable(
+                context, const PlayerPrivateView(title: 'Record')),
+          ),
         ),
       );
     }
@@ -84,17 +92,22 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
         backgroundColor: p.bg,
         body: SafeArea(
           bottom: false,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
-            children: [
-              const SpHeader(title: 'Record'),
-              const SizedBox(height: 32),
-              AsyncView(
-                value: statsAsync,
-                onRetry: () => ref.invalidate(playerRecordsProvider(_userId)),
-                data: (_) => const SizedBox.shrink(),
-              ),
-            ],
+          child: RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
+              children: [
+                const SpHeader(title: 'Record'),
+                const SizedBox(height: 32),
+                AsyncView(
+                  value: statsAsync,
+                  onRetry: () =>
+                      ref.invalidate(playerRecordsProvider(_userId)),
+                  data: (_) => const SizedBox.shrink(),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -112,17 +125,21 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
         backgroundColor: p.bg,
         body: SafeArea(
           bottom: false,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
-            children: const [
-              SpHeader(title: 'Record'),
-              SizedBox(height: 24),
-              RecordEmpty(
-                icon: Icons.sports_outlined,
-                title: 'Sport not found',
-                body: "This sport isn't on SportPadi any more.",
-              ),
-            ],
+          child: RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
+              children: const [
+                SpHeader(title: 'Record'),
+                SizedBox(height: 24),
+                RecordEmpty(
+                  icon: Icons.sports_outlined,
+                  title: 'Sport not found',
+                  body: "This sport isn't on SportPadi any more.",
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -180,6 +197,7 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
     final they = isMe ? 'you' : 'they';
 
     return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
       children: [
         SportHero(
@@ -406,3 +424,13 @@ class _GroupRow extends StatelessWidget {
     );
   }
 }
+
+/// A scroll view that may be too short to scroll can still start a pull.
+Widget _alwaysPullable(BuildContext context, Widget child) =>
+    ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(
+        physics: AlwaysScrollableScrollPhysics(
+            parent: ScrollConfiguration.of(context).getScrollPhysics(context)),
+      ),
+      child: child,
+    );

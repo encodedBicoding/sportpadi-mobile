@@ -185,9 +185,14 @@ class Attendee {
     this.avatarUrl,
     this.checkedInAt,
     this.isWard = false,
+    this.letInBy,
   });
   final String userId;
   final String displayName;
+
+  /// The organiser who let them in (whose QR they scanned, or who checked
+  /// them in by hand). Null for older check-ins.
+  final String? letInBy;
 
   /// Null when there's none to show (limited wards come back with "").
   final String? username;
@@ -204,6 +209,7 @@ class Attendee {
         avatarUrl: parseStr(j['avatarUrl']),
         checkedInAt: parseDate(j['checkedInAt']),
         isWard: j['isWard'] == true,
+        letInBy: parseStr(j['letInBy']),
       );
 }
 
@@ -222,6 +228,7 @@ class EventDetail {
     this.categoryEmoji,
     this.categoryName,
     this.canManage = false,
+    this.isCreator = false,
     this.myCheckedIn = false,
     this.hasEnded,
     this.calendarStart,
@@ -267,6 +274,9 @@ class EventDetail {
   final String? categoryEmoji;
   final String? categoryName;
   final bool canManage;
+  /// The caller created this event — the one person who can't scan its QR
+  /// to check in (another admin checks them in).
+  final bool isCreator;
   final bool myCheckedIn;
   // Server truth: past its end time (or end of its day) in the VENUE's zone.
   final bool? hasEnded;
@@ -334,6 +344,7 @@ class EventDetail {
       categoryEmoji: cat is Map ? parseStr(cat['emoji']) : null,
       categoryName: cat is Map ? parseStr(cat['name']) : null,
       canManage: j['canManage'] == true,
+      isCreator: j['isCreator'] == true,
       myCheckedIn: j['myCheckedIn'] == true,
       hasEnded: j['hasEnded'] is bool ? j['hasEnded'] as bool : null,
       calendarStart: j['calendar'] is Map

@@ -5,6 +5,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/features/tournaments/invitation_rows.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 /// Every tournament invitation waiting on this user, in one place.
@@ -27,13 +28,18 @@ class TournamentInvitationsScreen extends ConsumerWidget {
         title: const Text('Tournament invitations',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
       ),
-      body: AsyncView(
+      body: RefreshIndicator(
+        onRefresh: () {
+          ref.invalidate(myTournamentInvitesProvider);
+          return settleAll([ref.read(myTournamentInvitesProvider.future)]);
+        },
+        // Loading / error aren't scrollable on their own.
+        child: _pullable(invites, AsyncView(
         value: invites,
         onRetry: () => ref.invalidate(myTournamentInvitesProvider),
-        data: (list) => RefreshIndicator(
-          onRefresh: () async => ref.invalidate(myTournamentInvitesProvider),
-          child: list.isEmpty
+        data: (list) => list.isEmpty
               ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(32),
                   children: [
                     const SizedBox(height: 60),
@@ -59,6 +65,7 @@ class TournamentInvitationsScreen extends ConsumerWidget {
                   ],
                 )
               : ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                   children: [
                     Text(
@@ -69,8 +76,15 @@ class TournamentInvitationsScreen extends ConsumerWidget {
                     InvitationListBox(invites: list),
                   ],
                 ),
-        ),
+        )),
       ),
     );
   }
 }
+
+/// [child] as is when [value] renders its (scrollable) data branch, else
+/// wrapped so the loader / error can still be pulled.
+Widget _pullable(AsyncValue<Object?> value, Widget child) => value.maybeWhen(
+      data: (_) => child,
+      orElse: () => PullableState(child: child),
+    );

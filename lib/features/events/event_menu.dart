@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:sportpadi_mobile/core/links/web_handoff.dart';
 import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/announcements/announcement_models.dart';
@@ -596,6 +597,17 @@ class _CalendarSheet extends ConsumerWidget {
     await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 
+  /// The .ics, opened in the browser ALREADY SIGNED IN (one-tap hand-off) —
+  /// so private events work too, and the file carries the event's reminders
+  /// as alarms, so the phone's calendar alerts as well.
+  Future<void> _goIcs(BuildContext context, WidgetRef ref) async {
+    final url = await signedInWebUriFor(
+        ref, '/api/events/${Uri.encodeComponent(event.slug)}/calendar');
+    if (!context.mounted) return;
+    Navigator.of(context).pop();
+    await launchUrl(url, mode: LaunchMode.externalApplication);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
@@ -614,17 +626,13 @@ class _CalendarSheet extends ConsumerWidget {
       ].join('\n'),
       if (event.locationName != null) 'location': event.locationName!,
     }).toString();
-    // The .ics is read without the app's sign-in (the browser opens it), so
-    // it's only offered for public events.
-    final ics = '$base/api/events/${Uri.encodeComponent(event.slug)}/calendar';
-
     Widget row(IconData icon, Color bg, Color fg, String title, String? sub,
-            String url) =>
+            VoidCallback onTap) =>
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: GlassCard(
             padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
-            onTap: () => _go(context, url),
+            onTap: onTap,
             child: Row(children: [
               SpIconTile(icon, bg: bg, fg: fg, size: 38, iconSize: 19),
               const SizedBox(width: 12),
@@ -659,10 +667,10 @@ class _CalendarSheet extends ConsumerWidget {
           subtitle: event.title,
         ),
         row(Icons.event_rounded, p.accentTint, p.greenText, 'Google Calendar',
-            null, google),
-        if (!event.isPrivate)
-          row(Icons.calendar_month_outlined, p.surface2, p.ink,
-              'Apple, Outlook & others', 'Opens an .ics file', ics),
+            null, () => _go(context, google)),
+        row(Icons.calendar_month_outlined, p.surface2, p.ink,
+            'Apple, Outlook & others', 'Includes the event\'s reminders',
+            () => _goIcs(context, ref)),
       ],
     );
   }

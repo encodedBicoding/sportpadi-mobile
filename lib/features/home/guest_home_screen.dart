@@ -6,10 +6,15 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/ads/admob.dart';
 import 'package:sportpadi_mobile/core/location/location_provider.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/data/ads/ads_repository.dart'
+    show servedSlotsProvider;
+import 'package:sportpadi_mobile/data/events/events_repository.dart'
+    show suggestedEventsProvider;
 import 'package:sportpadi_mobile/features/ads/ad_display.dart';
 import 'package:sportpadi_mobile/features/home/suggested_events_section.dart';
 import 'package:sportpadi_mobile/features/shell/home_shell.dart'
     show homeTabIndexProvider;
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
 const _mint = Color(0xFF6EDC9E);
@@ -67,11 +72,25 @@ class _GuestHomeScreenState extends ConsumerState<GuestHomeScreen> {
           onRefresh: () async {
             // Re-read the fix (it may have been granted in Settings since)
             // and let the shelf refetch off the new key.
-            if (loc.location == null) {
+            final before = loc.location;
+            if (before == null) {
               await ref.read(locationProvider.notifier).request();
+              // Let the shelf pick up a new key before it's read below.
+              await WidgetsBinding.instance.endOfFrame;
+              if (!mounted) return;
             }
+            // Then the rest of the page: the shelf (a new fix already
+            // fetches afresh) and the sponsored strips.
+            final fix = ref.read(locationProvider).location;
+            final shelf = suggestedEventsProvider(
+                (lat: fix?.lat, lng: fix?.lng, categoryId: null));
+            if (fix == before) ref.invalidate(shelf);
+            ref.invalidate(servedSlotsProvider('mobile_home'));
+            ref.invalidate(servedSlotsProvider('home_ads'));
+            await settleAll([ref.read(shelf.future)]);
           },
           child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
               _GuestHeader(onSignIn: _signIn),

@@ -151,6 +151,18 @@ class IapRepository {
   /// iOS only for now — Play Billing is a separate integration.
   static bool get supportedPlatform => Platform.isIOS;
 
+  /// The App Store storefront's country, upper-case (iOS answers ISO 3166-1
+  /// alpha-3, e.g. "USA"). Null when it can't be read.
+  Future<String?> storefrontCountry() async {
+    if (!supportedPlatform) return null;
+    try {
+      final c = (await _iap.countryCode()).trim().toUpperCase();
+      return c.isEmpty ? null : c;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<IapCatalogue> catalogue(String groupId) async {
     try {
       final res = await _ref
@@ -305,6 +317,22 @@ class IapRepository {
 
 final iapRepositoryProvider =
     Provider<IapRepository>((ref) => IapRepository(ref));
+
+/// This device's App Store storefront country (see
+/// [IapRepository.storefrontCountry]).
+final appStoreCountryProvider = FutureProvider<String?>(
+    (ref) => ref.watch(iapRepositoryProvider).storefrontCountry());
+
+/// May the plans screen ALSO offer paying on the web (card, via Stripe)?
+///
+/// App Review Guideline 3.1.1(a): only on the United States storefront may an
+/// app show buttons or links to other ways to buy digital features (Apple's
+/// April 2025 change after Epic v. Apple; no commission on those purchases
+/// while that order stands). Everywhere else — Canada included — the app
+/// must not even mention another way to pay, so this is false and the screen
+/// offers Apple only.
+bool storefrontAllowsWebCheckout(String? country) =>
+    country == 'USA' || country == 'US';
 
 final iapCatalogueProvider = FutureProvider.autoDispose
     .family<IapCatalogue, String>(

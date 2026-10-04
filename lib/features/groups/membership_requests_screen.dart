@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
@@ -160,9 +161,22 @@ class _RequestsListState extends ConsumerState<_RequestsList> {
     if (!list.hasValue && error is ApiException && error.statusCode == 403) {
       return const _OwnerOnly();
     }
+    // Loading / error aren't scrollable on their own: keep them pullable.
+    final bare = list.when(
+        data: (_) => false, error: (_, __) => true, loading: () => true);
     return RefreshIndicator(
-      onRefresh: () async => ref.refresh(provider.future),
-      child: AsyncView<List<MembershipRequestItem>>(
+      // This tab, the Pending count and the header's group name.
+      onRefresh: () {
+        ref.invalidate(provider);
+        ref.invalidate(membershipRequestCountProvider(widget.groupId));
+        ref.invalidate(groupProvider(widget.groupId));
+        return settleAll([
+          ref.read(provider.future),
+          ref.read(membershipRequestCountProvider(widget.groupId).future),
+          ref.read(groupProvider(widget.groupId).future),
+        ]);
+      },
+      child: _pullable(bare, AsyncView<List<MembershipRequestItem>>(
         value: list,
         onRetry: () => ref.invalidate(provider),
         data: (items) {
@@ -211,9 +225,12 @@ class _RequestsListState extends ConsumerState<_RequestsList> {
             },
           );
         },
-      ),
+      )),
     );
   }
+
+  Widget _pullable(bool bare, Widget view) =>
+      bare ? PullableState(child: view) : view;
 }
 
 /// One request: who, their note, how long they've followed, when — and, while

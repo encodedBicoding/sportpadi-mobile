@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/features/shell/notification_target.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 
@@ -219,19 +220,27 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () async {
+              // Pullable in every state; the spinner stays until it's back.
+              onRefresh: () {
                 ref.invalidate(unreadCountProvider);
-                return ref.refresh(notificationsFeedProvider.future);
+                ref.invalidate(notificationsFeedProvider);
+                return settleAll([ref.read(notificationsFeedProvider.future)]);
               },
-              child: AsyncView(
-                value: feed,
-                onRetry: () => ref.invalidate(notificationsFeedProvider),
+              child: feed.maybeWhen(
+                orElse: () => PullableState(
+                  child: AsyncView(
+                    value: feed,
+                    onRetry: () => ref.invalidate(notificationsFeedProvider),
+                    data: (_) => const SizedBox.shrink(),
+                  ),
+                ),
                 data: (f) {
                   final list = _unreadOnly
                       ? f.items.where((n) => !n.read).toList()
                       : f.items;
                   if (list.isEmpty) {
                     return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(20, 80, 20, 20),
                       children: [
                         Center(
@@ -271,6 +280,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                         .add(n);
                   }
                   return ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
                     children: [
                       for (final g in groups.entries) ...[

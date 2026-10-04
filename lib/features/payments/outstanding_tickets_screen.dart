@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/data/wards/wards_repository.dart';
 import 'package:sportpadi_mobile/features/payments/checkout_flow.dart';
 import 'package:sportpadi_mobile/shared/format/ticket_validity.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
@@ -131,14 +132,31 @@ class _OutstandingTicketsScreenState
           ),
         Expanded(
           child: RefreshIndicator(
-            onRefresh: () async =>
-                ref.refresh(outstandingTicketsProvider(_key).future),
-            child: AsyncView(
-              value: sum,
-              onRetry: () => ref.invalidate(outstandingTicketsProvider(_key)),
+            // Pullable in every state; a pull refetches the tickets and the
+            // wards behind the "For" switch, and the spinner stays until
+            // they're back.
+            onRefresh: () {
+              ref.invalidate(outstandingTicketsProvider(_key));
+              ref.invalidate(myWardsProvider);
+              return settleAll([
+                ref.read(outstandingTicketsProvider(_key).future),
+                ref.read(myWardsProvider.future),
+              ]);
+            },
+            child: sum.maybeWhen(
+              orElse: () => PullableState(
+                child: AsyncView(
+                  value: sum,
+                  onRetry: () =>
+                      ref.invalidate(outstandingTicketsProvider(_key)),
+                  data: (_) => const SizedBox.shrink(),
+                ),
+              ),
               data: (s) {
                 if (s.isEmpty) {
-                  return ListView(children: [
+                  return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
                     const SizedBox(height: 120),
                     Center(
                       child: Text(
@@ -150,6 +168,7 @@ class _OutstandingTicketsScreenState
                   ]);
                 }
                 return ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
                   children: [
                     if (wardName != null)

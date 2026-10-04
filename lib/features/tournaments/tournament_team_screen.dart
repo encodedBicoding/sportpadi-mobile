@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
@@ -50,6 +51,20 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
     ref.invalidate(squadStatsProvider(_key));
     ref.invalidate(myCallsProvider);
     ref.invalidate(tournamentDetailProvider(widget.eventId));
+  }
+
+  /// Pull to refresh: everything [_refetch] does, holding the spinner until
+  /// the squad (and the stats, when that tab is open) are back.
+  Future<void> _pullRefresh() {
+    final statsShown = _tab == 3 &&
+        ref
+            .read(tournamentSquadProvider(_key))
+            .maybeWhen(data: (_) => true, orElse: () => false);
+    _refetch();
+    return settleAll([
+      ref.read(tournamentSquadProvider(_key).future),
+      if (statsShown) ref.read(squadStatsProvider(_key).future),
+    ]);
   }
 
   void _snack(String msg) {
@@ -130,13 +145,14 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
       body: SafeArea(
         bottom: false,
         child: Stack(children: [
-          AsyncView(
+          RefreshIndicator(
+            onRefresh: _pullRefresh,
+            // Loading / error aren't scrollable on their own.
+            child: _pullable(sq, AsyncView(
             value: sq,
             onRetry: _refetch,
-            data: (d) => RefreshIndicator(
-              onRefresh: () async =>
-                  ref.refresh(tournamentSquadProvider(_key).future),
-              child: ListView(
+            data: (d) => ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.only(bottom: 36),
                 children: [
                   _header(d, p),
@@ -162,7 +178,7 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
                   ),
                 ],
               ),
-            ),
+          )),
           ),
           if (sq.valueOrNull == null)
             Positioned(
@@ -990,6 +1006,13 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
         ]),
       );
 }
+
+/// [child] as is when [value] renders its (scrollable) data branch, else
+/// wrapped so the loader / error can still be pulled.
+Widget _pullable(AsyncValue<Object?> value, Widget child) => value.maybeWhen(
+      data: (_) => child,
+      orElse: () => PullableState(child: child),
+    );
 
 /// Faint pitch lines behind the formation name.
 class _MiniPitch extends CustomPainter {

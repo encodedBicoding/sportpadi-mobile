@@ -12,6 +12,7 @@ import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
@@ -89,6 +90,23 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
 
   void _back() => context.canPop() ? context.pop() : context.go('/home');
 
+  /// Pull to refresh: the profile, the record (sports / tournaments) and the
+  /// level badge + avatar frame — the spinner stays until what's shown is back.
+  Future<void> _refresh() {
+    final profile = ref.read(playerProfileProvider(userId));
+    // Same condition as build(): stats and identity are only on screen then.
+    final shown =
+        profile.hasValue && profile.valueOrNull?['restricted'] != true;
+    ref.invalidate(playerProfileProvider(userId));
+    ref.invalidate(playerRecordsProvider(userId));
+    ref.invalidate(identityProvider(userId));
+    return settleAll([
+      ref.read(playerProfileProvider(userId).future),
+      if (shown) ref.read(playerStatsProvider(userId).future),
+      if (shown) ref.read(identityProvider(userId).future),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
@@ -112,7 +130,10 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
     return Scaffold(
       backgroundColor: p.bg,
       body: Stack(children: [
-        AsyncView(
+        _pullableUnlessData(
+          data,
+          _refresh,
+          AsyncView(
           value: data,
           onRetry: () {
             ref.invalidate(playerProfileProvider(userId));
@@ -122,9 +143,9 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
             final profile = mapOf(m['profile']);
             if (restricted) {
               return RefreshIndicator(
-                onRefresh: () async =>
-                    ref.refresh(playerProfileProvider(userId).future),
+                onRefresh: _refresh,
                 child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.only(bottom: 36),
                   children: [
                     _Hero(
@@ -148,11 +169,9 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
             final posts = listOf(m['posts']);
 
             return RefreshIndicator(
-              onRefresh: () async {
-                ref.invalidate(playerRecordsProvider(userId));
-                return ref.refresh(playerProfileProvider(userId).future);
-              },
+              onRefresh: _refresh,
               child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: EdgeInsets.zero,
                 children: [
                   _Hero(
@@ -214,6 +233,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
               ),
             );
           },
+        ),
         ),
         if (!data.hasValue)
           SafeArea(
@@ -750,3 +770,12 @@ class _Empty extends StatelessWidget {
     );
   }
 }
+
+/// Loading / error aren't scrollable on their own, so they get a pullable
+/// wrapper; once the data shows, its own RefreshIndicator takes over.
+Widget _pullableUnlessData(
+        AsyncValue<Object?> v, Future<void> Function() onRefresh, Widget child) =>
+    v.hasValue && !v.hasError
+        ? child
+        : RefreshIndicator(
+            onRefresh: onRefresh, child: PullableState(child: child));

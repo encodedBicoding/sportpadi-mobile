@@ -5,6 +5,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/features/tournaments/invitation_rows.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart'
@@ -36,14 +37,30 @@ class TournamentInvitesScreen extends ConsumerWidget {
             child: SpHeader(title: 'Tournament invites', subtitle: groupName),
           ),
           Expanded(
-            child: AsyncView(
-              value: invites,
-              onRetry: () => ref.invalidate(groupInvitesProvider(groupId)),
-              data: (list) => RefreshIndicator(
-                onRefresh: () async =>
-                    ref.invalidate(groupInvitesProvider(groupId)),
-                child: list.isEmpty
+            // Pullable in every state; a pull refetches the invites and the
+            // group name in the header, and the spinner stays until they're
+            // back.
+            child: RefreshIndicator(
+              onRefresh: () {
+                ref.invalidate(groupInvitesProvider(groupId));
+                ref.invalidate(groupProvider(groupId));
+                return settleAll([
+                  ref.read(groupInvitesProvider(groupId).future),
+                  ref.read(groupProvider(groupId).future),
+                ]);
+              },
+              child: invites.maybeWhen(
+                orElse: () => PullableState(
+                  child: AsyncView(
+                    value: invites,
+                    onRetry: () =>
+                        ref.invalidate(groupInvitesProvider(groupId)),
+                    data: (_) => const SizedBox.shrink(),
+                  ),
+                ),
+                data: (list) => list.isEmpty
                     ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(32, 70, 32, 32),
                         children: [
                           Center(
@@ -70,6 +87,7 @@ class TournamentInvitesScreen extends ConsumerWidget {
                         ],
                       )
                     : ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
                         children: [
                           // How many, and what answering does.

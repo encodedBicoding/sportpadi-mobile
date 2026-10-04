@@ -12,6 +12,7 @@ import 'package:sportpadi_mobile/features/inbox/message_start.dart';
 import 'package:sportpadi_mobile/features/inbox/message_widgets.dart';
 import 'package:sportpadi_mobile/features/settings/timezone_provider.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
@@ -136,13 +137,26 @@ class _AnnouncementsList extends ConsumerWidget {
     ref.watch(viewerTimezoneProvider); // repaint stamps on a zone change
     final inbox = ref.watch(announcementsInboxProvider);
     return RefreshIndicator(
-      onRefresh: () async {
+      // Pullable in every state; a pull reloads the list from its first page
+      // and both tab badges, and the spinner stays until they're back.
+      onRefresh: () {
+        ref.invalidate(announcementsInboxProvider);
         ref.invalidate(announcementsUnreadProvider);
-        return ref.refresh(announcementsInboxProvider.future);
+        ref.invalidate(messagesUnreadProvider);
+        return settleAll([
+          ref.read(announcementsInboxProvider.future),
+          ref.read(announcementsUnreadProvider.future),
+          ref.read(messagesUnreadProvider.future),
+        ]);
       },
-      child: AsyncView<AnnouncementPage>(
-        value: inbox,
-        onRetry: () => ref.invalidate(announcementsInboxProvider),
+      child: inbox.maybeWhen(
+        orElse: () => PullableState(
+          child: AsyncView<AnnouncementPage>(
+            value: inbox,
+            onRetry: () => ref.invalidate(announcementsInboxProvider),
+            data: (_) => const SizedBox.shrink(),
+          ),
+        ),
         data: (page) {
           if (page.items.isEmpty) {
             return ListView(
@@ -349,13 +363,27 @@ class _MessagesListState extends ConsumerState<_MessagesList> {
       ),
       Expanded(
         child: RefreshIndicator(
-          onRefresh: () async {
+          // Pullable in every state; a pull reloads the list from its first
+          // page and both tab badges, and the spinner stays until they're
+          // back.
+          onRefresh: () {
+            ref.invalidate(provider);
             ref.invalidate(messagesUnreadProvider);
-            return ref.refresh(provider.future);
+            ref.invalidate(announcementsUnreadProvider);
+            return settleAll([
+              ref.read(provider.future),
+              ref.read(messagesUnreadProvider.future),
+              ref.read(announcementsUnreadProvider.future),
+            ]);
           },
-          child: AsyncView<ConversationPage>(
-            value: list,
-            onRetry: () => ref.invalidate(provider),
+          child: list.maybeWhen(
+            orElse: () => PullableState(
+              child: AsyncView<ConversationPage>(
+                value: list,
+                onRetry: () => ref.invalidate(provider),
+                data: (_) => const SizedBox.shrink(),
+              ),
+            ),
             data: (page) {
               if (page.items.isEmpty) {
                 return ListView(

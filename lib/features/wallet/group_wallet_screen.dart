@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/data/billing/iap_repository.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:sportpadi_mobile/core/env/app_config.dart';
+import 'package:sportpadi_mobile/core/links/web_handoff.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/payments/payment_models.dart';
 import 'package:sportpadi_mobile/data/wallet/wallet_models.dart';
@@ -15,6 +15,7 @@ import 'package:sportpadi_mobile/features/wallet/wallet_tips.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/info_tip.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart'
@@ -70,12 +71,33 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
     ref.invalidate(walletLedgerProvider(widget.groupId));
   }
 
+  /// Pull to refresh: everything on the page (balance, the group name in the
+  /// header, the withdrawals entry and the activity list), holding the
+  /// spinner until it's back.
+  Future<void> _pullRefresh() {
+    // Withdrawals / activity are only on screen once the wallet is viewable.
+    final sectionsShown = ref
+        .read(walletOverviewProvider(widget.groupId))
+        .maybeWhen(data: (o) => o.viewable, orElse: () => false);
+    _refetch();
+    ref.invalidate(groupProvider(widget.groupId));
+    return settleAll([
+      ref.read(walletOverviewProvider(widget.groupId).future),
+      ref.read(groupProvider(widget.groupId).future),
+      if (sectionsShown) ...[
+        ref.read(walletWithdrawalsProvider(widget.groupId).future),
+        ref.read(walletLedgerProvider(widget.groupId).future),
+      ],
+    ]);
+  }
+
   Future<void> _openWeb(String path) async {
-    final base = ref.read(appConfigProvider).apiBaseUrl;
-    // Custom Tabs / SFSafariViewController, not a bare VIEW intent: the app is
-    // a verified handler for this host, so externalApplication can be routed
-    // straight back to us instead of to a browser.
-    await launchUrl(Uri.parse('$base$path'), mode: LaunchMode.inAppBrowserView);
+    // Signed in already (one-tap hand-off), so the web page doesn't ask for
+    // a second login. Custom Tabs / SFSafariViewController, not a bare VIEW
+    // intent: the app is a verified handler for this host, so
+    // externalApplication can be routed straight back to us.
+    final url = await signedInWebUriFor(ref, path);
+    await launchUrl(url, mode: LaunchMode.inAppBrowserView);
   }
 
   void _snack(String msg) {
@@ -184,16 +206,18 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
             ),
           ),
           Expanded(
-            child: AsyncView<WalletOverview>(
+            child: RefreshIndicator(
+              onRefresh: _pullRefresh,
+              // Loading / error aren't scrollable on their own.
+              child: _pullable(ov, AsyncView<WalletOverview>(
               value: ov,
               onRetry: _refetch,
-              data: (o) => RefreshIndicator(
-                onRefresh: () async => _refetch(),
-                child: ListView(
+              data: (o) => ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
                   children: _body(o, p),
                 ),
-              ),
+            )),
             ),
           ),
         ]),
@@ -909,6 +933,13 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
     );
   }
 }
+
+/// [child] as is when [value] renders its (scrollable) data branch, else
+/// wrapped so the loader / error can still be pulled.
+Widget _pullable(AsyncValue<Object?> value, Widget child) => value.maybeWhen(
+      data: (_) => child,
+      orElse: () => PullableState(child: child),
+    );
 
 /// Amount entry for a withdrawal request. Pops with the amount in MINOR units.
 class _WithdrawSheet extends StatefulWidget {

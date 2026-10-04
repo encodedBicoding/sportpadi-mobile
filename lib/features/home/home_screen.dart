@@ -2,13 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:sportpadi_mobile/core/location/location_provider.dart'
+    show locationProvider;
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/data/ads/ads_repository.dart'
+    show servedSlotsProvider;
+import 'package:sportpadi_mobile/data/announcements/announcements_repository.dart'
+    show announcementsUnreadProvider;
+import 'package:sportpadi_mobile/data/attention/attention_repository.dart'
+    show attentionProvider;
 import 'package:sportpadi_mobile/data/events/event_models.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
+import 'package:sportpadi_mobile/data/messages/messages_repository.dart'
+    show messagesUnreadProvider;
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
+import 'package:sportpadi_mobile/data/wards/wards_repository.dart'
+    show myWardsProvider, wardTeamInvitesProvider;
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_audience.dart';
 import 'package:sportpadi_mobile/features/home/suggested_events_section.dart';
 import 'package:sportpadi_mobile/features/home/past_events_section.dart';
@@ -75,6 +88,55 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ? null
       : 'Ward · ${e.forWards.map((w) => w.name).join(', ')}';
 
+  /// Pull to refresh: everything on Home — the feed, the header (me, your
+  /// week, the bell, the inbox, the menu dot), the suggestions shelf (for
+  /// the sport chip in [categoryId]) and the sponsored strips.
+  Future<void> _refresh(String? categoryId) {
+    final loc = ref.read(locationProvider).location;
+    final shelf = suggestedEventsProvider(
+        (lat: loc?.lat, lng: loc?.lng, categoryId: categoryId));
+    ref.invalidate(myFeedProvider);
+    ref.invalidate(meProvider);
+    ref.invalidate(yourWeekProvider);
+    ref.invalidate(unreadCountProvider);
+    ref.invalidate(announcementsUnreadProvider);
+    ref.invalidate(messagesUnreadProvider);
+    ref.invalidate(attentionProvider);
+    ref.invalidate(myWardsProvider);
+    ref.invalidate(wardTeamInvitesProvider);
+    ref.invalidate(shelf);
+    ref.invalidate(servedSlotsProvider('home_top,mobile_home'));
+    ref.invalidate(servedSlotsProvider('home_ads'));
+    return settleAll([
+      ref.read(myFeedProvider.future),
+      ref.read(meProvider.future),
+      ref.read(yourWeekProvider.future),
+      ref.read(unreadCountProvider.future),
+      ref.read(announcementsUnreadProvider.future),
+      ref.read(messagesUnreadProvider.future),
+      ref.read(attentionProvider.future),
+      ref.read(myWardsProvider.future),
+      ref.read(shelf.future),
+    ]);
+  }
+
+  /// First load / error: only the feed (and me) is on screen, and the
+  /// AsyncView's loader / error need wrapping to be pullable.
+  Widget _pullable(AsyncValue<Object?> value, Widget child) => value.maybeWhen(
+        data: (_) => child,
+        orElse: () => RefreshIndicator(
+          onRefresh: () {
+            ref.invalidate(myFeedProvider);
+            ref.invalidate(meProvider);
+            return settleAll([
+              ref.read(myFeedProvider.future),
+              ref.read(meProvider.future),
+            ]);
+          },
+          child: PullableState(child: child),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
@@ -84,7 +146,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: AsyncView(
+        child: _pullable(feed, AsyncView(
           value: feed,
           onRetry: () => ref.invalidate(myFeedProvider),
           data: (f) {
@@ -136,8 +198,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             : all;
 
             return RefreshIndicator(
-              onRefresh: () => ref.refresh(myFeedProvider.future),
+              onRefresh: () => _refresh(sportCategoryId),
               child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                 children: [
                   const _HomeHeader(),
@@ -254,7 +317,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             );
           },
-        ),
+        )),
       ),
     );
   }

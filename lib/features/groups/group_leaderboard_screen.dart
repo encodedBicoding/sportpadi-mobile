@@ -14,6 +14,7 @@ import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/features/progression/progression_screens.dart';
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 
 /// Group leaderboard — rankings from completed games (web /leaderboard page):
 /// per sport category (switcher chips, soccer default), points (3/1/0),
@@ -349,15 +350,39 @@ class _GroupLeaderboardScreenState
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
-          onRefresh: () async =>
-              ref.refresh(groupLeaderboardProvider(_boardKey).future),
+          onRefresh: _refresh,
           child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
             children: children,
           ),
         ),
       ),
     );
+  }
+
+  /// Pull to refresh: the header, the sport chips and whichever board is
+  /// showing (the performance table, or an XP board with its seasons).
+  Future<void> _refresh() {
+    final BoardKey xpKey = (
+      board: _board,
+      groupId: groupId,
+      categoryId: null,
+      seasonId: _seasonId
+    );
+    final xp = _board != 'performance';
+    ref.invalidate(groupProvider(groupId));
+    ref.invalidate(groupLeaderboardCategoriesProvider(groupId));
+    ref.invalidate(groupLeaderboardProvider(_boardKey));
+    ref.invalidate(groupProgressionProvider(groupId));
+    ref.invalidate(boardProvider);
+    return settleAll([
+      ref.read(groupProvider(groupId).future),
+      ref.read(groupLeaderboardCategoriesProvider(groupId).future),
+      ref.read(groupLeaderboardProvider(_boardKey).future),
+      if (xp) ref.read(groupProgressionProvider(groupId).future),
+      if (xp) ref.read(boardProvider(xpKey).future),
+    ]);
   }
 
   /// Which season the XP boards show; admins can start a new one (the open

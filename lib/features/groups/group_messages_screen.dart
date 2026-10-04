@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/features/inbox/message_widgets.dart';
 import 'package:sportpadi_mobile/features/settings/timezone_provider.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
@@ -80,93 +81,105 @@ class _OversightList extends ConsumerWidget {
     ref.watch(viewerTimezoneProvider); // repaint stamps on a zone change
     final provider = groupConversationsProvider(groupId);
     final list = ref.watch(provider);
-    return RefreshIndicator(
-      onRefresh: () async => ref.refresh(provider.future),
-      child: AsyncView<ConversationPage>(
-        value: list,
-        onRetry: () => ref.invalidate(provider),
-        data: (page) {
-          final note = Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(Icons.visibility_outlined, size: 16, color: p.muted),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                    "Every conversation between this group's admins or coaches and its "
-                    "members. You can read them all; only the people in a "
-                    'conversation can reply.',
-                    style:
-                        TextStyle(color: p.muted, fontSize: 12.5, height: 1.4)),
-              ),
-            ]),
-          );
-          if (page.items.isEmpty) {
-            return ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-              children: [
-                note,
-                const SizedBox(height: 40),
-                const Center(
-                  child:
-                      SpIconTile(Icons.forum_outlined, size: 60, iconSize: 28),
-                ),
-                const SizedBox(height: 14),
-                Text('No conversations yet',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: p.ink,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700)),
-              ],
-            );
-          }
-          final items = page.items;
-          return NotificationListener<ScrollNotification>(
-            onNotification: (n) {
-              if (page.hasMore && n.metrics.extentAfter < 600) {
-                // ignore: discarded_futures
-                ref.read(provider.notifier).loadMore();
-              }
-              return false;
-            },
-            child: ListView.separated(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-              itemCount: items.length + 1 + (page.hasMore ? 1 : 0),
-              separatorBuilder: (_, i) => SizedBox(height: i == 0 ? 0 : 10),
-              itemBuilder: (context, i) {
-                if (i == 0) return note;
-                final k = i - 1;
-                if (k >= items.length) {
-                  final more = ref.read(provider.notifier);
-                  WidgetsBinding.instance
-                      .addPostFrameCallback((_) => more.loadMore());
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Center(
-                      child: SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
-                  );
-                }
-                final c = items[k];
-                return ConversationRow(
-                  item: c,
-                  // The admin may be a party to some of them: then it's a
-                  // normal thread, and the server says so.
-                  oversight: true,
-                  onTap: () => context.push('/inbox/messages/${c.id}'),
-                );
-              },
+    // Loading / error aren't scrollable on their own: keep them pullable.
+    final bare = list.when(
+        data: (_) => false, error: (_, __) => true, loading: () => true);
+    final Widget view = AsyncView<ConversationPage>(
+      value: list,
+      onRetry: () => ref.invalidate(provider),
+      data: (page) {
+        final note = Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(Icons.visibility_outlined, size: 16, color: p.muted),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                  "Every conversation between this group's admins or coaches and its "
+                  "members. You can read them all; only the people in a "
+                  'conversation can reply.',
+                  style:
+                      TextStyle(color: p.muted, fontSize: 12.5, height: 1.4)),
             ),
+          ]),
+        );
+        if (page.items.isEmpty) {
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+            children: [
+              note,
+              const SizedBox(height: 40),
+              const Center(
+                child:
+                    SpIconTile(Icons.forum_outlined, size: 60, iconSize: 28),
+              ),
+              const SizedBox(height: 14),
+              Text('No conversations yet',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: p.ink,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700)),
+            ],
           );
-        },
-      ),
+        }
+        final items = page.items;
+        return NotificationListener<ScrollNotification>(
+          onNotification: (n) {
+            if (page.hasMore && n.metrics.extentAfter < 600) {
+              // ignore: discarded_futures
+              ref.read(provider.notifier).loadMore();
+            }
+            return false;
+          },
+          child: ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+            itemCount: items.length + 1 + (page.hasMore ? 1 : 0),
+            separatorBuilder: (_, i) => SizedBox(height: i == 0 ? 0 : 10),
+            itemBuilder: (context, i) {
+              if (i == 0) return note;
+              final k = i - 1;
+              if (k >= items.length) {
+                final more = ref.read(provider.notifier);
+                WidgetsBinding.instance
+                    .addPostFrameCallback((_) => more.loadMore());
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                );
+              }
+              final c = items[k];
+              return ConversationRow(
+                item: c,
+                // The admin may be a party to some of them: then it's a
+                // normal thread, and the server says so.
+                oversight: true,
+                onTap: () => context.push('/inbox/messages/${c.id}'),
+              );
+            },
+          ),
+        );
+      },
+    );
+    return RefreshIndicator(
+      // The list (from its first page again) and the header's group name.
+      onRefresh: () {
+        ref.invalidate(provider);
+        ref.invalidate(groupProvider(groupId));
+        return settleAll([
+          ref.read(provider.future),
+          ref.read(groupProvider(groupId).future),
+        ]);
+      },
+      child: bare ? PullableState(child: view) : view,
     );
   }
 }
@@ -229,9 +242,15 @@ class _ReportsListState extends ConsumerState<_ReportsList> {
       ),
       Expanded(
         child: RefreshIndicator(
-          onRefresh: () async =>
-              ref.refresh(messageReportsProvider(key).future),
-          child: AsyncView<List<MessageReport>>(
+          onRefresh: () {
+            ref.invalidate(messageReportsProvider(key));
+            ref.invalidate(groupProvider(widget.groupId));
+            return settleAll([
+              ref.read(messageReportsProvider(key).future),
+              ref.read(groupProvider(widget.groupId).future),
+            ]);
+          },
+          child: _pullable(reports, AsyncView<List<MessageReport>>(
             value: reports,
             onRetry: () => ref.invalidate(messageReportsProvider(key)),
             data: (list) {
@@ -268,11 +287,18 @@ class _ReportsListState extends ConsumerState<_ReportsList> {
                 itemBuilder: (_, i) => _reportCard(p, list[i]),
               );
             },
-          ),
+          )),
         ),
       ),
     ]);
   }
+
+  /// Loading / error aren't scrollable on their own: keep them pullable.
+  Widget _pullable(AsyncValue<Object?> value, Widget view) =>
+      value.when(
+              data: (_) => false, error: (_, __) => true, loading: () => true)
+          ? PullableState(child: view)
+          : view;
 
   Widget _reportCard(AppPalette p, MessageReport r) {
     final busy = _busy.contains(r.id);

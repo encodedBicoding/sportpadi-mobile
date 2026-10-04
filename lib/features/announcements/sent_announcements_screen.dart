@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/features/inbox/announcement_card.dart';
 import 'package:sportpadi_mobile/features/settings/timezone_provider.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
@@ -50,9 +51,18 @@ class SentAnnouncementsScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () async =>
-                  ref.refresh(sentAnnouncementsProvider(groupId).future),
-              child: AsyncView<SentPage>(
+              // A pull refetches the list and the composer info (header
+              // subtitle, "New announcement" buttons).
+              onRefresh: () {
+                ref.invalidate(sentAnnouncementsProvider(groupId));
+                ref.invalidate(announcementComposerProvider(groupId));
+                return settleAll([
+                  ref.read(sentAnnouncementsProvider(groupId).future),
+                  ref.read(announcementComposerProvider(groupId).future),
+                ]);
+              },
+              // Loading / error aren't scrollable on their own.
+              child: _pullable(sent, AsyncView<SentPage>(
                 value: sent,
                 onRetry: () =>
                     ref.invalidate(sentAnnouncementsProvider(groupId)),
@@ -135,7 +145,7 @@ class SentAnnouncementsScreen extends ConsumerWidget {
                     ),
                   );
                 },
-              ),
+              )),
             ),
           ),
         ]),
@@ -143,6 +153,13 @@ class SentAnnouncementsScreen extends ConsumerWidget {
     );
   }
 }
+
+/// [child] as is when [value] renders its (scrollable) data branch, else
+/// wrapped so the loader / error can still be pulled.
+Widget _pullable(AsyncValue<Object?> value, Widget child) => value.maybeWhen(
+      data: (_) => child,
+      orElse: () => PullableState(child: child),
+    );
 
 class _SentCard extends StatelessWidget {
   const _SentCard({required this.item, required this.onTap});
