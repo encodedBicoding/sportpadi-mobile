@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart'
     show SideMenuButton;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
@@ -66,14 +67,24 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
         (g.description ?? '').toLowerCase().contains(q);
   }
 
-  Future<void> _refresh() async {
-    await Future.wait([
-      ref.refresh(myGroupsProvider.future),
-      ref.refresh(discoverGroupsProvider.future),
-      ref.refresh(groupInvitationCountProvider.future),
+  Future<void> _refresh() {
+    ref.invalidate(myGroupsProvider);
+    ref.invalidate(discoverGroupsProvider);
+    ref.invalidate(groupInvitationCountProvider);
+    return settleAll([
+      ref.read(myGroupsProvider.future),
+      ref.read(discoverGroupsProvider.future),
+      ref.read(groupInvitationCountProvider.future),
       if (_invites.currentState != null) _invites.currentState!.reload(),
     ]);
   }
+
+  /// Loading / error aren't scrollable on their own: keep them pullable.
+  Widget _pullable(AsyncValue<Object?> value, Widget view) =>
+      value.when(
+              data: (_) => false, error: (_, __) => true, loading: () => true)
+          ? PullableState(child: view)
+          : view;
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +106,7 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
         bottom: false,
         child: RefreshIndicator(
           onRefresh: _refresh,
-          child: AsyncView(
+          child: _pullable(mine, AsyncView(
             value: mine,
             onRetry: () => ref.invalidate(myGroupsProvider),
             data: (myList) {
@@ -259,7 +270,7 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
                 ],
               );
             },
-          ),
+          )),
         ),
       ),
     );

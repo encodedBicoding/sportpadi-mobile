@@ -13,6 +13,7 @@ import 'package:sportpadi_mobile/data/payments/payment_models.dart'
     show formatMoney;
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart'
     show groupProvider;
@@ -40,6 +41,17 @@ class _GroupFinesScreenState extends ConsumerState<GroupFinesScreen> {
   String _filter = 'active'; // active | paid | pardoned
 
   void _refetch() => ref.invalidate(groupFinesProvider(widget.groupId));
+
+  /// Pull-to-refresh: the fines and the group name in the header; the
+  /// spinner stays until they're back.
+  Future<void> _pull() {
+    ref.invalidate(groupFinesProvider(widget.groupId));
+    ref.invalidate(groupProvider(widget.groupId));
+    return settleAll([
+      ref.read(groupFinesProvider(widget.groupId).future),
+      ref.read(groupProvider(widget.groupId).future),
+    ]);
+  }
 
   void _snack(String m) {
     if (!mounted) return;
@@ -95,9 +107,19 @@ class _GroupFinesScreenState extends ConsumerState<GroupFinesScreen> {
             child: SpHeader(title: 'Fines', subtitle: groupName),
           ),
           Expanded(
-            child: AsyncView<GroupFines>(
-              value: data,
-              onRetry: _refetch,
+            // Loading / error are pullable too (the list has its own
+            // RefreshIndicator).
+            child: data.maybeWhen(
+              orElse: () => RefreshIndicator(
+                onRefresh: _pull,
+                child: PullableState(
+                  child: AsyncView<GroupFines>(
+                    value: data,
+                    onRetry: _refetch,
+                    data: (_) => const SizedBox.shrink(),
+                  ),
+                ),
+              ),
               data: (d) {
                 final all = d.fines;
                 int count(String s) => all.where((f) => f.status == s).length;
@@ -143,8 +165,9 @@ class _GroupFinesScreenState extends ConsumerState<GroupFinesScreen> {
                 }
 
                 return RefreshIndicator(
-                  onRefresh: () async => _refetch(),
+                  onRefresh: _pull,
                   child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
                     children: [
                       if (!d.canUse)

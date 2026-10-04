@@ -13,6 +13,7 @@ import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/ticket_validity.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sheet_scroll.dart';
@@ -103,10 +104,19 @@ class _MyTicketsScreenState extends ConsumerState<MyTicketsScreen> {
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () async => ref.refresh(myTicketsProvider.future),
-              child: AsyncView(
-                value: tickets,
-                onRetry: () => ref.invalidate(myTicketsProvider),
+              // Pullable in every state; the spinner stays until it's back.
+              onRefresh: () {
+                ref.invalidate(myTicketsProvider);
+                return settleAll([ref.read(myTicketsProvider.future)]);
+              },
+              child: tickets.maybeWhen(
+                orElse: () => PullableState(
+                  child: AsyncView(
+                    value: tickets,
+                    onRetry: () => ref.invalidate(myTicketsProvider),
+                    data: (_) => const SizedBox.shrink(),
+                  ),
+                ),
                 data: (list) {
                   final shown = [
                     for (final t in list)
@@ -124,6 +134,7 @@ class _MyTicketsScreenState extends ConsumerState<MyTicketsScreen> {
                   }
                   if (shown.isEmpty) {
                     return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(32, 70, 32, 32),
                       children: [
                         Center(
@@ -157,6 +168,7 @@ class _MyTicketsScreenState extends ConsumerState<MyTicketsScreen> {
                     );
                   }
                   return ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
                     children: [
                       for (final e in unfollowed.entries) ...[

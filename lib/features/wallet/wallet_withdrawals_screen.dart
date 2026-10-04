@@ -12,6 +12,7 @@ import 'package:sportpadi_mobile/features/wallet/wallet_tips.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/info_tip.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
@@ -56,6 +57,17 @@ class _WalletWithdrawalsScreenState
     ref.invalidate(walletWithdrawalsProvider(widget.groupId));
     ref.invalidate(walletOverviewProvider(widget.groupId));
     ref.invalidate(walletLedgerProvider(widget.groupId));
+  }
+
+  /// Pull to refresh: the log and the group name in the app bar, holding the
+  /// spinner until they're back.
+  Future<void> _pullRefresh() {
+    _refetch();
+    ref.invalidate(groupProvider(widget.groupId));
+    return settleAll([
+      ref.read(walletWithdrawalsProvider(widget.groupId).future),
+      ref.read(groupProvider(widget.groupId).future),
+    ]);
   }
 
   Future<void> _decide(Withdrawal w, bool approve) async {
@@ -142,15 +154,17 @@ class _WalletWithdrawalsScreenState
             ),
         ],
       ),
-      body: AsyncView(
+      body: RefreshIndicator(
+        onRefresh: _pullRefresh,
+        // Loading / error aren't scrollable on their own.
+        child: _pullable(page, AsyncView(
         value: page,
         onRetry: () =>
             ref.invalidate(walletWithdrawalsProvider(widget.groupId)),
-        data: (data) => RefreshIndicator(
-          onRefresh: () async =>
-              ref.refresh(walletWithdrawalsProvider(widget.groupId).future),
-          child: data.withdrawals.isEmpty
-              ? ListView(children: [
+        data: (data) => data.withdrawals.isEmpty
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
                   const SizedBox(height: 90),
                   Icon(Icons.fact_check_outlined,
                       size: 44, color: p.muted.withAlpha(120)),
@@ -171,16 +185,25 @@ class _WalletWithdrawalsScreenState
                   ),
                 ])
               : ListView.separated(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                   itemCount: data.withdrawals.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (_, i) =>
                       _card(data.withdrawals[i], data.viewerId, p),
                 ),
-        ),
+        )),
       ),
     );
   }
+
+  /// [child] as is when [value] renders its (scrollable) data branch, else
+  /// wrapped so the loader / error can still be pulled.
+  Widget _pullable(AsyncValue<Object?> value, Widget child) =>
+      value.maybeWhen(
+        data: (_) => child,
+        orElse: () => PullableState(child: child),
+      );
 
   Widget _card(Withdrawal w, String? viewerId, AppPalette p) {
     final mine = viewerId != null && w.requestedById == viewerId;

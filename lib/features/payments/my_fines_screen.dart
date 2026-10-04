@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/features/payments/checkout_flow.dart';
 import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 
@@ -73,13 +74,23 @@ class _MyFinesScreenState extends ConsumerState<MyFinesScreen> {
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () async => ref.refresh(myFinesProvider.future),
-              child: AsyncView(
-                value: fines,
-                onRetry: () => ref.invalidate(myFinesProvider),
+              // Pullable in every state; the spinner stays until it's back.
+              onRefresh: () {
+                ref.invalidate(myFinesProvider);
+                return settleAll([ref.read(myFinesProvider.future)]);
+              },
+              child: fines.maybeWhen(
+                orElse: () => PullableState(
+                  child: AsyncView(
+                    value: fines,
+                    onRetry: () => ref.invalidate(myFinesProvider),
+                    data: (_) => const SizedBox.shrink(),
+                  ),
+                ),
                 data: (list) {
                   final shown = list.where((f) => f.status == _filter).toList();
                   return ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
                     children: [
                       // What you owe right now.

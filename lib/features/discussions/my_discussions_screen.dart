@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/features/settings/timezone_provider.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
@@ -77,10 +78,12 @@ class _MyDiscussionsScreenState extends ConsumerState<MyDiscussionsScreen> {
     final list = ref.watch(provider);
     return RefreshIndicator(
       onRefresh: () {
-        ref.invalidate(attentionProvider);
-        return ref.refresh(provider.future);
+        ref.invalidate(provider);
+        ref.invalidate(attentionProvider); // the menu's badges
+        return settleAll([ref.read(provider.future)]);
       },
-      child: AsyncView<DiscussionPage>(
+      // Loading / error aren't scrollable on their own.
+      child: _pullable(list, AsyncView<DiscussionPage>(
         value: list,
         onRetry: () => ref.invalidate(provider),
         data: (page) {
@@ -151,9 +154,16 @@ class _MyDiscussionsScreenState extends ConsumerState<MyDiscussionsScreen> {
             ),
           );
         },
-      ),
+      )),
     );
   }
+
+  /// [child] as is when [value] renders its (scrollable) data branch, else
+  /// wrapped so the loader / error can still be pulled.
+  Widget _pullable(AsyncValue<Object?> value, Widget child) => value.maybeWhen(
+        data: (_) => child,
+        orElse: () => PullableState(child: child),
+      );
 }
 
 /// One discussion: its group's avatar, "Group · Team", when it last moved,

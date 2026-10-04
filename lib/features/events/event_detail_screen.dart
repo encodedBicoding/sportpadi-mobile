@@ -66,7 +66,8 @@ class EventDetailScreen extends ConsumerStatefulWidget {
   ConsumerState<EventDetailScreen> createState() => _EventDetailScreenState();
 }
 
-class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
+class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
+    with WidgetsBindingObserver {
   // Post-assignment tab: 0 = Games, 1 = Teams, 2 = Check-ins.
   int _tab = 0;
   String? _busy;
@@ -74,14 +75,30 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   ProviderSubscription<AsyncValue<EventDetail>>? _watch;
   ProviderSubscription<AsyncValue<EventDetail>>? _balanceWatch;
   bool _balanceChecked = false;
+  // Realtime: the event's SSE ping stream (games created/scored/deleted,
+  // teams, check-ins, status) → refetch everything on the page.
+  ProviderSubscription<AsyncValue<EventDetail>>? _streamWatch;
+  StreamSubscription<void>? _pingSub;
+  Timer? _pingRetry;
+  Timer? _pingDebounce;
+  String? _pingEventId;
+  int _pingBackoff = 2;
+  int _liveTicks = 0;
+  // Just assigned teams: bring the Games tab (and its "Start the first
+  // match") into view once the teams have loaded.
+  final _playKey = GlobalKey();
+  bool _jumpToPlay = false;
 
   String get slug => widget.slug;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Around game day the screen stays live: a check-in (scanned on this or
     // any other device) shows up within seconds — no pull-to-refresh needed.
+    // The event stream below is the fast path; this is the safety net (games
+    // and teams every 15s, in case a ping is missed).
     _live = Timer.periodic(const Duration(seconds: 5), (_) {
       if (!mounted) return;
       final e = ref.read(eventDetailProvider(slug)).valueOrNull;
@@ -90,9 +107,18 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       final d = e.eventDate;
       if (d == null) return;
       final diff = d.difference(DateTime.now()).inHours.abs();
-      if (e.status == 'live' || diff <= 36) {
-        ref.invalidate(eventDetailProvider(slug));
+      if (e.status == 'live' || e.status == 'kicked_off' || diff <= 36) {
+        if (++_liveTicks % 3 == 0) {
+          _refreshAll();
+        } else {
+          ref.invalidate(eventDetailProvider(slug));
+        }
       }
+    });
+    _streamWatch = ref.listenManual(eventDetailProvider(slug),
+        fireImmediately: true, (prev, next) {
+      final e = next.valueOrNull;
+      if (e != null && mounted) _listenEvent(e.id);
     });
     // Loud feedback when a refresh brings news: your own check-in landed, or
     // (for organizers) a player just scanned in — mirrors the web live feed.
@@ -326,14 +352,130 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _live?.cancel();
     _watch?.close();
     _balanceWatch?.close();
+    _streamWatch?.close();
+    _pingSub?.cancel();
+    _pingRetry?.cancel();
+    _pingDebounce?.cancel();
     super.dispose();
   }
 
-  void _refetch() {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Back from the background: catch up, and reopen the stream if the OS
+    // closed it.
+    if (state != AppLifecycleState.resumed || !mounted) return;
+    _refreshAll();
+    final id = _pingEventId;
+    if (id != null && _pingSub == null) _listenEvent(id, force: true);
+  }
+
+  void _listenEvent(String eventId, {bool force = false}) {
+    // Already listening — or waiting out a reconnect backoff (the event
+    // refetches every few seconds and must not skip that wait).
+    if (!force &&
+        _pingEventId == eventId &&
+        (_pingSub != null || (_pingRetry?.isActive ?? false))) {
+      return;
+    }
+    _pingEventId = eventId;
+    _pingRetry?.cancel();
+    _pingSub?.cancel();
+    _pingSub = ref.read(eventsRepositoryProvider).eventPings(eventId).listen(
+      (_) {
+        _pingBackoff = 2; // healthy stream
+        // Pings come in bursts (a goal = activity + lock); refetch once.
+        _pingDebounce?.cancel();
+        _pingDebounce = Timer(const Duration(milliseconds: 300), () {
+          if (mounted) _refreshAll();
+        });
+      },
+      onError: (_) => _retryEventStream(),
+      onDone: _retryEventStream,
+      cancelOnError: true,
+    );
+  }
+
+  void _retryEventStream() {
+    _pingSub = null;
+    if (!mounted) return;
+    _pingRetry?.cancel();
+    _pingRetry = Timer(Duration(seconds: _pingBackoff), () {
+      final id = _pingEventId;
+      if (!mounted || id == null) return;
+      _pingBackoff = (_pingBackoff * 2).clamp(2, 30);
+      _listenEvent(id, force: true);
+    });
+  }
+
+  /// Refetch every piece of the page — the event, its games (with scores),
+  /// teams and the available pool. Used by pull-to-refresh, realtime pings
+  /// and the game-day safety poll.
+  void _refreshAll() {
+    final e = ref.read(eventDetailProvider(slug)).valueOrNull;
     ref.invalidate(eventDetailProvider(slug));
+    if (e == null) return;
+    ref.invalidate(eventGamesProvider(e.id));
+    ref.invalidate(eventTeamsProvider(e.id));
+    ref.invalidate(availablePoolProvider(e.id));
+  }
+
+  /// Pull-to-refresh: everything, and wait for it so the spinner means it.
+  Future<void> _pullRefresh() async {
+    final e = ref.read(eventDetailProvider(slug)).valueOrNull;
+    _refreshAll();
+    await Future.wait<void>([
+      ref.read(eventDetailProvider(slug).future).then((_) {}, onError: (_) {}),
+      if (e != null)
+        ref.read(eventGamesProvider(e.id).future).then((_) {}, onError: (_) {}),
+      if (e != null)
+        ref.read(eventTeamsProvider(e.id).future).then((_) {}, onError: (_) {}),
+    ]);
+  }
+
+  void _refetch() => _refreshAll();
+
+  /// "See event QR code": the live QR in a sheet, big enough to scan off
+  /// the screen. It names this organiser and refreshes while open.
+  Future<void> _showQrSheet(EventDetail e) async {
+    await showSpSheet<void>(
+      context,
+      builder: (ctx) {
+        final p = ctx.palette;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SpSheetHeader(
+              icon: Icons.qr_code_2_rounded,
+              title: 'Event QR code',
+              subtitle: e.status == 'kicked_off'
+                  ? 'Late arrivals who scan this join the available pool.'
+                  : 'Players scan this to check in.',
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: _LiveQr(event: e, size: 240),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text('Refreshes every 30 seconds — screenshots won’t work.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: p.muted, fontSize: 11.5)),
+            // "Check someone in" is hidden until further notice.
+          ],
+        );
+      },
+    );
   }
 
   /// Manual completion ends the event for everyone — always confirm first
@@ -388,8 +530,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             value: detail,
             onRetry: _refetch,
             data: (e) => RefreshIndicator(
-              onRefresh: () async =>
-                  ref.refresh(eventDetailProvider(slug).future),
+              onRefresh: _pullRefresh,
               child: _body(e),
             ),
           ),
@@ -483,6 +624,17 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         const <GameSummary>[];
     final hasGames = games.isNotEmpty;
     final showTabs = e.isTeamFlow && teams.isNotEmpty;
+    if (showTabs && _jumpToPlay) {
+      _jumpToPlay = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final c = _playKey.currentContext;
+        if (c != null && c.mounted) {
+          Scrollable.ensureVisible(c,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic);
+        }
+      });
+    }
     // Web: feature groups keep taking check-ins after kickoff so late
     // arrivals land in the available pool.
     final canCheckIn =
@@ -497,59 +649,30 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             imageUrl: e.groupImageUrl,
             verified: e.groupVerified),
       ],
-      if (e.status != 'cancelled') EventTicketsCard(eventId: e.id),
-      // Cancelled + organizer → surface any refunds still outstanding, with a
-      // safe (idempotent) retry.
-      if (e.canManage && e.status == 'cancelled') ...[
+      // The matches section pushes the check-in QR down the page —
+      // organisers get a one-tap way back to it.
+      if (showTabs && e.canManage && canCheckIn && e.qrCode != null) ...[
         const SizedBox(height: 12),
-        _RefundRetryCard(eventId: e.id),
-      ],
-      if (canCheckIn) ...[
-        const SizedBox(height: 12),
-        _EngageBlock(event: e, onChanged: _refetch),
-      ],
-      if (e.canManage && canCheckIn && e.qrCode != null) ...[
-        const SizedBox(height: 12),
-        _QrCard(event: e),
-      ],
-      if (e.isTeamFlow && e.canManage && e.status == 'open') ...[
-        const SizedBox(height: 12),
-        _AssignTeamsCard(
-          event: e,
-          busy: _busy == 'assign',
-          onAssign: (count) => _do('assign', () async {
-            await ref
-                .read(eventsRepositoryProvider)
-                .generateTeams(e.id, teamCount: count);
-            ref.invalidate(eventTeamsProvider(e.id));
-          }),
-          onDraft: () async {
-            final count = await _AssignTeamsCard.pickCount(context);
-            if (count == null) return;
-            await _do('draft', () async {
-              await ref
-                  .read(eventsRepositoryProvider)
-                  .draftStart(e.id, teamCount: count);
-            });
-          },
-        ),
-      ],
-      if (e.isTeamFlow && e.status == 'drafting') ...[
-        const SizedBox(height: 16),
-        _DraftBoard(
-          eventId: e.id,
-          onDone: () {
-            _refetch();
-            ref.invalidate(eventTeamsProvider(e.id));
-          },
-        ),
+        _QrShortcut(onTap: (_) => _showQrSheet(e)),
       ],
       if (showTabs) ...[
-        const SizedBox(height: 16),
-        if (e.canManage && e.interestedPeople.isNotEmpty) ...[
-          _InterestedList(people: e.interestedPeople),
-          const SizedBox(height: 12),
-        ],
+        // Teams are set: the matches are what everyone's here for, so the
+        // Games / Teams / Check-ins switch sits right under "Hosted by" —
+        // nobody scrolls to start or follow a match.
+        SizedBox(key: _playKey, height: 16),
+        _TabRow(
+          tab: e.canCreateGames && _tab == 0 ? 0 : (_tab == 0 ? 1 : _tab),
+          showGames: e.canCreateGames,
+          onChanged: (i) => setState(() => _tab = i),
+        ),
+        const SizedBox(height: 12),
+        if (_tab == 0 && e.canCreateGames)
+          _GamesTab(event: e, teams: teams, onChanged: _refetch)
+        else if (_tab <= 1)
+          _TeamsTab(teams: teams)
+        else
+          _CheckinsList(event: e, onChanged: _refetch),
+        const SizedBox(height: 12),
         if (e.canManage && e.status == 'kicked_off') ...[
           _OrganizerTeamControls(
             hasGames: hasGames,
@@ -590,19 +713,72 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
               }),
           const SizedBox(height: 12),
         ],
-        _TabRow(
-          tab: e.canCreateGames && _tab == 0 ? 0 : (_tab == 0 ? 1 : _tab),
-          showGames: e.canCreateGames,
-          onChanged: (i) => setState(() => _tab = i),
-        ),
+        if (e.canManage && e.interestedPeople.isNotEmpty) ...[
+          _InterestedList(people: e.interestedPeople),
+          const SizedBox(height: 12),
+        ],
+        const _PlayEnd(),
+      ],
+      if (e.status != 'cancelled') EventTicketsCard(eventId: e.id),
+      // Cancelled + organizer → surface any refunds still outstanding, with a
+      // safe (idempotent) retry.
+      if (e.canManage && e.status == 'cancelled') ...[
         const SizedBox(height: 12),
-        if (_tab == 0 && e.canCreateGames)
-          _GamesTab(event: e, teams: teams, onChanged: _refetch)
-        else if (_tab <= 1)
-          _TeamsTab(teams: teams)
-        else
-          _CheckinsList(event: e, onChanged: _refetch),
-      ] else ...[
+        _RefundRetryCard(eventId: e.id),
+      ],
+      if (canCheckIn) ...[
+        const SizedBox(height: 12),
+        _EngageBlock(event: e, onChanged: _refetch),
+      ],
+      if (e.canManage && canCheckIn && e.qrCode != null) ...[
+        const SizedBox(height: 12),
+        _QrCard(event: e),
+      ],
+      if (e.isTeamFlow && e.canManage && e.status == 'open') ...[
+        const SizedBox(height: 12),
+        _AssignTeamsCard(
+          event: e,
+          busy: _busy == 'assign',
+          onAssign: (count) => _do('assign', () async {
+            await ref
+                .read(eventsRepositoryProvider)
+                .generateTeams(e.id, teamCount: count);
+            // Land on Games, in view: the next step is the first match.
+            if (mounted) {
+              setState(() {
+                _tab = 0;
+                _jumpToPlay = true;
+              });
+            }
+            ref.invalidate(eventTeamsProvider(e.id));
+          }),
+          onDraft: () async {
+            final count = await _AssignTeamsCard.pickCount(context);
+            if (count == null) return;
+            await _do('draft', () async {
+              await ref
+                  .read(eventsRepositoryProvider)
+                  .draftStart(e.id, teamCount: count);
+            });
+          },
+        ),
+      ],
+      if (e.isTeamFlow && e.status == 'drafting') ...[
+        const SizedBox(height: 16),
+        _DraftBoard(
+          eventId: e.id,
+          onDone: () {
+            // Draft finished: land on Games, in view.
+            setState(() {
+              _tab = 0;
+              _jumpToPlay = true;
+            });
+            _refetch();
+            ref.invalidate(eventTeamsProvider(e.id));
+          },
+        ),
+      ],
+      if (!showTabs) ...[
         if (e.canManage && e.interestedPeople.isNotEmpty) ...[
           const SizedBox(height: 16),
           _InterestedList(people: e.interestedPeople),
@@ -687,6 +863,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       ),
     );
     final ti = children.indexWhere((w) => w is _TabRow);
+    final te = children.indexWhere((w) => w is _PlayEnd);
     if (ti < 0) {
       return CustomScrollView(slivers: [
         hero,
@@ -703,20 +880,32 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         sliver: SliverList(
             delegate: SliverChildListDelegate(children.sublist(0, ti))),
       ),
-      SliverPersistentHeader(
-        pinned: true,
-        delegate: _PinnedTabs(
-          child: Container(
-            color: p.bg,
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
-            child: children[ti],
+      // The switch stays pinned only while its own section (the tabs'
+      // content, team controls, pool) is on screen, then scrolls away with
+      // it — tickets, check-in and the rest follow below.
+      SliverMainAxisGroup(slivers: [
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _PinnedTabs(
+            child: Container(
+              color: p.bg,
+              padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
+              child: children[ti],
+            ),
           ),
         ),
-      ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+          sliver: SliverList(
+              delegate: SliverChildListDelegate(
+                  children.sublist(ti + 1, te < 0 ? children.length : te))),
+        ),
+      ]),
       SliverPadding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 36),
         sliver: SliverList(
-            delegate: SliverChildListDelegate(children.sublist(ti + 1))),
+            delegate: SliverChildListDelegate(
+                te < 0 ? const <Widget>[] : children.sublist(te + 1))),
       ),
     ]);
   }
@@ -1387,8 +1576,10 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Check out of this event?'),
-        content: const Text(
-            "You'll be taken off the attendee list. You can check in again by scanning the event QR."),
+        content: Text(
+            widget.event.canManage
+                ? "You'll be taken off the attendee list. To check in again, scan another admin's QR."
+                : "You'll be taken off the attendee list. You can check in again by scanning the event QR."),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -1535,6 +1726,31 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
             const SizedBox(height: 10),
             Wrap(spacing: 6, runSpacing: 6, children: wardChips),
           ],
+          // Organisers scan ANOTHER admin's QR — their own QR names them, so
+          // scanning it from a second phone is refused.
+          if (e.canManage && !e.myCheckedIn) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: p.surface2,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.verified_user_outlined,
+                      size: 16, color: p.greenText),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                        "To check yourself in, scan the QR on another admin's phone — not your own.",
+                        style: TextStyle(color: p.muted, fontSize: 12)),
+                  ),
+                ],
+              ),
+            ),
+          ],
           // A guardian who's already in can still scan for a ward.
           if (!e.myCheckedIn || e.myWards.any((w) => !w.checkedIn)) ...[
             if (open) const SizedBox(height: 10),
@@ -1579,6 +1795,68 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
 // Organizer QR — players scan this at the venue.
 // ---------------------------------------------------------------------------
 
+/// "See event QR code" — under Hosted by once the matches section has pushed
+/// the QR card down the page; opens the live QR in a sheet.
+class _QrShortcut extends StatelessWidget {
+  const _QrShortcut({required this.onTap});
+  final void Function(BuildContext from) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Material(
+      color: p.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: p.muted.withAlpha(40)),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => onTap(context),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: p.accentTint,
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(Icons.qr_code_2_rounded, size: 19, color: p.greenText),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('See event QR code',
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
+                  Text('Show it for late check-ins',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: p.muted, fontSize: 12)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, size: 20, color: p.muted),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+/// Marks the end of the post-assignment section (see `_body`'s slivers).
+class _PlayEnd extends StatelessWidget {
+  const _PlayEnd();
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
+}
+
 class _QrCard extends StatelessWidget {
   const _QrCard({required this.event});
   final EventDetail event;
@@ -1607,17 +1885,83 @@ class _QrCard extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
           ),
-          child: QrImageView(
-            data: e.qrCode!,
-            size: 190,
-            backgroundColor: Colors.white,
-          ),
+          child: _LiveQr(event: e, size: 190),
         ),
         const SizedBox(height: 8),
-        Text(e.qrCode!,
-            style: TextStyle(
-                color: p.muted, fontSize: 10.5, fontFamily: 'monospace')),
+        Text('Refreshes every 30 seconds — screenshots won’t work.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: p.muted, fontSize: 11)),
+        // "Check someone in" (manual_checkin_sheet.dart) is hidden until
+        // further notice.
       ]),
+    );
+  }
+}
+
+/// The organiser's live check-in QR. It names this organiser and lapses in
+/// ~2 minutes (server checkinQr.ts), so it's refetched every
+/// `refreshSeconds` while on screen and on returning to the app — a
+/// screenshot or printout stops checking people in, and scanning your OWN
+/// QR is refused. Used by the QR card and the "See event QR code" sheet.
+class _LiveQr extends ConsumerStatefulWidget {
+  const _LiveQr({required this.event, required this.size});
+  final EventDetail event;
+  final double size;
+
+  @override
+  ConsumerState<_LiveQr> createState() => _LiveQrState();
+}
+
+class _LiveQrState extends ConsumerState<_LiveQr> with WidgetsBindingObserver {
+  String? _value;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _refresh();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Back on screen: the one shown may have lapsed in the background.
+    if (state == AppLifecycleState.resumed) _refresh();
+  }
+
+  Future<void> _refresh() async {
+    _timer?.cancel();
+    var every = 30;
+    try {
+      final r =
+          await ref.read(eventsRepositoryProvider).checkInQr(widget.event.id);
+      final v = r['value'];
+      every = (r['refreshSeconds'] as num?)?.toInt() ?? 30;
+      if (mounted && v is String && v.isNotEmpty) setState(() => _value = v);
+    } catch (_) {
+      // Keep the last one; try again sooner.
+      every = 10;
+    }
+    if (!mounted) return;
+    // Two refreshes can overlap (resume + timer): keep a single timer.
+    _timer?.cancel();
+    _timer = Timer(Duration(seconds: every.clamp(5, 60)), _refresh);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final value = _value ?? widget.event.qrCode ?? '';
+    return QrImageView(
+      data: value,
+      size: widget.size,
+      backgroundColor: Colors.white,
     );
   }
 }
@@ -1860,6 +2204,18 @@ class _GamesTab extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Starting another match is never below the fold: the big button
+        // leads the tab as soon as there's a game (the empty state has its
+        // own "Start the first match" below).
+        if (event.canManage && teams.length >= 2 && list.isNotEmpty) ...[
+          SpButton(
+            label: 'New match',
+            icon: Icons.add_rounded,
+            expand: true,
+            onTap: () => _createMatch(context, ref),
+          ),
+          const SizedBox(height: 12),
+        ],
         if (list.isEmpty && event.canManage)
           // The step most organisers miss: teams are assigned and nothing
           // says the match itself is something you start. Make it the
@@ -1971,10 +2327,10 @@ class _GamesTab extends ConsumerWidget {
                 ]),
               ),
             ),
-        if (event.canManage && teams.length >= 2) ...[
+        if (event.canManage && teams.length >= 2 && list.isEmpty) ...[
           const SizedBox(height: 4),
           SpButton(
-            label: list.isEmpty ? 'Start the first match' : 'New match',
+            label: 'Start the first match',
             icon: Icons.add_rounded,
             expand: true,
             onTap: () => _createMatch(context, ref),
@@ -2827,7 +3183,10 @@ class _CheckinsList extends ConsumerWidget {
                           ]),
                           if (e.attendees[i].checkedInAt != null)
                             Text(
-                                'Checked in ${timeAgo(e.attendees[i].checkedInAt)}',
+                                'Checked in ${timeAgo(e.attendees[i].checkedInAt)}'
+                                '${e.attendees[i].letInBy != null ? ' · let in by ${e.attendees[i].letInBy}' : ''}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(color: p.muted, fontSize: 12)),
                         ],
                       ),

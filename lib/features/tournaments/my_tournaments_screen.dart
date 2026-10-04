@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/data/tournaments/squad_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart'
     show SideMenuButton;
 import 'package:sportpadi_mobile/shared/widgets/team_tile.dart'
@@ -29,28 +30,34 @@ class MyTournamentsScreen extends ConsumerWidget {
     final data = ref.watch(myTeamCardsProvider);
     final invites =
         ref.watch(myTournamentInvitesProvider).valueOrNull?.length ?? 0;
-    Future<void> refresh() async {
+    // Everything on the tab: team cards, call-ups and the invites chip.
+    Future<void> refresh() {
       ref.invalidate(myTeamCardsProvider);
       ref.invalidate(myCallsProvider);
       ref.invalidate(myTournamentInvitesProvider);
-      await ref
-          .read(myTeamCardsProvider.future)
-          .catchError((_) => <MyTeamCard>[]);
+      return settleAll([
+        ref.read(myTeamCardsProvider.future),
+        ref.read(myTournamentInvitesProvider.future),
+        // Call-ups are only watched (by SquadCallUps) once the cards show.
+        if (data.hasValue && !data.hasError) ref.read(myCallsProvider.future),
+      ]);
     }
 
     return Scaffold(
       backgroundColor: p.bg,
       body: SafeArea(
         bottom: false,
-        child: AsyncView(
+        child: RefreshIndicator(
+          onRefresh: refresh,
+          // Loading / error aren't scrollable on their own.
+          child: _pullable(data, AsyncView(
           value: data,
           onRetry: () => ref.invalidate(myTeamCardsProvider),
           data: (teams) {
             final live = teams.fold<int>(0, (a, t) => a + t.live);
             final upcoming = teams.fold<int>(0, (a, t) => a + t.upcoming);
-            return RefreshIndicator(
-              onRefresh: refresh,
-              child: ListView(
+            return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 14, 20, 36),
                 children: [
                   // Tab title, invitations, and the side menu.
@@ -138,14 +145,21 @@ class MyTournamentsScreen extends ConsumerWidget {
                       ),
                   ],
                 ],
-              ),
-            );
+              );
           },
+        )),
         ),
       ),
     );
   }
 }
+
+/// [child] as is when [value] renders its (scrollable) data branch, else
+/// wrapped so the loader / error can still be pulled.
+Widget _pullable(AsyncValue<Object?> value, Widget child) => value.maybeWhen(
+      data: (_) => child,
+      orElse: () => PullableState(child: child),
+    );
 
 Color? hexColor(String? hex) {
   if (hex == null || hex.isEmpty) return null;

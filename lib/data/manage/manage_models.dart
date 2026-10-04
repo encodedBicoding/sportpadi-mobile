@@ -146,3 +146,53 @@ class WalletStatus {
         currencyExponent: parseInt(j['currencyExponent']),
       );
 }
+
+/// Someone an organiser can check in by hand (events.checkInCandidates):
+/// other organisers first, then RSVPs, then matching members. [isMe] is the
+/// caller — organisers never check themselves in.
+class CheckInCandidate {
+  const CheckInCandidate({
+    required this.userId,
+    required this.displayName,
+    this.avatarUrl,
+    this.isWard = false,
+    this.isOrganiser = false,
+    this.isMe = false,
+    this.isCreator = false,
+    this.rsvp = false,
+    this.checkedIn = false,
+  });
+  final String userId;
+  final String displayName;
+  final String? avatarUrl;
+  final bool isWard;
+  final bool isOrganiser;
+  final bool isMe;
+  final bool isCreator;
+  final bool rsvp;
+  final bool checkedIn;
+
+  CheckInCandidate copyWith({bool? checkedIn}) => CheckInCandidate(
+        userId: userId,
+        displayName: displayName,
+        avatarUrl: avatarUrl,
+        isWard: isWard,
+        isOrganiser: isOrganiser,
+        isMe: isMe,
+        isCreator: isCreator,
+        rsvp: rsvp,
+        checkedIn: checkedIn ?? this.checkedIn,
+      );
+
+  factory CheckInCandidate.fromJson(Map<String, dynamic> j) => CheckInCandidate(
+        userId: (j['userId'] ?? '') as String,
+        displayName: parseStr(j['displayName']) ?? 'Player',
+        avatarUrl: parseStr(j['avatarUrl']),
+        isWard: j['isWard'] == true,
+        isOrganiser: j['isOrganiser'] == true,
+        isMe: j['isMe'] == true,
+        isCreator: j['isCreator'] == true,
+        rsvp: j['rsvp'] == true,
+        checkedIn: j['checkedIn'] == true,
+      );
+}

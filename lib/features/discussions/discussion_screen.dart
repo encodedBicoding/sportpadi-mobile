@@ -14,6 +14,7 @@ import 'package:sportpadi_mobile/features/inbox/message_widgets.dart'
     show LinkifiedText, showReportSheet;
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
@@ -339,6 +340,19 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
         if (!_collapsed.remove(id)) _collapsed.add(id);
       });
 
+  /// Pull to refresh: the thread (in place) and, for a team discussion, the
+  /// spaces that decide the "commenting as a guardian" bar.
+  Future<void> _refresh(DiscussionThread t) {
+    final d = t.discussion;
+    final hasSpaces = d.teamId != null && d.group.id.isNotEmpty;
+    if (hasSpaces) ref.invalidate(discussionSpacesProvider(d.group.id));
+    return settleAll([
+      _ctrl.reload(),
+      if (hasSpaces && t.me.canComment)
+        ref.read(discussionSpacesProvider(d.group.id).future),
+    ]);
+  }
+
   // ── build ────────────────────────────────────────────────────────────────
 
   @override
@@ -417,10 +431,19 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           ),
           Expanded(
             child: t == null
-                ? AsyncView<DiscussionThread>(
-                    value: value,
-                    onRetry: () => ref.invalidate(provider),
-                    data: (_) => const SizedBox.shrink(),
+                // First load / error: still pullable.
+                ? RefreshIndicator(
+                    onRefresh: () {
+                      ref.invalidate(provider);
+                      return settleAll([ref.read(provider.future)]);
+                    },
+                    child: PullableState(
+                      child: AsyncView<DiscussionThread>(
+                        value: value,
+                        onRetry: () => ref.invalidate(provider),
+                        data: (_) => const SizedBox.shrink(),
+                      ),
+                    ),
                   )
                 : Column(children: [
                     if (value.isLoading || _busy)
@@ -474,7 +497,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
         ),
     ];
     return RefreshIndicator(
-      onRefresh: () => _ctrl.reload(),
+      onRefresh: () => _refresh(t),
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),

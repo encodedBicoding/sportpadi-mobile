@@ -8,6 +8,8 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
+import 'package:sportpadi_mobile/data/messages/messages_repository.dart'
+    show messageStartOptionsProvider;
 import 'package:sportpadi_mobile/data/payments/payment_models.dart'
     show RecipientUser;
 import 'package:sportpadi_mobile/data/payments/payments_repository.dart';
@@ -17,6 +19,7 @@ import 'package:sportpadi_mobile/features/inbox/message_entry_points.dart';
 import 'package:sportpadi_mobile/features/wards/ward_handover.dart';
 import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
@@ -49,16 +52,44 @@ class WardDetailScreen extends ConsumerWidget {
           ),
           Expanded(
             child: RefreshIndicator(
+              // Everything on the page: the ward, their team invitations, their
+              // groups and each group's "message about them" options.
               onRefresh: () {
+                // The body (and what it watches) only shows once loaded.
+                final bodyShown =
+                    data.maybeWhen(data: (_) => true, orElse: () => false);
+                final groupIds = bodyShown
+                    ? [
+                        for (final g in ref
+                                .read(wardGroupsProvider(wardId))
+                                .valueOrNull
+                                ?.member ??
+                            const <WardGroup>[])
+                          g.groupId,
+                      ]
+                    : const <String>[];
+                ref.invalidate(wardDetailProvider(wardId));
                 ref.invalidate(wardGroupsProvider(wardId));
                 ref.invalidate(wardTeamInvitesProvider(wardId));
-                return ref.refresh(wardDetailProvider(wardId).future);
+                for (final id in groupIds) {
+                  ref.invalidate(messageStartOptionsProvider(id));
+                }
+                return settleAll([
+                  ref.read(wardDetailProvider(wardId).future),
+                  if (bodyShown) ...[
+                    ref.read(wardGroupsProvider(wardId).future),
+                    ref.read(wardTeamInvitesProvider(wardId).future),
+                    for (final id in groupIds)
+                      ref.read(messageStartOptionsProvider(id).future),
+                  ],
+                ]);
               },
-              child: AsyncView(
+              // Loading / error aren't scrollable on their own.
+              child: _pullable(data, AsyncView(
                 value: data,
                 onRetry: () => ref.invalidate(wardDetailProvider(wardId)),
                 data: (d) => _WardBody(key: ValueKey(d.ward.userId), detail: d),
-              ),
+              )),
             ),
           ),
         ]),
@@ -66,6 +97,13 @@ class WardDetailScreen extends ConsumerWidget {
     );
   }
 }
+
+/// [child] as is when [value] renders its (scrollable) data branch, else
+/// wrapped so the loader / error can still be pulled.
+Widget _pullable(AsyncValue<Object?> value, Widget child) => value.maybeWhen(
+      data: (_) => child,
+      orElse: () => PullableState(child: child),
+    );
 
 class _WardBody extends ConsumerStatefulWidget {
   const _WardBody({super.key, required this.detail});
@@ -558,6 +596,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
     ].join(' · ');
 
     return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
       children: [
         // Team invitations waiting on a guardian's yes.

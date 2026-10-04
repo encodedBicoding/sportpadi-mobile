@@ -17,6 +17,7 @@ import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
@@ -55,6 +56,13 @@ class _AnnouncementDetailScreenState
   void _refreshLists() {
     ref.invalidate(announcementsUnreadProvider);
     ref.invalidate(announcementsInboxProvider);
+  }
+
+  /// Pull-to-refresh: the announcement (with its receipts); the spinner
+  /// stays until it's back, and an error doesn't escape.
+  Future<void> _pull() {
+    ref.invalidate(announcementDetailProvider(widget.id));
+    return settleAll([ref.read(announcementDetailProvider(widget.id).future)]);
   }
 
   Future<void> _ack(AnnouncementItem a) async {
@@ -192,11 +200,21 @@ class _AnnouncementDetailScreenState
             ),
           ),
           Expanded(
-            child: AsyncView<AnnouncementDetail>(
-              value: detail,
-              onRetry: () =>
-                  ref.invalidate(announcementDetailProvider(widget.id)),
+            // Loading / error are pullable too (the body has its own
+            // RefreshIndicator).
+            child: detail.maybeWhen(
               data: (loaded) => _body(p, loaded),
+              orElse: () => RefreshIndicator(
+                onRefresh: _pull,
+                child: PullableState(
+                  child: AsyncView<AnnouncementDetail>(
+                    value: detail,
+                    onRetry: () =>
+                        ref.invalidate(announcementDetailProvider(widget.id)),
+                    data: (_) => const SizedBox.shrink(),
+                  ),
+                ),
+              ),
             ),
           ),
           if (d != null && d.isRecipient) _ackBar(p, d.item),
@@ -210,8 +228,7 @@ class _AnnouncementDetailScreenState
     final wards = a.wardsLabel;
     final r = d.receipts;
     return RefreshIndicator(
-      onRefresh: () async =>
-          ref.refresh(announcementDetailProvider(widget.id).future),
+      onRefresh: _pull,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),

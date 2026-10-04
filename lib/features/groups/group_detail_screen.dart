@@ -7,8 +7,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/env/app_config.dart';
+import 'package:sportpadi_mobile/core/links/web_handoff.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/announcements/announcements_repository.dart';
+import 'package:sportpadi_mobile/data/discussions/discussions_repository.dart'
+    show DiscussionListKey, discussionListProvider, discussionSpacesProvider;
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/groups/group_models.dart';
 import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
@@ -18,6 +21,10 @@ import 'package:sportpadi_mobile/data/payments/payment_models.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
+import 'package:sportpadi_mobile/data/messages/messages_repository.dart'
+    show messageStartOptionsProvider;
+import 'package:sportpadi_mobile/data/progression/progression_repository.dart'
+    show groupProgressionProvider;
 import 'package:sportpadi_mobile/data/tournaments/tournament_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/data/billing/iap_repository.dart';
@@ -34,6 +41,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/team_tile.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
@@ -49,6 +57,76 @@ import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 /// row hangs below it.
 const double _kCoverHeight = 210;
 const double _kHeaderOverhang = 56;
+
+/// Pull to refresh on the group page. A pull on any tab refetches everything
+/// the page shows: the group, the header's sections (pinned announcements,
+/// overview tiles, Talk tiles, reputation, the requests / invite badges) and
+/// every tab's data. The spinner waits for the group, those always-shown
+/// sections and the pulled tab's own data ([tab], read after the
+/// invalidation so it's the fresh fetch).
+Future<void> _refreshGroupPage(
+    WidgetRef ref, String groupId, List<Future<Object?>> Function() tab) {
+  final PinnedKey pinned = (groupId: groupId, teamId: null);
+  // The Talk tile's "hot" discussions (GroupTalkSection's key).
+  final DiscussionListKey hot = (
+    groupId: groupId,
+    space: '',
+    sort: 'hot',
+    flair: null,
+    status: null,
+  );
+  // Header.
+  ref.invalidate(groupProvider(groupId));
+  ref.invalidate(eventAudiencesProvider(groupId));
+  ref.invalidate(membershipRequestCountProvider(groupId));
+  ref.invalidate(groupInviteForProvider(groupId));
+  ref.invalidate(pinnedAnnouncementsProvider(pinned));
+  ref.invalidate(groupOverviewProvider(groupId));
+  ref.invalidate(groupTalkCountsProvider(groupId));
+  ref.invalidate(announcementComposerProvider(groupId));
+  ref.invalidate(mutedAnnouncementGroupsProvider);
+  ref.invalidate(messageStartOptionsProvider(groupId));
+  ref.invalidate(discussionSpacesProvider(groupId));
+  ref.invalidate(discussionListProvider(hot));
+  ref.invalidate(groupProgressionProvider(groupId));
+  // Tabs.
+  ref.invalidate(groupEventsProvider(groupId));
+  ref.invalidate(groupTeamsProvider(groupId));
+  ref.invalidate(teamAllowanceProvider(groupId));
+  ref.invalidate(groupTournamentsProvider(groupId));
+  ref.invalidate(groupInvitesProvider(groupId));
+  return settleAll([
+    ref.read(groupProvider(groupId).future),
+    ref.read(pinnedAnnouncementsProvider(pinned).future),
+    ref.read(groupOverviewProvider(groupId).future),
+    ref.read(groupTalkCountsProvider(groupId).future),
+    ref.read(announcementComposerProvider(groupId).future),
+    ref.read(messageStartOptionsProvider(groupId).future),
+    ref.read(discussionSpacesProvider(groupId).future),
+    ref.read(groupProgressionProvider(groupId).future),
+    ...tab(),
+  ]);
+}
+
+/// Whether [AsyncView] would show its (non-scrolling) loader or error for
+/// [value] rather than the data.
+bool _bare(AsyncValue<Object?> value) =>
+    value.when(data: (_) => false, error: (_, __) => true, loading: () => true);
+
+/// [view] made pullable while it shows a loader or an error.
+Widget _pullable(AsyncValue<Object?> value, Widget view) =>
+    _bare(value) ? PullableState(child: view) : view;
+
+/// The whole group page while it shows a loader or an error (no tabs yet to
+/// pull on): still pullable.
+Widget _pullablePage(WidgetRef ref, String groupId,
+        AsyncValue<Object?> group, Widget view) =>
+    _bare(group)
+        ? RefreshIndicator(
+            onRefresh: () => _refreshGroupPage(ref, groupId, () => []),
+            child: PullableState(child: view),
+          )
+        : view;
 
 class GroupDetailScreen extends ConsumerWidget {
   const GroupDetailScreen({super.key, required this.groupId});
@@ -70,7 +148,7 @@ class GroupDetailScreen extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: Stack(children: [
-          AsyncView(
+          _pullablePage(ref, groupId, group, AsyncView(
             value: group,
             onRetry: () => ref.invalidate(groupProvider(groupId)),
             data: (g) => DefaultTabController(
@@ -135,10 +213,10 @@ class GroupDetailScreen extends ConsumerWidget {
                 ]),
               ),
             ),
-          ),
+          )),
           // While loading (or on error) there's no cover to carry the back
           // button — keep one on screen regardless.
-          if (group.valueOrNull == null)
+          if (_bare(group))
             Positioned(
               left: 16,
               top: 12,
@@ -703,9 +781,9 @@ class _ManageMenu extends ConsumerWidget {
             case 'upgrade':
               // Android: the plan is bought on the web (Stripe). Opened in a
               // Custom Tab so the return trip lands back in the app.
-              final base = ref.read(appConfigProvider).apiBaseUrl;
-              launchUrl(Uri.parse('$base/groups/$groupId/upgrade'),
-                  mode: LaunchMode.inAppBrowserView);
+              // Signed in already (one-tap hand-off), no second login.
+              signedInWebUriFor(ref, '/groups/$groupId/upgrade').then((url) =>
+                  launchUrl(url, mode: LaunchMode.inAppBrowserView));
               break;
             case 'promo':
               showPromoCodesSheet(context, groupId);
@@ -919,7 +997,8 @@ class _EventsTab extends ConsumerWidget {
     }
 
     return RefreshIndicator(
-      onRefresh: () async => ref.refresh(groupEventsProvider(groupId).future),
+      onRefresh: () => _refreshGroupPage(
+          ref, groupId, () => [ref.read(groupEventsProvider(groupId).future)]),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -988,12 +1067,13 @@ class _TeamsTabState extends ConsumerState<_TeamsTab> {
             ),
           ]),
         );
-    return AsyncView(
+    final view = AsyncView(
       value: teams,
       onRetry: () => ref.invalidate(groupTeamsProvider(widget.groupId)),
       data: (list) {
         if (list.isEmpty) {
           return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
             children: [
               if (locked) lockCard(),
@@ -1067,6 +1147,7 @@ class _TeamsTabState extends ConsumerState<_TeamsTab> {
             );
 
         return ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
             if (locked) lockCard(),
@@ -1160,6 +1241,14 @@ class _TeamsTabState extends ConsumerState<_TeamsTab> {
         );
       },
     );
+    return RefreshIndicator(
+      onRefresh: () => _refreshGroupPage(ref, widget.groupId, () => [
+            ref.read(groupTeamsProvider(widget.groupId).future),
+            if (widget.canManage)
+              ref.read(teamAllowanceProvider(widget.groupId).future),
+          ]),
+      child: _pullable(teams, view),
+    );
   }
 }
 
@@ -1176,13 +1265,21 @@ class _TournamentsTab extends ConsumerWidget {
       data: (list) => list.isEmpty
           ? const _Empty('No tournaments yet.', Icons.emoji_events_outlined)
           : ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
               itemCount: list.length,
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (_, i) => _TournamentCard(t: list[i]),
             ),
     );
-    if (!canManage) return body;
+    final pullable = RefreshIndicator(
+      onRefresh: () => _refreshGroupPage(ref, groupId, () => [
+            ref.read(groupTournamentsProvider(groupId).future),
+            if (canManage) ref.read(groupInvitesProvider(groupId).future),
+          ]),
+      child: _pullable(t, body),
+    );
+    if (!canManage) return pullable;
     // Web shows pending invites inline on this tab; on mobile they live on
     // their own screen, so at least say how many are waiting — otherwise the
     // only way to find them is a popup menu item with no badge on it.
@@ -1207,7 +1304,7 @@ class _TournamentsTab extends ConsumerWidget {
           onTap: () => _handleNewTournament(context, ref, groupId),
         ),
       ),
-      Expanded(child: body),
+      Expanded(child: pullable),
     ]);
   }
 }
@@ -1260,6 +1357,7 @@ class _Empty extends StatelessWidget {
   final IconData icon;
   @override
   Widget build(BuildContext context) => ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(32, 48, 32, 32),
         children: [
           Center(child: SpIconTile(icon, size: 56, iconSize: 26)),

@@ -203,6 +203,25 @@ class ManageRepository {
     }
   }
 
+  /// Who this organiser can check in by hand (see CheckInCandidate).
+  Future<List<CheckInCandidate>> checkInCandidates(String eventId,
+      {String? q}) async {
+    try {
+      final res = await _dio.get('/api/mobile/checkin/candidates',
+          queryParameters: {
+            'eventId': eventId,
+            if (q != null && q.trim().isNotEmpty) 'q': q.trim(),
+          });
+      final list = res.data is List ? res.data as List : const [];
+      return [
+        for (final e in list)
+          CheckInCandidate.fromJson(Map<String, dynamic>.from(e as Map))
+      ];
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load people to check in.');
+    }
+  }
+
   Future<void> checkIn(String eventId, String playerId) async {
     try {
       await _dio.post('/api/mobile/checkin',

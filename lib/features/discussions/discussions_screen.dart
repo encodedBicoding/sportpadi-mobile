@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/features/discussions/discussion_widgets.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
@@ -185,11 +186,19 @@ class _DiscussionsScreenState extends ConsumerState<DiscussionsScreen> {
     final list = ref.watch(provider);
     final filtered = _flair != null || _status != null;
     return RefreshIndicator(
+      // The list plus the header (group name) and the spaces (pills, FAB).
       onRefresh: () {
+        ref.invalidate(provider);
+        ref.invalidate(groupProvider(widget.groupId));
         ref.invalidate(discussionSpacesProvider(widget.groupId));
-        return ref.refresh(provider.future);
+        return settleAll([
+          ref.read(provider.future),
+          ref.read(groupProvider(widget.groupId).future),
+          ref.read(discussionSpacesProvider(widget.groupId).future),
+        ]);
       },
-      child: AsyncView<DiscussionPage>(
+      // Loading / error aren't scrollable on their own.
+      child: _pullable(list, AsyncView<DiscussionPage>(
         value: list,
         onRetry: () => ref.invalidate(provider),
         data: (page) {
@@ -262,7 +271,14 @@ class _DiscussionsScreenState extends ConsumerState<DiscussionsScreen> {
             ),
           );
         },
-      ),
+      )),
     );
   }
+
+  /// [child] as is when [value] renders its (scrollable) data branch, else
+  /// wrapped so the loader / error can still be pulled.
+  Widget _pullable(AsyncValue<Object?> value, Widget child) => value.maybeWhen(
+        data: (_) => child,
+        orElse: () => PullableState(child: child),
+      );
 }

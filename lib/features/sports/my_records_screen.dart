@@ -39,6 +39,7 @@ class MyRecordsScreen extends ConsumerWidget {
                 .then((_) {}, onError: (_) {});
           },
           child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
             children: [
               SpHeader(

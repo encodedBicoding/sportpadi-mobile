@@ -20,12 +20,15 @@ import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_tile_square.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sheet_scroll.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
 import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
+import 'package:sportpadi_mobile/data/wards/wards_repository.dart'
+    show myWardsProvider;
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// Profile (2026) — dark pitch cover with QR / menu round buttons, identity
@@ -44,6 +47,38 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   int _tab = 0; // 0 groups, 1 tournaments, 2 events, 3 posts
+
+  /// Pull to refresh: everything the page shows — the profile, the record
+  /// (sports / tournaments), groups and the names they know you by, the
+  /// avatar frame, wards, progression and the events tab — and the spinner
+  /// stays until what's on screen is back.
+  Future<void> _refresh() {
+    final profile = ref.read(meProvider).valueOrNull;
+    final userId = profile?.userId;
+    ref.invalidate(meProvider);
+    // The records provider is the cache; the stats one follows it.
+    if (userId != null) ref.invalidate(playerRecordsProvider(userId));
+    ref.invalidate(myGroupsProvider);
+    ref.invalidate(myGroupAkasProvider);
+    ref.invalidate(identityProvider(userId ?? ''));
+    ref.invalidate(myWardsProvider);
+    ref.invalidate(myProgressionProvider);
+    ref.invalidate(strengthsProvider);
+    ref.invalidate(attendedEventsProvider);
+    return settleAll([
+      ref.read(meProvider.future),
+      // The rest is only on screen (watched) once the profile is.
+      if (profile != null) ...[
+        if (userId != null) ref.read(playerStatsProvider(userId).future),
+        ref.read(myGroupsProvider.future),
+        ref.read(myGroupAkasProvider.future),
+        ref.read(identityProvider(userId ?? '').future),
+        ref.read(myWardsProvider.future),
+        ref.read(myProgressionProvider.future),
+        if (_tab == 2) ref.read(attendedEventsProvider.future),
+      ],
+    ]);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,12 +106,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: p.bg,
-      body: AsyncView(
+      body: _pullableUnlessData(
+        me,
+        _refresh,
+        AsyncView(
         value: me,
         onRetry: () => ref.invalidate(meProvider),
         data: (profile) {
           if (profile == null) {
-            return const Center(child: Text('No profile found.'));
+            return RefreshIndicator(
+              onRefresh: _refresh,
+              child: const PullableState(child: Text('No profile found.')),
+            );
           }
           final userId = profile.userId;
           final stats = userId == null
@@ -96,15 +137,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const <String, String>{};
 
           return RefreshIndicator(
-            onRefresh: () async {
-              // The records provider is the cache; the stats one follows it.
-              if (userId != null) {
-                ref.invalidate(playerRecordsProvider(userId));
-              }
-              ref.invalidate(myGroupAkasProvider);
-              return ref.refresh(meProvider.future);
-            },
-            child: CustomScrollView(slivers: [
+            onRefresh: _refresh,
+            child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
               SliverList(
                   delegate: SliverChildListDelegate([
                 _Hero(profile: profile, onMenu: () => openMenu(profile)),
@@ -180,6 +216,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ]),
           );
         },
+      ),
       ),
     );
   }
@@ -1117,3 +1154,12 @@ class _PinnedProfileTabs extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(covariant _PinnedProfileTabs oldDelegate) =>
       oldDelegate.child != child;
 }
+
+/// Loading / error aren't scrollable on their own, so they get a pullable
+/// wrapper; once the data shows, its own RefreshIndicator takes over.
+Widget _pullableUnlessData(
+        AsyncValue<Object?> v, Future<void> Function() onRefresh, Widget child) =>
+    v.hasValue && !v.hasError
+        ? child
+        : RefreshIndicator(
+            onRefresh: onRefresh, child: PullableState(child: child));

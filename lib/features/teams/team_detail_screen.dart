@@ -7,10 +7,14 @@ import 'package:sportpadi_mobile/features/manage/add_team_player.dart';
 import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/announcements/announcements_repository.dart'
-    show pinnedAnnouncementsProvider;
+    show announcementComposerProvider, pinnedAnnouncementsProvider;
+import 'package:sportpadi_mobile/data/discussions/discussions_repository.dart'
+    show DiscussionListKey, discussionListProvider, discussionSpacesProvider;
 import 'package:sportpadi_mobile/data/groups/groups_repository.dart'
     show teamTalkCountsProvider;
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
+import 'package:sportpadi_mobile/data/messages/messages_repository.dart'
+    show messageStartOptionsProvider;
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
 import 'package:sportpadi_mobile/data/tournaments/squad_models.dart';
@@ -24,6 +28,7 @@ import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/team_tile.dart'
@@ -110,6 +115,57 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
     ref.invalidate(teamWardInvitesProvider(teamId));
   }
 
+  /// Pull to refresh: everything the page shows — the team and its record,
+  /// the pinned announcements, the Talk tiles, "Create team event" and every
+  /// tab. The spinner waits for the team, the header and the open tab.
+  Future<void> _pullRefresh() {
+    final t = ref.read(teamDetailProvider(teamId)).valueOrNull;
+    final groupId = t?.groupId;
+    // The tabs key their data by the loaded team's id.
+    final id = t?.id ?? teamId;
+    _refetch(); // team, record, wards waiting for a guardian
+    _refreshLive(); // Talk badges, pinned announcements
+    ref.invalidate(teamWardInvitesProvider(id));
+    ref.invalidate(teamTournamentsProvider(id));
+    ref.invalidate(teamCoachesProvider(id));
+    ref.invalidate(teamGamesProvider(teamId));
+    if (groupId != null) {
+      // The Talk tile's "hot" team discussions (GroupTalkSection's key).
+      final DiscussionListKey hot = (
+        groupId: groupId,
+        space: teamId,
+        sort: 'hot',
+        flair: null,
+        status: null,
+      );
+      ref.invalidate(eventAudiencesProvider(groupId));
+      ref.invalidate(announcementComposerProvider(groupId));
+      ref.invalidate(messageStartOptionsProvider(groupId));
+      ref.invalidate(discussionSpacesProvider(groupId));
+      ref.invalidate(discussionListProvider(hot));
+    }
+    return settleAll([
+      ref.read(teamDetailProvider(teamId).future),
+      // The rest is only on screen (watched) once the team is.
+      if (t != null) ...[
+        ref.read(teamStatsProvider(teamId).future),
+        if (_tab == 0 && t.canManage)
+          ref.read(teamWardInvitesProvider(id).future),
+        if (_tab == 1) ref.read(teamTournamentsProvider(id).future),
+        if (_tab == 2) ref.read(teamCoachesProvider(id).future),
+        if (_tab == 3) ref.read(teamGamesProvider(teamId).future),
+        if (groupId != null) ...[
+          ref.read(pinnedAnnouncementsProvider(
+                  (groupId: groupId, teamId: teamId))
+              .future),
+          ref.read(teamTalkCountsProvider((groupId: groupId, teamId: teamId))
+              .future),
+          ref.read(eventAudiencesProvider(groupId).future),
+        ],
+      ],
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
@@ -119,7 +175,10 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
       body: SafeArea(
         bottom: false,
         child: Stack(children: [
-          AsyncView(
+          _pullableUnlessData(
+            team,
+            _pullRefresh,
+            AsyncView(
             value: team,
             onRetry: _refetch,
             data: (t) {
@@ -128,11 +187,10 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
               // opens.
               const tabs = ['Players', 'Tournaments', 'Coaches', 'Games'];
               return RefreshIndicator(
-                onRefresh: () {
-                  _refreshLive();
-                  return ref.refresh(teamDetailProvider(teamId).future);
-                },
-                child: CustomScrollView(slivers: [
+                onRefresh: _pullRefresh,
+                child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
                   SliverToBoxAdapter(child: _Header(team: t, teamId: teamId)),
                   // The team's pinned announcements — their own section,
                   // hidden when there are none — and Talk, as on the group
@@ -224,6 +282,7 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
                 ]),
               );
             },
+          ),
           ),
           if (team.valueOrNull == null)
             Positioned(
@@ -1631,3 +1690,12 @@ class _PinnedTeamTabs extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(covariant _PinnedTeamTabs oldDelegate) =>
       oldDelegate.child != child;
 }
+
+/// Loading / error aren't scrollable on their own, so they get a pullable
+/// wrapper; once the data shows, its own RefreshIndicator takes over.
+Widget _pullableUnlessData(
+        AsyncValue<Object?> v, Future<void> Function() onRefresh, Widget child) =>
+    v.hasValue && !v.hasError
+        ? child
+        : RefreshIndicator(
+            onRefresh: onRefresh, child: PullableState(child: child));

@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/data/profile/profile_models.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/features/players/player_profile_screen.dart'
     show playerRecordsProvider;
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sheet_scroll.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
@@ -31,8 +32,13 @@ class MySportsScreen extends ConsumerWidget {
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () => ref.refresh(sportsSetupProvider.future),
+              // Errors just stop the spinner (the section shows its own).
+              onRefresh: () {
+                ref.invalidate(sportsSetupProvider);
+                return settleAll([ref.read(sportsSetupProvider.future)]);
+              },
               child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
                 children: [
                   Text(

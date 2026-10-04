@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/features/players/player_record.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 
 /// One player's record inside ONE group, per sport.
@@ -58,13 +59,26 @@ class _PlayerGroupStatsScreenState
     final key = (userId: widget.userId, groupId: widget.groupId);
     final data = ref.watch(playerGroupStatsProvider(key));
 
+    // A pull refetches the record and keeps the spinner until it's back.
+    Future<void> refresh() {
+      ref.invalidate(playerGroupStatsProvider(key));
+      return settleAll([ref.read(playerGroupStatsProvider(key).future)]);
+    }
+
     return Scaffold(
       backgroundColor: p.bg,
       body: SafeArea(
         bottom: false,
         child: isPrivateRecordError(data.error)
-            ? const PlayerPrivateView(title: 'Record in group')
-            : AsyncView(
+            ? RefreshIndicator(
+                onRefresh: refresh,
+                child: _alwaysPullable(context,
+                    const PlayerPrivateView(title: 'Record in group')),
+              )
+            : _pullableUnlessData(
+                data,
+                refresh,
+                AsyncView(
                 value: data,
                 onRetry: () => ref.invalidate(playerGroupStatsProvider(key)),
                 data: (m) {
@@ -109,9 +123,9 @@ class _PlayerGroupStatsScreenState
                   final family = cat == null ? null : familyOf(cat);
 
                   return RefreshIndicator(
-                    onRefresh: () =>
-                        ref.refresh(playerGroupStatsProvider(key).future),
+                    onRefresh: refresh,
                     child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
                       children: [
                         SpHeader(title: 'Record in group', subtitle: groupName),
@@ -232,7 +246,27 @@ class _PlayerGroupStatsScreenState
                   );
                 },
               ),
+              ),
       ),
     );
   }
 }
+
+/// Loading / error aren't scrollable on their own, so they get a pullable
+/// wrapper; once the data shows, its own RefreshIndicator takes over.
+Widget _pullableUnlessData(
+        AsyncValue<Object?> v, Future<void> Function() onRefresh, Widget child) =>
+    v.hasValue && !v.hasError
+        ? child
+        : RefreshIndicator(
+            onRefresh: onRefresh, child: PullableState(child: child));
+
+/// A scroll view that may be too short to scroll can still start a pull.
+Widget _alwaysPullable(BuildContext context, Widget child) =>
+    ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(
+        physics: AlwaysScrollableScrollPhysics(
+            parent: ScrollConfiguration.of(context).getScrollPhysics(context)),
+      ),
+      child: child,
+    );

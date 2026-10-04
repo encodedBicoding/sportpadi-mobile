@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/data/events/event_models.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_feed_card.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart';
 
 /// Currently-selected category filter (null = All). Client-side; the chips are
@@ -61,8 +62,17 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
     return Scaffold(
       appBar: const SpAppBar(),
       body: RefreshIndicator(
-        onRefresh: () async => ref.refresh(discoverProvider.future),
-        child: AsyncView(
+        // The feed and, with a location set, the nearby feed that replaces it.
+        onRefresh: () {
+          ref.invalidate(discoverProvider);
+          ref.invalidate(_nearbyProvider);
+          return settleAll([
+            ref.read(discoverProvider.future),
+            ref.read(_nearbyProvider.future),
+          ]);
+        },
+        // Loading / error aren't scrollable on their own.
+        child: _pullable(events, AsyncView(
           value: events,
           onRetry: () => ref.invalidate(discoverProvider),
           data: (list) {
@@ -86,6 +96,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
             }
 
             return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
               children: [
                 Text(
@@ -156,10 +167,17 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
               ],
             );
           },
-        ),
+        )),
       ),
     );
   }
+
+  /// [child] as is when [value] renders its (scrollable) data branch, else
+  /// wrapped so the loader / error can still be pulled.
+  Widget _pullable(AsyncValue<Object?> value, Widget child) => value.maybeWhen(
+        data: (_) => child,
+        orElse: () => PullableState(child: child),
+      );
 
   void _open(BuildContext context, EventSummary e) {
     if (e.isTournament) {

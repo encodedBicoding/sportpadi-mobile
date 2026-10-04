@@ -279,6 +279,21 @@ class EventsRepository {
     }
   }
 
+  /// The organiser's live check-in QR: { value, expiresAt, refreshSeconds,
+  /// code }. It names the organiser and lapses in ~2 minutes — poll it every
+  /// refreshSeconds while it's on screen.
+  Future<Map<String, dynamic>> checkInQr(String eventId) async {
+    try {
+      final res = await _dio.get('/api/mobile/checkin/qr',
+          queryParameters: {'eventId': eventId});
+      return res.data is Map
+          ? Map<String, dynamic>.from(res.data as Map)
+          : <String, dynamic>{};
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not refresh the QR.');
+    }
+  }
+
   /// Player scans an event QR. Returns the outcome status + event title.
   /// [forPlayerId]: a guardian checking in one of their wards.
   Future<Map<String, dynamic>> checkInByQr(String qrCode,
@@ -472,6 +487,35 @@ class EventsRepository {
   Stream<void> draftPings(String eventId) async* {
     final res = await _dio.get<ResponseBody>(
       '/api/mobile/draft-stream/$eventId',
+      options: Options(
+        responseType: ResponseType.stream,
+        headers: {'Accept': 'text/event-stream'},
+        receiveTimeout: Duration.zero,
+      ),
+    );
+    final body = res.data;
+    if (body == null) return;
+    var buffer = '';
+    await for (final chunk in body.stream) {
+      buffer += utf8.decode(chunk, allowMalformed: true);
+      while (true) {
+        final sep = buffer.indexOf('\n\n');
+        if (sep < 0) break;
+        final frame = buffer.substring(0, sep);
+        buffer = buffer.substring(sep + 2);
+        if (frame.split('\n').any((l) => l.startsWith('data:'))) {
+          yield null;
+        }
+      }
+    }
+  }
+
+  /// SSE ping stream for an event — each emission means "something on this
+  /// event changed (a game created/scored/deleted, teams, a check-in, its
+  /// status): refetch the event page now".
+  Stream<void> eventPings(String eventId) async* {
+    final res = await _dio.get<ResponseBody>(
+      '/api/mobile/events/$eventId/stream',
       options: Options(
         responseType: ResponseType.stream,
         headers: {'Accept': 'text/event-stream'},

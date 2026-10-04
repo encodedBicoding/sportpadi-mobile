@@ -24,6 +24,7 @@ import 'package:sportpadi_mobile/shared/format/instant.dart'
     show viewerTimezone;
 import 'package:sportpadi_mobile/shared/format/ticket_validity.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
@@ -61,6 +62,19 @@ class _GroupTicketsScreenState extends ConsumerState<GroupTicketsScreen> {
   bool _busy = false;
 
   void _refetch() => ref.invalidate(managedTicketsProvider(widget.groupId));
+
+  /// Pull-to-refresh: the tickets, the wallet (it gates "New ticket") and
+  /// the group name; the spinner stays until they're back.
+  Future<void> _pull() {
+    ref.invalidate(managedTicketsProvider(widget.groupId));
+    ref.invalidate(groupWalletProvider(widget.groupId));
+    ref.invalidate(groupProvider(widget.groupId));
+    return settleAll([
+      ref.read(managedTicketsProvider(widget.groupId).future),
+      ref.read(groupWalletProvider(widget.groupId).future),
+      ref.read(groupProvider(widget.groupId).future),
+    ]);
+  }
 
   void _snack(String m) {
     if (!mounted) return;
@@ -193,12 +207,19 @@ class _GroupTicketsScreenState extends ConsumerState<GroupTicketsScreen> {
             ),
           ),
           Expanded(
-            child: AsyncView<List<ManagedTicket>>(
-              value: tickets,
-              onRetry: _refetch,
-              data: (list) => RefreshIndicator(
-                onRefresh: () async => _refetch(),
-                child: ListView(
+            // Pullable in every state.
+            child: RefreshIndicator(
+              onRefresh: _pull,
+              child: tickets.maybeWhen(
+                orElse: () => PullableState(
+                  child: AsyncView<List<ManagedTicket>>(
+                    value: tickets,
+                    onRetry: _refetch,
+                    data: (_) => const SizedBox.shrink(),
+                  ),
+                ),
+                data: (list) => ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
                   children: [
                     // Summary + the one action that matters here.

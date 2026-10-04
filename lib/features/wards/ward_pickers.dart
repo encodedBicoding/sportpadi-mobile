@@ -408,7 +408,7 @@ class CheckinOutcome {
         'payment_required' => 'Payment required',
         'limit_reached' => 'Check-ins are full',
         'fined' => 'Outstanding fine',
-        'self_checkin' => 'Ask an admin to check you in',
+        'self_checkin' => "That's your own QR",
         'error' => "Couldn't check in",
         _ => 'Not checked in',
       };
@@ -422,7 +422,9 @@ class CheckinOutcome {
     // any row that isn't mine is one of my wards (the caller knows).
     final forWard = res['forWard'] == true || !isMe;
     final message = switch (status) {
-      'checked_in' => 'Checked in to $title.',
+      'checked_in' => parseStr(res['letInBy']) != null
+          ? 'Checked in to $title. Let in by ${parseStr(res['letInBy'])}.'
+          : 'Checked in to $title.',
       'already_checked_in' => 'Already on the list for $title.',
       'payment_required' => forWard
           ? '$title needs a paid ticket for $name. Pay for them here, then '
@@ -437,7 +439,7 @@ class CheckinOutcome {
           : reason ??
               'There is an unpaid fine with this group — settle it to check in.',
       'self_checkin' =>
-        reason ?? "Organisers can't check themselves in — ask another admin.",
+        reason ?? "You can't scan your own QR. Use another admin's.",
       _ => 'Unexpected result: $status',
     };
     final outstanding = res['outstanding'] is List

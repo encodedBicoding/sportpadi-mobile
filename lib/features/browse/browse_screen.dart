@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/ads/admob.dart';
 import 'package:sportpadi_mobile/core/location/location_provider.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/data/ads/ads_repository.dart'
+    show servedSlotsProvider;
 import 'package:sportpadi_mobile/data/events/event_models.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/features/ads/ad_display.dart';
@@ -14,6 +16,7 @@ import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_tile.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
@@ -40,6 +43,9 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   final List<EventSummary> _items = [];
   int? _nextCursor = 0;
   bool _loading = false;
+  // Bumped by each reset, so a page still in flight from before it (a
+  // scroll's loadMore, an older filter) is dropped instead of appended.
+  int _gen = 0;
   bool _locationFilter = false;
   String? _error;
 
@@ -68,12 +74,15 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   }
 
   Future<void> _loadMore({bool reset = false}) async {
-    if (_loading) return;
+    // A reset (pull, filter change) always goes ahead and supersedes
+    // whatever is loading.
+    if (_loading && !reset) return;
     if (reset) {
       _nextCursor = 0;
     }
     final cursor = _nextCursor;
     if (cursor == null) return;
+    final gen = reset ? ++_gen : _gen;
     setState(() {
       _loading = true;
       if (reset) _error = null;
@@ -91,7 +100,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                 ? loc.radiusMiles
                 : null,
           );
-      if (!mounted) return;
+      if (!mounted || gen != _gen) return;
       setState(() {
         if (reset) _items.clear();
         _items.addAll(page.items);
@@ -99,7 +108,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
         _loading = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || gen != _gen) return;
       setState(() {
         _loading = false;
         if (reset) _error = '$e';
@@ -627,18 +636,35 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
 
   // ── Event list ────────────────────────────────────────────────────────────
 
-  Widget _list(AppPalette p) {
+  /// Pull to refresh: the grid from its first page, plus the sport chips
+  /// and the sponsored strip above it.
+  Future<void> _refresh() {
+    ref.invalidate(browseCategoriesProvider);
+    ref.invalidate(servedSlotsProvider('home_ads'));
+    return settleAll([
+      _loadMore(reset: true),
+      ref.read(browseCategoriesProvider.future),
+    ]);
+  }
+
+  /// Pullable in every state: error, first load, empty and the grid.
+  Widget _list(AppPalette p) =>
+      RefreshIndicator(onRefresh: _refresh, child: _listBody(p));
+
+  Widget _listBody(AppPalette p) {
     if (_error != null && _items.isEmpty) {
-      return _emptyState(
-          p, Icons.wifi_off_rounded, 'Couldn\'t load events', _error!,
-          action:
-              SpButton(label: 'Retry', onTap: () => _loadMore(reset: true)));
+      return PullableState(
+          child: _emptyState(
+              p, Icons.wifi_off_rounded, 'Couldn\'t load events', _error!,
+              action: SpButton(
+                  label: 'Retry', onTap: () => _loadMore(reset: true))));
     }
     if (_items.isEmpty && _loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const PullableState(child: CircularProgressIndicator());
     }
     if (_items.isEmpty) {
-      return _emptyState(
+      return PullableState(
+          child: _emptyState(
         p,
         Icons.travel_explore_rounded,
         'No events here yet',
@@ -647,7 +673,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
             : (_categoryId != null || _liveOnly || _tournamentsOnly)
                 ? 'No events match these filters right now.'
                 : 'No upcoming events right now.',
-      );
+      ));
     }
 
     // The grid is cut into runs of [_adEvery] tiles with a full-width AdMob
@@ -696,17 +722,15 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
       ));
     }
 
-    return RefreshIndicator(
-      onRefresh: () => _loadMore(reset: true),
-      child: CustomScrollView(
-        controller: _scroll,
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 28),
-            sliver: SliverMainAxisGroup(slivers: slivers),
-          ),
-        ],
-      ),
+    return CustomScrollView(
+      controller: _scroll,
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 28),
+          sliver: SliverMainAxisGroup(slivers: slivers),
+        ),
+      ],
     );
   }
 

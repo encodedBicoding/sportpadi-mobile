@@ -28,6 +28,7 @@ import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 
 /// Tournament page — a card-by-card port of the web page:
 /// header (badges + title + date/time/location + description), then for a
@@ -58,12 +59,39 @@ class TournamentDetailScreen extends ConsumerWidget {
           .showSnackBar(const SnackBar(content: Text('Link copied')));
     }
 
+    // A pull refetches everything on the page: the tournament plus the cards
+    // that load their own data (live scores / fixtures always; the match for
+    // a friendly, awards otherwise) — and holds the spinner until it's back.
+    Future<void> refresh() {
+      final Map<String, dynamic>? m =
+          t.maybeWhen(data: (v) => v, orElse: () => null);
+      final friendly = (parseStr(m?['mode']) ?? 'friendly') == 'friendly';
+      ref.invalidate(tournamentDetailProvider(eventId));
+      ref.invalidate(tournamentMatchProvider(eventId));
+      ref.invalidate(tournamentGamesProvider(eventId));
+      ref.invalidate(tournamentAwardsProvider(eventId));
+      return settleAll([
+        ref.read(tournamentDetailProvider(eventId).future),
+        // Only await the ones a card on screen is watching.
+        if (m != null) ...[
+          ref.read(tournamentGamesProvider(eventId).future),
+          if (friendly)
+            ref.read(tournamentMatchProvider(eventId).future)
+          else
+            ref.read(tournamentAwardsProvider(eventId).future),
+        ],
+      ]);
+    }
+
     return Scaffold(
       backgroundColor: p.bg,
       body: SafeArea(
         bottom: false,
         child: Stack(children: [
-          AsyncView(
+          RefreshIndicator(
+            onRefresh: refresh,
+            // Loading / error aren't scrollable on their own.
+            child: _pullable(t, AsyncView(
             value: t,
             onRetry: () {
               ref.invalidate(tournamentDetailProvider(eventId));
@@ -126,14 +154,8 @@ class TournamentDetailScreen extends ConsumerWidget {
                     ),
               ];
 
-              return RefreshIndicator(
-                onRefresh: () {
-                  ref.invalidate(tournamentMatchProvider(eventId));
-                  ref.invalidate(tournamentGamesProvider(eventId));
-                  ref.invalidate(tournamentAwardsProvider(eventId));
-                  return ref.refresh(tournamentDetailProvider(eventId).future);
-                },
-                child: ListView(
+              return ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.only(bottom: 36),
                   children: [
                     // Invisible: keeps every live score on this page up to date.
@@ -218,9 +240,9 @@ class TournamentDetailScreen extends ConsumerWidget {
                       ),
                     ),
                   ],
-                ),
-              );
+                );
             },
+          )),
           ),
           // While loading (or on error) there's no cover to carry the back
           // button — keep one on screen regardless.
@@ -241,6 +263,13 @@ class TournamentDetailScreen extends ConsumerWidget {
     );
   }
 }
+
+/// [child] as is when [value] renders its (scrollable) data branch, else
+/// wrapped so the loader / error can still be pulled.
+Widget _pullable(AsyncValue<Object?> value, Widget child) => value.maybeWhen(
+      data: (_) => child,
+      orElse: () => PullableState(child: child),
+    );
 
 String? _fmtMoney(dynamic minor, dynamic currency, dynamic exponent) {
   final v = parseInt(minor);

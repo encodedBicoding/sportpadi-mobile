@@ -12,6 +12,7 @@ import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/features/tournaments/invitation_rows.dart';
 import 'package:sportpadi_mobile/features/tournaments/my_tournaments_screen.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/team_tile.dart'
     show kitGradient;
@@ -62,9 +63,18 @@ class _MyTeamTournamentsScreenState
 
   void _back() => context.canPop() ? context.pop() : context.go('/tournaments');
 
-  void _refresh() {
+  /// Refetches the team's tournaments and its call-ups; completes once
+  /// they're back (errors show on the page, not here).
+  Future<void> _refresh() {
+    final shown = ref.read(myTeamTournamentsProvider(widget.teamId));
+    // Call-ups are only watched (by SquadCallUps) while the content shows.
+    final callsWatched = shown.hasValue && !shown.hasError;
     ref.invalidate(myTeamTournamentsProvider(widget.teamId));
     ref.invalidate(myCallsProvider);
+    return settleAll([
+      ref.read(myTeamTournamentsProvider(widget.teamId).future),
+      if (callsWatched) ref.read(myCallsProvider.future),
+    ]);
   }
 
   @override
@@ -74,10 +84,14 @@ class _MyTeamTournamentsScreenState
     return Scaffold(
       backgroundColor: p.bg,
       body: Stack(children: [
-        AsyncView(
-          value: data,
-          onRetry: _refresh,
-          data: (v) => _content(context, v),
+        RefreshIndicator(
+          onRefresh: _refresh,
+          // Loading / error aren't scrollable on their own.
+          child: _pullable(data, AsyncView(
+            value: data,
+            onRetry: _refresh,
+            data: (v) => _content(context, v),
+          )),
         ),
         if (!data.hasValue)
           SafeArea(
@@ -127,9 +141,8 @@ class _MyTeamTournamentsScreenState
       body.addAll(_entries(shown));
     }
 
-    return RefreshIndicator(
-      onRefresh: () async => _refresh(),
-      child: ListView(
+    return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.zero,
         children: [
           _Hero(team: t, tournaments: v.entries.length, onBack: _back),
@@ -162,8 +175,7 @@ class _MyTeamTournamentsScreenState
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 
   List<Widget> _entries(List<MyTeamTournament> list) {
@@ -190,6 +202,13 @@ class _MyTeamTournamentsScreenState
     ];
   }
 }
+
+/// [child] as is when [value] renders its (scrollable) data branch, else
+/// wrapped so the loader / error can still be pulled.
+Widget _pullable(AsyncValue<Object?> value, Widget child) => value.maybeWhen(
+      data: (_) => child,
+      orElse: () => PullableState(child: child),
+    );
 
 // ─── Header ─────────────────────────────────────────────────────────────────
 

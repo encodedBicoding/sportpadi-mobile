@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
 import 'package:sportpadi_mobile/data/groups/members_repository.dart';
+import 'package:sportpadi_mobile/data/messages/messages_repository.dart'
+    show messageStartOptionsProvider;
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/features/groups/group_detail_screen.dart'
     show showGroupInviteSheet;
@@ -15,6 +17,7 @@ import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
@@ -187,6 +190,19 @@ class _MembersListState extends ConsumerState<_MembersList> {
     }
   }
 
+  /// Pull to refresh: the member pages (from the first again), the header
+  /// (name, count), earned titles and who can be messaged.
+  Future<void> _refresh() {
+    ref.invalidate(groupProvider(widget.groupId));
+    ref.invalidate(groupProgressionProvider(widget.groupId));
+    ref.invalidate(messageStartOptionsProvider(widget.groupId));
+    return settleAll([
+      _reload(),
+      ref.read(groupProvider(widget.groupId).future),
+      ref.read(groupProgressionProvider(widget.groupId).future),
+    ]);
+  }
+
   Future<void> _setRole(GroupMemberItem m, String role) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
@@ -352,7 +368,7 @@ class _MembersListState extends ConsumerState<_MembersList> {
     }
 
     return RefreshIndicator(
-      onRefresh: _reload,
+      onRefresh: _refresh,
       child: ListView(
         controller: _scroll,
         physics: const AlwaysScrollableScrollPhysics(),
@@ -430,6 +446,16 @@ class _FollowersListState extends ConsumerState<_FollowersList> {
     }
   }
 
+  /// Pull to refresh: the followers and the header (name, count).
+  Future<void> _refresh() {
+    ref.invalidate(groupFollowersProvider(widget.groupId));
+    ref.invalidate(groupProvider(widget.groupId));
+    return settleAll([
+      ref.read(groupFollowersProvider(widget.groupId).future),
+      ref.read(groupProvider(widget.groupId).future),
+    ]);
+  }
+
   void _toggle(String userId) {
     setState(() {
       if (!_selected.remove(userId)) _selected.add(userId);
@@ -441,7 +467,7 @@ class _FollowersListState extends ConsumerState<_FollowersList> {
     final p = context.palette;
     final list = ref.watch(groupFollowersProvider(widget.groupId));
     final canManage = widget.canManage;
-    return AsyncView(
+    final view = AsyncView(
       value: list,
       onRetry: () => ref.invalidate(groupFollowersProvider(widget.groupId)),
       data: (items) {
@@ -467,8 +493,7 @@ class _FollowersListState extends ConsumerState<_FollowersList> {
 
         return Stack(children: [
           RefreshIndicator(
-            onRefresh: () async =>
-                ref.refresh(groupFollowersProvider(widget.groupId).future),
+            onRefresh: _refresh,
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.fromLTRB(
@@ -593,6 +618,14 @@ class _FollowersListState extends ConsumerState<_FollowersList> {
             ),
         ]);
       },
+    );
+    // Loading / error: still pullable.
+    final bare = list.when(
+        data: (_) => false, error: (_, __) => true, loading: () => true);
+    if (!bare) return view;
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: PullableState(child: view),
     );
   }
 }

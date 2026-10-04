@@ -256,7 +256,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         final done = await _showSheet(
           tone: _Tone.success,
           head: "You're in",
-          body: 'Checked in to $title.',
+          body: res['letInBy'] is String
+              ? 'Checked in to $title. Let in by ${res['letInBy']}.'
+              : 'Checked in to $title.',
           reward: reward,
           doneButton: true,
         );
@@ -303,7 +305,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         final others = (res['otherAdmins'] as num?)?.toInt() ?? 0;
         final act = await _showSheet(
           tone: _Tone.warning,
-          head: 'Ask an admin to check you in',
+          head: "That's your own QR",
           body: res['reason'] as String? ??
               "Organisers can't check themselves in. Make a trusted member an admin and ask them to check you in.",
           actionLabel:

@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_tile.dart';
+import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
@@ -84,6 +85,17 @@ class _GroupEventsScreenState extends ConsumerState<GroupEventsScreen> {
         _loading = false;
       });
     }
+  }
+
+  /// Pull to refresh: the event list plus the group header (name, count)
+  /// and who may create events.
+  Future<void> _refresh() {
+    ref.invalidate(groupProvider(widget.groupId));
+    ref.invalidate(eventAudiencesProvider(widget.groupId));
+    return settleAll([
+      _reload(),
+      ref.read(groupProvider(widget.groupId).future),
+    ]);
   }
 
   Future<void> _loadMore() async {
@@ -178,7 +190,7 @@ class _GroupEventsScreenState extends ConsumerState<GroupEventsScreen> {
           ),
       ],
       body: RefreshIndicator(
-        onRefresh: _reload,
+        onRefresh: _refresh,
         child: ListView(
           controller: _scroll,
           physics: const AlwaysScrollableScrollPhysics(),
