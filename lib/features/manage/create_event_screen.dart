@@ -13,6 +13,7 @@ import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/widgets/category_dropdown.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_audience.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_reminders.dart';
+import 'package:sportpadi_mobile/shared/widgets/event_spots.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 
 class CreateEventScreen extends ConsumerStatefulWidget {
@@ -36,6 +37,9 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   TimeOfDay? _start;
   TimeOfDay? _end;
   bool _private = false;
+  // Spots: a cap on players and whether an RSVP holds a spot.
+  final _maxPlayers = TextEditingController();
+  String _rsvpPolicy = 'open';
   bool _busy = false;
 
   /// Reminder schedule — the default (2 days + 2 hours before) until changed.
@@ -50,6 +54,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   @override
   void dispose() {
     _title.dispose();
+    _maxPlayers.dispose();
     _location.dispose();
     _description.dispose();
     super.dispose();
@@ -109,6 +114,9 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
         'startTime': _start != null ? _hhmm(_start!) : null,
         'endTime': _end != null ? _hhmm(_end!) : null,
         'visibility': _private ? 'private' : 'public',
+        if (int.tryParse(_maxPlayers.text.trim()) != null)
+          'maxPlayers': int.parse(_maxPlayers.text.trim()),
+        if (_rsvpPolicy != 'open') 'rsvpPolicy': _rsvpPolicy,
         if (teamIds.isNotEmpty) 'teamIds': teamIds,
         // Omitted = the server default; [] = no reminders.
         if (!sameReminderSlots(_reminders, kDefaultReminderSlots))
@@ -274,6 +282,14 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                   style: TextStyle(color: p.muted, fontSize: 12)),
               value: _private,
               onChanged: (v) => setState(() => _private = v),
+            ),
+            const SizedBox(height: 10),
+            EventSpotsPicker(
+              maxPlayers: _maxPlayers,
+              rsvpPolicy: _rsvpPolicy,
+              enabled: !_busy,
+              onMaxPlayers: (_) => setState(() {}),
+              onRsvpPolicy: (v) => setState(() => _rsvpPolicy = v),
             ),
             const SizedBox(height: 10),
             EventRemindersPicker(

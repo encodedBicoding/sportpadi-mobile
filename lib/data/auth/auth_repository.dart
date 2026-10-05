@@ -63,6 +63,92 @@ class AuthRepository {
     }
   }
 
+  /// Google / Apple: the native button's ID token goes to Better Auth's
+  /// `/sign-in/social`, which verifies it against the provider's keys, finds
+  /// or creates the account (linking by verified email), and mints our
+  /// session — same bearer token as an email sign-in.
+  Future<AuthUser> signInWithIdToken({
+    required String provider,
+    required String idToken,
+    String? nonce,
+    String? accessToken,
+  }) async {
+    try {
+      final res = await _dio.post(
+        '/api/auth/sign-in/social',
+        data: {
+          'provider': provider,
+          'idToken': {
+            'token': idToken,
+            if (nonce != null) 'nonce': nonce,
+            if (accessToken != null) 'accessToken': accessToken,
+          },
+        },
+      );
+      await _persistToken(res);
+      final user = _extractUser(res.data);
+      if (user == null) throw ApiException('Could not sign you in.');
+      return user;
+    } on DioException catch (e) {
+      throw _err(e, social: provider);
+    }
+  }
+
+  /// Settings → Sign-in methods: attach Google / Apple to the signed-in
+  /// account (same ID-token route, Better Auth `/link-social`). The
+  /// provider's email must match the account's.
+  Future<void> linkWithIdToken({
+    required String provider,
+    required String idToken,
+    String? nonce,
+    String? accessToken,
+  }) async {
+    try {
+      await _dio.post('/api/auth/link-social', data: {
+        'provider': provider,
+        'idToken': {
+          'token': idToken,
+          if (nonce != null) 'nonce': nonce,
+          if (accessToken != null) 'accessToken': accessToken,
+        },
+      });
+    } on DioException catch (e) {
+      throw _err(e, social: provider);
+    }
+  }
+
+  /// Detach a provider. The server refuses to remove the last way in.
+  Future<void> unlinkProvider(String provider) async {
+    try {
+      await _dio.post('/api/auth/unlink-account',
+          data: {'providerId': provider});
+    } on DioException catch (e) {
+      throw _err(e);
+    }
+  }
+
+  /// The ways into this account (password? which providers?), plus which
+  /// providers this server can link.
+  Future<SignInMethods> signInMethods() async {
+    try {
+      final res = await _dio.get('/api/mobile/sign-in-methods');
+      return SignInMethods.fromJson(
+          Map<String, dynamic>.from(res.data as Map));
+    } on DioException catch (e) {
+      throw _err(e);
+    }
+  }
+
+  /// Give an SSO-only account a password (refused when one exists).
+  Future<void> setPassword(String newPassword) async {
+    try {
+      await _dio.post('/api/mobile/sign-in-methods',
+          data: {'action': 'set-password', 'newPassword': newPassword});
+    } on DioException catch (e) {
+      throw _err(e);
+    }
+  }
+
   /// Email verification (Better Auth email-otp plugin). Sends the 4-digit
   /// code to the address on the account.
   Future<void> sendVerificationCode(String email) async {
@@ -132,14 +218,38 @@ class AuthRepository {
     return null;
   }
 
-  ApiException _err(DioException e) {
+  ApiException _err(DioException e, {String? social}) {
     final data = e.response?.data;
     String? msg;
+    String? code;
     if (data is Map) {
       if (data['message'] is String) msg = data['message'] as String;
+      if (data['code'] is String) code = data['code'] as String;
       final err = data['error'];
       if (msg == null && err is Map && err['message'] is String) {
         msg = err['message'] as String;
+      }
+    }
+    // Better Auth's social errors are terse codes; say what to do instead.
+    if (social != null) {
+      final name = social == 'apple' ? 'Apple' : 'Google';
+      switch (code) {
+        case 'INVALID_TOKEN':
+        case 'ID_TOKEN_NOT_SUPPORTED':
+          msg = "$name didn't give us a valid sign-in token. Please try again.";
+        case 'EMAIL_NOT_VERIFIED':
+        case 'ACCOUNT_NOT_LINKED':
+        case 'USER_ALREADY_EXISTS':
+          msg =
+              "An account with that email already exists but its email isn't verified yet. "
+              'Sign in with your password, verify your email, then link $name from Settings.';
+        case 'EMAIL_DOESNT_MATCH':
+          msg =
+              "That $name account uses a different email from this SportPadi account.";
+        case 'SOCIAL_ACCOUNT_ALREADY_LINKED':
+          msg = 'That $name account is already linked to another SportPadi account.';
+        default:
+          break;
       }
     }
     if (e.type == DioExceptionType.connectionError ||

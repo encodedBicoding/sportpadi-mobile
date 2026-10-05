@@ -174,6 +174,27 @@ class EventsRepository {
     }
   }
 
+  /// Organiser frees a no-show's spot: drops their RSVP (never a check-in)
+  /// and tells them. Returns whether there was an RSVP to release.
+  /// Takes a player's RSVP back. When the player had paid, the server refunds
+  /// the ticket price at once and says so via [ReleaseSpotResult.refunded].
+  Future<ReleaseSpotResult> releaseSpot(
+      String eventId, String playerId) async {
+    try {
+      final res = await _dio.post('/api/mobile/event-actions/$eventId', data: {
+        'action': 'release-spot',
+        'playerId': playerId,
+      });
+      final m = res.data is Map ? res.data as Map : const {};
+      return ReleaseSpotResult(
+        released: m['released'] == true,
+        refunded: m['refunded'] == true,
+      );
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not release the spot.');
+    }
+  }
+
   Future<void> checkOut(String eventId, {String? playerId}) async {
     try {
       await _dio.post('/api/mobile/event-actions/$eventId', data: {
@@ -756,3 +777,14 @@ final availablePoolProvider = FutureProvider.autoDispose
 final draftProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>?, String>((ref, eventId) =>
         ref.watch(eventsRepositoryProvider).draftGet(eventId));
+
+/// Outcome of [EventsRepository.releaseSpot].
+class ReleaseSpotResult {
+  const ReleaseSpotResult({required this.released, required this.refunded});
+
+  /// False when the player had no RSVP to take back.
+  final bool released;
+
+  /// True when the player had paid and the ticket price was refunded.
+  final bool refunded;
+}

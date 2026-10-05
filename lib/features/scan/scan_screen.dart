@@ -282,6 +282,26 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
               'This event needs a paid ticket before check-in. Open the event page to pay, then scan again.',
         );
         return;
+      case 'rsvp_required':
+        // "RSVP required" event and this player holds no spot: the event
+        // page is where they RSVP (if spots are left), then scan again.
+        final slug = res['eventSlug'] as String?;
+        final act = await _showSheet(
+          tone: _Tone.warning,
+          head: 'RSVP first',
+          body: res['reason'] as String? ??
+              'This event needs an RSVP before check-in. Open the event, RSVP, then scan again.',
+          actionLabel: slug != null ? 'Open the event to RSVP' : null,
+        );
+        if (act && mounted && slug != null) context.push('/events/$slug');
+        return;
+      case 'full':
+        await _showSheet(
+          tone: _Tone.warning,
+          head: 'This event is full',
+          body: res['reason'] as String? ?? 'Every spot is taken.',
+        );
+        return;
       case 'limit_reached':
         await _showSheet(
           tone: _Tone.warning,

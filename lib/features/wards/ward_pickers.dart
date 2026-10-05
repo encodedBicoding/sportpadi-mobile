@@ -407,6 +407,8 @@ class CheckinOutcome {
         'already_checked_in' => 'Already checked in',
         'payment_required' => 'Payment required',
         'limit_reached' => 'Check-ins are full',
+        'rsvp_required' => 'RSVP first',
+        'full' => 'Event is full',
         'fined' => 'Outstanding fine',
         'self_checkin' => "That's your own QR",
         'error' => "Couldn't check in",
@@ -433,6 +435,12 @@ class CheckinOutcome {
               'page to pay, then scan again.',
       'limit_reached' =>
         reason ?? "This group's monthly check-in limit has been reached.",
+      'rsvp_required' => forWard
+          ? '$name needs an RSVP for $title first. RSVP for them on the '
+              'event page, then scan again.'
+          : reason ??
+              'This event needs an RSVP before check-in. Open the event, RSVP, then scan again.',
+      'full' => reason ?? '$title is full — every spot is taken.',
       'fined' => forWard
           ? '${reason ?? '$name has an unpaid fine with this group.'} '
               'You can pay it from Fines, then scan again.'

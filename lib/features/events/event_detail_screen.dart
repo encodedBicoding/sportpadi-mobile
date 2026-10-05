@@ -33,6 +33,7 @@ import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_audience.dart';
+import 'package:sportpadi_mobile/shared/widgets/event_spots.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_reminders.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
@@ -714,7 +715,12 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
           const SizedBox(height: 12),
         ],
         if (e.canManage && e.interestedPeople.isNotEmpty) ...[
-          _InterestedList(people: e.interestedPeople),
+          _InterestedList(
+              people: e.interestedPeople,
+              capacity: e.capacity,
+              canRelease: e.status != 'completed' && e.status != 'cancelled',
+              eventId: e.id,
+              onChanged: _refetch),
           const SizedBox(height: 12),
         ],
         const _PlayEnd(),
@@ -781,7 +787,12 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
       if (!showTabs) ...[
         if (e.canManage && e.interestedPeople.isNotEmpty) ...[
           const SizedBox(height: 16),
-          _InterestedList(people: e.interestedPeople),
+          _InterestedList(
+              people: e.interestedPeople,
+              capacity: e.capacity,
+              canRelease: e.status != 'completed' && e.status != 'cancelled',
+              eventId: e.id,
+              onChanged: _refetch),
         ],
         const SizedBox(height: 16),
         _CheckinsList(event: e, onChanged: _refetch),
@@ -1308,11 +1319,19 @@ class _EventHeroState extends State<_EventHero> {
           ),
         const SizedBox(height: 14),
         Row(children: [
-          stat('${e.interestCount}', 'RSVPs', p.ink),
+          stat('${e.interestCount}',
+              e.capacity.rsvpRequired ? 'Going' : 'RSVPs', p.ink),
           const SizedBox(width: 8),
           stat('${e.attendeeCount}', 'Checked in', p.greenText),
           const SizedBox(width: 8),
-          if (e.typicalAttendance != null)
+          if (e.capacity.capped)
+            stat(
+                e.capacity.full ? 'Full' : '${e.capacity.spotsLeft}',
+                e.capacity.full
+                    ? 'of ${e.capacity.maxPlayers} spots'
+                    : 'Spots left',
+                e.capacity.full ? p.muted : p.ink)
+          else if (e.typicalAttendance != null)
             stat('~${e.typicalAttendance}', 'Usually', p.ink)
           else
             stat(e.myCheckedIn ? 'In' : '—', 'You',
@@ -1548,8 +1567,12 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
       // Gamification is reactive (server-side, in the same request): an
       // RSVP moves "Your week", taking it back undoes it.
       _refreshProgression(ref);
-      // An RSVP isn't a reserved spot: say so, and why showing up pays.
-      if (going && mounted) await RsvpInfoSheet.maybeShow(context);
+      // What the RSVP means — and, on a paid-spot event, the way to lock it in.
+      if (going && mounted) {
+        await RsvpInfoSheet.maybeShow(context, ref,
+            eventId: widget.event.id,
+            rsvpRequired: widget.event.capacity.rsvpRequired);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -1567,7 +1590,11 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
     if (!mounted) return;
     widget.onChanged();
     _refreshProgression(ref);
-    if (joined == true) await RsvpInfoSheet.maybeShow(context);
+    if (joined == true) {
+      await RsvpInfoSheet.maybeShow(context, ref,
+          eventId: widget.event.id,
+          rsvpRequired: widget.event.capacity.rsvpRequired);
+    }
   }
 
   Future<void> _checkOut() async {
@@ -1620,6 +1647,8 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
         if (w.interested) w.firstName,
     ];
     final going = hasWards ? goingNames.isNotEmpty : e.myInterested;
+    // "RSVP required" + every spot taken, and the viewer holds none of them.
+    final spotsGone = e.capacity.rsvpRequired && e.capacity.full && !going;
     final wardChips = [
       for (final w in e.myWards)
         if (w.checkedIn)
@@ -1671,6 +1700,11 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (e.capacity.shows)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: SpotsBanner(capacity: e.capacity, myInterested: going),
+            ),
           if (e.myCheckedIn)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1695,16 +1729,31 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
             if (open)
               Expanded(
                 child: pill(
-                  label: hasWards
-                      ? (going
-                          ? 'Going: ${goingNames.join(', ')}'
-                          : "RSVP — who's going?")
-                      : (e.myInterested ? "You're going" : "RSVP — I'm in"),
-                  icon:
-                      going ? Icons.event_available_rounded : Icons.add_rounded,
-                  bg: going ? p.accentTint : p.hero,
-                  fg: going ? p.greenText : p.onHero,
-                  onTap: _busy
+                  label: spotsGone
+                      ? 'Full'
+                      : hasWards
+                          ? (going
+                              ? 'Going: ${goingNames.join(', ')}'
+                              : "RSVP — who's going?")
+                          : (e.myInterested
+                              ? "You're going"
+                              : "RSVP — I'm in"),
+                  icon: spotsGone
+                      ? Icons.lock_outline
+                      : going
+                          ? Icons.event_available_rounded
+                          : Icons.add_rounded,
+                  bg: spotsGone
+                      ? p.surface2
+                      : going
+                          ? p.accentTint
+                          : p.hero,
+                  fg: spotsGone
+                      ? p.muted
+                      : going
+                          ? p.greenText
+                          : p.onHero,
+                  onTap: _busy || spotsGone
                       ? null
                       : (hasWards ? _pickWhoIsGoing : _toggleInterest),
                 ),
@@ -3057,48 +3106,294 @@ class _RosterTag extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Interested list (organizer) — pink name chips.
+// RSVP list (organizer) — name chips; with "RSVP required" the chips show who
+// holds a spot, and a no-show's spot can be released (web InterestedList).
 // ---------------------------------------------------------------------------
 
-class _InterestedList extends StatelessWidget {
-  const _InterestedList({required this.people});
+class _InterestedList extends ConsumerStatefulWidget {
+  const _InterestedList({
+    required this.people,
+    required this.capacity,
+    required this.eventId,
+    required this.onChanged,
+    this.canRelease = false,
+  });
   final List<Attendee> people;
+  final EventCapacity capacity;
+  final String eventId;
+  final VoidCallback onChanged;
+  final bool canRelease;
+
+  @override
+  ConsumerState<_InterestedList> createState() => _InterestedListState();
+}
+
+class _InterestedListState extends ConsumerState<_InterestedList> {
+  String? _busy;
+
+  Future<void> _release(Attendee x) async {
+    final required = widget.capacity.rsvpRequired;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text("Release ${x.displayName}'s spot?"),
+        content: Text(x.paid
+            ? 'They paid, so their ticket price is refunded right now '
+                "(service fees aren't). Their RSVP is taken back and they're "
+                'notified; the spot opens for the next player.'
+            : required
+                ? "Their RSVP is taken back and they're notified. The spot "
+                    'opens for the next player; they can RSVP again if spots '
+                    'are left.'
+                : "Their RSVP is taken back and they're notified. They can "
+                    'RSVP again any time.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Keep it')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(x.paid ? 'Release and refund' : 'Release spot')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _busy = x.userId);
+    try {
+      final r = await ref
+          .read(eventsRepositoryProvider)
+          .releaseSpot(widget.eventId, x.userId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(!r.released
+              ? 'They had no RSVP to release'
+              : r.refunded
+                  ? "Spot released — they've been told and their ticket "
+                      'price is on its way back'
+                  : "Spot released — they've been told")));
+      widget.onChanged();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('$e')));
+    } finally {
+      if (mounted) setState(() => _busy = null);
+    }
+  }
+
+  Widget _chip(Attendee x, AppPalette p) {
+    final locked = widget.canRelease && x.checkedIn;
+    final holding = widget.canRelease && !x.checkedIn && !x.paid && x.paying;
+    // Paid players stay releasable: releasing refunds their ticket price on
+    // the spot, so an organiser can make room for someone paying at the venue.
+    final releasable = widget.canRelease && !x.checkedIn && !holding;
+    final tail = locked || holding || releasable;
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      PlayerTap(
+        userId: x.userId,
+        borderRadius: 999,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+          decoration: BoxDecoration(
+            color: x.checkedIn ? p.accentTint : p.surface2,
+            borderRadius: tail
+                ? const BorderRadius.horizontal(left: Radius.circular(999))
+                : BorderRadius.circular(999),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            if (x.checkedIn) ...[
+              Icon(Icons.check_circle_rounded, size: 13, color: p.greenText),
+              const SizedBox(width: 4),
+            ],
+            Text(x.displayName,
+                style: TextStyle(
+                    color: x.checkedIn ? p.greenText : p.ink,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600)),
+            if (x.isWard) ...[
+              const SizedBox(width: 5),
+              const WardBadge(),
+            ],
+            if (x.paid && !x.checkedIn) ...[
+              const SizedBox(width: 5),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: p.surface,
+                  border: Border.all(color: p.line),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text('PAID',
+                    style: TextStyle(
+                        color: p.ink,
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.w800)),
+              ),
+            ],
+            if (x.paying && !x.paid) ...[
+              const SizedBox(width: 4),
+              Text('paying…',
+                  style: TextStyle(
+                      color: p.muted,
+                      fontSize: 10,
+                      fontStyle: FontStyle.italic)),
+            ],
+          ]),
+        ),
+      ),
+      // A hold: theirs while they pay; it reopens by itself if they don't.
+      if (holding)
+        Tooltip(
+          message:
+              "Paying for this spot — it reopens by itself if they don't finish",
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(6, 7, 9, 7),
+            decoration: BoxDecoration(
+              color: p.surface2,
+              borderRadius:
+                  const BorderRadius.horizontal(right: Radius.circular(999)),
+            ),
+            child: Text('HOLD',
+                style: TextStyle(
+                    color: p.muted,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800)),
+          ),
+        ),
+      // Locked: a checked-in player's spot can't be released (the server
+      // refuses too) — the lock says why instead of a button that errors.
+      if (locked)
+        Tooltip(
+          message: "Checked in — can't be released",
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(6, 7, 9, 7),
+            decoration: BoxDecoration(
+              color: p.accentTint,
+              borderRadius:
+                  const BorderRadius.horizontal(right: Radius.circular(999)),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.lock_rounded, size: 12, color: p.greenText),
+              const SizedBox(width: 3),
+              Text('IN',
+                  style: TextStyle(
+                      color: p.greenText,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w800)),
+            ]),
+          ),
+        ),
+      // Release: takes the RSVP back. For a paid player it also refunds the
+      // ticket price straight away, so the tooltip says so.
+      if (releasable)
+        Material(
+          color: p.surface2,
+          borderRadius:
+              const BorderRadius.horizontal(right: Radius.circular(999)),
+          child: InkWell(
+            onTap: _busy != null ? null : () => _release(x),
+            // Long-press hint on what the button does to a paid player.
+            onLongPress: !x.paid
+                ? null
+                : () => ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text(
+                            'Releasing a paid player refunds their ticket price right away'))),
+            borderRadius:
+                const BorderRadius.horizontal(right: Radius.circular(999)),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(6, 6, 9, 6),
+              child: _busy == x.userId
+                  ? SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: p.muted))
+                  : Icon(Icons.person_remove_outlined,
+                      size: 14, color: p.muted),
+            ),
+          ),
+        ),
+    ]);
+  }
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final c = widget.capacity;
+    final required = c.rsvpRequired;
+    final people = widget.people;
+    // Two groups so a checked-in player can never be mistaken for a no-show.
+    final arrived = [for (final x in people) if (x.checkedIn) x];
+    final holding = [for (final x in people) if (!x.checkedIn) x];
+    final holdingLabel = required ? 'Holding a spot' : "RSVP'd";
+    final notHereYet = arrived.isNotEmpty ? ' · not here yet' : '';
+    Widget label(String text, Color color, {IconData? icon}) =>
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            if (icon != null) ...[
+              Icon(icon, size: 13, color: color),
+              const SizedBox(width: 4),
+            ],
+            Text(text.toUpperCase(),
+                style: TextStyle(
+                    color: color,
+                    fontSize: 10.5,
+                    letterSpacing: 0.6,
+                    fontWeight: FontWeight.w800)),
+          ]),
+        );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SpSectionTitle('RSVPs', count: people.length),
+        SpSectionTitle(
+          required ? 'Going · spots held' : 'RSVPs',
+          count: c.capped ? null : people.length,
+          trailing: c.capped
+              ? Text(
+                  '${people.length}/${c.maxPlayers}${c.full ? ' · Full' : ''}'
+                  '${c.pendingHolds > 0 ? ' · ${c.pendingHolds} paying' : ''}',
+                  style: TextStyle(
+                      color: p.muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700))
+              : null,
+        ),
         const SizedBox(height: 10),
         GlassCard(
           padding: const EdgeInsets.all(14),
-          child: Wrap(spacing: 6, runSpacing: 6, children: [
-            for (final x in people)
-              PlayerTap(
-                userId: x.userId,
-                borderRadius: 999,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: p.accentTint,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Text(x.displayName,
-                        style: TextStyle(
-                            color: p.greenText,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600)),
-                    if (x.isWard) ...[
-                      const SizedBox(width: 5),
-                      const WardBadge(),
-                    ],
-                  ]),
-                ),
-              ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            if (arrived.isNotEmpty) ...[
+              label('Checked in · ${arrived.length}', p.greenText,
+                  icon: Icons.check_circle_rounded),
+              Wrap(spacing: 6, runSpacing: 6, children: [
+                for (final x in arrived) _chip(x, p),
+              ]),
+            ],
+            if (arrived.isNotEmpty && holding.isNotEmpty)
+              const SizedBox(height: 12),
+            if (holding.isNotEmpty) ...[
+              label(
+                  '$holdingLabel · ${holding.length}$notHereYet', p.muted),
+              Wrap(spacing: 6, runSpacing: 6, children: [
+                for (final x in holding) _chip(x, p),
+              ]),
+            ],
+            if (widget.canRelease) ...[
+              const SizedBox(height: 10),
+              Text(
+                  required
+                      ? 'Someone not showing up? Release their spot so the next '
+                          'player can RSVP. Releasing a paid player refunds '
+                          'their ticket price right away; a paid no-show you '
+                          "don't release is refunded once the event completes. "
+                          'Checked-in players are locked.'
+                      : "The remove button takes a no-show's RSVP back "
+                          "(they're told). Checked-in players are locked.",
+                  style: TextStyle(color: p.muted, fontSize: 11.5)),
+            ],
           ]),
         ),
       ],
@@ -3266,6 +3561,10 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
   late String _recurrence = widget.event.recurrence;
   late bool _private = widget.event.isPrivate;
   late String? _competitive = widget.event.competitiveLevel;
+  // Spots: cap + RSVP rule (sent only when changed; lowering never evicts).
+  late final TextEditingController _maxPlayers = TextEditingController(
+      text: widget.event.capacity.maxPlayers?.toString() ?? '');
+  late String _rsvpPolicy = widget.event.capacity.rsvpPolicy;
   bool _busy = false;
   String? _error;
 
@@ -3329,6 +3628,7 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
     _title.dispose();
     _desc.dispose();
     _venue.dispose();
+    _maxPlayers.dispose();
     super.dispose();
   }
 
@@ -3408,6 +3708,11 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
         'recurrence': _recurrence,
         'visibility': _private ? 'private' : 'public',
         'competitiveLevel': _competitive,
+        if (int.tryParse(_maxPlayers.text.trim()) !=
+            widget.event.capacity.maxPlayers)
+          'maxPlayers': int.tryParse(_maxPlayers.text.trim()),
+        if (_rsvpPolicy != widget.event.capacity.rsvpPolicy)
+          'rsvpPolicy': _rsvpPolicy,
         // [] would mean "whole group" too; null says it explicitly.
         if (sendAudience) 'teamIds': _forTeams ? _teamIds.toList() : null,
         // [] = no reminders.
@@ -3538,6 +3843,14 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
               options: {null: 'Not set', ..._levels},
               value: _competitive,
               onChanged: (v) => setState(() => _competitive = v),
+            ),
+            const SizedBox(height: 10),
+            EventSpotsPicker(
+              maxPlayers: _maxPlayers,
+              rsvpPolicy: _rsvpPolicy,
+              enabled: !_busy,
+              onMaxPlayers: (_) => setState(() {}),
+              onRsvpPolicy: (v) => setState(() => _rsvpPolicy = v),
             ),
             if (audience != null && showAudience) ...[
               const SizedBox(height: 14),
