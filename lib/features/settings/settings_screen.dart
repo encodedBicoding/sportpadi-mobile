@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 import 'package:sportpadi_mobile/features/settings/profile_privacy_card.dart';
 import 'package:sportpadi_mobile/features/settings/push_notifications_card.dart';
+import 'package:sportpadi_mobile/features/settings/sign_in_methods_card.dart';
 import 'package:sportpadi_mobile/features/settings/timezone_card.dart';
 import 'package:sportpadi_mobile/features/settings/activity_notifications_card.dart';
 import 'package:sportpadi_mobile/features/announcements/announcement_entry_points.dart'
@@ -184,6 +185,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Eyebrow('Appearance'),
           const SizedBox(height: 8),
           const _AppearanceCard(),
+          const SizedBox(height: 18),
+
+          // ── Sign-in methods: password + Google / Apple links ──
+          const Eyebrow('Sign-in methods'),
+          const SizedBox(height: 8),
+          const SignInMethodsCard(),
           const SizedBox(height: 18),
 
           // ── Time zone: the clock every message / notification stamp uses ──

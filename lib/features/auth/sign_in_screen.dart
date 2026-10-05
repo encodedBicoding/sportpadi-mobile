@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/core/router/app_router.dart'
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/auth/auth_scaffold.dart';
+import 'package:sportpadi_mobile/features/auth/social_buttons.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
 /// Sign in / create account (2026): dark pitch cover with logo, close and a
@@ -157,6 +158,18 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                   onChanged: (i) => _setMode(i == 1),
                 ),
                 const SizedBox(height: 18),
+                // Google / Apple first: one tap, no password to invent. The
+                // same buttons create an account or sign into one.
+                if (SocialSignInRow.hasAny) ...[
+                  SocialSignInRow(
+                    enabled: !_busy,
+                    onSuccess: _leaveAfterSuccess,
+                    onError: (m) => setState(() => _error = m),
+                  ),
+                  const SizedBox(height: 16),
+                  const OrWithEmail(),
+                  const SizedBox(height: 16),
+                ],
                 if (up) ...[
                   TextFormField(
                     controller: _name,

@@ -186,9 +186,22 @@ class Attendee {
     this.checkedInAt,
     this.isWard = false,
     this.letInBy,
+    this.checkedIn = false,
+    this.paying = false,
+    this.paid = false,
   });
   final String userId;
   final String displayName;
+
+  /// On the RSVP list: paid the event's ticket — locked in (a no-show is
+  /// refunded after the event, never released).
+  final bool paid;
+
+  /// On the RSVP list: already checked in (so their spot can't be released).
+  final bool checkedIn;
+
+  /// On the RSVP list: the spot is held while they pay (expires by itself).
+  final bool paying;
 
   /// The organiser who let them in (whose QR they scanned, or who checked
   /// them in by hand). Null for older check-ins.
@@ -210,6 +223,56 @@ class Attendee {
         checkedInAt: parseDate(j['checkedInAt']),
         isWard: j['isWard'] == true,
         letInBy: parseStr(j['letInBy']),
+        checkedIn: j['checkedIn'] == true,
+        paying: j['paying'] == true,
+        paid: j['paid'] == true,
+      );
+}
+
+/// The event's spots (server `capacity`): a cap on players and whether an
+/// RSVP holds a spot. `line` is the server's ready-made "2 of 12 spots left"
+/// / "Full" copy so every screen says the same thing.
+class EventCapacity {
+  const EventCapacity({
+    this.maxPlayers,
+    this.rsvpPolicy = 'open',
+    this.rsvpCount = 0,
+    this.checkedInCount = 0,
+    this.spotsLeft,
+    this.full = false,
+    this.line,
+    this.pendingHolds = 0,
+  });
+  final int? maxPlayers;
+
+  /// Spots held while someone pays (counted in [rsvpCount]).
+  final int pendingHolds;
+
+  /// 'open' (RSVP = interest) | 'required' (RSVP holds a spot, gates check-in).
+  final String rsvpPolicy;
+  final int rsvpCount;
+  final int checkedInCount;
+  final int? spotsLeft;
+  final bool full;
+  final String? line;
+
+  bool get rsvpRequired => rsvpPolicy == 'required';
+  bool get capped => maxPlayers != null;
+
+  /// Anything to say at all (an open, uncapped event shows nothing).
+  bool get shows => rsvpRequired || capped;
+
+  static const none = EventCapacity();
+
+  factory EventCapacity.fromJson(Map<String, dynamic> j) => EventCapacity(
+        maxPlayers: parseInt(j['maxPlayers']),
+        rsvpPolicy: parseStr(j['rsvpPolicy']) ?? 'open',
+        rsvpCount: parseInt(j['rsvpCount']) ?? 0,
+        checkedInCount: parseInt(j['checkedInCount']) ?? 0,
+        spotsLeft: parseInt(j['spotsLeft']),
+        full: j['full'] == true,
+        line: parseStr(j['line']),
+        pendingHolds: parseInt(j['pendingHolds']) ?? 0,
       );
 }
 
@@ -259,6 +322,7 @@ class EventDetail {
     this.smartShuffle = false,
     this.myWards = const [],
     this.audienceTeams = const [],
+    this.capacity = EventCapacity.none,
   });
 
   final String id;
@@ -323,6 +387,9 @@ class EventDetail {
   /// Team event: the teams it's for (empty = the whole group).
   final List<AudienceTeam> audienceTeams;
 
+  /// Spots: cap + RSVP rule (eventCapacity.ts on the server).
+  final EventCapacity capacity;
+
   bool get isTeamFlow => flowType == 'team_match';
   bool get repeats => recurrence.isNotEmpty && recurrence != 'once';
 
@@ -377,6 +444,9 @@ class EventDetail {
       recurrence: parseStr(j['recurrence']) ?? 'once',
       qrCode: parseStr(j['qrCode']),
       typicalAttendance: parseInt(j['typicalAttendance']),
+      capacity: j['capacity'] is Map
+          ? EventCapacity.fromJson(Map<String, dynamic>.from(j['capacity'] as Map))
+          : EventCapacity.none,
       groupName: grp is Map ? parseStr(grp['name']) : null,
       groupImageUrl: grp is Map ? parseStr(grp['imageUrl']) : null,
       groupVerified: grp is Map &&

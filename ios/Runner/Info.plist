@@ -47,6 +47,28 @@
 	<string>SportPadi uses your location to recommend sports events near you.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>SportPadi lets you pick photos to add to your events.</string>
+	<!-- Sign in with Google (google_sign_in). Fill in from the project's
+	     *iOS* OAuth client (Google Cloud → Credentials): GIDClientID is the
+	     client id, the URL scheme is its REVERSED form (the plugin opens
+	     Google's sheet and comes back through it). The app passes the *Web*
+	     client id as serverClientId in code (lib/core/env/sso_config.dart).
+	     Until both are filled in, the Google button is hidden (no client id
+	     in the build) — see docs/sso-setup.md in the workspace. -->
+	
+	<key>GIDClientID</key>
+	<string>912400814442-vh4apvldg04oea6sa8gs6k7lasnpsm1m.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.912400814442-vh4apvldg04oea6sa8gs6k7lasnpsm1m</string>
+			</array>
+		</dict>
+	</array>
+	
 	<key>NSUserTrackingUsageDescription</key>
 	<string>This lets SportPadi show you ads that are more relevant to you, which helps keep the app free.</string>
 	<key>SKAdNetworkItems</key>
