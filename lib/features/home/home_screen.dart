@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart' show Geolocator;
 import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/location/location_provider.dart'
@@ -39,6 +40,8 @@ import 'package:sportpadi_mobile/core/ads/admob.dart';
 import 'package:sportpadi_mobile/features/ads/ad_display.dart';
 import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/features/home/weather_card.dart';
+import 'package:sportpadi_mobile/data/weather/weather_repository.dart';
 
 /// Home — the user's personal dashboard: their upcoming events across every
 /// group they belong to (live events beep on the tab), a Kids tab (future),
@@ -92,12 +95,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// week, the bell, the inbox, the menu dot), the suggestions shelf (for
   /// the sport chip in [categoryId]) and the sponsored strips.
   Future<void> _refresh(String? categoryId) {
-    final loc = ref.read(locationProvider).location;
-    final shelf = suggestedEventsProvider(
-        (lat: loc?.lat, lng: loc?.lng, categoryId: categoryId));
+    final locState = ref.read(locationProvider);
+    final loc = locState.location;
+    final shelf = suggestedEventsProvider((
+      lat: loc?.lat,
+      lng: loc?.lng,
+      radiusMiles: loc == null ? null : locState.radiusMiles,
+      categoryId: categoryId,
+    ));
     ref.invalidate(myFeedProvider);
     ref.invalidate(meProvider);
     ref.invalidate(yourWeekProvider);
+    ref.invalidate(weatherProvider);
     ref.invalidate(unreadCountProvider);
     ref.invalidate(announcementsUnreadProvider);
     ref.invalidate(messagesUnreadProvider);
@@ -228,13 +237,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ]),
 
+                  // Weather at the session's location fix (nothing without
+                  // one): conditions, today's range, and a remark for the day.
+                  const WeatherCard(padding: EdgeInsets.only(top: 12)),
+
                   // Gamification: streak, this week's challenges, next unlock.
                   const YourWeekCard(),
 
-                  // The one thing to look at next: live now, else the soonest.
+                  // The one thing to look at next: live now, else the soonest
+                  // by real start instant. Nothing coming up → ask for the
+                  // location (so Home can suggest games nearby) or, with it
+                  // already shared, point at Browse.
                   if (_nextUp(f.upcoming) case final EventSummary n) ...[
                     const SizedBox(height: 14),
                     _NextUpCard(event: n, live: _live(n)),
+                  ] else if (f.upcoming.isNotEmpty ||
+                      f.past.isNotEmpty ||
+                      ref.watch(locationProvider).location == null) ...[
+                    // (A brand-new account with a fix already shared gets the
+                    // "Nothing here yet" card below instead — one card, not two.)
+                    const SizedBox(height: 14),
+                    const _NothingUpNextCard(),
                   ],
 
                   // Sport filter — All or exactly one sport
@@ -322,12 +345,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  /// Live now, else the soonest upcoming event (the feed is soonest-first).
+  /// Live now, else the first event that hasn't finished yet by the clock:
+  /// the server resolves each event's wall clock in its venue zone to real
+  /// instants (startsAt / endsAt), so this is one UTC comparison against
+  /// "now" — correct whatever zone the viewer or the venue is in. An event
+  /// that has started but not ended still counts (you can still get there);
+  /// one with no time at all counts for its whole day. Sorted by start.
   static EventSummary? _nextUp(List<EventSummary> upcoming) {
     for (final e in upcoming) {
       if (_live(e)) return e;
     }
-    return upcoming.isEmpty ? null : upcoming.first;
+    // The feed arrives soonest-first from the server, so the first event
+    // that hasn't ended by this device's clock is the one.
+    final now = DateTime.now().toUtc();
+    for (final e in upcoming) {
+      final end = e.endsAt ?? e.startsAt?.add(const Duration(hours: 2));
+      if (end != null && !end.isBefore(now)) return e;
+    }
+    return null;
   }
 
   // ── Pieces ────────────────────────────────────────────────────────────────
@@ -1182,6 +1217,85 @@ class _HomeHeader extends ConsumerWidget {
 
 /// "Next up": the live event, or the soonest one, as the dark hero card with
 /// a faint pitch drawn behind it. Live → Check in (scanner); else → the event.
+/// Home when nothing is coming up. Without a location fix the card asks for
+/// one — that's what lets Home suggest games nearby — with Settings as the
+/// way back from a permanent refusal; with a fix, it points at Browse.
+class _NothingUpNextCard extends ConsumerWidget {
+  const _NothingUpNextCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = context.palette;
+    final st = ref.watch(locationProvider);
+    final hasFix = st.location != null;
+    final String title;
+    final String body;
+    final String cta;
+    final IconData icon;
+    final VoidCallback onTap;
+    if (hasFix) {
+      icon = Icons.explore_outlined;
+      title = 'Nothing up next';
+      body = 'No game on your calendar yet. See what\'s on near you and '
+          'get one in.';
+      cta = 'Browse games';
+      onTap = () => ref.read(homeTabIndexProvider.notifier).state = 1;
+    } else if (st.denied) {
+      icon = Icons.location_off_rounded;
+      title = 'Nothing up next';
+      body = 'Location is off for SportPadi. Turn it on in Settings and '
+          'we\'ll suggest games near you.';
+      cta = 'Open Settings';
+      onTap = () => Geolocator.openAppSettings();
+    } else {
+      icon = Icons.location_searching_rounded;
+      title = 'Nothing up next';
+      body = st.error ??
+          'Allow SportPadi to read your location and we\'ll suggest games '
+              'near you to fill the gap.';
+      cta = st.loading ? 'Finding you…' : 'Allow location';
+      onTap = () => ref.read(locationProvider.notifier).request();
+    }
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(children: [
+        SpIconTile(icon,
+            bg: hasFix ? p.accentTint : p.surface2,
+            fg: hasFix ? p.greenText : p.muted,
+            size: 44,
+            iconSize: 21),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: TextStyle(
+                        color: p.ink,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 3),
+                Text(body,
+                    style: TextStyle(
+                        color: p.muted, fontSize: 12.5, height: 1.4)),
+                const SizedBox(height: 10),
+                SpButton(
+                  label: cta,
+                  icon: hasFix
+                      ? Icons.explore_outlined
+                      : st.denied
+                          ? Icons.settings_outlined
+                          : Icons.my_location_rounded,
+                  tone: hasFix ? SpButtonTone.ink : SpButtonTone.brand,
+                  onTap: st.loading ? null : onTap,
+                ),
+              ]),
+        ),
+      ]),
+    );
+  }
+}
+
 class _NextUpCard extends StatelessWidget {
   const _NextUpCard({required this.event, required this.live});
   final EventSummary event;

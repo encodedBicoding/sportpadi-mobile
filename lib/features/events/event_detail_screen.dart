@@ -23,6 +23,7 @@ import 'package:sportpadi_mobile/data/teams/team_models.dart'
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart'
     show eventAudiencesProvider;
 import 'package:sportpadi_mobile/data/groups/members_repository.dart';
+import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/features/events/event_menu.dart';
 import 'package:sportpadi_mobile/features/events/event_tickets_card.dart';
 import 'package:sportpadi_mobile/features/games/basketball_widgets.dart';
@@ -856,6 +857,10 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
           ),
         ),
       ],
+      // Owner-console ad spot (anchor "event.detail_bottom"); nothing unless set.
+      const AdAnchor(
+          anchor: 'event.detail_bottom',
+          padding: EdgeInsets.only(top: 14)),
     ];
     // The cover + title card is full-bleed; everything else sits in the
     // 20px page gutter. Pin the Games / Teams / Check-ins switch while

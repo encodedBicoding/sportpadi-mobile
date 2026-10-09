@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/features/players/player_record.dart';
 import 'package:sportpadi_mobile/features/sports/sport_record_card.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
@@ -229,6 +230,11 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                       ],
                     ),
                   ),
+                  // Owner-console ad spot (anchor "player.profile_bottom");
+                  // nothing unless set.
+                  const AdAnchor(
+                      anchor: 'player.profile_bottom',
+                      padding: EdgeInsets.fromLTRB(20, 14, 20, 24)),
                 ],
               ),
             );

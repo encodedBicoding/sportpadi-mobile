@@ -26,6 +26,8 @@ class EventSummary {
     this.reasons = const [],
     this.forWards = const [],
     this.audienceTeams = const [],
+    this.startsAt,
+    this.endsAt,
   });
 
   final String id;
@@ -66,6 +68,13 @@ class EventSummary {
   /// Team event: the teams it's for (empty = the whole group).
   final List<AudienceTeam> audienceTeams;
 
+  /// The real start / end instants (UTC): the stored venue wall clock
+  /// resolved in the venue's zone by the server. What "next up" compares
+  /// against the viewer's own clock — wherever they are.
+  final DateTime? startsAt;
+  final DateTime? endsAt;
+
+
   factory EventSummary.fromJson(Map<String, dynamic> j) {
     final cat = j['category'];
     final grp = j['group'];
@@ -76,6 +85,8 @@ class EventSummary {
       eventDate: parseDate(j['eventDate']),
       startTime: parseStr(j['startTime']),
       endTime: parseStr(j['endTime']),
+      startsAt: DateTime.tryParse(j['startsAt'] as String? ?? '')?.toUtc(),
+      endsAt: DateTime.tryParse(j['endsAt'] as String? ?? '')?.toUtc(),
       locationName: parseStr(j['locationName']),
       status: parseStr(j['status']),
       categoryEmoji: cat is Map ? parseStr(cat['emoji']) : null,

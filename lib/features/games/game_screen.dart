@@ -18,6 +18,7 @@ import 'package:sportpadi_mobile/features/games/volleyball_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 
 /// Live game screen — a faithful port of the web GameClient layout:
@@ -201,6 +202,14 @@ class GameScreen extends ConsumerWidget {
                     ],
                     const SizedBox(height: 12),
                     _TimelineCard(game: g, gameId: gameId),
+                    // One ad at most, after score / officials / timeline —
+                    // owner console anchor "game.detail_mid". Never while
+                    // THIS viewer is scoring a live match: the tap controls
+                    // sit around it (accidental-click risk).
+                    if (!(g.canScore && g.isLive))
+                      const AdAnchor(
+                          anchor: 'game.detail_mid',
+                          padding: EdgeInsets.only(top: 12)),
                     // Basketball: line score + box score while it's played.
                     if (g.isBasketball && g.isLive) ...[
                       const SizedBox(height: 12),

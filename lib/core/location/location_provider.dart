@@ -55,6 +55,26 @@ class LocationController extends Notifier<LocationState> {
 
   void clear() => state = state.copyWith(clearLocation: true, clearError: true);
 
+  /// Read the position ONLY if the OS permission is already granted — never
+  /// shows a prompt. For surfaces that are nice-to-have with a fix (the Home
+  /// weather card) rather than built around one (Discover). Returns whether
+  /// permission was already there.
+  Future<bool> ensureIfPermitted() async {
+    if (state.location != null) return true;
+    if (state.loading) return false;
+    try {
+      final perm = await Geolocator.checkPermission();
+      final granted = perm == LocationPermission.whileInUse ||
+          perm == LocationPermission.always;
+      if (!granted) return false;
+      if (!await Geolocator.isLocationServiceEnabled()) return false;
+      await request();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Ask for permission and read the device position. Location is required
   /// for recommendations, so this is called automatically on Discover.
   Future<void> request() async {

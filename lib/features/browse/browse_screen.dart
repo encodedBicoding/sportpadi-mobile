@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:sportpadi_mobile/core/ads/admob.dart';
+import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/core/location/location_provider.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/ads/ads_repository.dart'
@@ -676,23 +676,32 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
       ));
     }
 
-    // The grid is cut into runs of [_adEvery] tiles with a full-width AdMob
-    // native card between runs (Android only; on iOS the card is empty and
-    // the runs simply abut). Slivers rather than one GridView.builder because
-    // a fixed-column grid can't host a cell that spans both columns.
+    // The grid is cut into runs of tiles with a full-width ad between runs,
+    // where the owner console put one (anchor "discover.events": AdMob
+    // native or a SportPadi slot, first after N tiles, every M, max K —
+    // nothing at all unless it's set). Slivers rather than one
+    // GridView.builder because a fixed-column grid can't host a cell that
+    // spans both columns. Tile indexes are rounded to a row boundary so an
+    // ad never splits a row of two.
+    final ads = AdInterleave.of(ref, 'discover.events', _items.length,
+        hasMore: _nextCursor != null,
+        padding: const EdgeInsets.symmetric(vertical: 12));
+    final cuts = <int>[0];
+    for (var i = 0; i < _items.length; i++) {
+      if (ads.after(i) != null) {
+        final rowEnd = i.isOdd ? i + 1 : i + 2; // end of this row of two
+        if (rowEnd < _items.length && rowEnd > cuts.last) cuts.add(rowEnd);
+      }
+    }
+    cuts.add(_items.length);
     final slivers = <Widget>[];
-    for (var start = 0; start < _items.length; start += _adEvery) {
-      final run =
-          _items.sublist(start, (start + _adEvery).clamp(0, _items.length));
+    for (var c = 0; c + 1 < cuts.length; c++) {
+      final start = cuts[c];
+      final run = _items.sublist(start, cuts[c + 1]);
       if (start > 0) {
-        slivers.add(SliverToBoxAdapter(
-          child: AdMobNativeCard(
-            // Keyed by position so a longer list doesn't hand a recycled
-            // (disposed) ad to a new slot.
-            key: ValueKey('browse-ad-$start'),
-            padding: const EdgeInsets.symmetric(vertical: 12),
-          ),
-        ));
+        // The ad for the gap before this run (position = run number - 1).
+        final ad = ads.after(start - 1) ?? ads.after(start - 2);
+        if (ad != null) slivers.add(SliverToBoxAdapter(child: ad));
       }
       // Rows of two; each card is as tall as its own content.
       slivers.add(SliverList(
@@ -735,5 +744,4 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   }
 
   /// Tiles between native ads in the Browse grid.
-  static const _adEvery = 8;
 }
