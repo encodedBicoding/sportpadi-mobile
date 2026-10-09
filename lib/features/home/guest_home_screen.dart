@@ -16,6 +16,7 @@ import 'package:sportpadi_mobile/features/shell/home_shell.dart'
     show homeTabIndexProvider;
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/features/onboarding/intent_cards.dart';
 
 const _mint = Color(0xFF6EDC9E);
 const _dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -100,7 +101,11 @@ class _GuestHomeScreenState extends ConsumerState<GuestHomeScreen> {
             children: [
               _GuestHeader(onSignIn: _signIn),
 
-              const SizedBox(height: 12),
+              // Why they came — four doors, each straight into its journey.
+              const SizedBox(height: 18),
+              const IntentCards(),
+
+              const SizedBox(height: 14),
               const AdDisplay(slots: ['mobile_home'], carousel: true),
 
               // Quick actions — the member row has Create group + Scan QR;

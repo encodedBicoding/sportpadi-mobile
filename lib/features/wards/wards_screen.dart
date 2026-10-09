@@ -37,6 +37,15 @@ class WardsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Straight from the "Onboard my child" wizard: /profile/wards?add=1.
+    if (GoRouterState.of(context).uri.queryParameters['add'] == '1') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        // Drop the flag first so a rebuild doesn't open it twice.
+        context.replace('/profile/wards');
+        _add(context, ref);
+      });
+    }
     final p = context.palette;
     final data = ref.watch(myWardsProvider);
     // Team invitations for any of my wards ('' = all wards).

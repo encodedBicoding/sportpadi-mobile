@@ -24,6 +24,7 @@ class Weather {
     required this.rainChance,
     required this.remark,
     required this.mood,
+    required this.units,
     required this.attribution,
   });
 
@@ -42,6 +43,11 @@ class Weather {
   final int? rainChance;
   final String remark;
 
+  /// 'C' or 'F' — what people at the PLACE read, decided by the server from
+  /// the location's zone (never from the phone's locale). Null from an
+  /// older server; the card then falls back to the device region.
+  final String? units;
+
   /// great | hot | warm | mild | cool | cold | wet | stormy | snowy | windy.
   final String mood;
   final String attribution;
@@ -59,6 +65,7 @@ class Weather {
         rainChance: (j['rainChance'] as num?)?.toInt(),
         remark: j['remark'] as String? ?? '',
         mood: j['mood'] as String? ?? 'mild',
+        units: j['units'] as String?,
         attribution: j['attribution'] as String? ?? '',
       );
 }

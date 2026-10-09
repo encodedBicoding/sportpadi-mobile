@@ -21,6 +21,17 @@ class ProfileRepository {
     }
   }
 
+  /// Why they came (intent card) and, with [seen], that its start wizard
+  /// was finished or skipped.
+  Future<void> setIntent(String intent, {bool seen = false}) async {
+    try {
+      await _dio.post('/api/mobile/me',
+          data: {'action': 'set-intent', 'intent': intent, 'seen': seen});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not save that.');
+    }
+  }
+
   /// Edit display name / username / avatar.
   Future<void> updateMe(Map<String, dynamic> patch) async {
     try {

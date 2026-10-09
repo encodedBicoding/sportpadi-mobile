@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
@@ -19,6 +20,9 @@ class AdPlacement {
     required this.anchor,
     required this.fill,
     required this.slotKey,
+    this.format = 'native_medium',
+    this.unitIos,
+    this.unitAndroid,
     required this.firstAfter,
     required this.every,
     required this.maxPerList,
@@ -26,15 +30,28 @@ class AdPlacement {
 
   final String anchor;
 
-  /// 'first_party' | 'admob_native' (never 'none' — those aren't sent).
+  /// 'first_party' | 'admob' (never 'none' — those aren't sent).
   final String fill;
   final String? slotKey;
+
+  /// The kind of AdMob unit at this position: native_medium | native_small
+  /// (native unit) | banner_inline | mrec (banner unit).
+  final String format;
+
+  /// Unit ids pasted in the console, per store app. Null = the app's
+  /// built-in unit of that kind.
+  final String? unitIos;
+  final String? unitAndroid;
+
+  /// The unit to load on THIS device, or null to use the built-in one.
+  String? get unitForThisDevice =>
+      Platform.isIOS ? unitIos : (Platform.isAndroid ? unitAndroid : null);
   final int firstAfter;
   final int every;
   final int maxPerList;
 
   bool get isFirstParty => fill == 'first_party' && (slotKey ?? '').isNotEmpty;
-  bool get isAdMobNative => fill == 'admob_native';
+  bool get isAdMob => fill == 'admob' || fill == 'admob_native';
 
   factory AdPlacement.fromJson(Map<String, dynamic> j) {
     final m = (j['mobile'] as Map?) ?? const {};
@@ -42,6 +59,9 @@ class AdPlacement {
       anchor: j['anchor'] as String? ?? '',
       fill: m['fill'] as String? ?? 'none',
       slotKey: m['slotKey'] as String?,
+      format: m['format'] as String? ?? 'native_medium',
+      unitIos: m['unitIos'] as String?,
+      unitAndroid: m['unitAndroid'] as String?,
       firstAfter: (j['firstAfter'] as num?)?.toInt() ?? 4,
       every: (j['every'] as num?)?.toInt() ?? 0,
       maxPerList: (j['maxPerList'] as num?)?.toInt() ?? 1,

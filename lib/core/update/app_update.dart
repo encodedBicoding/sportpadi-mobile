@@ -81,6 +81,19 @@ class AppUpdateRepository {
     }
   }
 
+  /// iOS without a console link: this app's own App Store listing (the
+  /// region-less form opens the viewer's own storefront).
+  static const appStoreListing = 'https://apps.apple.com/app/id6808458151';
+
+  /// The store page for this device — console override, else the listing.
+  static Future<String?> storeUrl(String? fromServer) async {
+    if (fromServer != null && fromServer.isNotEmpty) return fromServer;
+    return isAndroid ? playListing() : appStoreListing;
+  }
+
+  /// "Update in Google Play" / "Update in the App Store".
+  static String get storeName => isAndroid ? 'Google Play' : 'the App Store';
+
   /// Null when it couldn't ask (offline, server down) — never a prompt then.
   Future<AppUpdateCheck?> check() async {
     try {
@@ -278,10 +291,7 @@ class _AppUpdateGateState extends ConsumerState<AppUpdateGate>
   }
 
   Future<void> _openStore() async {
-    final url = _check?.storeUrl ??
-        (AppUpdateRepository.isAndroid
-            ? await AppUpdateRepository.playListing()
-            : null);
+    final url = await AppUpdateRepository.storeUrl(_check?.storeUrl);
     if (url == null) return;
     try {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
@@ -340,7 +350,12 @@ class _AppUpdateGateState extends ConsumerState<AppUpdateGate>
               });
             } else {
               setState(() => _android = _Android.idle);
-              if (r == AppUpdateResult.userDeniedUpdate) await _notNow();
+              if (r == AppUpdateResult.userDeniedUpdate) {
+                await _notNow();
+                return;
+              }
+              // Play's flow failed to start: the store page is the sure way.
+              await _openStore();
             }
           } catch (_) {
             // Failed mid-download: back to the plain card, no surprise store.
@@ -479,16 +494,21 @@ class _UpdateCard extends StatelessWidget {
                     ),
                     const Spacer(),
                     if (android != _Android.downloading)
-                      FilledButton(
+                      FilledButton.icon(
                         onPressed: onUpdate,
                         style: FilledButton.styleFrom(
                             backgroundColor: p.accentDeep,
                             foregroundColor: Colors.white,
                             visualDensity: VisualDensity.compact,
                             shape: const StadiumBorder()),
-                        child: Text(android == _Android.downloaded
+                        icon: Icon(
+                            android == _Android.downloaded
+                                ? Icons.restart_alt_rounded
+                                : Icons.download_rounded,
+                            size: 16),
+                        label: Text(android == _Android.downloaded
                             ? 'Restart'
-                            : 'Update'),
+                            : 'Update in ${AppUpdateRepository.storeName}'),
                       ),
                   ]),
                 ]),
@@ -544,23 +564,13 @@ class _RequiredScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: SpButton(
-                label: AppUpdateRepository.isAndroid
-                    ? 'Update'
-                    : 'Update in the App Store',
+                label: 'Update in ${AppUpdateRepository.storeName}',
                 icon: Icons.download_rounded,
                 expand: true,
                 tone: SpButtonTone.brand,
-                onTap: check.storeUrl == null && !AppUpdateRepository.isAndroid
-                    ? null
-                    : onUpdate,
+                onTap: onUpdate,
               ),
             ),
-            if (check.storeUrl == null && !AppUpdateRepository.isAndroid) ...[
-              const SizedBox(height: 10),
-              Text('Open the App Store and search for SportPadi.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: p.muted, fontSize: 12.5)),
-            ],
                 ]),
               ),
             ),

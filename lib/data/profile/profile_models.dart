@@ -11,6 +11,8 @@ class Profile {
     this.dateOfBirth,
     this.qrCode,
     this.email,
+    this.intent,
+    this.intentSeenAt,
   });
 
   final String? userId;
@@ -23,6 +25,11 @@ class Profile {
   final String? qrCode;
   final String? email;
 
+  /// Why they came (intent card picked before sign-up):
+  /// play | coach | guardian | host — and when its start wizard was seen.
+  final String? intent;
+  final String? intentSeenAt;
+
   factory Profile.fromJson(Map<String, dynamic> j) => Profile(
         userId: parseStr(j['userId']),
         displayName: (j['displayName'] ?? j['username'] ?? 'You') as String,
@@ -33,6 +40,8 @@ class Profile {
         dateOfBirth: parseStr(j['dateOfBirth']),
         qrCode: parseStr(j['qrCode']),
         email: parseStr(j['email']),
+        intent: parseStr(j['intent']),
+        intentSeenAt: parseStr(j['intentSeenAt']),
       );
 }
 

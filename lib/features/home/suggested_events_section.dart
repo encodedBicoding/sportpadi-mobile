@@ -57,13 +57,10 @@ class SuggestedEventsSection extends ConsumerWidget {
           )));
     final rows = async.valueOrNull;
 
-    // Nothing to suggest is a real answer. A "we found nothing" card on a
-    // member's Home is just clutter, so stay silent — unless this is the
-    // guest Home, where an empty shelf with no explanation looks broken.
-    if (!guest && (gated || rows == null || rows.isEmpty)) {
-      return const SizedBox.shrink();
-    }
-
+    // The section is ALWAYS on Home, whoever the person is and whatever
+    // they came for: no fix → ask for one; nothing nearby → say so and
+    // point at Browse. (It used to vanish in both cases, which read as
+    // "the shelf is missing" rather than "nothing to show".)
     void browse() => ref.read(homeTabIndexProvider.notifier).state = 1;
     void signUp() => context.push('/sign-in');
 
@@ -167,8 +164,12 @@ class SuggestedEventsSection extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Be the first — sign up (or sign in) and create an event; players '
-            'nearby will see it here. Or browse further afield.',
+            guest
+                ? 'Be the first — sign up (or sign in) and create an event; '
+                    'players nearby will see it here. Or browse further afield.'
+                : 'Nothing public from groups you\'re not in yet. Widen the '
+                    'radius on Browse, or create an event and players nearby '
+                    'will see it here.',
             textAlign: TextAlign.center,
             style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.45),
           ),
@@ -178,15 +179,17 @@ class SuggestedEventsSection extends ConsumerWidget {
             runSpacing: 8,
             alignment: WrapAlignment.center,
             children: [
+              if (guest)
+                SpButton(
+                  label: 'Sign up to create one',
+                  icon: Icons.add_circle_outline_rounded,
+                  tone: SpButtonTone.brand,
+                  onTap: signUp,
+                ),
               SpButton(
-                label: 'Sign up to create one',
-                icon: Icons.add_circle_outline_rounded,
-                tone: SpButtonTone.brand,
-                onTap: signUp,
-              ),
-              SpButton(
-                label: 'Browse',
+                label: guest ? 'Browse' : 'Browse all events',
                 icon: Icons.explore_outlined,
+                tone: guest ? SpButtonTone.ink : SpButtonTone.brand,
                 onTap: browse,
               ),
             ],
@@ -227,11 +230,11 @@ class SuggestedEventsSection extends ConsumerWidget {
                         letterSpacing: -0.2)),
                 const SizedBox(height: 2),
                 Text(
-                    guest
-                        ? (loc == null
-                            ? 'Upcoming games closest to you.'
-                            : 'Within ${locState.radiusMiles} miles, nearest first.')
-                        : 'Happening near you, outside your groups.',
+                    loc == null
+                        ? 'Upcoming games closest to you.'
+                        : guest
+                            ? 'Within ${locState.radiusMiles} miles, nearest first.'
+                            : 'Within ${locState.radiusMiles} miles, outside your groups.',
                     style: TextStyle(color: p.muted, fontSize: 12)),
               ]),
         ),

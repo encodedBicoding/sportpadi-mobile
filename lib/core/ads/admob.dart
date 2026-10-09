@@ -71,6 +71,21 @@ class AdMobIds {
     if (Platform.isIOS) return kDebugMode ? _testNativeIos : _iosNative;
     return kDebugMode ? _testNativeAndroid : _androidNative;
   }
+
+  /// A unit id pasted in the owner console for a placement, when it's set:
+  /// release builds use it as given; debug builds still get Google's test
+  /// unit of the same kind (real ids on a dev build are invalid traffic).
+  static String? resolveNative(String? pasted) {
+    if (!supported) return null;
+    if (kDebugMode || pasted == null || pasted.isEmpty) return native;
+    return pasted;
+  }
+
+  static String? resolveBanner(String? pasted) {
+    if (!supported) return null;
+    if (kDebugMode || pasted == null || pasted.isEmpty) return banner;
+    return pasted;
+  }
 }
 
 /// SDK initialisation, once, lazily, and never on the critical path: the
@@ -287,10 +302,15 @@ class AdMobNativeCard extends StatefulWidget {
     super.key,
     this.template = TemplateType.medium,
     this.padding = EdgeInsets.zero,
+    this.adUnitId,
   });
 
   final TemplateType template;
   final EdgeInsets padding;
+
+  /// A unit pasted in the owner console (placements); null = the built-in
+  /// native unit. See [AdMobIds.resolveNative].
+  final String? adUnitId;
 
   @override
   State<AdMobNativeCard> createState() => _AdMobNativeCardState();
@@ -307,14 +327,14 @@ class _AdMobNativeCardState extends State<AdMobNativeCard> {
     // The template style needs the palette, which needs an inherited theme —
     // so the request waits for the widget to be in the tree (this runs once
     // right after initState). One request per instance, whatever happens.
-    if (!_requested && AdMobIds.native != null) {
+    if (!_requested && AdMobIds.resolveNative(widget.adUnitId) != null) {
       _requested = true;
       unawaited(_load());
     }
   }
 
   Future<void> _load() async {
-    final id = AdMobIds.native;
+    final id = AdMobIds.resolveNative(widget.adUnitId);
     if (id == null || !mounted) return;
     await AdMob.init();
     if (!mounted) return;
@@ -476,6 +496,16 @@ class _AdMobBannerBarState extends State<AdMobBannerBar> {
     final ad = _ad;
     final size = _size;
     if (ad == null || size == null || !_loaded) return const SizedBox.shrink();
+    // An inline banner / rectangle placement is on screen: this strip
+    // steps aside so there's never a second banner (AdMob policy).
+    return ValueListenableBuilder<int>(
+      valueListenable: inlineBannersMounted,
+      builder: (context, inline, _) =>
+          inline > 0 ? const SizedBox.shrink() : _strip(context, ad, size),
+    );
+  }
+
+  Widget _strip(BuildContext context, BannerAd ad, AdSize size) {
     final p = context.palette;
     // A sheet or dialog over this screen (its route is no longer current):
     // the banner is a native view, and on some Android devices native views
@@ -495,6 +525,144 @@ class _AdMobBannerBarState extends State<AdMobBannerBar> {
         height: size.height.toDouble(),
         child: covered ? null : AdWidget(ad: ad),
       ),
+    );
+  }
+}
+
+// ── Inline banner / medium rectangle (owner-console placements) ────────────
+
+/// How many inline banner-type ads (inline adaptive banner or 300×250
+/// rectangle) are mounted right now. AdMob policy: never two banners on one
+/// screen — so [AdMobBannerBar] (the strip under the nav) collapses while
+/// this is above zero. Native and first-party ads don't count.
+final ValueNotifier<int> inlineBannersMounted = ValueNotifier<int>(0);
+
+/// A banner-type AdMob unit drawn inline at a placement: [AdMobInlineKind.
+/// adaptive] is the inline adaptive banner (full width, height decided by
+/// the SDK, ~50–90 dp), [AdMobInlineKind.mrec] the 300×250 medium
+/// rectangle. Uses the banner ad unit. Takes no space until an ad has
+/// loaded; `padding` applies only then. Give list occurrences a key.
+enum AdMobInlineKind { adaptive, mrec }
+
+class AdMobInlineBanner extends StatefulWidget {
+  const AdMobInlineBanner({
+    super.key,
+    this.kind = AdMobInlineKind.adaptive,
+    this.padding = EdgeInsets.zero,
+    this.adUnitId,
+  });
+  final AdMobInlineKind kind;
+  final EdgeInsets padding;
+
+  /// A unit pasted in the owner console (placements); null = the built-in
+  /// banner unit. See [AdMobIds.resolveBanner].
+  final String? adUnitId;
+
+  @override
+  State<AdMobInlineBanner> createState() => _AdMobInlineBannerState();
+}
+
+class _AdMobInlineBannerState extends State<AdMobInlineBanner> {
+  BannerAd? _ad;
+  AdSize? _size;
+  bool _requested = false;
+  bool _counted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Count from mount, not from load: the strip must already be gone by
+    // the time this fills, or both would be visible for a frame.
+    inlineBannersMounted.value += 1;
+    _counted = true;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_requested) {
+      _requested = true;
+      unawaited(_load());
+    }
+  }
+
+  Future<void> _load() async {
+    final id = AdMobIds.resolveBanner(widget.adUnitId);
+    if (id == null) return;
+    await AdMob.init();
+    if (!mounted) return;
+    AdSize? size;
+    if (widget.kind == AdMobInlineKind.mrec) {
+      size = AdSize.mediumRectangle;
+    } else {
+      // Inline adaptive: as wide as the card, height chosen by the SDK.
+      final width = MediaQuery.sizeOf(context).width -
+          widget.padding.horizontal -
+          40; // page gutters
+      size = AdSize.getInlineAdaptiveBannerAdSize(width.truncate(), 120);
+    }
+    final ad = BannerAd(
+      adUnitId: id,
+      size: size,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (a) async {
+          if (!mounted) {
+            a.dispose();
+            return;
+          }
+          final b = a as BannerAd;
+          // Inline adaptive reports its real height after load.
+          final real = await b.getPlatformAdSize() ?? size;
+          if (!mounted) {
+            b.dispose();
+            return;
+          }
+          setState(() {
+            _ad = b;
+            _size = real;
+          });
+        },
+        onAdFailedToLoad: (a, err) {
+          a.dispose();
+          if (kDebugMode) debugPrint('[admob] inline banner failed: $err');
+        },
+      ),
+    );
+    await ad.load();
+  }
+
+  @override
+  void dispose() {
+    if (_counted) inlineBannersMounted.value -= 1;
+    _ad?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ad = _ad;
+    final size = _size;
+    if (ad == null || size == null) return const SizedBox.shrink();
+    final covered = !(ModalRoute.of(context)?.isCurrent ?? true);
+    return Padding(
+      padding: widget.padding,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Ad',
+            style: TextStyle(
+                color: context.palette.muted,
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6)),
+        const SizedBox(height: 3),
+        Center(
+          child: SizedBox(
+            width: size.width.toDouble(),
+            height: size.height.toDouble(),
+            child: covered ? null : AdWidget(ad: ad),
+          ),
+        ),
+      ]),
     );
   }
 }
