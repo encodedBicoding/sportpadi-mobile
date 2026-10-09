@@ -35,6 +35,7 @@ import 'package:sportpadi_mobile/shared/widgets/team_tile.dart'
     show kitGradient;
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
+import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 
 /// Team page — mirrors the web team page: header + record, then scrollable
 /// tabs: Players (starters/subs, invite, add), Formation, Coaches, Games.
@@ -712,13 +713,19 @@ class _PlayersTab extends ConsumerWidget {
         children: [empty, ...waitingSection],
       );
     }
+    // Ads between roster rows — owner console anchor "team.players".
+    final ads = AdInterleave.of(ref, 'team.players', roster.length,
+        padding: const EdgeInsets.symmetric(vertical: 8));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SpSectionTitle('Roster', count: roster.length),
         const SizedBox(height: 10),
         SpListCard(children: [
-          for (final m in roster) _memberRow(context, ref, m),
+          for (final (i, m) in roster.indexed) ...[
+            _memberRow(context, ref, m),
+            ...ads.afterRow(i),
+          ],
         ]),
         ...waitingSection,
       ],
@@ -1264,6 +1271,9 @@ class _TournamentsTab extends ConsumerWidget {
             ]),
           );
         }
+        // Ads between tournaments — owner console anchor "team.tournaments".
+        final ads = AdInterleave.of(ref, 'team.tournaments', list.length,
+            padding: const EdgeInsets.symmetric(vertical: 8));
         return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -1275,7 +1285,7 @@ class _TournamentsTab extends ConsumerWidget {
               ),
               const SizedBox(height: 10),
               SpListCard(children: [
-                for (final TeamTournamentEntry r in list)
+                for (final (i, TeamTournamentEntry r) in list.indexed) ...[
                   InkWell(
                     borderRadius: BorderRadius.circular(18),
                     onTap: () => context.push(
@@ -1342,6 +1352,8 @@ class _TournamentsTab extends ConsumerWidget {
                       ]),
                     ),
                   ),
+                  ...ads.afterRow(i),
+                ],
               ]),
             ]);
       },
@@ -1570,6 +1582,9 @@ class _GamesTab extends ConsumerWidget {
     final p = context.palette;
     final games = ref.watch(teamGamesProvider(teamId));
     final list = games.valueOrNull ?? const <TeamGame>[];
+    // Ads between games — owner console anchor "team.games".
+    final ads = AdInterleave.of(ref, 'team.games', list.length,
+        padding: const EdgeInsets.symmetric(vertical: 8));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1596,7 +1611,7 @@ class _GamesTab extends ConsumerWidget {
           )
         else
           SpListCard(children: [
-            for (final g in list)
+            for (final (i, g) in list.indexed) ...[
               Builder(builder: (context) {
                 final live = g.status == 'live';
                 final (bg, fg, label) = live
@@ -1662,6 +1677,8 @@ class _GamesTab extends ConsumerWidget {
                   ),
                 );
               }),
+              ...ads.afterRow(i),
+            ],
           ]),
       ],
     );

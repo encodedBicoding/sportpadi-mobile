@@ -31,6 +31,7 @@ import 'package:sportpadi_mobile/data/billing/iap_repository.dart';
 import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
 import 'package:sportpadi_mobile/features/announcements/announcement_entry_points.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
+import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/features/groups/group_admin_sheets.dart';
 import 'package:sportpadi_mobile/features/groups/group_invitations.dart';
 import 'package:sportpadi_mobile/features/groups/group_talk_section.dart';
@@ -1002,7 +1003,15 @@ class _EventsTab extends ConsumerWidget {
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        children: [header, const SizedBox(height: 10), body],
+        children: [
+          header,
+          const SizedBox(height: 10),
+          body,
+          // Owner-console ad spot (anchor "group.detail_bottom"); nothing unless set.
+          const AdAnchor(
+              anchor: 'group.detail_bottom',
+              padding: EdgeInsets.only(top: 14)),
+        ],
       ),
     );
   }

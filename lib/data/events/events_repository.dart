@@ -616,7 +616,9 @@ class EventsRepository {
               for (final e in m[key] as List)
                 EventSummary.fromJson(Map<String, dynamic>.from(e as Map))
             ]
-          : const [];
+          : <EventSummary>[];
+      // Order comes from the server (events.myFeed): soonest first for
+      // what's coming, most recent first for what's done. Not re-sorted here.
       return (upcoming: parse('upcoming'), past: parse('past'));
     } catch (e) {
       throw apiError(e, fallback: 'Could not load your events.');
@@ -628,9 +630,12 @@ class EventsRepository {
   /// picked. Coordinates are optional — without them the ranking falls back to
   /// sport and recency, so a declined location permission costs a signal, not
   /// the section.
+  /// [radiusMiles] with a fix: ONLY events within that distance, nearest
+  /// first (the Home shelves). Without it distance is just a ranking bonus.
   Future<List<EventSummary>> suggested({
     double? lat,
     double? lng,
+    int? radiusMiles,
     String? categoryId,
     int limit = 8,
   }) async {
@@ -640,6 +645,8 @@ class EventsRepository {
         'limit': limit,
         if (lat != null) 'lat': lat,
         if (lng != null) 'lng': lng,
+        if (lat != null && lng != null && radiusMiles != null)
+          'radius': radiusMiles,
         if (categoryId != null) 'categoryId': categoryId,
       });
       final list = res.data is List ? res.data as List : const [];
@@ -739,13 +746,19 @@ final myFeedProvider = FutureProvider.autoDispose<
 /// Suggestions for the Home shelf. Keyed by the optional coordinates + sport
 /// so a location fix (or a sport chip) re-ranks rather than re-using a
 /// location-blind list.
-typedef SuggestedKey = ({double? lat, double? lng, String? categoryId});
+typedef SuggestedKey = ({
+  double? lat,
+  double? lng,
+  int? radiusMiles,
+  String? categoryId,
+});
 
 final suggestedEventsProvider = FutureProvider.autoDispose
     .family<List<EventSummary>, SuggestedKey>(
         (ref, key) => ref.watch(eventsRepositoryProvider).suggested(
               lat: key.lat,
               lng: key.lng,
+              radiusMiles: key.radiusMiles,
               categoryId: key.categoryId,
               limit: 8,
             ));

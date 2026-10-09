@@ -81,9 +81,14 @@ class _GuestHomeScreenState extends ConsumerState<GuestHomeScreen> {
             }
             // Then the rest of the page: the shelf (a new fix already
             // fetches afresh) and the sponsored strips.
-            final fix = ref.read(locationProvider).location;
-            final shelf = suggestedEventsProvider(
-                (lat: fix?.lat, lng: fix?.lng, categoryId: null));
+            final st = ref.read(locationProvider);
+            final fix = st.location;
+            final shelf = suggestedEventsProvider((
+              lat: fix?.lat,
+              lng: fix?.lng,
+              radiusMiles: fix == null ? null : st.radiusMiles,
+              categoryId: null,
+            ));
             if (fix == before) ref.invalidate(shelf);
             ref.invalidate(servedSlotsProvider('mobile_home'));
             ref.invalidate(servedSlotsProvider('home_ads'));

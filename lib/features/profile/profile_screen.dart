@@ -30,6 +30,7 @@ import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 import 'package:sportpadi_mobile/data/wards/wards_repository.dart'
     show myWardsProvider;
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 
 /// Profile (2026) — dark pitch cover with QR / menu round buttons, identity
 /// card with the avatar sitting on its edge (upload, frame, @username copy,
@@ -164,6 +165,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   parseStr(c['name']) ?? 'Sport',
                         },
                       ),
+                      // Owner-console ad spot after the first few cards
+                      // (anchor "profile.mid"); nothing unless set.
+                      const AdAnchor(
+                          anchor: 'profile.mid',
+                          padding: EdgeInsets.only(top: 14)),
                     ],
                   ),
                 ),

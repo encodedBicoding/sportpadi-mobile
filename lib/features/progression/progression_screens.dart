@@ -6,6 +6,8 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
+import 'package:sportpadi_mobile/data/ads/placements.dart';
+import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
@@ -47,6 +49,8 @@ class BoardList extends ConsumerWidget {
       categoryId: categoryId,
       seasonId: seasonId
     );
+    // Watched here (during build), used inside the data builder below.
+    final adPlacement = ref.watch(placementProvider('leaderboard.rows'));
     return AsyncView(
       value: ref.watch(boardProvider(key)),
       onRetry: () => ref.invalidate(boardProvider(key)),
@@ -68,6 +72,10 @@ class BoardList extends ConsumerWidget {
           );
         }
         final inList = d.entries.any((e) => e.userId == myUserId);
+        // Ads between rows: the owner console decides whether, what and how
+        // often (anchor "leaderboard.rows"); nothing unless it's set.
+        final ads = AdInterleave.from(
+            adPlacement, 'leaderboard.rows', d.entries.length);
         return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -76,7 +84,7 @@ class BoardList extends ConsumerWidget {
                 child: Text(d.blurb,
                     style: TextStyle(color: p.muted, fontSize: 12)),
               ),
-              for (final e in d.entries)
+              for (final (i, e) in d.entries.indexed) ...[
                 Padding(
                   padding: const EdgeInsets.only(bottom: 6),
                   child: GlassCard(
@@ -120,6 +128,8 @@ class BoardList extends ConsumerWidget {
                     ]),
                   ),
                 ),
+                ...ads.afterRow(i),
+              ],
               if (myUserId != null && !inList)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),

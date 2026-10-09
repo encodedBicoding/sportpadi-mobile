@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -71,7 +72,11 @@ class SocialSignIn {
     try {
       account = await GoogleSignIn.instance.authenticate();
     } on GoogleSignInException catch (e) {
-      if (e.code == GoogleSignInExceptionCode.canceled) {
+      // Always leave a trace: a misconfigured signing key looks exactly like
+      // a dismissed sheet from the outside, and this is the only clue.
+      debugPrint('[google sign-in] ${e.code.name}: ${e.description}');
+      if (e.code == GoogleSignInExceptionCode.canceled &&
+          !_looksLikeNoCredential(e)) {
         throw const SocialSignInCancelled();
       }
       throw ApiException(_googleMessage(e));
@@ -141,7 +146,25 @@ class SocialSignIn {
         .join();
   }
 
+  /// Credential Manager reports "no credentials" both when the device has
+  /// no Google account AND when this install's signing certificate (SHA-1)
+  /// isn't registered on an Android OAuth client — a Play Store install is
+  /// signed by Play's key, not the upload key. Either way, silence helps
+  /// nobody, so it is not treated as a cancel.
+  static bool _looksLikeNoCredential(GoogleSignInException e) {
+    final d = (e.description ?? '').toLowerCase();
+    return d.contains('no credential') ||
+        d.contains('nocredential') ||
+        d.contains('no accounts');
+  }
+
   static String _googleMessage(GoogleSignInException e) {
+    if (e.code == GoogleSignInExceptionCode.canceled &&
+        _looksLikeNoCredential(e)) {
+      return 'No Google account could be used on this device. If you do have '
+          "one, this build's signing key isn't registered for Google "
+          'sign-in yet.';
+    }
     switch (e.code) {
       case GoogleSignInExceptionCode.clientConfigurationError:
         return 'Google sign-in is misconfigured for this build (client ids / SHA-1).';
@@ -149,6 +172,14 @@ class SocialSignIn {
         return 'Google Play services are missing or out of date on this device.';
       case GoogleSignInExceptionCode.uiUnavailable:
         return "Google sign-in isn't available right now. Try again in a moment.";
+      case GoogleSignInExceptionCode.unknownError:
+        // "[28444] Developer console is not set up correctly" lands here on
+        // Android when the signing SHA-1 is missing from the OAuth client.
+        final d = e.description ?? '';
+        return d.contains('28444') || d.toLowerCase().contains('developer console')
+            ? "Google sign-in isn't set up for this build's signing key yet "
+                '(Google Cloud: Android OAuth client SHA-1).'
+            : (d.isEmpty ? 'Google sign-in failed. Please try again.' : d);
       default:
         return e.description ?? 'Google sign-in failed. Please try again.';
     }

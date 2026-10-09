@@ -18,6 +18,7 @@ import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/features/games/basketball_widgets.dart';
 import 'package:sportpadi_mobile/features/games/volleyball_widgets.dart';
 import 'package:sportpadi_mobile/features/payments/checkout_flow.dart';
+import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/features/tournaments/live_scores_sync.dart';
 import 'package:sportpadi_mobile/features/tournaments/officiant_picker.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
@@ -239,6 +240,11 @@ class TournamentDetailScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
+                    // Owner-console ad spot (anchor "tournament.detail_bottom");
+                    // nothing unless set.
+                    const AdAnchor(
+                        anchor: 'tournament.detail_bottom',
+                        padding: EdgeInsets.fromLTRB(20, 14, 20, 0)),
                   ],
                 );
             },

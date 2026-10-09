@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart' show Geolocator;
 import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/location/location_provider.dart';
@@ -39,25 +40,89 @@ class SuggestedEventsSection extends ConsumerWidget {
     // Use a location fix if the session already has one (Discover, or the
     // guest Home, asks for it), but never prompt from here — a permission
     // dialog from a shelf is a nasty surprise, and the ranking works without.
-    final loc = ref.watch(locationProvider).location;
-    final async = ref.watch(suggestedEventsProvider((
-      lat: loc?.lat,
-      lng: loc?.lng,
-      categoryId: categoryId,
-    )));
+    final locState = ref.watch(locationProvider);
+    final loc = locState.location;
+    // Without a fix the shelf asks for one instead of showing games from
+    // somewhere else: a visitor who hasn't said where they are gets no
+    // "near you" list at all. With one, ONLY events within the radius,
+    // nearest first (radiusMiles → the server filters + sorts).
+    final gated = loc == null;
+    final async = loc == null
+        ? const AsyncValue<List<EventSummary>>.data(<EventSummary>[])
+        : ref.watch(suggestedEventsProvider((
+            lat: loc.lat,
+            lng: loc.lng,
+            radiusMiles: locState.radiusMiles,
+            categoryId: categoryId,
+          )));
     final rows = async.valueOrNull;
 
     // Nothing to suggest is a real answer. A "we found nothing" card on a
     // member's Home is just clutter, so stay silent — unless this is the
     // guest Home, where an empty shelf with no explanation looks broken.
-    if (!guest && (rows == null || rows.isEmpty)) {
+    if (!guest && (gated || rows == null || rows.isEmpty)) {
       return const SizedBox.shrink();
     }
 
     void browse() => ref.read(homeTabIndexProvider.notifier).state = 1;
+    void signUp() => context.push('/sign-in');
 
     final Widget shelf;
-    if (rows == null) {
+    if (gated) {
+      // Ask for the fix. A permanent refusal can only be undone in the OS
+      // settings, so the button goes there instead of to a prompt that
+      // won't appear.
+      final denied = locState.denied;
+      shelf = GlassCard(
+        padding: const EdgeInsets.all(20),
+        child: Column(children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+                color: p.accentTint, borderRadius: BorderRadius.circular(18)),
+            child: Icon(
+                denied
+                    ? Icons.location_off_rounded
+                    : Icons.location_searching_rounded,
+                color: p.greenText,
+                size: 26),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Games near you show up here',
+            style: TextStyle(
+                color: p.ink, fontSize: 15, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            denied
+                ? 'Location is off for SportPadi. Turn it on in Settings and '
+                    "we'll list the upcoming games closest to you first."
+                : locState.error ??
+                    "Allow SportPadi to read your location and we'll list the "
+                        'upcoming games closest to you first.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.45),
+          ),
+          const SizedBox(height: 14),
+          SpButton(
+            label: locState.loading
+                ? 'Finding you…'
+                : denied
+                    ? 'Open Settings'
+                    : 'Allow location',
+            icon: denied ? Icons.settings_outlined : Icons.my_location_rounded,
+            tone: SpButtonTone.brand,
+            onTap: locState.loading
+                ? null
+                : denied
+                    ? () => Geolocator.openAppSettings()
+                    : () => ref.read(locationProvider.notifier).request(),
+          ),
+        ]),
+      );
+    } else if (rows == null) {
       shelf = async.hasError
           ? GlassCard(
               child: Center(
@@ -95,24 +160,36 @@ class SuggestedEventsSection extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            loc == null ? 'Nothing to show yet' : 'Nothing near you just yet',
+            'No upcoming games within ${locState.radiusMiles} miles yet',
+            textAlign: TextAlign.center,
             style: TextStyle(
                 color: p.ink, fontSize: 15, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
-            loc == null
-                ? 'Share your location above, or browse everything that\'s on.'
-                : 'No public games within reach in the next two months. '
-                    'Browse further afield, or check back soon.',
+            'Be the first — sign up (or sign in) and create an event; players '
+            'nearby will see it here. Or browse further afield.',
             textAlign: TextAlign.center,
             style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.45),
           ),
           const SizedBox(height: 14),
-          SpButton(
-            label: 'Browse all events',
-            icon: Icons.explore_outlined,
-            onTap: browse,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              SpButton(
+                label: 'Sign up to create one',
+                icon: Icons.add_circle_outline_rounded,
+                tone: SpButtonTone.brand,
+                onTap: signUp,
+              ),
+              SpButton(
+                label: 'Browse',
+                icon: Icons.explore_outlined,
+                onTap: browse,
+              ),
+            ],
           ),
         ]),
       );
@@ -152,8 +229,8 @@ class SuggestedEventsSection extends ConsumerWidget {
                 Text(
                     guest
                         ? (loc == null
-                            ? 'What\'s on around SportPadi.'
-                            : 'Happening near you.')
+                            ? 'Upcoming games closest to you.'
+                            : 'Within ${locState.radiusMiles} miles, nearest first.')
                         : 'Happening near you, outside your groups.',
                     style: TextStyle(color: p.muted, fontSize: 12)),
               ]),
