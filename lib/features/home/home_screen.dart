@@ -42,6 +42,7 @@ import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/features/home/weather_card.dart';
 import 'package:sportpadi_mobile/data/weather/weather_repository.dart';
+import 'package:sportpadi_mobile/features/home/intent_first_card.dart';
 
 /// Home — the user's personal dashboard: their upcoming events across every
 /// group they belong to (live events beep on the tab), a Kids tab (future),
@@ -53,6 +54,31 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Landing here from a start wizard: /home?tab=browse switches to Browse;
+    // /home?create=group&then=team|event opens "Create a group" and carries
+    // on into that flow on the new group.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final q = GoRouterState.of(context).uri.queryParameters;
+      if (q.isEmpty) return;
+      final then = q['then'];
+      if (q['tab'] == 'browse' || q['create'] == 'group') {
+        // Drop the query so a rebuild doesn't replay it.
+        context.replace('/home');
+      }
+      if (q['tab'] == 'browse') {
+        ref.read(homeTabIndexProvider.notifier).state = 1;
+      } else if (q['create'] == 'group') {
+        // ignore: discarded_futures
+        _newGroupSheet(context,
+            then: then == 'team' || then == 'event' ? then : null);
+      }
+    });
+  }
+
   String _range = 'today'; // live | today | upcoming | all
   String? _sport; // category name filter, null = All
   // A day picked on the calendar's week strip ("yyyy-mm-dd"); overrides
@@ -149,6 +175,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final intentCard = intentHomeCard(ref);
     final feed = ref.watch(myFeedProvider);
     final me = ref.watch(meProvider).valueOrNull;
 
@@ -222,20 +249,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const AdDisplay(
                       slots: ['home_top', 'mobile_home'], carousel: true),
 
-                  // Quick actions
+                  // Why they came: a guardian / coach / host who hasn't set
+                  // up yet gets that as the first card instead of the quick
+                  // actions; the rest of Home is the same for everyone.
                   const SizedBox(height: 6),
-                  Row(children: [
-                    Expanded(
-                      child: _quickAction(p, Icons.group_add_outlined,
-                          'Create group', () => _newGroupSheet(context)),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _quickAction(p, Icons.qr_code_scanner_rounded,
-                          'Scan QR', () => context.push('/scan'),
-                          dark: true),
-                    ),
-                  ]),
+                  if (intentCard case final String card)
+                    IntentFirstCard(intentKey: card)
+                  else
+                    Row(children: [
+                      Expanded(
+                        child: _quickAction(p, Icons.group_add_outlined,
+                            'Create group', () => _newGroupSheet(context)),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _quickAction(p, Icons.qr_code_scanner_rounded,
+                            'Scan QR', () => context.push('/scan'),
+                            dark: true),
+                      ),
+                    ]),
 
                   // Weather at the session's location fix (nothing without
                   // one): conditions, today's range, and a remark for the day.
@@ -954,7 +986,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Future<void> _newGroupSheet(BuildContext context) async {
+  /// [then]: 'team' | 'event' — carry straight on into that flow on the new
+  /// group (the start wizard's coach / host journeys).
+  Future<void> _newGroupSheet(BuildContext context, {String? then}) async {
     final p = context.palette;
     final name = TextEditingController();
     final desc = TextEditingController();
@@ -1025,6 +1059,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
     if (created != null && created.isNotEmpty && context.mounted) {
       context.push('/groups/$created');
+      if (then == 'team') context.push('/groups/$created/new-team');
+      if (then == 'event') context.push('/groups/$created/new-event');
     }
   }
 }

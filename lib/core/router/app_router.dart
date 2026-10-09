@@ -64,6 +64,9 @@ import 'package:sportpadi_mobile/features/tournaments/tournament_detail_screen.d
 import 'package:sportpadi_mobile/features/tournaments/tournament_team_screen.dart';
 import 'package:sportpadi_mobile/features/wards/ward_detail_screen.dart';
 import 'package:sportpadi_mobile/features/wards/wards_screen.dart';
+import 'package:sportpadi_mobile/features/onboarding/intent_cards.dart'
+    show pendingIntentProvider;
+import 'package:sportpadi_mobile/features/onboarding/start_wizard_screen.dart';
 
 /// Declarative routes with an auth-aware redirect. Join links stay reachable
 /// while signed out (the join screen prompts sign-in itself), matching the web
@@ -173,7 +176,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           loc == '/forgot-password' ||
           loc == '/' ||
           loc == '/verify-email') {
+        // An intent card picked before sign-up: its start wizard comes
+        // first (verify-email replaces the stack, so the redirect query
+        // alone wouldn't survive).
+        final pending = ref.read(pendingIntentProvider);
         return safeRedirectTarget(state.uri.queryParameters['redirect']) ??
+            (pending != null ? '/start/$pending' : null) ??
             '/home';
       }
       return null;
@@ -195,6 +203,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             ClaimAccountScreen(token: st.pathParameters['token']!),
       ),
       GoRoute(path: '/home', builder: (_, __) => const _HomeGate()),
+      // After sign-in with an intent: the steps, then the first relevant page.
+      GoRoute(
+          path: '/start/:intent',
+          builder: (_, st) =>
+              StartWizardScreen(intentKey: st.pathParameters['intent']!)),
       GoRoute(
           path: '/notifications',
           builder: (_, __) => const NotificationsScreen()),

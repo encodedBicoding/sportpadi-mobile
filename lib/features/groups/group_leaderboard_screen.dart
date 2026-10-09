@@ -15,6 +15,8 @@ import 'package:sportpadi_mobile/features/progression/progression_screens.dart';
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
+import 'package:sportpadi_mobile/data/ads/placements.dart';
+import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 
 /// Group leaderboard — rankings from completed games (web /leaderboard page):
 /// per sport category (switcher chips, soccer default), points (3/1/0),
@@ -61,6 +63,9 @@ class _GroupLeaderboardScreenState
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    // Ads between rows (owner console anchor "leaderboard.rows") — both the
+    // Ranking list and the Full table. Watched here, used in the builders.
+    final adPlacement = ref.watch(placementProvider('leaderboard.rows'));
     // Pick the default sport (soccer when present) once categories load.
     final cats =
         ref.watch(groupLeaderboardCategoriesProvider(groupId)).valueOrNull;
@@ -274,6 +279,12 @@ class _GroupLeaderboardScreenState
           }
           final podium = rows.length >= 3;
           final rest = podium ? rows.sublist(3) : rows;
+          final listAds = AdInterleave.from(
+              adPlacement, 'leaderboard.rows', rest.length,
+              padding: const EdgeInsets.symmetric(vertical: 8));
+          final tableAds = AdInterleave.from(
+              adPlacement, 'leaderboard.rows', rows.length,
+              padding: const EdgeInsets.symmetric(vertical: 10));
           LeaderboardRow? mine;
           for (final r in rows) {
             if (r.playerId == me) mine = r;
@@ -298,6 +309,7 @@ class _GroupLeaderboardScreenState
                     me: me,
                     sortKey: _sortKey,
                     desc: _sortDesc,
+                    adAfter: tableAds.after,
                     onSort: (k) => setState(() {
                       if (_sortKey == k) {
                         _sortDesc = !_sortDesc;
@@ -330,9 +342,11 @@ class _GroupLeaderboardScreenState
                 ],
                 if (rest.isNotEmpty)
                   SpListCard(children: [
-                    for (var i = 0; i < rest.length; i++)
+                    for (var i = 0; i < rest.length; i++) ...[
                       _row(context, rest[i], (podium ? 4 : 1) + i,
                           mine: rest[i].playerId == me),
+                      ...listAds.afterRow(i),
+                    ],
                   ]),
                 const SizedBox(height: 12),
                 Text(
@@ -865,12 +879,17 @@ class _FullTable extends StatelessWidget {
     required this.sortKey,
     required this.desc,
     required this.onSort,
+    this.adAfter,
   });
   final List<LeaderboardRow> rows;
   final String? me;
   final String sortKey;
   final bool desc;
   final ValueChanged<String> onSort;
+
+  /// Ad for the gap after row [index] (sorted order), or null — from
+  /// `AdInterleave.after`.
+  final Widget? Function(int index)? adAfter;
 
   static const _rowH = 54.0;
   static const _headH = 42.0;
@@ -987,7 +1006,8 @@ class _FullTable extends StatelessWidget {
       ]);
     }
 
-    return Container(
+    Widget segment(List<LeaderboardRow> seg, int offset, bool header) =>
+        Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: p.surface,
@@ -1008,33 +1028,34 @@ class _FullTable extends StatelessWidget {
             color: p.surface,
           ),
           child: Column(children: [
-            Row(children: [
-              head('#', width: 42),
-              Expanded(child: head('Player', align: TextAlign.left)),
-            ]),
-            for (var i = 0; i < sorted.length; i++)
+            if (header)
+              Row(children: [
+                head('#', width: 42),
+                Expanded(child: head('Player', align: TextAlign.left)),
+              ]),
+            for (var i = 0; i < seg.length; i++)
               PlayerTap(
-                userId: sorted[i].playerId,
+                userId: seg[i].playerId,
                 borderRadius: 0,
                 child: Container(
                   height: _rowH,
                   decoration: BoxDecoration(
-                    color: sorted[i].playerId == me ? p.accentTint : p.surface,
+                    color: seg[i].playerId == me ? p.accentTint : p.surface,
                     border: Border(
                       top: BorderSide(color: p.surface2),
                       left: BorderSide(
-                          color: sorted[i].playerId == me
+                          color: seg[i].playerId == me
                               ? p.accent
                               : Colors.transparent,
                           width: 3),
                     ),
                   ),
                   child: Row(children: [
-                    SizedBox(width: 39, child: rankCell(i + 1, sorted[i])),
+                    SizedBox(width: 39, child: rankCell(offset + i + 1, seg[i])),
                     ClipOval(
                       child: Crest(
-                          logoUrl: sorted[i].avatarUrl,
-                          label: sorted[i].displayName,
+                          logoUrl: seg[i].avatarUrl,
+                          label: seg[i].displayName,
                           size: 28),
                     ),
                     const SizedBox(width: 8),
@@ -1044,19 +1065,19 @@ class _FullTable extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                              sorted[i].playerId == me
+                              seg[i].playerId == me
                                   ? 'You'
-                                  : sorted[i].displayName,
+                                  : seg[i].displayName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                   color: p.ink,
                                   fontSize: 13,
-                                  fontWeight: sorted[i].playerId == me
+                                  fontWeight: seg[i].playerId == me
                                       ? FontWeight.w800
                                       : FontWeight.w600)),
-                          if ((sorted[i].username ?? '').isNotEmpty)
-                            Text('@${sorted[i].username}',
+                          if ((seg[i].username ?? '').isNotEmpty)
+                            Text('@${seg[i].username}',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(color: p.muted, fontSize: 11)),
@@ -1075,10 +1096,11 @@ class _FullTable extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                for (final c in cols) head(c.$1, key: c.$4, width: 48),
-              ]),
-              for (final r in sorted)
+              if (header)
+                Row(children: [
+                  for (final c in cols) head(c.$1, key: c.$4, width: 48),
+                ]),
+              for (final r in seg)
                 Container(
                   height: _rowH,
                   decoration: BoxDecoration(
@@ -1112,5 +1134,26 @@ class _FullTable extends StatelessWidget {
         ),
       ]),
     );
+
+    // Ads between rows (owner console anchor "leaderboard.rows"): the table
+    // is cut into segments with the ad as a full-width row between them —
+    // the header stays on the first segment only.
+    final cuts = <int>[];
+    for (var i = 0; i < sorted.length - 1; i++) {
+      if (adAfter?.call(i) != null) cuts.add(i + 1);
+    }
+    if (cuts.isEmpty) return segment(sorted, 0, true);
+    final parts = <Widget>[];
+    var from = 0;
+    for (final cut in [...cuts, sorted.length]) {
+      if (cut <= from) continue;
+      parts.add(segment(sorted.sublist(from, cut), from, from == 0));
+      if (cut < sorted.length) {
+        final ad = adAfter!(cut - 1);
+        if (ad != null) parts.add(ad);
+      }
+      from = cut;
+    }
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: parts);
   }
 }

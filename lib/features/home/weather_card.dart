@@ -1,3 +1,5 @@
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -87,9 +89,11 @@ class _WeatherCardState extends ConsumerState<WeatherCard> {
     final w = ref.watch(weatherProvider).valueOrNull;
     if (w == null) return const SizedBox.shrink();
 
-    final f = _useFahrenheit(context);
+    final f = _useFahrenheit(w);
     String deg(double c) => f ? '${(c * 9 / 5 + 32).round()}°' : '${c.round()}°';
     final unit = f ? 'F' : 'C';
+    String wind(double kph) =>
+        f ? '${(kph / 1.609344).round()} mph' : '${kph.round()} km/h';
     final (bg, fg) = _tint(p, w.mood);
 
     return Padding(
@@ -137,7 +141,7 @@ class _WeatherCardState extends ConsumerState<WeatherCard> {
                           'feels ${deg(w.feelsC)}',
                         if (w.rainChance != null && w.rainChance! >= 20)
                           'rain ${w.rainChance}%',
-                        if (w.windKph >= 25) 'wind ${w.windKph.round()} km/h',
+                        if (w.windKph >= 25) 'wind ${wind(w.windKph)}',
                       ].join(' · '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -171,9 +175,15 @@ class _WeatherCardState extends ConsumerState<WeatherCard> {
     );
   }
 
-  /// °F where that's what people read (US and the few others); °C elsewhere.
-  static bool _useFahrenheit(BuildContext context) {
-    final cc = Localizations.maybeLocaleOf(context)?.countryCode ?? '';
+  /// °F only where the PLACE reads it: the server decides from the fix's
+  /// zone (US + territories, Liberia, Myanmar). Never from the app locale —
+  /// the app ships one locale, so `Localizations.localeOf` was always
+  /// en_US and Surrey, BC got Fahrenheit. An older server without `units`
+  /// falls back to the device's own region setting.
+  static bool _useFahrenheit(Weather w) {
+    final u = w.units;
+    if (u != null) return u == 'F';
+    final cc = PlatformDispatcher.instance.locale.countryCode ?? '';
     return cc == 'US' || cc == 'LR' || cc == 'MM';
   }
 

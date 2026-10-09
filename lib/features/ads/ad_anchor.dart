@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart' show TemplateType;
 
 import 'package:sportpadi_mobile/core/ads/admob.dart';
 import 'package:sportpadi_mobile/data/ads/placements.dart';
@@ -53,14 +54,36 @@ Widget _fill(AdPlacement p, String anchor, int position, EdgeInsets padding) {
       padding: padding,
       child: AdDisplay(slots: [p.slotKey!]),
     );
-  } else if (p.isAdMobNative) {
-    label = 'AdMob native';
-    // One native ad request per position; the key keeps a disposed ad from
-    // being reused when the list rebuilds.
-    w = AdMobNativeCard(
-      key: ValueKey('admob:$anchor:$position'),
-      padding: padding,
-    );
+  } else if (p.isAdMob) {
+    label = 'AdMob ${p.format}';
+    // One ad request per position; the key keeps a disposed ad from being
+    // reused when the list rebuilds. The format is the console's choice.
+    final unit = p.unitForThisDevice;
+    w = switch (p.format) {
+      'native_small' => AdMobNativeCard(
+          key: ValueKey('admob:$anchor:$position:$unit'),
+          template: TemplateType.small,
+          padding: padding,
+          adUnitId: unit,
+        ),
+      'banner_inline' => AdMobInlineBanner(
+          key: ValueKey('admob:$anchor:$position:$unit'),
+          kind: AdMobInlineKind.adaptive,
+          padding: padding,
+          adUnitId: unit,
+        ),
+      'mrec' => AdMobInlineBanner(
+          key: ValueKey('admob:$anchor:$position:$unit'),
+          kind: AdMobInlineKind.mrec,
+          padding: padding,
+          adUnitId: unit,
+        ),
+      _ => AdMobNativeCard(
+          key: ValueKey('admob:$anchor:$position:$unit'),
+          padding: padding,
+          adUnitId: unit,
+        ),
+    };
   } else {
     return const SizedBox.shrink();
   }
