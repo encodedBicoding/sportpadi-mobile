@@ -109,19 +109,32 @@ Future<void> _refreshGroupPage(
   ]);
 }
 
+/// What a pull on the page refreshes for the OPEN tab, on top of the group
+/// itself (the tabs are box slivers in one scroll view now, so there's one
+/// RefreshIndicator for the page rather than one per tab).
+List<Future<Object?>> _tabRefreshFutures(
+        WidgetRef ref, String groupId, int tab, bool canManage) =>
+    switch (tab) {
+      0 => [ref.read(groupEventsProvider(groupId).future)],
+      1 => [
+          ref.read(groupTeamsProvider(groupId).future),
+          if (canManage) ref.read(teamAllowanceProvider(groupId).future),
+        ],
+      _ => [
+          ref.read(groupTournamentsProvider(groupId).future),
+          if (canManage) ref.read(groupInvitesProvider(groupId).future),
+        ],
+    };
+
 /// Whether [AsyncView] would show its (non-scrolling) loader or error for
 /// [value] rather than the data.
 bool _bare(AsyncValue<Object?> value) =>
     value.when(data: (_) => false, error: (_, __) => true, loading: () => true);
 
-/// [view] made pullable while it shows a loader or an error.
-Widget _pullable(AsyncValue<Object?> value, Widget view) =>
-    _bare(value) ? PullableState(child: view) : view;
-
 /// The whole group page while it shows a loader or an error (no tabs yet to
 /// pull on): still pullable.
-Widget _pullablePage(WidgetRef ref, String groupId,
-        AsyncValue<Object?> group, Widget view) =>
+Widget _pullablePage(WidgetRef ref, String groupId, AsyncValue<Object?> group,
+        Widget view) =>
     _bare(group)
         ? RefreshIndicator(
             onRefresh: () => _refreshGroupPage(ref, groupId, () => []),
@@ -149,72 +162,105 @@ class GroupDetailScreen extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: Stack(children: [
-          _pullablePage(ref, groupId, group, AsyncView(
-            value: group,
-            onRetry: () => ref.invalidate(groupProvider(groupId)),
-            data: (g) => DefaultTabController(
-              length: 3,
-              // The whole page scrolls: a tall header (cover, identity card,
-              // tools) glides away and the tab switch pins to the top — so no
-              // amount of header content can trap the screen.
-              child: NestedScrollView(
-                headerSliverBuilder: (context, innerScrolled) => [
-                  SliverToBoxAdapter(child: _Header(group: g)),
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _PinnedTabBar(
-                      backgroundColor: p.bg,
-                      child: Container(
-                        color: p.bg,
-                        padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: dark ? p.surface2 : const Color(0xFFE6EBE8),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: TabBar(
-                            dividerColor: Colors.transparent,
-                            indicatorSize: TabBarIndicatorSize.tab,
-                            indicator: BoxDecoration(
-                              color: p.surface,
-                              borderRadius: BorderRadius.circular(999),
-                              boxShadow: dark
-                                  ? null
-                                  : const [
-                                      BoxShadow(
-                                          color: Color(0x140E1411),
-                                          blurRadius: 2,
-                                          offset: Offset(0, 1))
-                                    ],
+          _pullablePage(
+              ref,
+              groupId,
+              group,
+              AsyncView(
+                value: group,
+                onRetry: () => ref.invalidate(groupProvider(groupId)),
+                data: (g) => DefaultTabController(
+                  length: 3,
+                  // ONE scroll view for the whole page: header (cover,
+                  // identity card, tools), the pinned tab switch, then the
+                  // open tab's content as an ordinary box sliver. The page
+                  // is exactly as tall as what's on it — a tab with one card
+                  // ends after that card instead of pinning the tabs at the
+                  // top over a screen of nothing (what NestedScrollView +
+                  // TabBarView did: its body is always viewport-tall).
+                  // Same shape as the profile screen.
+                  child: Builder(builder: (context) {
+                    final tabs = DefaultTabController.of(context);
+                    return AnimatedBuilder(
+                      animation: tabs,
+                      builder: (context, _) => RefreshIndicator(
+                        onRefresh: () => _refreshGroupPage(
+                            ref,
+                            groupId,
+                            () => _tabRefreshFutures(
+                                ref, groupId, tabs.index, g.canManage)),
+                        child: CustomScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          slivers: [
+                            SliverToBoxAdapter(child: _Header(group: g)),
+                            SliverPersistentHeader(
+                              pinned: true,
+                              delegate: _PinnedTabBar(
+                                backgroundColor: p.bg,
+                                child: Container(
+                                  color: p.bg,
+                                  padding:
+                                      const EdgeInsets.fromLTRB(20, 6, 20, 6),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: dark
+                                          ? p.surface2
+                                          : const Color(0xFFE6EBE8),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: TabBar(
+                                      dividerColor: Colors.transparent,
+                                      indicatorSize: TabBarIndicatorSize.tab,
+                                      indicator: BoxDecoration(
+                                        color: p.surface,
+                                        borderRadius:
+                                            BorderRadius.circular(999),
+                                        boxShadow: dark
+                                            ? null
+                                            : const [
+                                                BoxShadow(
+                                                    color: Color(0x140E1411),
+                                                    blurRadius: 2,
+                                                    offset: Offset(0, 1))
+                                              ],
+                                      ),
+                                      labelColor: p.ink,
+                                      unselectedLabelColor: p.muted,
+                                      labelStyle: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13),
+                                      unselectedLabelStyle: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13),
+                                      overlayColor: WidgetStateProperty.all(
+                                          Colors.transparent),
+                                      tabs: const [
+                                        Tab(height: 38, text: 'Events'),
+                                        Tab(height: 38, text: 'Teams'),
+                                        Tab(height: 38, text: 'Tournaments'),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                            labelColor: p.ink,
-                            unselectedLabelColor: p.muted,
-                            labelStyle: const TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 13),
-                            unselectedLabelStyle: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 13),
-                            overlayColor:
-                                WidgetStateProperty.all(Colors.transparent),
-                            tabs: const [
-                              Tab(height: 38, text: 'Events'),
-                              Tab(height: 38, text: 'Teams'),
-                              Tab(height: 38, text: 'Tournaments'),
-                            ],
-                          ),
+                            SliverToBoxAdapter(
+                              child: switch (tabs.index) {
+                                0 => _EventsTab(groupId: groupId),
+                                1 => _TeamsTab(
+                                    groupId: groupId, canManage: g.canManage),
+                                _ => _TournamentsTab(
+                                    groupId: groupId, canManage: g.canManage),
+                              },
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  ),
-                ],
-                body: TabBarView(children: [
-                  _EventsTab(groupId: groupId),
-                  _TeamsTab(groupId: groupId, canManage: g.canManage),
-                  _TournamentsTab(groupId: groupId, canManage: g.canManage),
-                ]),
-              ),
-            ),
-          )),
+                    );
+                  }),
+                ),
+              )),
           // While loading (or on error) there's no cover to carry the back
           // button — keep one on screen regardless.
           if (_bare(group))
@@ -647,6 +693,10 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
                 groupName: name,
                 isMember: group.isMember || canManage,
               ),
+              // Owner-console ad spot (anchor "group.detail_bottom"); nothing unless set.
+              const AdAnchor(
+                  anchor: 'group.detail_bottom',
+                  padding: EdgeInsets.only(top: 14)),
               // Group reputation (gamification): level, streak, achievements.
               GroupReputationCard(groupId: groupId),
             ],
@@ -783,8 +833,8 @@ class _ManageMenu extends ConsumerWidget {
               // Android: the plan is bought on the web (Stripe). Opened in a
               // Custom Tab so the return trip lands back in the app.
               // Signed in already (one-tap hand-off), no second login.
-              signedInWebUriFor(ref, '/groups/$groupId/upgrade').then((url) =>
-                  launchUrl(url, mode: LaunchMode.inAppBrowserView));
+              signedInWebUriFor(ref, '/groups/$groupId/upgrade').then(
+                  (url) => launchUrl(url, mode: LaunchMode.inAppBrowserView));
               break;
             case 'promo':
               showPromoCodesSheet(context, groupId);
@@ -923,7 +973,10 @@ class _EventsTab extends ConsumerWidget {
     final group = ref.watch(groupProvider(groupId)).valueOrNull;
     final canCreate = group?.canManage == true ||
         (group?.isMember == true &&
-            (ref.watch(eventAudiencesProvider(groupId)).valueOrNull?.canCreate ??
+            (ref
+                    .watch(eventAudiencesProvider(groupId))
+                    .valueOrNull
+                    ?.canCreate ??
                 false));
     final list = events.valueOrNull;
 
@@ -997,25 +1050,20 @@ class _EventsTab extends ConsumerWidget {
       body = EventTileGrid(events: list, showGroup: false);
     }
 
-    return RefreshIndicator(
-      onRefresh: () => _refreshGroupPage(
-          ref, groupId, () => [ref.read(groupEventsProvider(groupId).future)]),
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+    // A box, not a scroll view: the page's CustomScrollView does the
+    // scrolling and the pull-to-refresh.
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           header,
           const SizedBox(height: 10),
           body,
-          // Owner-console ad spot (anchor "group.detail_bottom"); nothing unless set.
-          const AdAnchor(
-              anchor: 'group.detail_bottom',
-              padding: EdgeInsets.only(top: 14)),
         ],
       ),
     );
   }
-
 }
 
 class _TeamsTab extends ConsumerStatefulWidget {
@@ -1081,10 +1129,9 @@ class _TeamsTabState extends ConsumerState<_TeamsTab> {
       onRetry: () => ref.invalidate(groupTeamsProvider(widget.groupId)),
       data: (list) {
         if (list.isEmpty) {
-          return ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
+          return Padding(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-            children: [
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               if (locked) lockCard(),
               GlassCard(
                 padding: const EdgeInsets.all(24),
@@ -1119,7 +1166,7 @@ class _TeamsTabState extends ConsumerState<_TeamsTab> {
                   ],
                 ]),
               ),
-            ],
+            ]),
           );
         }
         // Grouped by sport, in first-seen order.
@@ -1155,10 +1202,9 @@ class _TeamsTabState extends ConsumerState<_TeamsTab> {
               ),
             );
 
-        return ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
+        return Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-          children: [
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             if (locked) lockCard(),
             Row(children: [
               Expanded(
@@ -1246,18 +1292,12 @@ class _TeamsTabState extends ConsumerState<_TeamsTab> {
                 itemBuilder: (_, i) => TeamTile(team: entry.value[i]),
               ),
             ],
-          ],
+          ]),
         );
       },
     );
-    return RefreshIndicator(
-      onRefresh: () => _refreshGroupPage(ref, widget.groupId, () => [
-            ref.read(groupTeamsProvider(widget.groupId).future),
-            if (widget.canManage)
-              ref.read(teamAllowanceProvider(widget.groupId).future),
-          ]),
-      child: _pullable(teams, view),
-    );
+    // A box, not a scroll view — see _EventsTab.
+    return view;
   }
 }
 
@@ -1273,22 +1313,21 @@ class _TournamentsTab extends ConsumerWidget {
       onRetry: () => ref.invalidate(groupTournamentsProvider(groupId)),
       data: (list) => list.isEmpty
           ? const _Empty('No tournaments yet.', Icons.emoji_events_outlined)
-          : ListView.separated(
-              physics: const AlwaysScrollableScrollPhysics(),
+          : Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-              itemCount: list.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
-              itemBuilder: (_, i) => _TournamentCard(t: list[i]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final (i, x) in list.indexed) ...[
+                    if (i > 0) const SizedBox(height: 10),
+                    _TournamentCard(t: x),
+                  ],
+                ],
+              ),
             ),
     );
-    final pullable = RefreshIndicator(
-      onRefresh: () => _refreshGroupPage(ref, groupId, () => [
-            ref.read(groupTournamentsProvider(groupId).future),
-            if (canManage) ref.read(groupInvitesProvider(groupId).future),
-          ]),
-      child: _pullable(t, body),
-    );
-    if (!canManage) return pullable;
+    // A box, not a scroll view — see _EventsTab.
+    if (!canManage) return body;
     // Web shows pending invites inline on this tab; on mobile they live on
     // their own screen, so at least say how many are waiting — otherwise the
     // only way to find them is a popup menu item with no badge on it.
@@ -1313,7 +1352,7 @@ class _TournamentsTab extends ConsumerWidget {
           onTap: () => _handleNewTournament(context, ref, groupId),
         ),
       ),
-      Expanded(child: pullable),
+      body,
     ]);
   }
 }
@@ -1365,16 +1404,15 @@ class _Empty extends StatelessWidget {
   final String text;
   final IconData icon;
   @override
-  Widget build(BuildContext context) => ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
+  Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(32, 48, 32, 32),
-        children: [
+        child: Column(children: [
           Center(child: SpIconTile(icon, size: 56, iconSize: 26)),
           const SizedBox(height: 12),
           Text(text,
               textAlign: TextAlign.center,
               style: TextStyle(color: context.palette.muted, fontSize: 13.5)),
-        ],
+        ]),
       );
 }
 
@@ -1972,6 +2010,31 @@ class _TournamentCard extends StatelessWidget {
               style: TextStyle(
                   color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
+          if (t.isMulti)
+            // A multi-team tournament isn't a pair: show the draw's fill
+            // (the organiser may not field a team at all).
+            Row(children: [
+              Icon(Icons.groups_outlined, size: 18, color: p.muted),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text.rich(TextSpan(children: [
+                  TextSpan(text: '${t.teamsIn} of ${t.maxTeams} teams'),
+                  if (t.teamsInvited > 0)
+                    TextSpan(
+                        text: ' · ${t.teamsInvited} invited',
+                        style: TextStyle(
+                            color: p.muted, fontWeight: FontWeight.w500)),
+                ]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: p.ink,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600)),
+              ),
+              if (t.organiserOnly && t.isHost) const SpBadge('Organiser'),
+            ])
+          else
           Row(children: [
             Crest(
                 logoUrl: t.hostTeamLogo,

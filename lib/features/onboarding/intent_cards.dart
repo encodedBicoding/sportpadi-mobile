@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
+import 'package:sportpadi_mobile/features/onboarding/intent_video_sheet.dart';
 import 'package:sportpadi_mobile/features/onboarding/intents.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
@@ -20,9 +21,23 @@ final pendingIntentProvider = StateProvider<String?>((_) => null);
       _ => (p.accentTint, p.greenText),
     };
 
+/// A card plays its walkthrough first (Skip / Continue both lead on), then
+/// [proceedWithIntent] does the routing.
+void openIntent(BuildContext context, WidgetRef ref, UserIntent i) {
+  final signedIn =
+      ref.read(authControllerProvider).valueOrNull?.isAuthenticated ?? false;
+  // ignore: discarded_futures
+  showIntentWalkthrough(
+    context,
+    intent: i,
+    proceedLabel: signedIn ? 'Show me' : 'Get started',
+    onProceed: () => proceedWithIntent(context, ref, i),
+  );
+}
+
 /// Where a card sends you: signed out → sign in / up with the wizard as the
 /// redirect; signed in → the wizard directly.
-void openIntent(BuildContext context, WidgetRef ref, UserIntent i) {
+void proceedWithIntent(BuildContext context, WidgetRef ref, UserIntent i) {
   final signedIn =
       ref.read(authControllerProvider).valueOrNull?.isAuthenticated ?? false;
   final start = '/start/${i.key}';

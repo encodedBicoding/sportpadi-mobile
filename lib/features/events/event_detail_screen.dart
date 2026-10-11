@@ -651,6 +651,12 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
             imageUrl: e.groupImageUrl,
             verified: e.groupVerified),
       ],
+      ...[
+        const SizedBox(height: 12),
+        // Owner-console ad spot (anchor "event.detail_bottom"); nothing unless set.
+        const AdAnchor(
+            anchor: 'event.detail_bottom', padding: EdgeInsets.only(top: 14)),
+      ],
       // The matches section pushes the check-in QR down the page —
       // organisers get a one-tap way back to it.
       if (showTabs && e.canManage && canCheckIn && e.qrCode != null) ...[
@@ -857,10 +863,6 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
           ),
         ),
       ],
-      // Owner-console ad spot (anchor "event.detail_bottom"); nothing unless set.
-      const AdAnchor(
-          anchor: 'event.detail_bottom',
-          padding: EdgeInsets.only(top: 14)),
     ];
     // The cover + title card is full-bleed; everything else sits in the
     // 20px page gutter. Pin the Games / Teams / Check-ins switch while
@@ -1608,10 +1610,9 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Check out of this event?'),
-        content: Text(
-            widget.event.canManage
-                ? "You'll be taken off the attendee list. To check in again, scan another admin's QR."
-                : "You'll be taken off the attendee list. You can check in again by scanning the event QR."),
+        content: Text(widget.event.canManage
+            ? "You'll be taken off the attendee list. To check in again, scan another admin's QR."
+            : "You'll be taken off the attendee list. You can check in again by scanning the event QR."),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -1740,9 +1741,7 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
                           ? (going
                               ? 'Going: ${goingNames.join(', ')}'
                               : "RSVP — who's going?")
-                          : (e.myInterested
-                              ? "You're going"
-                              : "RSVP — I'm in"),
+                          : (e.myInterested ? "You're going" : "RSVP — I'm in"),
                   icon: spotsGone
                       ? Icons.lock_outline
                       : going
@@ -1877,7 +1876,8 @@ class _QrShortcut extends StatelessWidget {
                 color: p.accentTint,
                 borderRadius: BorderRadius.circular(11),
               ),
-              child: Icon(Icons.qr_code_2_rounded, size: 19, color: p.greenText),
+              child:
+                  Icon(Icons.qr_code_2_rounded, size: 19, color: p.greenText),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -3179,8 +3179,7 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
       widget.onChanged();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     } finally {
       if (mounted) setState(() => _busy = null);
     }
@@ -3222,8 +3221,7 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
             if (x.paid && !x.checkedIn) ...[
               const SizedBox(width: 5),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                 decoration: BoxDecoration(
                   color: p.surface,
                   border: Border.all(color: p.line),
@@ -3301,10 +3299,9 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
             // Long-press hint on what the button does to a paid player.
             onLongPress: !x.paid
                 ? null
-                : () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text(
-                            'Releasing a paid player refunds their ticket price right away'))),
+                : () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text(
+                        'Releasing a paid player refunds their ticket price right away'))),
             borderRadius:
                 const BorderRadius.horizontal(right: Radius.circular(999)),
             child: Padding(
@@ -3330,12 +3327,17 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
     final required = c.rsvpRequired;
     final people = widget.people;
     // Two groups so a checked-in player can never be mistaken for a no-show.
-    final arrived = [for (final x in people) if (x.checkedIn) x];
-    final holding = [for (final x in people) if (!x.checkedIn) x];
+    final arrived = [
+      for (final x in people)
+        if (x.checkedIn) x
+    ];
+    final holding = [
+      for (final x in people)
+        if (!x.checkedIn) x
+    ];
     final holdingLabel = required ? 'Holding a spot' : "RSVP'd";
     final notHereYet = arrived.isNotEmpty ? ' · not here yet' : '';
-    Widget label(String text, Color color, {IconData? icon}) =>
-        Padding(
+    Widget label(String text, Color color, {IconData? icon}) => Padding(
           padding: const EdgeInsets.only(bottom: 6),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             if (icon != null) ...[
@@ -3369,7 +3371,8 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
         const SizedBox(height: 10),
         GlassCard(
           padding: const EdgeInsets.all(14),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (arrived.isNotEmpty) ...[
               label('Checked in · ${arrived.length}', p.greenText,
                   icon: Icons.check_circle_rounded),
@@ -3380,8 +3383,7 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
             if (arrived.isNotEmpty && holding.isNotEmpty)
               const SizedBox(height: 12),
             if (holding.isNotEmpty) ...[
-              label(
-                  '$holdingLabel · ${holding.length}$notHereYet', p.muted),
+              label('$holdingLabel · ${holding.length}$notHereYet', p.muted),
               Wrap(spacing: 6, runSpacing: 6, children: [
                 for (final x in holding) _chip(x, p),
               ]),

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:sportpadi_mobile/core/ads/admob.dart';
 import 'package:sportpadi_mobile/features/ads/popup_messages.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_dock.dart';
@@ -315,7 +314,6 @@ class ShellBottomBar extends ConsumerWidget {
               ),
             ],
           ),
-          const AdMobBannerBar(),
           SizedBox(height: MediaQuery.paddingOf(context).bottom),
         ],
       ),

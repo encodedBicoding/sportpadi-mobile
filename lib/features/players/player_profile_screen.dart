@@ -135,111 +135,111 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
           data,
           _refresh,
           AsyncView(
-          value: data,
-          onRetry: () {
-            ref.invalidate(playerProfileProvider(userId));
-            ref.invalidate(playerRecordsProvider(userId));
-          },
-          data: (m) {
-            final profile = mapOf(m['profile']);
-            if (restricted) {
+            value: data,
+            onRetry: () {
+              ref.invalidate(playerProfileProvider(userId));
+              ref.invalidate(playerRecordsProvider(userId));
+            },
+            data: (m) {
+              final profile = mapOf(m['profile']);
+              if (restricted) {
+                return RefreshIndicator(
+                  onRefresh: _refresh,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 36),
+                    children: [
+                      _Hero(
+                        userId: userId,
+                        profile: profile,
+                        sports: 0,
+                        groups: 0,
+                        tournaments: 0,
+                        statsLoaded: false,
+                        restricted: true,
+                        privateProfile: privateProfile,
+                        onBack: _back,
+                      ),
+                    ],
+                  ),
+                );
+              }
+              // No sport picker any more (2026 sport records): the tabs list
+              // everything, across all sports.
+              final groups = listOf(m['groups']);
+              final posts = listOf(m['posts']);
+
               return RefreshIndicator(
                 onRefresh: _refresh,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 36),
+                  padding: EdgeInsets.zero,
                   children: [
                     _Hero(
                       userId: userId,
                       profile: profile,
-                      sports: 0,
-                      groups: 0,
-                      tournaments: 0,
-                      statsLoaded: false,
-                      restricted: true,
-                      privateProfile: privateProfile,
+                      sports: sportsPlayed,
+                      groups: groups.length,
+                      tournaments: tournaments.length,
+                      statsLoaded: stats != null,
                       onBack: _back,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 22, 16, 36),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // One sport card per sport played, each opening
+                          // that sport's own record page.
+                          PlayerRecordsSection(
+                            userId: userId,
+                            categories: categories,
+                            loaded: stats != null,
+                          ),
+                          // Owner-console ad spot (anchor "player.profile_bottom");
+                          // nothing unless set.
+                          const AdAnchor(
+                              anchor: 'player.profile_bottom',
+                              padding: EdgeInsets.fromLTRB(20, 14, 20, 14)),
+                          const SizedBox(height: 22),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(children: [
+                              _PillTab(
+                                  icon: Icons.groups_outlined,
+                                  label: 'Groups',
+                                  count: groups.length,
+                                  selected: _tab == 0,
+                                  onTap: () => setState(() => _tab = 0)),
+                              _PillTab(
+                                  icon: Icons.emoji_events_outlined,
+                                  label: 'Tournaments',
+                                  count: tournaments.length,
+                                  selected: _tab == 1,
+                                  onTap: () => setState(() => _tab = 1)),
+                              _PillTab(
+                                  icon: Icons.photo_library_outlined,
+                                  label: 'Posts',
+                                  count: posts.length,
+                                  selected: _tab == 2,
+                                  onTap: () => setState(() => _tab = 2)),
+                            ]),
+                          ),
+                          const SizedBox(height: 12),
+                          if (_tab == 0)
+                            ..._groups(p, groups)
+                          else if (_tab == 1)
+                            ..._tournamentsTab(tournaments)
+                          else
+                            ..._posts(p, posts),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               );
-            }
-            // No sport picker any more (2026 sport records): the tabs list
-            // everything, across all sports.
-            final groups = listOf(m['groups']);
-            final posts = listOf(m['posts']);
-
-            return RefreshIndicator(
-              onRefresh: _refresh,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.zero,
-                children: [
-                  _Hero(
-                    userId: userId,
-                    profile: profile,
-                    sports: sportsPlayed,
-                    groups: groups.length,
-                    tournaments: tournaments.length,
-                    statsLoaded: stats != null,
-                    onBack: _back,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 22, 16, 36),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // One sport card per sport played, each opening
-                        // that sport's own record page.
-                        PlayerRecordsSection(
-                          userId: userId,
-                          categories: categories,
-                          loaded: stats != null,
-                        ),
-                        const SizedBox(height: 22),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(children: [
-                            _PillTab(
-                                icon: Icons.groups_outlined,
-                                label: 'Groups',
-                                count: groups.length,
-                                selected: _tab == 0,
-                                onTap: () => setState(() => _tab = 0)),
-                            _PillTab(
-                                icon: Icons.emoji_events_outlined,
-                                label: 'Tournaments',
-                                count: tournaments.length,
-                                selected: _tab == 1,
-                                onTap: () => setState(() => _tab = 1)),
-                            _PillTab(
-                                icon: Icons.photo_library_outlined,
-                                label: 'Posts',
-                                count: posts.length,
-                                selected: _tab == 2,
-                                onTap: () => setState(() => _tab = 2)),
-                          ]),
-                        ),
-                        const SizedBox(height: 12),
-                        if (_tab == 0)
-                          ..._groups(p, groups)
-                        else if (_tab == 1)
-                          ..._tournamentsTab(tournaments)
-                        else
-                          ..._posts(p, posts),
-                      ],
-                    ),
-                  ),
-                  // Owner-console ad spot (anchor "player.profile_bottom");
-                  // nothing unless set.
-                  const AdAnchor(
-                      anchor: 'player.profile_bottom',
-                      padding: EdgeInsets.fromLTRB(20, 14, 20, 24)),
-                ],
-              ),
-            );
-          },
-        ),
+            },
+          ),
         ),
         if (!data.hasValue)
           SafeArea(
@@ -779,8 +779,8 @@ class _Empty extends StatelessWidget {
 
 /// Loading / error aren't scrollable on their own, so they get a pullable
 /// wrapper; once the data shows, its own RefreshIndicator takes over.
-Widget _pullableUnlessData(
-        AsyncValue<Object?> v, Future<void> Function() onRefresh, Widget child) =>
+Widget _pullableUnlessData(AsyncValue<Object?> v,
+        Future<void> Function() onRefresh, Widget child) =>
     v.hasValue && !v.hasError
         ? child
         : RefreshIndicator(

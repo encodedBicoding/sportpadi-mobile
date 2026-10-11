@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart' show Geolocator;
 import 'package:go_router/go_router.dart';
-
 import 'package:sportpadi_mobile/core/location/location_provider.dart'
     show locationProvider;
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
@@ -182,197 +181,203 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: _pullable(feed, AsyncView(
-          value: feed,
-          onRetry: () => ref.invalidate(myFeedProvider),
-          data: (f) {
-            // Sport chips from everything in the feed.
-            final cats = <String, String>{}; // name -> emoji
-            for (final e in [...f.upcoming, ...f.past]) {
-              if (e.categoryName != null) {
-                cats[e.categoryName!] = e.categoryEmoji ?? '';
-              }
-            }
-            List<EventSummary> bySport(List<EventSummary> list) =>
-                _sport == null
-                    ? list
-                    : [
-                        for (final e in list)
-                          if (e.categoryName == _sport) e
-                      ];
-            final all = bySport(f.upcoming);
-            final liveList = all.where(_live).toList();
-            final todayList = all.where(_isToday).toList();
-            final upcomingList = all.where(_isUpcoming).toList();
-            // Past events: only the last two months.
-            final cutoff =
-                DateTime.now().toUtc().subtract(const Duration(days: 61));
-            final past = [
-              for (final e in bySport(f.past))
-                if (e.eventDate == null || e.eventDate!.isAfter(cutoff)) e
-            ];
-            // The sport chips filter by name; suggestions are queried by
-            // category id, so resolve one to the other off the same feed.
-            final sportCategoryId = _sport == null
-                ? null
-                : [...f.upcoming, ...f.past]
-                    .firstWhere((e) => e.categoryName == _sport,
-                        orElse: () =>
-                            const EventSummary(id: '', title: '', slug: ''))
-                    .categoryId;
-            final panelList = _day != null
-                ? [
-                    for (final e in all)
-                      if (_eventKey(e) == _day) e
-                  ]
-                : _range == 'live'
-                    ? liveList
-                    : _range == 'today'
-                        ? todayList
-                        : _range == 'upcoming'
-                            ? upcomingList
-                            : all;
+        child: _pullable(
+            feed,
+            AsyncView(
+              value: feed,
+              onRetry: () => ref.invalidate(myFeedProvider),
+              data: (f) {
+                // Sport chips from everything in the feed.
+                final cats = <String, String>{}; // name -> emoji
+                for (final e in [...f.upcoming, ...f.past]) {
+                  if (e.categoryName != null) {
+                    cats[e.categoryName!] = e.categoryEmoji ?? '';
+                  }
+                }
+                List<EventSummary> bySport(List<EventSummary> list) =>
+                    _sport == null
+                        ? list
+                        : [
+                            for (final e in list)
+                              if (e.categoryName == _sport) e
+                          ];
+                final all = bySport(f.upcoming);
+                final liveList = all.where(_live).toList();
+                final todayList = all.where(_isToday).toList();
+                final upcomingList = all.where(_isUpcoming).toList();
+                // Past events: only the last two months.
+                final cutoff =
+                    DateTime.now().toUtc().subtract(const Duration(days: 61));
+                final past = [
+                  for (final e in bySport(f.past))
+                    if (e.eventDate == null || e.eventDate!.isAfter(cutoff)) e
+                ];
+                // The sport chips filter by name; suggestions are queried by
+                // category id, so resolve one to the other off the same feed.
+                final sportCategoryId = _sport == null
+                    ? null
+                    : [...f.upcoming, ...f.past]
+                        .firstWhere((e) => e.categoryName == _sport,
+                            orElse: () =>
+                                const EventSummary(id: '', title: '', slug: ''))
+                        .categoryId;
+                final panelList = _day != null
+                    ? [
+                        for (final e in all)
+                          if (_eventKey(e) == _day) e
+                      ]
+                    : _range == 'live'
+                        ? liveList
+                        : _range == 'today'
+                            ? todayList
+                            : _range == 'upcoming'
+                                ? upcomingList
+                                : all;
 
-            return RefreshIndicator(
-              onRefresh: () => _refresh(sportCategoryId),
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                children: [
-                  const _HomeHeader(),
+                return RefreshIndicator(
+                  onRefresh: () => _refresh(sportCategoryId),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                    children: [
+                      const _HomeHeader(),
 
-                  // Local ads — invisible until the owner activates mobile
-                  // slots with this key; location-targeted server-side. Also
-                  // "home_top": SportPadi messages at the top of Home (a slot
-                  // set to Top bar or Card in the console), drawn first.
-                  const SizedBox(height: 12),
-                  const AdDisplay(
-                      slots: ['home_top', 'mobile_home'], carousel: true),
+                      // Local ads — invisible until the owner activates mobile
+                      // slots with this key; location-targeted server-side. Also
+                      // "home_top": SportPadi messages at the top of Home (a slot
+                      // set to Top bar or Card in the console), drawn first.
+                      const SizedBox(height: 12),
+                      const AdDisplay(
+                          slots: ['home_top', 'mobile_home'], carousel: true),
 
-                  // Why they came: a guardian / coach / host who hasn't set
-                  // up yet gets that as the first card instead of the quick
-                  // actions; the rest of Home is the same for everyone.
-                  const SizedBox(height: 6),
-                  if (intentCard case final String card)
-                    IntentFirstCard(intentKey: card)
-                  else
-                    Row(children: [
-                      Expanded(
-                        child: _quickAction(p, Icons.group_add_outlined,
-                            'Create group', () => _newGroupSheet(context)),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _quickAction(p, Icons.qr_code_scanner_rounded,
-                            'Scan QR', () => context.push('/scan'),
-                            dark: true),
-                      ),
-                    ]),
-
-                  // Weather at the session's location fix (nothing without
-                  // one): conditions, today's range, and a remark for the day.
-                  const WeatherCard(padding: EdgeInsets.only(top: 12)),
-
-                  // Gamification: streak, this week's challenges, next unlock.
-                  const YourWeekCard(),
-
-                  // The one thing to look at next: live now, else the soonest
-                  // by real start instant. Nothing coming up → ask for the
-                  // location (so Home can suggest games nearby) or, with it
-                  // already shared, point at Browse.
-                  if (_nextUp(f.upcoming) case final EventSummary n) ...[
-                    const SizedBox(height: 14),
-                    _NextUpCard(event: n, live: _live(n)),
-                  ] else if (f.upcoming.isNotEmpty ||
-                      f.past.isNotEmpty ||
-                      ref.watch(locationProvider).location == null) ...[
-                    // (A brand-new account with a fix already shared gets the
-                    // "Nothing here yet" card below instead — one card, not two.)
-                    const SizedBox(height: 14),
-                    const _NothingUpNextCard(),
-                  ],
-
-                  // Sport filter — All or exactly one sport
-                  if (cats.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 36,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          _chip(p, 'All', _sport == null,
-                              () => setState(() => _sport = null)),
-                          for (final e in cats.entries)
-                            _chip(
-                                p,
-                                '${e.value} ${e.key}'.trim(),
-                                _sport == e.key,
-                                () => setState(() =>
-                                    _sport = _sport == e.key ? null : e.key)),
-                        ],
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 12),
-
-                  ...[
-                    if (f.upcoming.isEmpty && f.past.isEmpty)
-                      GlassCard(
-                        padding: const EdgeInsets.all(22),
-                        child: Column(children: [
-                          const Text('🧭', style: TextStyle(fontSize: 28)),
-                          const SizedBox(height: 8),
-                          Text('Nothing here yet',
-                              style: TextStyle(
-                                  color: p.ink,
-                                  fontSize: 14.5,
-                                  fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 4),
-                          Text(
-                            "You're not in any group yet, so there are no "
-                            "events on your Home. Browse what's happening on "
-                            'SportPadi and find your crew.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: p.muted, fontSize: 12.5),
+                      // Why they came: a guardian / coach / host who hasn't set
+                      // up yet gets that as the first card instead of the quick
+                      // actions; the rest of Home is the same for everyone.
+                      const SizedBox(height: 6),
+                      if (intentCard case final String card)
+                        IntentFirstCard(intentKey: card)
+                      else
+                        Row(children: [
+                          Expanded(
+                            child: _quickAction(p, Icons.group_add_outlined,
+                                'Create group', () => _newGroupSheet(context)),
                           ),
-                          const SizedBox(height: 12),
-                          SpButton(
-                            label: 'Browse events',
-                            icon: Icons.explore_outlined,
-                            onTap: () => ref
-                                .read(homeTabIndexProvider.notifier)
-                                .state = 1,
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _quickAction(
+                                p,
+                                Icons.qr_code_scanner_rounded,
+                                'Scan QR',
+                                () => context.push('/scan'),
+                                dark: true),
                           ),
                         ]),
-                      )
-                    else
-                      _calendarPanel(context, p, panelList, liveList, todayList,
-                          upcomingList, all),
 
-                    // AdMob native (Android). Takes no space until it fills.
-                    const AdMobNativeCard(padding: EdgeInsets.only(top: 14)),
+                      // Weather at the session's location fix (nothing without
+                      // one): conditions, today's range, and a remark for the day.
+                      const WeatherCard(padding: EdgeInsets.only(top: 12)),
 
-                    // Discovery. Below the player's own calendar and above the
-                    // ads — it's the answer to "nothing on this week", which is
-                    // exactly when someone opens Home and leaves. Rendered on
-                    // the empty path too: a brand-new account needs it most.
-                    const SizedBox(height: 22),
-                    SuggestedEventsSection(categoryId: sportCategoryId),
+                      // Gamification: streak, this week's challenges, next unlock.
+                      const YourWeekCard(),
 
-                    const SizedBox(height: 10),
-                    const AdDisplay(slots: ['home_ads'], carousel: true),
-                    // Past events (hidden when the whole feed is empty —
-                    // the Browse CTA covers it).
-                    if (!(f.upcoming.isEmpty && f.past.isEmpty)) ...[
-                      const SizedBox(height: 22),
-                      PastEventsSection(events: past, userId: me?.userId),
+                      // AdMob native (Android). Takes no space until it fills.
+                      const AdMobNativeCard(padding: EdgeInsets.only(top: 14)),
+
+                      // The one thing to look at next: live now, else the soonest
+                      // by real start instant. Nothing coming up → ask for the
+                      // location (so Home can suggest games nearby) or, with it
+                      // already shared, point at Browse.
+                      if (_nextUp(f.upcoming) case final EventSummary n) ...[
+                        const SizedBox(height: 14),
+                        _NextUpCard(event: n, live: _live(n)),
+                      ] else if (f.upcoming.isNotEmpty ||
+                          f.past.isNotEmpty ||
+                          ref.watch(locationProvider).location == null) ...[
+                        // (A brand-new account with a fix already shared gets the
+                        // "Nothing here yet" card below instead — one card, not two.)
+                        const SizedBox(height: 14),
+                        const _NothingUpNextCard(),
+                      ],
+
+                      // Sport filter — All or exactly one sport
+                      if (cats.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 36,
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            children: [
+                              _chip(p, 'All', _sport == null,
+                                  () => setState(() => _sport = null)),
+                              for (final e in cats.entries)
+                                _chip(
+                                    p,
+                                    '${e.value} ${e.key}'.trim(),
+                                    _sport == e.key,
+                                    () => setState(() => _sport =
+                                        _sport == e.key ? null : e.key)),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+
+                      ...[
+                        if (f.upcoming.isEmpty && f.past.isEmpty)
+                          GlassCard(
+                            padding: const EdgeInsets.all(22),
+                            child: Column(children: [
+                              const Text('🧭', style: TextStyle(fontSize: 28)),
+                              const SizedBox(height: 8),
+                              Text('Nothing here yet',
+                                  style: TextStyle(
+                                      color: p.ink,
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 4),
+                              Text(
+                                "You're not in any group yet, so there are no "
+                                "events on your Home. Browse what's happening on "
+                                'SportPadi and find your crew.',
+                                textAlign: TextAlign.center,
+                                style:
+                                    TextStyle(color: p.muted, fontSize: 12.5),
+                              ),
+                              const SizedBox(height: 12),
+                              SpButton(
+                                label: 'Browse events',
+                                icon: Icons.explore_outlined,
+                                onTap: () => ref
+                                    .read(homeTabIndexProvider.notifier)
+                                    .state = 1,
+                              ),
+                            ]),
+                          )
+                        else
+                          _calendarPanel(context, p, panelList, liveList,
+                              todayList, upcomingList, all),
+
+                        // Discovery. Below the player's own calendar and above the
+                        // ads — it's the answer to "nothing on this week", which is
+                        // exactly when someone opens Home and leaves. Rendered on
+                        // the empty path too: a brand-new account needs it most.
+                        const SizedBox(height: 22),
+                        SuggestedEventsSection(categoryId: sportCategoryId),
+
+                        const SizedBox(height: 10),
+                        const AdDisplay(slots: ['home_ads'], carousel: true),
+                        // Past events (hidden when the whole feed is empty —
+                        // the Browse CTA covers it).
+                        if (!(f.upcoming.isEmpty && f.past.isEmpty)) ...[
+                          const SizedBox(height: 22),
+                          PastEventsSection(events: past, userId: me?.userId),
+                        ],
+                      ],
                     ],
-                  ],
-                ],
-              ),
-            );
-          },
-        )),
+                  ),
+                );
+              },
+            )),
       ),
     );
   }
@@ -1302,30 +1307,26 @@ class _NothingUpNextCard extends ConsumerWidget {
             iconSize: 21),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: TextStyle(
-                        color: p.ink,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700)),
-                const SizedBox(height: 3),
-                Text(body,
-                    style: TextStyle(
-                        color: p.muted, fontSize: 12.5, height: 1.4)),
-                const SizedBox(height: 10),
-                SpButton(
-                  label: cta,
-                  icon: hasFix
-                      ? Icons.explore_outlined
-                      : st.denied
-                          ? Icons.settings_outlined
-                          : Icons.my_location_rounded,
-                  tone: hasFix ? SpButtonTone.ink : SpButtonTone.brand,
-                  onTap: st.loading ? null : onTap,
-                ),
-              ]),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title,
+                style: TextStyle(
+                    color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 3),
+            Text(body,
+                style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.4)),
+            const SizedBox(height: 10),
+            SpButton(
+              label: cta,
+              icon: hasFix
+                  ? Icons.explore_outlined
+                  : st.denied
+                      ? Icons.settings_outlined
+                      : Icons.my_location_rounded,
+              tone: hasFix ? SpButtonTone.ink : SpButtonTone.brand,
+              onTap: st.loading ? null : onTap,
+            ),
+          ]),
         ),
       ]),
     );
