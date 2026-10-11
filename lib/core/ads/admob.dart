@@ -35,9 +35,11 @@ class AdMobIds {
   static const _iosNative =
       'ca-app-pub-5037534828580049/7410592823'; // SP-IOS-NATIVE-ADV
 
-  // Anchored adaptive BANNER under the bottom nav. Create a "Banner" ad unit
-  // per platform in AdMob (Apps → your app → Ad units → Add → Banner) and
-  // paste its id here. Until then (null) release builds simply show nothing.
+  // BANNER units — the fallback for an inline banner / medium-rectangle
+  // placement whose console entry has no unit pasted (`resolveBanner`).
+  // (The strip under the bottom nav that used these is gone — deactivated in
+  // AdMob and removed from the app; the owner-console anchors are the only
+  // ad positions now.)
   static const String _androidBanner =
       'ca-app-pub-5037534828580049/7125837581'; // e.g. 'ca-app-pub-5037534828580049/XXXXXXXXXX'
   static const String _iosBanner =
@@ -415,127 +417,7 @@ class _AdMobNativeCardState extends State<AdMobNativeCard> {
   }
 }
 
-// ── Anchored banner ──────────────────────────────────────────────────────────
-
-/// The thin, full-width ad strip pinned under the bottom navigation — the
-/// "small rectangle that keeps changing". It's the standard 320×50 banner —
-/// deliberately the slim one (adaptive sizes run 60–90+ dp on modern phones),
-/// and the SDK swaps the creative on the refresh rate set for the unit in the
-/// AdMob console (Ad unit → Advanced settings → Refresh rate, 30–120s, or
-/// "Google optimized"). No timer code in the app.
-///
-/// Takes no space until an ad loads, so a no-fill never leaves a blank bar.
-/// A hairline + a small gap separate it from the nav so taps on the tabs
-/// never land on the ad (AdMob's accidental-click policy).
-class AdMobBannerBar extends StatefulWidget {
-  const AdMobBannerBar({super.key});
-
-  @override
-  State<AdMobBannerBar> createState() => _AdMobBannerBarState();
-}
-
-class _AdMobBannerBarState extends State<AdMobBannerBar> {
-  BannerAd? _ad;
-  AdSize? _size;
-  bool _loaded = false;
-  bool _requested = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_requested) {
-      _requested = true;
-      unawaited(_load());
-    }
-  }
-
-  Future<void> _load() async {
-    final id = AdMobIds.banner;
-    if (id == null) return;
-    await AdMob.init();
-    if (!mounted) return;
-    // The standard 320×50 banner: the slim strip. (The anchored ADAPTIVE
-    // sizes run 60–90+ dp tall on modern phones — too much under the dock.)
-    const AdSize size = AdSize.banner;
-    if (!mounted) return;
-    final old = _ad;
-    final ad = BannerAd(
-      adUnitId: id,
-      size: size,
-      request: const AdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (a) {
-          if (!mounted) {
-            a.dispose();
-            return;
-          }
-          setState(() {
-            _ad = a as BannerAd;
-            _size = size;
-            _loaded = true;
-          });
-          old?.dispose();
-        },
-        onAdFailedToLoad: (a, err) {
-          a.dispose();
-          if (kDebugMode) debugPrint('[admob] banner failed to load: $err');
-        },
-      ),
-    );
-    await ad.load();
-  }
-
-  @override
-  void dispose() {
-    _ad?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final ad = _ad;
-    final size = _size;
-    if (ad == null || size == null || !_loaded) return const SizedBox.shrink();
-    // An inline banner / rectangle placement is on screen: this strip
-    // steps aside so there's never a second banner (AdMob policy).
-    return ValueListenableBuilder<int>(
-      valueListenable: inlineBannersMounted,
-      builder: (context, inline, _) =>
-          inline > 0 ? const SizedBox.shrink() : _strip(context, ad, size),
-    );
-  }
-
-  Widget _strip(BuildContext context, BannerAd ad, AdSize size) {
-    final p = context.palette;
-    // A sheet or dialog over this screen (its route is no longer current):
-    // the banner is a native view, and on some Android devices native views
-    // paint above Flutter's own layers — the strip would show through, on
-    // top of the sheet. Keep its space so nothing jumps; drop the view until
-    // the screen is back on top.
-    final covered = !(ModalRoute.of(context)?.isCurrent ?? true);
-    return Container(
-      decoration: BoxDecoration(
-        color: p.surface,
-        border: Border(top: BorderSide(color: p.line)),
-      ),
-      padding: const EdgeInsets.only(top: 3, bottom: 3),
-      alignment: Alignment.center,
-      child: SizedBox(
-        width: size.width.toDouble(),
-        height: size.height.toDouble(),
-        child: covered ? null : AdWidget(ad: ad),
-      ),
-    );
-  }
-}
-
 // ── Inline banner / medium rectangle (owner-console placements) ────────────
-
-/// How many inline banner-type ads (inline adaptive banner or 300×250
-/// rectangle) are mounted right now. AdMob policy: never two banners on one
-/// screen — so [AdMobBannerBar] (the strip under the nav) collapses while
-/// this is above zero. Native and first-party ads don't count.
-final ValueNotifier<int> inlineBannersMounted = ValueNotifier<int>(0);
 
 /// A banner-type AdMob unit drawn inline at a placement: [AdMobInlineKind.
 /// adaptive] is the inline adaptive banner (full width, height decided by
@@ -566,16 +448,6 @@ class _AdMobInlineBannerState extends State<AdMobInlineBanner> {
   BannerAd? _ad;
   AdSize? _size;
   bool _requested = false;
-  bool _counted = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Count from mount, not from load: the strip must already be gone by
-    // the time this fills, or both would be visible for a frame.
-    inlineBannersMounted.value += 1;
-    _counted = true;
-  }
 
   @override
   void didChangeDependencies() {
@@ -634,7 +506,6 @@ class _AdMobInlineBannerState extends State<AdMobInlineBanner> {
 
   @override
   void dispose() {
-    if (_counted) inlineBannersMounted.value -= 1;
     _ad?.dispose();
     super.dispose();
   }

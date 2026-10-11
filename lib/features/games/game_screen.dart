@@ -172,6 +172,17 @@ class GameScreen extends ConsumerWidget {
                             : null,
                       ),
                     ],
+                    // One ad at most, right after the scoreboard (and the
+                    // live clock / timeout / set cards when there are any) —
+                    // owner console anchor "game.detail_mid", placed like
+                    // the other detail pages: after the lead card, not at
+                    // the bottom. Never while THIS viewer is scoring a live
+                    // match: the tap controls sit around it (accidental-
+                    // click risk).
+                    if (!(g.canScore && g.isLive))
+                      const AdAnchor(
+                          anchor: 'game.detail_mid',
+                          padding: EdgeInsets.only(top: 12)),
                     if (g.status == 'completed') ...[
                       // Web parity: the post-match summary replaces the
                       // lineups.
@@ -202,14 +213,6 @@ class GameScreen extends ConsumerWidget {
                     ],
                     const SizedBox(height: 12),
                     _TimelineCard(game: g, gameId: gameId),
-                    // One ad at most, after score / officials / timeline —
-                    // owner console anchor "game.detail_mid". Never while
-                    // THIS viewer is scoring a live match: the tap controls
-                    // sit around it (accidental-click risk).
-                    if (!(g.canScore && g.isLive))
-                      const AdAnchor(
-                          anchor: 'game.detail_mid',
-                          padding: EdgeInsets.only(top: 12)),
                     // Basketball: line score + box score while it's played.
                     if (g.isBasketball && g.isLive) ...[
                       const SizedBox(height: 12),

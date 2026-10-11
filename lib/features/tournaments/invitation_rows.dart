@@ -153,7 +153,7 @@ class _InvitationRowState extends ConsumerState<InvitationRow> {
                 Text(
                   [
                     iv.eventDate != null ? formatDay(iv.eventDate) : 'Date TBC',
-                    '${iv.hostTeamName ?? iv.hostGroupName ?? 'Host'} → ${iv.guestTeamName ?? 'your team'}',
+                    '${iv.opponentTeamName ?? iv.hostTeamName ?? iv.hostGroupName ?? 'Host'} → ${iv.guestTeamName ?? 'your team'}',
                   ].join(' · '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

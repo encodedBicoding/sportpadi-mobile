@@ -92,163 +92,196 @@ class TournamentDetailScreen extends ConsumerWidget {
           RefreshIndicator(
             onRefresh: refresh,
             // Loading / error aren't scrollable on their own.
-            child: _pullable(t, AsyncView(
-            value: t,
-            onRetry: () {
-              ref.invalidate(tournamentDetailProvider(eventId));
-              ref.invalidate(tournamentMatchProvider(eventId));
-            },
-            data: (m) {
-              final event = m['event'] is Map
-                  ? Map<String, dynamic>.from(m['event'] as Map)
-                  : const <String, dynamic>{};
-              final category = event['category'] is Map
-                  ? Map<String, dynamic>.from(event['category'] as Map)
-                  : null;
-              final mode = parseStr(m['mode']) ?? 'friendly';
-              final isFriendly = mode == 'friendly';
-              final canManage = m['canManage'] == true;
-              // An invite this viewer can answer from right here — set by the
-              // server only when they administer the invited team's group.
-              final myInvite = m['myInvite'] is Map
-                  ? Map<String, dynamic>.from(m['myInvite'] as Map)
-                  : null;
-              // Teams in this tournament whose squad this viewer runs.
-              final myTeams = [
-                for (final raw
-                    in (m['myTeams'] is List ? m['myTeams'] as List : const []))
-                  if (raw is Map && parseStr(raw['status']) == 'approved')
-                    Map<String, dynamic>.from(raw)
-              ];
-              final hostGroupId = parseStr(event['groupId']) ?? '';
-              final maxTeams = parseInt(m['maxTeams']) ?? 2;
-              final feeLabel = _fmtMoney(
-                  m['feeMinor'], m['feeCurrency'], m['feeCurrencyExponent']);
-              final status = parseStr(event['status']) ?? 'upcoming';
-              final ended = status == 'completed' || status == 'cancelled';
-              final teams =
-                  m['teams'] is List ? (m['teams'] as List) : const [];
-              final rows = [
-                for (final raw in teams)
-                  if (raw is Map) Map<String, dynamic>.from(raw)
-              ];
-              Map<String, dynamic>? hostRow;
-              Map<String, dynamic>? guestRow;
-              for (final row in rows) {
-                if (parseStr(row['role']) == 'host') {
-                  hostRow = row;
-                } else {
-                  guestRow ??= row;
-                }
-              }
-              final guestApproved = parseStr(guestRow?['status']) == 'approved';
-              final inTeams = [
-                for (final r in rows)
-                  if (parseStr(r['status']) != 'rejected') r
-              ];
-              final approvedPick = [
-                for (final r in rows)
-                  if (parseStr(r['status']) == 'approved' && r['team'] is Map)
-                    (
-                      id: parseStr(r['id']) ?? '',
-                      name: parseStr((r['team'] as Map)['name']) ?? 'Team',
-                    ),
-              ];
+            child: _pullable(
+                t,
+                AsyncView(
+                  value: t,
+                  onRetry: () {
+                    ref.invalidate(tournamentDetailProvider(eventId));
+                    ref.invalidate(tournamentMatchProvider(eventId));
+                  },
+                  data: (m) {
+                    final event = m['event'] is Map
+                        ? Map<String, dynamic>.from(m['event'] as Map)
+                        : const <String, dynamic>{};
+                    final category = event['category'] is Map
+                        ? Map<String, dynamic>.from(event['category'] as Map)
+                        : null;
+                    final mode = parseStr(m['mode']) ?? 'friendly';
+                    final isFriendly = mode == 'friendly';
+                    final canManage = m['canManage'] == true;
+                    // An invite this viewer can answer from right here — set by the
+                    // server only when they administer the invited team's group.
+                    final myInvite = m['myInvite'] is Map
+                        ? Map<String, dynamic>.from(m['myInvite'] as Map)
+                        : null;
+                    // Teams in this tournament whose squad this viewer runs.
+                    final myTeams = [
+                      for (final raw in (m['myTeams'] is List
+                          ? m['myTeams'] as List
+                          : const []))
+                        if (raw is Map && parseStr(raw['status']) == 'approved')
+                          Map<String, dynamic>.from(raw)
+                    ];
+                    final hostGroupId = parseStr(event['groupId']) ?? '';
+                    final maxTeams = parseInt(m['maxTeams']) ?? 2;
+                    final feeLabel = _fmtMoney(m['feeMinor'], m['feeCurrency'],
+                        m['feeCurrencyExponent']);
+                    final status = parseStr(event['status']) ?? 'upcoming';
+                    final ended =
+                        status == 'completed' || status == 'cancelled';
+                    final teams =
+                        m['teams'] is List ? (m['teams'] as List) : const [];
+                    final rows = [
+                      for (final raw in teams)
+                        if (raw is Map) Map<String, dynamic>.from(raw)
+                    ];
+                    // Friendly pair: host vs guest — or, when this group only
+                    // organises the match (no host team), the two invited
+                    // teams: home = the first invited.
+                    Map<String, dynamic>? hostRow;
+                    final guestRows = <Map<String, dynamic>>[];
+                    for (final row in rows) {
+                      if (parseStr(row['role']) == 'host') {
+                        hostRow = row;
+                      } else {
+                        guestRows.add(row);
+                      }
+                    }
+                    final neutral = hostRow == null;
+                    if (neutral && guestRows.isNotEmpty) {
+                      // The organiser's pick for the home side, else the
+                      // first invited.
+                      final homeId = parseStr(m['homeTeamId']);
+                      final k = guestRows.indexWhere((r) =>
+                          r['team'] is Map &&
+                          parseStr((r['team'] as Map)['id']) == homeId);
+                      hostRow = guestRows.removeAt(k < 0 ? 0 : k);
+                    }
+                    final guestRow =
+                        guestRows.isNotEmpty ? guestRows.first : null;
+                    final guestApproved =
+                        parseStr(guestRow?['status']) == 'approved' &&
+                            (!neutral ||
+                                parseStr(hostRow?['status']) == 'approved');
+                    final inTeams = [
+                      for (final r in rows)
+                        if (parseStr(r['status']) != 'rejected') r
+                    ];
+                    final approvedPick = [
+                      for (final r in rows)
+                        if (parseStr(r['status']) == 'approved' &&
+                            r['team'] is Map)
+                          (
+                            id: parseStr(r['id']) ?? '',
+                            name:
+                                parseStr((r['team'] as Map)['name']) ?? 'Team',
+                          ),
+                    ];
 
-              return ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 36),
-                  children: [
-                    // Invisible: keeps every live score on this page up to date.
-                    LiveScoresSync(eventId: eventId),
-                    _HeaderCard(
-                        event: event,
-                        mode: mode,
-                        status: status,
-                        onShare: share),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (myInvite != null) ...[
-                            const SizedBox(height: 14),
-                            _InviteBanner(
-                                eventId: eventId,
-                                groupId: hostGroupId,
-                                invite: myInvite),
-                          ] else if (myTeams.isNotEmpty) ...[
-                            const SizedBox(height: 14),
-                            _MySquads(
-                                eventId: eventId,
-                                groupId: hostGroupId,
-                                teams: myTeams),
-                          ],
-                          if (isFriendly) ...[
-                            const SizedBox(height: 14),
-                            _MatchupCard(
-                              eventId: eventId,
-                              hostRow: hostRow,
-                              guestRow: guestRow,
-                              feeLabel: feeLabel,
-                              canManage: canManage,
-                            ),
-                            const SizedBox(height: 14),
-                            _MatchSection(
-                              eventId: eventId,
-                              canCreate: canManage,
-                              guestApproved: guestApproved,
-                              category: category,
-                            ),
-                          ] else ...[
-                            const SizedBox(height: 14),
-                            _TeamsCard(
-                              eventId: eventId,
-                              rows: inTeams,
-                              maxTeams: maxTeams,
-                              canManage: canManage,
-                              ended: ended,
-                              feeLabel: feeLabel,
-                              categoryId: category != null
-                                  ? parseStr(category['id'])
-                                  : null,
-                              hostGroupId: parseStr(event['groupId']),
-                            ),
-                            const SizedBox(height: 14),
-                            _MatchesCard(
-                              eventId: eventId,
-                              canManage: canManage,
-                              ended: ended,
-                              approvedPick: approvedPick,
-                              category: category,
-                            ),
-                            const SizedBox(height: 14),
-                            _AwardsCard(eventId: eventId),
-                          ],
-                          if (canManage) ...[
-                            if (!ended) ...[
-                              const SizedBox(height: 14),
-                              _EndTournamentCard(
-                                  eventId: eventId, isFriendly: isFriendly),
+                    return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.only(bottom: 36),
+                      children: [
+                        // Invisible: keeps every live score on this page up to date.
+                        LiveScoresSync(eventId: eventId),
+                        _HeaderCard(
+                            event: event,
+                            mode: mode,
+                            status: status,
+                            onShare: share),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (myInvite != null) ...[
+                                const SizedBox(height: 14),
+                                _InviteBanner(
+                                    eventId: eventId,
+                                    groupId: hostGroupId,
+                                    invite: myInvite),
+                              ] else if (myTeams.isNotEmpty) ...[
+                                const SizedBox(height: 14),
+                                _MySquads(
+                                    eventId: eventId,
+                                    groupId: hostGroupId,
+                                    teams: myTeams),
+                              ],
+                              if (isFriendly) ...[
+                                const SizedBox(height: 14),
+                                _MatchupCard(
+                                  eventId: eventId,
+                                  hostRow: hostRow,
+                                  guestRow: guestRow,
+                                  neutral: neutral,
+                                  feeLabel: feeLabel,
+                                  canManage: canManage,
+                                ),
+                                // Owner-console ad spot (anchor "tournament.detail_bottom");
+                                // nothing unless set.
+                                const AdAnchor(
+                                    anchor: 'tournament.detail_bottom',
+                                    padding:
+                                        EdgeInsets.fromLTRB(20, 14, 20, 0)),
+                                const SizedBox(height: 14),
+                                _MatchSection(
+                                  eventId: eventId,
+                                  canCreate: canManage,
+                                  guestApproved: guestApproved,
+                                  neutral: neutral,
+                                  category: category,
+                                ),
+                              ] else ...[
+                                const SizedBox(height: 14),
+                                _TeamsCard(
+                                  eventId: eventId,
+                                  rows: inTeams,
+                                  maxTeams: maxTeams,
+                                  canManage: canManage,
+                                  ended: ended,
+                                  feeLabel: feeLabel,
+                                  categoryId: category != null
+                                      ? parseStr(category['id'])
+                                      : null,
+                                  hostGroupId: parseStr(event['groupId']),
+                                ),
+                                // Owner-console ad spot (anchor "tournament.detail_bottom");
+                                // nothing unless set.
+                                const AdAnchor(
+                                    anchor: 'tournament.detail_bottom',
+                                    padding:
+                                        EdgeInsets.fromLTRB(20, 14, 20, 0)),
+                                const SizedBox(height: 14),
+                                _MatchesCard(
+                                  eventId: eventId,
+                                  canManage: canManage,
+                                  ended: ended,
+                                  approvedPick: approvedPick,
+                                  category: category,
+                                ),
+                                const SizedBox(height: 14),
+                                _AwardsCard(eventId: eventId),
+                              ],
+                              if (canManage) ...[
+                                if (!ended) ...[
+                                  const SizedBox(height: 14),
+                                  _EndTournamentCard(
+                                      eventId: eventId, isFriendly: isFriendly),
+                                ],
+                                const SizedBox(height: 14),
+                                _ManageRow(
+                                    eventId: eventId,
+                                    ended: ended,
+                                    hostGroupId: parseStr(event['groupId'])),
+                              ],
                             ],
-                            const SizedBox(height: 14),
-                            _ManageRow(
-                                eventId: eventId,
-                                ended: ended,
-                                hostGroupId: parseStr(event['groupId'])),
-                          ],
-                        ],
-                      ),
-                    ),
-                    // Owner-console ad spot (anchor "tournament.detail_bottom");
-                    // nothing unless set.
-                    const AdAnchor(
-                        anchor: 'tournament.detail_bottom',
-                        padding: EdgeInsets.fromLTRB(20, 14, 20, 0)),
-                  ],
-                );
-            },
-          )),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                )),
           ),
           // While loading (or on error) there's no cover to carry the back
           // button — keep one on screen regardless.
@@ -783,10 +816,15 @@ class _MatchupCard extends ConsumerWidget {
     required this.guestRow,
     required this.feeLabel,
     required this.canManage,
+    this.neutral = false,
   });
   final String eventId;
   final Map<String, dynamic>? hostRow;
   final Map<String, dynamic>? guestRow;
+
+  /// The group only organises this match: both rows are invited teams
+  /// (home / away), so the labels and the status pills say so.
+  final bool neutral;
   final String? feeLabel;
   final bool canManage;
 
@@ -794,6 +832,7 @@ class _MatchupCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
     final guestStatus = parseStr(guestRow?['status']);
+    final homeStatus = neutral ? parseStr(hostRow?['status']) : null;
     final guestFeeStatus = parseStr(guestRow?['feeStatus']);
     final guestRowId = parseStr(guestRow?['id']);
 
@@ -809,7 +848,10 @@ class _MatchupCard extends ConsumerWidget {
       child: Column(children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
-              child: _TeamCol(label: 'Host', row: hostRow, eventId: eventId)),
+              child: _TeamCol(
+                  label: neutral ? 'Home' : 'Host',
+                  row: hostRow,
+                  eventId: eventId)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Column(children: [
@@ -829,7 +871,10 @@ class _MatchupCard extends ConsumerWidget {
             ]),
           ),
           Expanded(
-              child: _TeamCol(label: 'Guest', row: guestRow, eventId: eventId)),
+              child: _TeamCol(
+                  label: neutral ? 'Away' : 'Guest',
+                  row: guestRow,
+                  eventId: eventId)),
         ]),
         const SizedBox(height: 12),
         Container(
@@ -844,9 +889,18 @@ class _MatchupCard extends ConsumerWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
+              if (homeStatus != null)
+                SpBadge(
+                  'Home: $homeStatus',
+                  tone: homeStatus == 'approved'
+                      ? p.accent
+                      : homeStatus == 'rejected'
+                          ? p.danger
+                          : p.amber,
+                ),
               if (guestStatus != null)
                 SpBadge(
-                  'Guest: $guestStatus',
+                  '${neutral ? 'Away' : 'Guest'}: $guestStatus',
                   tone: guestStatus == 'approved'
                       ? p.accent
                       : guestStatus == 'rejected'
@@ -1007,11 +1061,15 @@ class _MatchSection extends ConsumerWidget {
     required this.canCreate,
     required this.guestApproved,
     required this.category,
+    this.neutral = false,
   });
   final String eventId;
   final bool canCreate;
   final bool guestApproved;
   final Map<String, dynamic>? category;
+
+  /// The group only organises this match — both sides are invited teams.
+  final bool neutral;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1041,7 +1099,9 @@ class _MatchSection extends ConsumerWidget {
                     ? canCreate
                         ? 'No match game yet — create one to set the officiant and kickoff time.'
                         : "The match game hasn't been set up yet."
-                    : 'The match game unlocks once the invited team accepts.',
+                    : neutral
+                        ? 'The match game unlocks once both teams have accepted.'
+                        : 'The match game unlocks once the invited team accepts.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 13, height: 1.4),
               ),

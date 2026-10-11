@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
@@ -602,6 +603,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                   padding: EdgeInsets.symmetric(horizontal: 4),
                   child: SpSectionTitle('How it works'),
                 ),
+                // AdMob native (Android). Takes no space until it fills.
+                const AdMobNativeCard(
+                  padding: EdgeInsets.only(top: 14),
+                  template: TemplateType.small,
+                ),
                 const SizedBox(height: 10),
                 SpListCard(children: [
                   for (var i = 0; i < steps.length; i++)
@@ -637,8 +643,6 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                           ]),
                     ),
                 ]),
-                // AdMob native (Android). Takes no space until it fills.
-                const AdMobNativeCard(padding: EdgeInsets.only(top: 14)),
               ],
             ),
           ),

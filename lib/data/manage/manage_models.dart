@@ -64,6 +64,7 @@ class TournamentInvite {
     this.categoryLabel,
     this.hostGroupName,
     this.hostTeamName,
+    this.opponentTeamName,
     this.guestTeamId,
     this.guestTeamName,
     this.feeLabel,
@@ -80,6 +81,10 @@ class TournamentInvite {
   final String? categoryLabel;
   final String? hostGroupName;
   final String? hostTeamName;
+
+  /// Who the invited team would play: the host team, or — in a friendly the
+  /// host group only organises — the other invited team. Null for a draw.
+  final String? opponentTeamName;
 
   /// The invited team. With [hostGroupId] and [eventId] this addresses the
   /// squad page accepting should drop the admin on.
@@ -123,6 +128,9 @@ class TournamentInvite {
           : null,
       hostGroupName: parseStr(j['hostGroupName']),
       hostTeamName: host is Map ? parseStr(host['name']) : null,
+      opponentTeamName: j['opponentTeam'] is Map
+          ? parseStr((j['opponentTeam'] as Map)['name'])
+          : null,
       guestTeamId: guest is Map ? parseStr(guest['id']) : null,
       guestTeamName: guest is Map ? parseStr(guest['name']) : null,
       feeLabel: fee,

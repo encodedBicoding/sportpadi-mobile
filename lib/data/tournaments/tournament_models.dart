@@ -17,6 +17,11 @@ class TournamentSummary {
     this.hostKitPrimary,
     this.guestTeamLogo,
     this.guestKitPrimary,
+    this.mode = 'friendly',
+    this.maxTeams = 2,
+    this.teamsIn = 0,
+    this.teamsInvited = 0,
+    this.organiserOnly = false,
   });
 
   final String eventId;
@@ -34,6 +39,16 @@ class TournamentSummary {
   final String? hostKitPrimary;
   final String? guestTeamLogo;
   final String? guestKitPrimary;
+
+  /// friendly | multi_team | league. A multi-team tournament isn't a pair —
+  /// the card shows the draw's fill — and its organiser may field no team
+  /// of their own ([organiserOnly]).
+  final String mode;
+  final int maxTeams;
+  final int teamsIn;
+  final int teamsInvited;
+  final bool organiserOnly;
+  bool get isMulti => mode != 'friendly';
 
   factory TournamentSummary.fromJson(Map<String, dynamic> j) {
     final cat = j['category'];
@@ -55,6 +70,11 @@ class TournamentSummary {
       hostKitPrimary: host is Map ? parseStr(host['kitPrimary']) : null,
       guestTeamLogo: guest is Map ? parseStr(guest['logoUrl']) : null,
       guestKitPrimary: guest is Map ? parseStr(guest['kitPrimary']) : null,
+      mode: parseStr(j['mode']) ?? 'friendly',
+      maxTeams: (j['maxTeams'] as num?)?.toInt() ?? 2,
+      teamsIn: (j['teamsIn'] as num?)?.toInt() ?? 0,
+      teamsInvited: (j['teamsInvited'] as num?)?.toInt() ?? 0,
+      organiserOnly: j['organiserOnly'] == true,
     );
   }
 }

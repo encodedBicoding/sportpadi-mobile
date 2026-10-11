@@ -37,6 +37,10 @@ class UserIntent {
 
   /// In-app route the wizard lands on — the first relevant page.
   final String destination;
+
+  /// The walkthrough clip shown when the card is tapped (9:16, silent,
+  /// ~1 min) — file name under [WalkthroughConfig.base].
+  String get videoFile => 'walkthrough-$key.mp4';
 }
 
 const intents = <UserIntent>[
