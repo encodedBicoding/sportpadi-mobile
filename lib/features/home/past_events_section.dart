@@ -174,7 +174,7 @@ class _PastRow extends StatelessWidget {
     }
 
     final sub = [
-      if (e.groupName != null) e.groupName!,
+      if (e.hostLine != null) e.hostLine!,
       if (t) 'Tournament' else if (e.categoryName != null) e.categoryName!,
     ].join(' · ');
 

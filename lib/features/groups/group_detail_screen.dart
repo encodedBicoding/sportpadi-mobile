@@ -18,15 +18,17 @@ import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
 import 'package:sportpadi_mobile/data/groups/membership_requests_repository.dart';
 import 'package:sportpadi_mobile/data/payments/payment_models.dart';
-import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/data/messages/messages_repository.dart'
     show messageStartOptionsProvider;
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart'
     show groupProgressionProvider;
-import 'package:sportpadi_mobile/data/tournaments/tournament_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
+import 'package:sportpadi_mobile/data/leagues/leagues_repository.dart';
+import 'package:sportpadi_mobile/features/teams/sport_cards.dart';
+import 'package:sportpadi_mobile/features/tournaments/tournament_modes.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_tab_track.dart';
 import 'package:sportpadi_mobile/data/billing/iap_repository.dart';
 import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
 import 'package:sportpadi_mobile/features/announcements/announcement_entry_points.dart';
@@ -44,7 +46,6 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
-import 'package:sportpadi_mobile/shared/widgets/team_tile.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_tile.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
@@ -95,6 +96,8 @@ Future<void> _refreshGroupPage(
   ref.invalidate(groupTeamsProvider(groupId));
   ref.invalidate(teamAllowanceProvider(groupId));
   ref.invalidate(groupTournamentsProvider(groupId));
+  ref.invalidate(groupLeaguesProvider(groupId));
+  ref.invalidate(groupTeamLeaguesProvider(groupId));
   ref.invalidate(groupInvitesProvider(groupId));
   return settleAll([
     ref.read(groupProvider(groupId).future),
@@ -122,6 +125,8 @@ List<Future<Object?>> _tabRefreshFutures(
         ],
       _ => [
           ref.read(groupTournamentsProvider(groupId).future),
+          ref.read(groupLeaguesProvider(groupId).future),
+          ref.read(groupTeamLeaguesProvider(groupId).future),
           if (canManage) ref.read(groupInvitesProvider(groupId).future),
         ],
     };
@@ -143,14 +148,24 @@ Widget _pullablePage(WidgetRef ref, String groupId, AsyncValue<Object?> group,
         : view;
 
 class GroupDetailScreen extends ConsumerWidget {
-  const GroupDetailScreen({super.key, required this.groupId});
+  const GroupDetailScreen({super.key, required this.groupId, this.initialTab});
   final String groupId;
+
+  /// `?tab=teams|tournaments|leagues` (notification deep links).
+  final String? initialTab;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final group = ref.watch(groupProvider(groupId));
     final p = context.palette;
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    // Leagues (organised, and the ones the group's teams play in) live under
+    // Tournaments → League now; an old ?tab=leagues lands on Tournaments.
+    const tabCount = 3;
+    final startTab = switch (initialTab) {
+      'teams' => 1,
+      'tournaments' || 'leagues' => 2,
+      _ => 0,
+    };
     return Scaffold(
       backgroundColor: p.bg,
       // Keep the dock in reach here: Groups is lit, and any tab jumps back
@@ -170,7 +185,9 @@ class GroupDetailScreen extends ConsumerWidget {
                 value: group,
                 onRetry: () => ref.invalidate(groupProvider(groupId)),
                 data: (g) => DefaultTabController(
-                  length: 3,
+                  key: const ValueKey('group-tabs-$tabCount'),
+                  length: tabCount,
+                  initialIndex: startTab,
                   // ONE scroll view for the whole page: header (cover,
                   // identity card, tools), the pinned tab switch, then the
                   // open tab's content as an ordinary box sliver. The page
@@ -201,47 +218,14 @@ class GroupDetailScreen extends ConsumerWidget {
                                   color: p.bg,
                                   padding:
                                       const EdgeInsets.fromLTRB(20, 6, 20, 6),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: dark
-                                          ? p.surface2
-                                          : const Color(0xFFE6EBE8),
-                                      borderRadius: BorderRadius.circular(999),
-                                    ),
-                                    child: TabBar(
-                                      dividerColor: Colors.transparent,
-                                      indicatorSize: TabBarIndicatorSize.tab,
-                                      indicator: BoxDecoration(
-                                        color: p.surface,
-                                        borderRadius:
-                                            BorderRadius.circular(999),
-                                        boxShadow: dark
-                                            ? null
-                                            : const [
-                                                BoxShadow(
-                                                    color: Color(0x140E1411),
-                                                    blurRadius: 2,
-                                                    offset: Offset(0, 1))
-                                              ],
-                                      ),
-                                      labelColor: p.ink,
-                                      unselectedLabelColor: p.muted,
-                                      labelStyle: const TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 13),
-                                      unselectedLabelStyle: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13),
-                                      overlayColor: WidgetStateProperty.all(
-                                          Colors.transparent),
-                                      tabs: const [
-                                        Tab(height: 38, text: 'Events'),
-                                        Tab(height: 38, text: 'Teams'),
-                                        Tab(height: 38, text: 'Tournaments'),
-                                      ],
-                                    ),
-                                  ),
+                                  // Scrolls sideways only when the tabs
+                                  // don't fit (e.g. Leagues on a narrow
+                                  // phone); otherwise they share the width.
+                                  child: const SpTabTrack(labels: [
+                                    'Events',
+                                    'Teams',
+                                    'Tournaments',
+                                  ]),
                                 ),
                               ),
                             ),
@@ -735,6 +719,13 @@ void _handleNewTournament(BuildContext context, WidgetRef ref, String groupId) {
     context.push('/groups/$groupId/new-tournament');
     return;
   }
+  // No tournaments on the plan, but leagues are: straight to New league.
+  final leaguesOn =
+      ref.read(leagueSetupProvider(groupId)).valueOrNull?.b('enabled') ?? false;
+  if (leaguesOn) {
+    context.push('/groups/$groupId/new-league');
+    return;
+  }
   final canBuyInApp = IapRepository.supportedPlatform;
   if (!canBuyInApp) {
     // Quiet nudge (server-throttled alongside the wallet one), then the modal.
@@ -1075,13 +1066,11 @@ class _TeamsTab extends ConsumerStatefulWidget {
   ConsumerState<_TeamsTab> createState() => _TeamsTabState();
 }
 
-/// A group's teams (2026): a group can field a team — or several — in each
-/// sport it plays. Sport chips filter; each sport is its own section of
-/// kit-banner tiles, and admins can add a team right under a sport (the
-/// create form opens with that sport picked) or for a new sport up top.
+/// A group's teams (2026): like the Tournaments tab, a grid of cards — New
+/// team (admins), then one card per sport the group has a team in — each
+/// opening that sport's screen of teams with search
+/// (features/teams/sport_cards.dart; web components/groups/SportCards.tsx).
 class _TeamsTabState extends ConsumerState<_TeamsTab> {
-  String? _sport; // category name; null = all
-
   void _newTeam([String? categoryId]) => context.push(
       '/groups/${widget.groupId}/new-team${categoryId != null ? '?category=$categoryId' : ''}');
 
@@ -1095,203 +1084,28 @@ class _TeamsTabState extends ConsumerState<_TeamsTab> {
         ? ref.watch(teamAllowanceProvider(widget.groupId)).valueOrNull
         : null;
     final canBuild = widget.canManage && (allow?.canBuild ?? false);
-    final canMany = allow?.canBuildMultiple ?? false;
     final locked = widget.canManage && allow != null && !allow.canBuild;
-    Widget lockCard() => Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: p.orangeTint,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(children: [
-            SpIconTile(Icons.lock_outline_rounded,
-                bg: p.surface, fg: p.orangeInk, size: 38, iconSize: 18),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Team building is a plan feature',
-                        style: TextStyle(
-                            color: p.ink,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700)),
-                    Text(
-                        'Upgrade, or redeem a promo code, to build one team per sport — or several.',
-                        style: TextStyle(color: p.orangeInk, fontSize: 11.5)),
-                  ]),
-            ),
-          ]),
-        );
     final view = AsyncView(
       value: teams,
       onRetry: () => ref.invalidate(groupTeamsProvider(widget.groupId)),
       data: (list) {
-        if (list.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              if (locked) lockCard(),
-              GlassCard(
-                padding: const EdgeInsets.all(24),
-                child: Column(children: [
-                  SpIconTile(Icons.shield_outlined,
-                      bg: p.accentTint,
-                      fg: p.greenText,
-                      size: 56,
-                      iconSize: 26),
-                  const SizedBox(height: 12),
-                  Text('No teams yet',
-                      style: TextStyle(
-                          color: p.ink,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.canManage
-                        ? 'Build a team for any sport this group plays — football, basketball, and more. Teams are what you enter into tournaments.'
-                        : 'This group hasn\'t built any teams yet.',
-                    textAlign: TextAlign.center,
-                    style:
-                        TextStyle(color: p.muted, fontSize: 13, height: 1.45),
-                  ),
-                  if (canBuild) ...[
-                    const SizedBox(height: 16),
-                    SpButton(
-                      label: 'Create a team',
-                      icon: Icons.add_rounded,
-                      onTap: _newTeam,
-                    ),
-                  ],
-                ]),
-              ),
-            ]),
-          );
-        }
-        // Grouped by sport, in first-seen order.
-        final bySport = <String, List<TeamSummary>>{};
-        for (final t in list) {
-          bySport.putIfAbsent(t.categoryName ?? 'Other', () => []).add(t);
-        }
-        final sports = bySport.keys.toList();
-        final shown = _sport != null && bySport.containsKey(_sport)
-            ? {_sport!: bySport[_sport]!}
-            : bySport;
-
-        Widget chip(String label, bool active, VoidCallback onTap) => Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: Material(
-                color: active ? p.hero : p.surface,
-                shape: StadiumBorder(
-                    side: active ? BorderSide.none : BorderSide(color: p.line)),
-                child: InkWell(
-                  customBorder: const StadiumBorder(),
-                  onTap: onTap,
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
-                    child: Text(label,
-                        style: TextStyle(
-                            color: active ? p.onHero : p.ink,
-                            fontSize: 12.5,
-                            fontWeight:
-                                active ? FontWeight.w700 : FontWeight.w600)),
-                  ),
-                ),
-              ),
-            );
-
+        final sports = {for (final t in list) t.categoryId}.length;
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            if (locked) lockCard(),
-            Row(children: [
-              Expanded(
-                child: Text(
-                    '${list.length} team${list.length == 1 ? '' : 's'} · ${sports.length} sport${sports.length == 1 ? '' : 's'}',
-                    style: TextStyle(
-                        color: p.muted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600)),
-              ),
-              if (canBuild)
-                Material(
-                  color: p.hero,
-                  shape: const StadiumBorder(),
-                  child: InkWell(
-                    customBorder: const StadiumBorder(),
-                    onTap: _newTeam,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 9),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.add_rounded, size: 17, color: p.onHero),
-                        const SizedBox(width: 4),
-                        Text('New team',
-                            style: TextStyle(
-                                color: p.onHero,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700)),
-                      ]),
-                    ),
-                  ),
-                ),
-            ]),
-            if (sports.length > 1) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 36,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    chip('All · ${list.length}', _sport == null,
-                        () => setState(() => _sport = null)),
-                    for (final sp in sports)
-                      chip(
-                        '${bySport[sp]!.first.categoryEmoji != null ? '${bySport[sp]!.first.categoryEmoji} ' : ''}$sp · ${bySport[sp]!.length}',
-                        _sport == sp,
-                        () => setState(() => _sport = _sport == sp ? null : sp),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-            for (final entry in shown.entries) ...[
-              const SizedBox(height: 18),
-              SpSectionTitle(
-                '${entry.value.first.categoryEmoji != null ? '${entry.value.first.categoryEmoji} ' : ''}${entry.key}',
-                count: entry.value.length,
-                // A one-team-per-sport plan can't add a second team here.
-                trailing: canBuild && canMany
-                    ? GestureDetector(
-                        onTap: () => _newTeam(entry.value.first.categoryId),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(Icons.add_rounded, size: 16, color: p.greenText),
-                          Text('Add',
-                              style: TextStyle(
-                                  color: p.greenText,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700)),
-                        ]),
-                      )
-                    : null,
-              ),
+            if (list.isNotEmpty) ...[
+              Text(
+                  '${list.length} team${list.length == 1 ? '' : 's'} · $sports sport${sports == 1 ? '' : 's'}',
+                  style: TextStyle(color: p.muted, fontSize: 13, fontWeight: FontWeight.w600)),
               const SizedBox(height: 10),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: EdgeInsets.zero,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  mainAxisExtent: 172,
-                ),
-                itemCount: entry.value.length,
-                itemBuilder: (_, i) => TeamTile(team: entry.value[i]),
-              ),
             ],
+            SportCardsGrid(
+              groupId: widget.groupId,
+              teams: list,
+              onNew: widget.canManage ? () => _newTeam() : null,
+              locked: locked && !canBuild,
+              onLocked: () => context.push('/groups/${widget.groupId}/plan'),
+            ),
           ]),
         );
       },
@@ -1307,53 +1121,35 @@ class _TournamentsTab extends ConsumerWidget {
   final bool canManage;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final t = ref.watch(groupTournamentsProvider(groupId));
-    final body = AsyncView(
-      value: t,
-      onRetry: () => ref.invalidate(groupTournamentsProvider(groupId)),
-      data: (list) => list.isEmpty
-          ? const _Empty('No tournaments yet.', Icons.emoji_events_outlined)
-          : Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final (i, x) in list.indexed) ...[
-                    if (i > 0) const SizedBox(height: 10),
-                    _TournamentCard(t: x),
-                  ],
-                ],
-              ),
-            ),
-    );
-    // A box, not a scroll view — see _EventsTab.
-    if (!canManage) return body;
+    // Keep the league plan check warm for "New tournament" (league option).
+    if (canManage) ref.watch(leagueSetupProvider(groupId));
+    // Admins whose plan has neither tournaments nor leagues see a locked card
+    // (its tap explains / offers the plan — _handleNewTournament).
+    final ov = ref.watch(groupOverviewProvider(groupId)).valueOrNull;
+    final leaguesOn = ref.watch(leagueSetupProvider(groupId)).valueOrNull?.b('enabled') ?? false;
+    final locked = canManage && ov != null && !ov.canCreateTournaments && !leaguesOn;
     // Web shows pending invites inline on this tab; on mobile they live on
-    // their own screen, so at least say how many are waiting — otherwise the
-    // only way to find them is a popup menu item with no badge on it.
-    final pending =
-        ref.watch(groupInvitesProvider(groupId)).valueOrNull ?? const [];
-    // Every tier sees the button; _handleNewTournament decides what a tap
-    // does (create flow vs neutral gated modal + quiet email nudge).
-    return Column(children: [
-      if (pending.isNotEmpty)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-          child: _PendingInvitesStrip(groupId: groupId, count: pending.length),
+    // their own screen, so at least say how many are waiting.
+    final pending = canManage
+        ? ref.watch(groupInvitesProvider(groupId)).valueOrNull ?? const []
+        : const [];
+    // A box, not a scroll view — see _EventsTab.
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        if (pending.isNotEmpty) ...[
+          _PendingInvitesStrip(groupId: groupId, count: pending.length),
+          const SizedBox(height: 12),
+        ],
+        // One card per mode — New tournament, 1v1 Friendly, Multi-team,
+        // League — each opening its own screen (tournament_modes.dart).
+        TournamentModeCards(
+          groupId: groupId,
+          locked: locked,
+          onNew: canManage ? () => _handleNewTournament(context, ref, groupId) : null,
         ),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-        // SpButton, not FilledButton.icon (semantics assertion — see
-        // SpButton).
-        child: SpButton(
-          label: 'New tournament',
-          icon: Icons.add_rounded,
-          expand: true,
-          onTap: () => _handleNewTournament(context, ref, groupId),
-        ),
-      ),
-      body,
-    ]);
+      ]),
+    );
   }
 }
 
@@ -1397,23 +1193,6 @@ class _PendingInvitesStrip extends StatelessWidget {
       ),
     );
   }
-}
-
-class _Empty extends StatelessWidget {
-  const _Empty(this.text, this.icon);
-  final String text;
-  final IconData icon;
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(32, 48, 32, 32),
-        child: Column(children: [
-          Center(child: SpIconTile(icon, size: 56, iconSize: 26)),
-          const SizedBox(height: 12),
-          Text(text,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: context.palette.muted, fontSize: 13.5)),
-        ]),
-      );
 }
 
 /// Brand gradient cover fallback.
@@ -1976,121 +1755,6 @@ class _CheckinUsageCard extends StatelessWidget {
 
 /// The web tournament card: badges row (sport · date · Host/Away), title,
 /// then host crest VS guest crest with the invite status.
-class _TournamentCard extends StatelessWidget {
-  const _TournamentCard({required this.t});
-  final TournamentSummary t;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    return GlassCard(
-      onTap: () => context.push('/tournaments/${t.eventId}'),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 6,
-            runSpacing: 4,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              if (t.categoryName != null)
-                SpBadge('${t.categoryEmoji ?? ''} ${t.categoryName}'.trim()),
-              if (t.eventDate != null)
-                Text(formatDay(t.eventDate),
-                    style: TextStyle(color: p.muted, fontSize: 11)),
-              SpBadge(t.isHost ? 'Host' : 'Away',
-                  tone: t.isHost ? p.accent : p.muted),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(t.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          if (t.isMulti)
-            // A multi-team tournament isn't a pair: show the draw's fill
-            // (the organiser may not field a team at all).
-            Row(children: [
-              Icon(Icons.groups_outlined, size: 18, color: p.muted),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text.rich(TextSpan(children: [
-                  TextSpan(text: '${t.teamsIn} of ${t.maxTeams} teams'),
-                  if (t.teamsInvited > 0)
-                    TextSpan(
-                        text: ' · ${t.teamsInvited} invited',
-                        style: TextStyle(
-                            color: p.muted, fontWeight: FontWeight.w500)),
-                ]),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: p.ink,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600)),
-              ),
-              if (t.organiserOnly && t.isHost) const SpBadge('Organiser'),
-            ])
-          else
-          Row(children: [
-            Crest(
-                logoUrl: t.hostTeamLogo,
-                kitPrimary: t.hostKitPrimary,
-                label: t.hostTeamName ?? '—',
-                size: 28),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(t.hostTeamName ?? '—',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: p.ink,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600)),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text('vs',
-                  style: TextStyle(
-                      color: p.muted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800)),
-            ),
-            Crest(
-                logoUrl: t.guestTeamLogo,
-                kitPrimary: t.guestKitPrimary,
-                label: t.guestTeamName ?? '—',
-                size: 28),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(t.guestTeamName ?? '—',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: p.ink,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600)),
-            ),
-            const Spacer(),
-            if (t.guestStatus != null)
-              SpBadge(
-                t.guestStatus!,
-                tone: t.guestStatus == 'accepted'
-                    ? p.accent
-                    : t.guestStatus == 'declined'
-                        ? p.danger
-                        : p.amber,
-              ),
-          ]),
-        ],
-      ),
-    );
-  }
-}
-
 /// Outline sibling of SpButton for the secondary header action.
 class _OutlineButton extends StatelessWidget {
   const _OutlineButton(

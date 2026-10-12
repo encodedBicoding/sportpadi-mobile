@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/data/leagues/leagues_repository.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
 import 'package:sportpadi_mobile/data/tournaments/squad_models.dart';
@@ -147,12 +148,17 @@ class _StripesPainter extends CustomPainter {
 ///   • a TOURNAMENT SQUAD ([eventId] set): the accepted players for that
 ///     event; placements save to the squad — the only place formations live
 ///     now (there is no general team formation any more);
-///   • legacy team mode ([eventId] null): read-only view of the old roster
+///   • a LEAGUE season formation ([leagueId] set): the team's registered
+///     players for that league; placements save to the season formation —
+///     what every fixture not yet kicked off lines up with (substitutions in
+///     a match update it too);
+///   • legacy team mode (neither set): read-only view of the old roster
 ///     placements, kept so nothing crashes on old links.
 class FormationBoardScreen extends ConsumerStatefulWidget {
-  const FormationBoardScreen({super.key, required this.teamId, this.eventId});
+  const FormationBoardScreen({super.key, required this.teamId, this.eventId, this.leagueId});
   final String teamId;
   final String? eventId;
+  final String? leagueId;
   @override
   ConsumerState<FormationBoardScreen> createState() =>
       _FormationBoardScreenState();
@@ -214,10 +220,45 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
     );
   }
 
+  /// League roster → the TeamDetail shape the board renders (memberId = player id).
+  TeamDetail _fromLeague(J d) {
+    final placements = d.o('formation')?.o('placements');
+    final captain = d.s('captainPlayerId');
+    final cfg = d.o('formation')?.o('config')?.raw;
+    return TeamDetail(
+      id: widget.teamId,
+      name: d.o('team')?.str('name', 'Team') ?? 'Team',
+      logoUrl: d.o('team')?.s('logoUrl'),
+      kitPrimary: d.s('kitPrimary'),
+      kitSecondary: d.s('kitSecondary'),
+      formationName: d.o('formation')?.s('name'),
+      canManage: d.b('isCoach') || d.b('isOrganiser'),
+      formation: FormationConfig.fromJson(cfg == null ? null : Map<String, dynamic>.from(cfg)),
+      members: [
+        for (final m in d.list('players'))
+          if (m.s('status') == 'registered')
+            TeamMember(
+              memberId: m.str('playerId'),
+              playerId: m.str('playerId'),
+              displayName: m.str('displayName', 'Player'),
+              avatarUrl: m.s('avatarUrl'),
+              jerseyNumber: m.iOrNull('shirtNumber'),
+              positions: [if (m.s('position') != null) m.str('position')],
+              isStarter: placements?.o(m.str('playerId'))?.b('isStarter') ?? false,
+              isCaptain: captain != null && captain == m.s('playerId'),
+              posX: placements?.o(m.str('playerId'))?.d('posX'),
+              posY: placements?.o(m.str('playerId'))?.d('posY'),
+            ),
+      ],
+    );
+  }
+
   Future<void> _load() async {
     try {
       final TeamDetail t;
-      if (widget.eventId != null) {
+      if (widget.leagueId != null) {
+        t = _fromLeague(await ref.read(leagueRosterProvider('${widget.leagueId}|${widget.teamId}').future));
+      } else if (widget.eventId != null) {
         final sq = await ref.read(
             tournamentSquadProvider('${widget.eventId}|${widget.teamId}')
                 .future);
@@ -296,6 +337,26 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
           },
     ];
     try {
+      final leagueId = widget.leagueId;
+      if (leagueId != null) {
+        await ref.read(leaguesRepositoryProvider).mutate('setFormation', {
+          'leagueId': leagueId,
+          'teamId': widget.teamId,
+          'formationName': _formationName,
+          'placements': [
+            for (final pl in placements)
+              {'playerId': pl['memberId'], 'isStarter': pl['isStarter'], 'posX': pl['posX'], 'posY': pl['posY']},
+          ],
+        });
+        ref.invalidate(leagueRosterProvider('$leagueId|${widget.teamId}'));
+        if (mounted) {
+          setState(() {
+            _dirty = false;
+            _saving = false;
+          });
+        }
+        return;
+      }
       final eventId = widget.eventId;
       final ttId = _tournamentTeamId;
       if (eventId == null || ttId == null) return; // legacy view is read-only

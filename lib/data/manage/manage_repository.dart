@@ -222,10 +222,12 @@ class ManageRepository {
     }
   }
 
-  Future<void> checkIn(String eventId, String playerId) async {
+  /// [override]: a league fixture's player who isn't on a registered roster,
+  /// checked in anyway (the server answers 412 first so the organiser decides).
+  Future<void> checkIn(String eventId, String playerId, {bool override = false}) async {
     try {
       await _dio.post('/api/mobile/checkin',
-          data: {'eventId': eventId, 'playerId': playerId});
+          data: {'eventId': eventId, 'playerId': playerId, if (override) 'override': true});
     } catch (e) {
       throw apiError(e, fallback: 'Could not check in.');
     }

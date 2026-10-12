@@ -80,14 +80,14 @@ class _ManualCheckInSheetState extends ConsumerState<_ManualCheckInSheet> {
     setState(() {});
   }
 
-  Future<void> _checkIn(CheckInCandidate c) async {
+  Future<void> _checkIn(CheckInCandidate c, {bool override = false}) async {
     if (_pending != null) return;
     setState(() {
       _pending = c.userId;
       _error = null;
     });
     try {
-      await ref.read(manageRepositoryProvider).checkIn(widget.eventId, c.userId);
+      await ref.read(manageRepositoryProvider).checkIn(widget.eventId, c.userId, override: override);
       if (!mounted) return;
       widget.onChanged?.call();
       setState(() {
@@ -98,6 +98,24 @@ class _ManualCheckInSheetState extends ConsumerState<_ManualCheckInSheet> {
         ];
       });
     } catch (e) {
+      // League fixture, player not on a registered roster: the organiser's
+      // call at the gate (logged) — ask, then retry with the override.
+      if (!override && e is ApiException && e.statusCode == 412 && mounted) {
+        setState(() => _pending = null);
+        final yes = await showDialog<bool>(
+          context: context,
+          builder: (c2) => AlertDialog(
+            title: const Text('Not registered for this league'),
+            content: Text(e.message),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(c2, false), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.pop(c2, true), child: const Text('Check in anyway')),
+            ],
+          ),
+        );
+        if (yes == true && mounted) await _checkIn(c, override: true);
+        return;
+      }
       // e.g. an unpaid ticket or a fine — say so and stay open.
       if (mounted) {
         setState(() {

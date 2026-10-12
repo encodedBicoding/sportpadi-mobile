@@ -92,6 +92,17 @@ class IapPriceResult {
   final String? error;
 }
 
+/// The server's answer to a redeemed purchase.
+class IapRedeemResult {
+  const IapRedeemResult({required this.entitled, this.otherGroupId, this.otherGroupName});
+  final bool entitled;
+
+  /// Set when the purchase belongs to another group (it was applied there).
+  final String? otherGroupId;
+  final String? otherGroupName;
+  bool get forOtherGroup => otherGroupId != null;
+}
+
 /// What the app may offer for one group.
 class IapCatalogue {
   const IapCatalogue({
@@ -206,9 +217,11 @@ class IapRepository {
     }
   }
 
-  /// Hand a completed purchase to the server. Returns true when the group is
-  /// entitled afterwards.
-  Future<bool> redeem(String groupId, String transactionId) async {
+  /// Hand a completed purchase to the server. The server applies it to the
+  /// group Apple recorded at purchase — which may not be [groupId] when
+  /// StoreKit re-delivers an older, unfinished purchase on another group's
+  /// plan page; then [IapRedeemResult.otherGroupName] says whose it was.
+  Future<IapRedeemResult> redeem(String groupId, String transactionId) async {
     try {
       final res = await _ref.read(dioProvider).post('/api/mobile/iap', data: {
         'action': 'redeem',
@@ -217,7 +230,14 @@ class IapRepository {
       });
       final m =
           res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {};
-      return m['entitled'] == true;
+      final other = m['otherGroup'] is Map
+          ? Map<String, dynamic>.from(m['otherGroup'] as Map)
+          : null;
+      return IapRedeemResult(
+        entitled: m['entitled'] == true,
+        otherGroupId: other == null ? null : parseStr(other['id']),
+        otherGroupName: other == null ? null : parseStr(other['name']),
+      );
     } catch (e) {
       throw apiError(e, fallback: 'We could not confirm that purchase.');
     }

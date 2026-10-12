@@ -411,6 +411,7 @@ class CheckinOutcome {
         'full' => 'Event is full',
         'fined' => 'Outstanding fine',
         'self_checkin' => "That's your own QR",
+        'not_registered' => 'Not registered for this league',
         'error' => "Couldn't check in",
         _ => 'Not checked in',
       };
@@ -448,6 +449,8 @@ class CheckinOutcome {
               'There is an unpaid fine with this group — settle it to check in.',
       'self_checkin' =>
         reason ?? "You can't scan your own QR. Use another admin's.",
+      'not_registered' =>
+        reason ?? 'Only players on a registered roster can check in to this match.',
       _ => 'Unexpected result: $status',
     };
     final outstanding = res['outstanding'] is List

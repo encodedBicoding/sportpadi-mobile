@@ -28,6 +28,8 @@ class EventSummary {
     this.audienceTeams = const [],
     this.startsAt,
     this.endsAt,
+    this.leagueLabel,
+    this.leagueSlug,
   });
 
   final String id;
@@ -74,11 +76,22 @@ class EventSummary {
   final DateTime? startsAt;
   final DateTime? endsAt;
 
+  /// League fixture: "Sunday League · Div 1 · Matchday 4" (null otherwise).
+  final String? leagueLabel;
+  final String? leagueSlug;
+
+  /// Who's behind it on a feed row: the league for a league fixture, else the group.
+  String? get hostLine => leagueLabel ?? groupName;
 
   factory EventSummary.fromJson(Map<String, dynamic> j) {
     final cat = j['category'];
     final grp = j['group'];
+    final lg = j['league'];
     return EventSummary(
+      leagueLabel: lg is Map
+          ? [parseStr(lg['name']), parseStr(lg['division']), parseStr(lg['label'])].whereType<String>().join(' · ')
+          : null,
+      leagueSlug: lg is Map ? parseStr(lg['slug']) : null,
       id: (j['id'] ?? '') as String,
       title: (j['title'] ?? 'Event') as String,
       slug: (j['slug'] ?? '') as String,

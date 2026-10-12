@@ -311,6 +311,15 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
               "This group's monthly check-in limit has been reached.",
         );
         return;
+      case 'not_registered':
+        // League fixture: only players on a registered roster check in.
+        await _showSheet(
+          tone: _Tone.warning,
+          head: 'Not registered for this league',
+          body: res['reason'] as String? ??
+              'Only players on a registered roster can check in to this match.',
+        );
+        return;
       case 'fined':
         await _showSheet(
           tone: _Tone.warning,

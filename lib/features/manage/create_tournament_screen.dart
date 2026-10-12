@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
+import 'package:sportpadi_mobile/shared/format/instant.dart' show deviceTimezone;
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
@@ -18,8 +19,11 @@ import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 /// playing, the teams (+ entry fee when the wallet is live), with the CTA
 /// pinned under them.
 class CreateTournamentScreen extends ConsumerStatefulWidget {
-  const CreateTournamentScreen({super.key, required this.groupId});
+  const CreateTournamentScreen({super.key, required this.groupId, this.initialMode});
   final String groupId;
+
+  /// friendly | multi_team — preselected when opened from a mode's page.
+  final String? initialMode;
   @override
   ConsumerState<CreateTournamentScreen> createState() =>
       _CreateTournamentScreenState();
@@ -30,9 +34,10 @@ class _CreateTournamentScreenState
   final _title = TextEditingController();
   final _search = TextEditingController();
   final _fee = TextEditingController();
+  final _venue = TextEditingController();
   String? _categoryId;
   DateTime? _date;
-  String _mode = 'friendly';
+  late String _mode = widget.initialMode == 'multi_team' ? 'multi_team' : 'friendly';
   String? _hostTeamId;
 
   /// The group runs the event without fielding a team of its own — most
@@ -62,6 +67,7 @@ class _CreateTournamentScreenState
     _title.dispose();
     _search.dispose();
     _fee.dispose();
+    _venue.dispose();
     super.dispose();
   }
 
@@ -177,6 +183,10 @@ class _CreateTournamentScreenState
         'guestTeamIds': _pickMany ? _guests.map((g) => g.id).toList() : null,
         'homeTeamId': _neutralFriendly ? _homeIdEffective : null,
         'maxTeams': _isMulti ? _maxTeams : null,
+        // Multi-team: the main venue becomes the tournament's first venue
+        // (pinned once — matches take its time zone).
+        if (_isMulti && _venue.text.trim().isNotEmpty) 'locationName': _venue.text.trim(),
+        'timezone': deviceTimezone,
         'feeMinor': _feeMinor(),
       });
       ref.invalidate(groupTournamentsProvider(widget.groupId));
@@ -245,6 +255,15 @@ class _CreateTournamentScreenState
               ),
             ),
           ]),
+          const SizedBox(height: 8),
+          // League: a season of fixtures with a table — its own flow.
+          _ChoiceCard(
+            icon: Icons.format_list_numbered_rounded,
+            title: 'League',
+            sub: 'A season of fixtures — live table, rosters, rankings and MVPs',
+            selected: false,
+            onTap: () => context.pushReplacement('/groups/${widget.groupId}/new-league'),
+          ),
 
           // ── The basics ────────────────────────────────────────────────
           const SizedBox(height: 14),
@@ -263,6 +282,17 @@ class _CreateTournamentScreenState
                             ? 'e.g. Summer Cup 2026'
                             : 'e.g. Sunday friendly'),
                   ),
+                  if (_isMulti) ...[
+                    const SizedBox(height: 14),
+                    const _FieldLabel('Main venue (optional)'),
+                    TextField(
+                      controller: _venue,
+                      decoration: const InputDecoration(hintText: 'Street/park and city — e.g. Burnaby Lake Sports Complex'),
+                    ),
+                    const SizedBox(height: 4),
+                    Text('Becomes the first venue — add more on the tournament page and place each match in one.',
+                        style: TextStyle(color: p.muted, fontSize: 11.5)),
+                  ],
                   const SizedBox(height: 14),
                   const _FieldLabel('Sport'),
                   if (cats.isEmpty)

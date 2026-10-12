@@ -506,6 +506,10 @@ class GameDetail {
     this.categoryEmoji,
     this.eventSlug,
     this.isTournament = false,
+    this.leagueSlug,
+    this.firstLeg = const {},
+    this.awayGoals = false,
+    this.legHomeTeamId,
     this.scoresheetHolder,
     this.officiantNames = const [],
     this.officiants = const [],
@@ -547,6 +551,23 @@ class GameDetail {
   final String? categoryEmoji;
   final String? eventSlug;
   final bool isTournament;
+
+  /// League fixture: the league's public slug (games.get `league.slug`).
+  final String? leagueSlug;
+
+  /// Second leg of a two-leg league tie: first-leg goals per game team id
+  /// (games.get `aggregate.firstLeg`); empty otherwise.
+  final Map<String, int> firstLeg;
+
+  /// The season plays the away-goals rule (second legs only).
+  final bool awayGoals;
+
+  /// This second leg's home side (game team id) — it scored its away goals in leg 1.
+  final String? legHomeTeamId;
+
+  /// This game plus the first leg, per game team.
+  int aggregateFor(String teamId) =>
+      (teams.where((t) => t.teamId == teamId).firstOrNull?.score ?? 0) + (firstLeg[teamId] ?? 0);
   final String? scoresheetHolder;
   final List<String> officiantNames;
   final List<GameOfficiant> officiants;
@@ -577,10 +598,19 @@ class GameDetail {
 
   bool get isLive => status == 'live';
   bool get isScheduled => status == 'scheduled';
+  /// Level — on aggregate when this is a second leg.
   bool get isDrawn {
     if (teams.length < 2) return false;
-    final max = teams.map((t) => t.score).reduce((a, b) => a > b ? a : b);
-    return teams.where((t) => t.score == max).length >= 2;
+    int agg(GameTeam t) => t.score + (firstLeg[t.teamId] ?? 0);
+    final max = teams.map(agg).reduce((a, b) => a > b ? a : b);
+    if (teams.where((t) => agg(t) == max).length < 2) return false;
+    // Away-goals seasons: level on aggregate isn't level if away goals differ.
+    final home = legHomeTeamId;
+    if (awayGoals && home != null && teams.length == 2) {
+      final away = teams.where((t) => t.teamId != home).firstOrNull;
+      return (firstLeg[home] ?? 0) == (away?.score ?? 0);
+    }
+    return true;
   }
 
   List<GamePlayer> onFieldFor(String teamId) => participants
@@ -646,6 +676,15 @@ class GameDetail {
       categoryEmoji: parseStr(j['categoryEmoji']),
       eventSlug: parseStr(j['eventSlug']),
       isTournament: j['isTournament'] == true,
+      leagueSlug: j['league'] is Map ? parseStr((j['league'] as Map)['slug']) : null,
+      firstLeg: j['aggregate'] is Map && (j['aggregate'] as Map)['firstLeg'] is Map
+          ? {
+              for (final e in ((j['aggregate'] as Map)['firstLeg'] as Map).entries)
+                '${e.key}': (e.value is num) ? (e.value as num).toInt() : 0,
+            }
+          : const {},
+      awayGoals: j['aggregate'] is Map && (j['aggregate'] as Map)['awayGoals'] == true,
+      legHomeTeamId: j['aggregate'] is Map ? parseStr((j['aggregate'] as Map)['homeTeamId']) : null,
       scoresheetHolder: null,
       officiantNames: j['officiants'] is Map &&
               (j['officiants'] as Map)['people'] is List

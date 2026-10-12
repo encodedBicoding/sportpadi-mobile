@@ -82,6 +82,23 @@ LinkTarget resolveLink(String? url) {
   m = RegExp(r'^/claim/([^/]+)/?$').firstMatch(path);
   if (m != null) return _route('/claim/${m[1]}');
 
+  // ── Leagues ───────────────────────────────────────────────────────────────
+  // Organiser console (with ?tab=fixtures|mvps|…), a team's league roster,
+  // the public league page and the player's leagues / pass.
+  m = RegExp(r'^/groups/([^/]+)/leagues/([^/]+)/roster/([^/]+)/?$').firstMatch(path);
+  if (m != null) return _route('/groups/${m[1]}/leagues/${m[2]}/roster/${m[3]}');
+  m = RegExp(r'^/groups/([^/]+)/leagues/([^/]+)/?$').firstMatch(path);
+  if (m != null) {
+    final tab = query['tab'];
+    return _route('/groups/${m[1]}/leagues/${m[2]}${tab != null ? '?tab=$tab' : ''}');
+  }
+  m = RegExp(r'^/competitions/([^/]+)/?$').firstMatch(path);
+  if (m != null) return _route('/competitions/${m[1]}');
+  m = RegExp(r'^/leagues/mine/?$').firstMatch(path);
+  if (m != null) return _route('/leagues/mine');
+  m = RegExp(r'^/leagues/([^/]+)/?$').firstMatch(path);
+  if (m != null) return _route('/leagues/${m[1]}');
+
   // ── Tournaments inside a group ────────────────────────────────────────────
   // Squad pages carry ?respond= from a call-up, and the web page addresses its
   // formation editor with ?tab=formation where the app has a real route.
@@ -103,6 +120,8 @@ LinkTarget resolveLink(String? url) {
   m = RegExp(r'^/groups/([^/]+)/tournaments/([^/]+)/teams/?$').firstMatch(path);
   if (m != null) return _route('/groups/${m[1]}/tournaments/${m[2]}');
 
+  m = RegExp(r'^/groups/([^/]+)/tournaments/mode/([^/]+)/?$').firstMatch(path);
+  if (m != null) return _route('/groups/${m[1]}/tournaments/mode/${m[2]}');
   m = RegExp(r'^/groups/([^/]+)/tournaments/([^/]+)/?$').firstMatch(path);
   if (m != null) return _route('/groups/${m[1]}/tournaments/${m[2]}');
 
@@ -150,8 +169,19 @@ LinkTarget resolveLink(String? url) {
   }
 
   // A team addressed through its group (announcement links use this shape).
+  m = RegExp(r'^/groups/([^/]+)/teams/sport/([^/]+)/?$').firstMatch(path);
+  if (m != null) return _route('/groups/${m[1]}/teams/sport/${m[2]}');
   m = RegExp(r'^/groups/([^/]+)/teams/([^/]+)/?$').firstMatch(path);
   if (m != null) return _route('/teams/${m[2]}');
+
+  // The group itself, on a tab (?tab=teams|tournaments). The old Leagues
+  // tab is Tournaments → League now (its own screen).
+  m = RegExp(r'^/groups/([^/]+)/?$').firstMatch(path);
+  if (m != null) {
+    final tab = query['tab'];
+    if (tab == 'leagues') return _route('/groups/${m[1]}/tournaments/mode/league');
+    return _route('/groups/${m[1]}${tab == 'teams' || tab == 'tournaments' ? '?tab=$tab' : ''}');
+  }
 
   // Anything else group-scoped (billing, upgrade, edit…) → the group.
   m = RegExp(r'^/groups/([^/]+)').firstMatch(path);

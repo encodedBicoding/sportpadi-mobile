@@ -61,6 +61,14 @@ import 'package:sportpadi_mobile/features/teams/team_detail_screen.dart';
 import 'package:sportpadi_mobile/features/tournaments/tournament_invitations_screen.dart';
 import 'package:sportpadi_mobile/features/tournaments/my_team_tournaments_screen.dart';
 import 'package:sportpadi_mobile/features/tournaments/tournament_detail_screen.dart';
+import 'package:sportpadi_mobile/features/tournaments/tournament_mode_screen.dart';
+import 'package:sportpadi_mobile/features/teams/sport_teams_screen.dart';
+import 'package:sportpadi_mobile/features/leagues/competition_screen.dart';
+import 'package:sportpadi_mobile/features/leagues/create_league_screen.dart';
+import 'package:sportpadi_mobile/features/leagues/league_manage_screen.dart';
+import 'package:sportpadi_mobile/features/leagues/league_roster_screen.dart';
+import 'package:sportpadi_mobile/features/leagues/league_screen.dart';
+import 'package:sportpadi_mobile/features/leagues/my_leagues_screen.dart';
 import 'package:sportpadi_mobile/features/tournaments/tournament_team_screen.dart';
 import 'package:sportpadi_mobile/features/wards/ward_detail_screen.dart';
 import 'package:sportpadi_mobile/features/wards/wards_screen.dart';
@@ -284,7 +292,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/groups/:id',
-        builder: (_, s) => GroupDetailScreen(groupId: s.pathParameters['id']!),
+        builder: (_, s) => GroupDetailScreen(
+            groupId: s.pathParameters['id']!,
+            initialTab: s.uri.queryParameters['tab']),
       ),
       GoRoute(
         path: '/teams/:id',
@@ -309,6 +319,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                 if (id.trim().isNotEmpty) id.trim()
             ]),
       ),
+      // One sport's teams in a group (the Teams tab's sport cards).
+      GoRoute(
+        path: '/groups/:id/teams/sport/:sport',
+        builder: (_, s) => SportTeamsScreen(
+            groupId: s.pathParameters['id']!, sport: s.pathParameters['sport']!),
+      ),
       GoRoute(
         path: '/groups/:id/new-team',
         builder: (_, s) => CreateTeamScreen(
@@ -317,8 +333,49 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/groups/:id/new-tournament',
-        builder: (_, s) =>
-            CreateTournamentScreen(groupId: s.pathParameters['id']!),
+        builder: (_, s) => CreateTournamentScreen(
+            groupId: s.pathParameters['id']!,
+            initialMode: s.uri.queryParameters['mode']),
+      ),
+      // Leagues (a tournament format): create, the organiser console, a
+      // team's league roster, the public page and the player's leagues.
+      GoRoute(
+        path: '/groups/:id/new-league',
+        builder: (_, s) => CreateLeagueScreen(groupId: s.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/groups/:id/leagues/:leagueId',
+        builder: (_, s) => LeagueManageScreen(
+          groupId: s.pathParameters['id']!,
+          leagueId: s.pathParameters['leagueId']!,
+          initialTab: s.uri.queryParameters['tab'],
+        ),
+      ),
+      GoRoute(
+        path: '/groups/:id/leagues/:leagueId/roster/:teamId',
+        builder: (_, s) => LeagueRosterScreen(
+          groupId: s.pathParameters['id'],
+          leagueId: s.pathParameters['leagueId']!,
+          teamId: s.pathParameters['teamId']!,
+        ),
+      ),
+      // A team's season formation in one league (starters / subs for every
+      // fixture not yet kicked off).
+      GoRoute(
+        path: '/groups/:id/leagues/:leagueId/roster/:teamId/formation',
+        builder: (_, s) => FormationBoardScreen(
+          teamId: s.pathParameters['teamId']!,
+          leagueId: s.pathParameters['leagueId'],
+        ),
+      ),
+      GoRoute(path: '/leagues/mine', builder: (_, __) => const MyLeaguesScreen()),
+      GoRoute(
+        path: '/competitions/:slug',
+        builder: (_, s) => CompetitionScreen(slug: s.pathParameters['slug']!),
+      ),
+      GoRoute(
+        path: '/leagues/:slug',
+        builder: (_, s) => LeagueScreen(slug: s.pathParameters['slug']!),
       ),
       // Announcements for staff: compose (optionally aimed at a team or an
       // event) and the sent list with seen counts.
@@ -483,6 +540,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             TournamentDetailScreen(eventId: s.pathParameters['id']!),
       ),
       // Web-shaped tournament URLs (notification deep links + shares).
+      // A tournament mode's list (1v1 | multi-team | league) — before
+      // :eventId so "mode" isn't read as an event id.
+      GoRoute(
+        path: '/groups/:id/tournaments/mode/:mode',
+        builder: (_, s) => TournamentModeScreen(
+            groupId: s.pathParameters['id']!, mode: s.pathParameters['mode']!),
+      ),
       GoRoute(
         path: '/groups/:id/tournaments/:eventId',
         builder: (_, s) =>
