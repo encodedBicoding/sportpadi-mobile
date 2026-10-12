@@ -190,7 +190,7 @@ class TournamentsRepository {
           fallback: 'Could not create the match game.');
 
   Future<void> schedule(String eventId, String gameId,
-          {String? date, String? time}) =>
+          {String? date, String? time, String? venueId}) =>
       _act(
           eventId,
           {
@@ -198,8 +198,20 @@ class TournamentsRepository {
             'gameId': gameId,
             'scheduledDate': date,
             'scheduledTime': time,
+            if (venueId != null) 'venueId': venueId,
           },
           fallback: 'Could not update the kickoff.');
+
+  /// A tournament action that returns data (venues: list / add / update /
+  /// archive / restore / placeMatches).
+  Future<Map<String, dynamic>> act(String eventId, Map<String, dynamic> body) async {
+    try {
+      final res = await _dio.post('/api/mobile/tournaments/$eventId', data: body);
+      return res.data is Map ? Map<String, dynamic>.from(res.data as Map) : const {};
+    } catch (e) {
+      throw apiError(e, fallback: "That didn't work — try again.");
+    }
+  }
 
   Future<void> subOffStarter(String eventId,
           {required String gameId,
@@ -393,6 +405,11 @@ final tournamentMatchProvider = FutureProvider.autoDispose
 final tournamentGamesProvider = FutureProvider.autoDispose
     .family<List<Map<String, dynamic>>, String>((ref, eventId) =>
         ref.watch(tournamentsRepositoryProvider).listGames(eventId));
+
+/// Host of a multi-team tournament: its venues, earlier ones to copy, matches without a venue.
+final tournamentVenuesProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>, String>((ref, eventId) =>
+        ref.watch(tournamentsRepositoryProvider).act(eventId, {'action': 'venues'}));
 
 final tournamentAwardsProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>?, String>((ref, eventId) =>

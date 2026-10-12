@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:sportpadi_mobile/data/leagues/leagues_repository.dart';
+import 'package:sportpadi_mobile/features/leagues/group_team_leagues_tab.dart';
 import 'package:sportpadi_mobile/features/manage/add_team_player.dart';
 import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
@@ -49,7 +51,7 @@ class TeamDetailScreen extends ConsumerStatefulWidget {
 
 class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
     with WidgetsBindingObserver {
-  int _tab = 0; // 0 players, 1 tournaments, 2 coaches, 3 games
+  int _tab = 0; // 0 players, 1 tournaments, 2 coaches, 3 games, 4 leagues
 
   // Back-on-top detection: the router's changes, checked against this
   // page's route once the frame has settled.
@@ -155,6 +157,7 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
         if (_tab == 1) ref.read(teamTournamentsProvider(id).future),
         if (_tab == 2) ref.read(teamCoachesProvider(id).future),
         if (_tab == 3) ref.read(teamGamesProvider(teamId).future),
+        if (_tab == 4) ref.read(teamLeaguesProvider(teamId).future),
         if (groupId != null) ...[
           ref.read(pinnedAnnouncementsProvider(
                   (groupId: groupId, teamId: teamId))
@@ -186,7 +189,18 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
               // No general formation any more — formations live per
               // tournament on the squad, which is what the Tournaments tab
               // opens.
-              const tabs = ['Players', 'Tournaments', 'Coaches', 'Games'];
+              // (index, label) — Leagues sits after Tournaments, and only
+              // once the team has played (or is playing) in a league.
+              final lg = ref.watch(teamLeaguesProvider(teamId)).valueOrNull;
+              final hasLeagues = lg != null &&
+                  (lg.list('upcoming').isNotEmpty || lg.list('active').isNotEmpty || lg.list('past').isNotEmpty);
+              final tabs = <(int, String)>[
+                (0, 'Players'),
+                (1, 'Tournaments'),
+                if (hasLeagues) (4, 'Leagues'),
+                (2, 'Coaches'),
+                (3, 'Games'),
+              ];
               return RefreshIndicator(
                 onRefresh: _pullRefresh,
                 child: CustomScrollView(
@@ -234,7 +248,7 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
                         child: ListView(
                           scrollDirection: Axis.horizontal,
                           children: [
-                            for (var i = 0; i < tabs.length; i++)
+                            for (final (i, label) in tabs)
                               Padding(
                                 padding: const EdgeInsets.only(right: 6),
                                 child: Material(
@@ -249,7 +263,7 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
                                     child: Padding(
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 16, vertical: 9),
-                                      child: Text(tabs[i],
+                                      child: Text(label,
                                           style: TextStyle(
                                               color:
                                                   _tab == i ? p.onHero : p.ink,
@@ -276,6 +290,8 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
                         _TournamentsTab(team: t)
                       else if (_tab == 2)
                         _CoachesTab(team: t)
+                      else if (_tab == 4)
+                        TeamLeaguesSection(teamId: teamId)
                       else
                         _GamesTab(teamId: teamId),
                     ])),

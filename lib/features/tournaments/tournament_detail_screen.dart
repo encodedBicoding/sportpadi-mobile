@@ -15,12 +15,14 @@ import 'package:sportpadi_mobile/data/games/volleyball_models.dart';
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
+import 'package:sportpadi_mobile/features/leagues/group_team_leagues_tab.dart';
 import 'package:sportpadi_mobile/features/games/basketball_widgets.dart';
 import 'package:sportpadi_mobile/features/games/volleyball_widgets.dart';
 import 'package:sportpadi_mobile/features/payments/checkout_flow.dart';
 import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/features/tournaments/live_scores_sync.dart';
 import 'package:sportpadi_mobile/features/tournaments/officiant_picker.dart';
+import 'package:sportpadi_mobile/features/venues/venues.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
@@ -260,6 +262,10 @@ class TournamentDetailScreen extends ConsumerWidget {
                                   approvedPick: approvedPick,
                                   category: category,
                                 ),
+                                if (canManage && !ended) ...[
+                                  const SizedBox(height: 14),
+                                  _TournamentVenuesCard(eventId: eventId),
+                                ],
                                 const SizedBox(height: 14),
                                 _AwardsCard(eventId: eventId),
                               ],
@@ -1021,6 +1027,8 @@ class _TeamCol extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(color: p.muted, fontSize: 11)),
+      // The league this team is playing in right now, if any.
+      if (team != null) TeamLeagueLineFor(teamId: parseStr(team['id'])),
       if (played > 0)
         Padding(
           padding: const EdgeInsets.only(top: 2),
@@ -1838,6 +1846,7 @@ class _TeamsCard extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: p.muted, fontSize: 12),
                     ),
+                    TeamLeagueLineFor(teamId: teamId),
                   ]),
             ),
             const SizedBox(width: 6),
@@ -1895,6 +1904,9 @@ class _MatchesCard extends ConsumerWidget {
     final p = context.palette;
     final gamesAsync = ref.watch(tournamentGamesProvider(eventId));
     final games = gamesAsync.valueOrNull ?? const <Map<String, dynamic>>[];
+    final venues = canManage
+        ? VenuesData.fromJson(ref.watch(tournamentVenuesProvider(eventId)).valueOrNull ?? const {}).venues
+        : const <VenueItem>[];
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
@@ -1908,7 +1920,7 @@ class _MatchesCard extends ConsumerWidget {
             icon: Icons.add,
             small: true,
             onTap: () => _CreateMatchSheet.show(context,
-                eventId: eventId, category: category, teams: approvedPick),
+                eventId: eventId, category: category, teams: approvedPick, venues: venues),
           ),
       ]),
       const SizedBox(height: 10),
@@ -1932,13 +1944,14 @@ class _MatchesCard extends ConsumerWidget {
         )
       else
         SpListCard(children: [
-          for (final g in games) _gameRow(context, g),
+          for (final g in games) _gameRow(context, g, venues),
         ]),
     ]);
   }
 
-  Widget _gameRow(BuildContext context, Map<String, dynamic> g) {
+  Widget _gameRow(BuildContext context, Map<String, dynamic> g, List<VenueItem> venues) {
     final p = context.palette;
+    final venue = g['venue'] is Map ? Map<String, dynamic>.from(g['venue'] as Map) : null;
     final status = parseStr(g['status']) ?? 'scheduled';
     final gameId = parseStr(g['gameId']);
     final teams = g['teams'] is List
@@ -1986,9 +1999,19 @@ class _MatchesCard extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: gameId != null ? () => context.push('/games/$gameId') : null,
+        onLongPress: canManage && !ended && status == 'scheduled' && gameId != null
+            ? () => _ScheduleSheet.show(context,
+                eventId: eventId,
+                gameId: gameId,
+                initialDate: parseStr(g['scheduledDate']),
+                initialTime: parseStr(g['scheduledTime']),
+                venues: venues,
+                initialVenueId: parseStr(venue?['id']))
+            : null,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
-          child: Row(children: [
+          child: Column(children: [
+          Row(children: [
             Expanded(
               child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                 Flexible(
@@ -2058,8 +2081,80 @@ class _MatchesCard extends ConsumerWidget {
                 ),
               ]),
             ),
+            if (canManage && !ended && status == 'scheduled' && gameId != null)
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                tooltip: 'Kick-off & venue',
+                icon: Icon(Icons.edit_outlined, size: 17, color: p.muted),
+                onPressed: () => _ScheduleSheet.show(context,
+                    eventId: eventId,
+                    gameId: gameId,
+                    initialDate: parseStr(g['scheduledDate']),
+                    initialTime: parseStr(g['scheduledTime']),
+                    venues: venues,
+                    initialVenueId: parseStr(venue?['id'])),
+              ),
+          ]),
+          if (venue != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Icons.place_outlined, size: 12, color: p.muted),
+                const SizedBox(width: 3),
+                Flexible(
+                  child: Text(parseStr(venue['name']) ?? 'Venue',
+                      maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.muted, fontSize: 11)),
+                ),
+              ]),
+            ),
           ]),
         ),
+      ),
+    );
+  }
+}
+
+/// Host: the tournament's venues (web tournament page → Venues).
+class _TournamentVenuesCard extends ConsumerWidget {
+  const _TournamentVenuesCard({required this.eventId});
+  final String eventId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final q = ref.watch(tournamentVenuesProvider(eventId));
+    final data = VenuesData.fromJson(q.valueOrNull ?? const {});
+    if (q.valueOrNull == null || !data.ready) return const SizedBox.shrink();
+    final repo = ref.read(tournamentsRepositoryProvider);
+    int n(Map<String, dynamic> r, String k) => r[k] is num ? (r[k] as num).toInt() : 0;
+    Future<String?> run(Map<String, dynamic> body, String Function(Map<String, dynamic> r) msg) async {
+      final r = await repo.act(eventId, body);
+      ref.invalidate(tournamentVenuesProvider(eventId));
+      ref.invalidate(tournamentGamesProvider(eventId));
+      ref.invalidate(tournamentDetailProvider(eventId));
+      return msg(r);
+    }
+
+    return VenuesPanel(
+      data: data,
+      noun: 'match',
+      actions: VenueActions(
+        add: (b) => run({'action': 'addVenue', ...b}, (r) {
+          final c = n(r, 'placed');
+          return c > 0 ? 'Venue added — $c ${pluralNoun('match', c)} placed there' : 'Venue added';
+        }),
+        update: (id, b) => run({'action': 'updateVenue', 'venueId': id, ...b}, (r) {
+          final c = n(r, 'updated');
+          return c > 0 ? 'Saved — $c ${pluralNoun('match', c)} updated; everyone in them was told' : 'Saved';
+        }),
+        archive: (id, to) => run({'action': 'archiveVenue', 'venueId': id, 'moveToVenueId': to}, (r) {
+          final c = n(r, 'moved');
+          return c > 0 ? 'Moved $c ${pluralNoun('match', c)} and archived the venue' : 'Venue archived';
+        }),
+        restore: (id) => run({'action': 'restoreVenue', 'venueId': id}, (_) => 'Venue restored'),
+        placeUnplaced: (venueId) => run({'action': 'placeMatches', 'gameIds': data.unplacedIds, 'venueId': venueId}, (r) {
+          final c = n(r, 'placed');
+          return '$c ${pluralNoun('match', c)} placed';
+        }),
       ),
     );
   }
@@ -2383,19 +2478,24 @@ class _CreateMatchSheet extends ConsumerStatefulWidget {
     required this.eventId,
     required this.category,
     this.teams,
+    this.venues = const [],
   });
   final String eventId;
   final Map<String, dynamic>? category;
   final List<({String id, String name})>? teams;
 
+  /// Multi-team: the tournament's venues (the match is placed in one).
+  final List<VenueItem> venues;
+
   static void show(BuildContext context,
       {required String eventId,
       required Map<String, dynamic>? category,
-      List<({String id, String name})>? teams}) {
+      List<({String id, String name})>? teams,
+      List<VenueItem> venues = const []}) {
     showSpSheet<void>(
       context,
       builder: (_) =>
-          _CreateMatchSheet(eventId: eventId, category: category, teams: teams),
+          _CreateMatchSheet(eventId: eventId, category: category, teams: teams, venues: venues),
     );
   }
 
@@ -2408,6 +2508,7 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
   String? _awayId;
   String? _date; // yyyy-MM-dd
   String? _time; // HH:mm
+  String? _venueId;
   bool _usesHalves = true;
   final _halfMinutes = TextEditingController(text: '45');
   bool _allowExtraTime = true;
@@ -2493,6 +2594,8 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
       'officiantUserIds': [for (final o in _officiants) o.userId],
       'scheduledDate': _date,
       'scheduledTime': _time,
+      if (isMulti && (_venueId ?? widget.venues.where((v) => v.active).firstOrNull?.id) != null)
+        'venueId': _venueId ?? widget.venues.where((v) => v.active).first.id,
       if (_isSoccer)
         'lifecycle': {
           'usesHalves': _usesHalves,
@@ -2654,6 +2757,14 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
       const SizedBox(height: 6),
       Text('Leave blank to show "TBD". You can set it anytime before kickoff.',
           style: TextStyle(color: p.muted, fontSize: 11)),
+      if (isMulti && widget.venues.any((v) => v.active)) ...[
+        const SizedBox(height: 12),
+        Text('Venue', style: TextStyle(color: p.muted, fontSize: 12, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 4),
+        VenueDropdown(venues: widget.venues, value: _venueId, onChanged: (v) => setState(() => _venueId = v)),
+        const SizedBox(height: 4),
+        Text('Kick-off is local time at the venue. Move it any time before it starts.', style: TextStyle(color: p.muted, fontSize: 11)),
+      ],
       if (_isBb) ...[
         const SizedBox(height: 12),
         BasketballFormatFields(
@@ -2751,24 +2862,34 @@ class _ScheduleSheet extends ConsumerStatefulWidget {
     required this.gameId,
     this.initialDate,
     this.initialTime,
+    this.venues = const [],
+    this.initialVenueId,
   });
   final String eventId;
   final String gameId;
   final String? initialDate;
   final String? initialTime;
 
+  /// Multi-team: move the match between the tournament's venues.
+  final List<VenueItem> venues;
+  final String? initialVenueId;
+
   static void show(BuildContext context,
       {required String eventId,
       required String gameId,
       String? initialDate,
-      String? initialTime}) {
+      String? initialTime,
+      List<VenueItem> venues = const [],
+      String? initialVenueId}) {
     showSpSheet<void>(
       context,
       builder: (_) => _ScheduleSheet(
           eventId: eventId,
           gameId: gameId,
           initialDate: initialDate,
-          initialTime: initialTime),
+          initialTime: initialTime,
+          venues: venues,
+          initialVenueId: initialVenueId),
     );
   }
 
@@ -2779,6 +2900,7 @@ class _ScheduleSheet extends ConsumerStatefulWidget {
 class _ScheduleSheetState extends ConsumerState<_ScheduleSheet> {
   String? _date;
   String? _time;
+  String? _venueId;
   bool _saving = false;
 
   @override
@@ -2786,6 +2908,7 @@ class _ScheduleSheetState extends ConsumerState<_ScheduleSheet> {
     super.initState();
     _date = widget.initialDate;
     _time = widget.initialTime;
+    _venueId = widget.initialVenueId;
   }
 
   Future<void> _save() async {
@@ -2794,10 +2917,16 @@ class _ScheduleSheetState extends ConsumerState<_ScheduleSheet> {
     try {
       await ref
           .read(tournamentsRepositoryProvider)
-          .schedule(widget.eventId, widget.gameId, date: _date, time: _time);
+          .schedule(widget.eventId, widget.gameId,
+              date: _date, time: _time, venueId: _venueId != widget.initialVenueId ? _venueId : null);
       ref.invalidate(tournamentMatchProvider(widget.eventId));
+      ref.invalidate(tournamentGamesProvider(widget.eventId));
+      ref.invalidate(tournamentVenuesProvider(widget.eventId));
       if (mounted) Navigator.pop(context);
-      messenger.showSnackBar(const SnackBar(content: Text('Kickoff updated')));
+      messenger.showSnackBar(SnackBar(
+          content: Text(_venueId != null && _venueId != widget.initialVenueId
+              ? 'Match moved — everyone in it was told'
+              : 'Kickoff updated')));
     } catch (e) {
       if (mounted) setState(() => _saving = false);
       messenger.showSnackBar(SnackBar(content: Text('$e')));
@@ -2810,9 +2939,9 @@ class _ScheduleSheetState extends ConsumerState<_ScheduleSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SpSheetHeader(
+          SpSheetHeader(
             icon: Icons.schedule_rounded,
-            title: 'Kickoff time',
+            title: widget.venues.any((v) => v.active) ? 'Kick-off & venue' : 'Kickoff time',
           ),
           Row(children: [
             Expanded(
@@ -2853,6 +2982,14 @@ class _ScheduleSheetState extends ConsumerState<_ScheduleSheet> {
               ),
             ),
           ]),
+          if (widget.venues.any((v) => v.active)) ...[
+            const SizedBox(height: 12),
+            VenueDropdown(
+                venues: widget.venues,
+                value: _venueId,
+                none: widget.initialVenueId == null ? 'No venue yet' : null,
+                onChanged: (v) => setState(() => _venueId = v)),
+          ],
           const SizedBox(height: 16),
           SpButton(
             label: _saving ? 'Saving…' : 'Save',

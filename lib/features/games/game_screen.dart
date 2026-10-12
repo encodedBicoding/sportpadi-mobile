@@ -35,9 +35,13 @@ class GameScreen extends ConsumerWidget {
     final g0 = game.valueOrNull;
     final kind = g0 == null
         ? null
-        : g0.isTournament
-            ? 'Tournament match'
-            : 'Local game';
+        : g0.leagueSlug != null
+            ? (g0.firstLeg.isNotEmpty && g0.teams.length == 2
+                ? 'League match · 2nd leg · agg ${g0.aggregateFor(g0.teams[0].teamId)}–${g0.aggregateFor(g0.teams[1].teamId)}'
+                : 'League match')
+            : g0.isTournament
+                ? 'Tournament match'
+                : 'Local game';
     return Scaffold(
       backgroundColor: p.bg,
       body: SafeArea(
@@ -51,6 +55,12 @@ class GameScreen extends ConsumerWidget {
                   : 'Match',
               subtitle: kind,
               actions: [
+                if (g0?.leagueSlug != null)
+                  SpRoundButton(
+                    icon: Icons.format_list_numbered_rounded,
+                    tooltip: 'League table',
+                    onTap: () => context.push('/leagues/${g0!.leagueSlug}'),
+                  ),
                 // The event this game belongs to, one tap away.
                 if (g0 != null && !g0.isTournament && g0.eventSlug != null)
                   SpRoundButton(
@@ -685,7 +695,7 @@ class _DrawCard extends ConsumerWidget {
           Text(
             game.isBasketball
                 ? 'Tied at the buzzer'
-                : 'Level at ${etAdded ? 'the end of extra time' : 'full time'}',
+                : 'Level${game.firstLeg.isNotEmpty ? ' on aggregate' : ''} at ${etAdded ? 'the end of extra time' : 'full time'}',
             style: TextStyle(
                 color: p.ink, fontSize: 14, fontWeight: FontWeight.w700),
           ),

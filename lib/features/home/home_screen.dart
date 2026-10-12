@@ -860,7 +860,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ? p.orange
                 : p.accent;
     final sub = [
-      if (e.groupName != null) e.groupName!,
+      if (e.hostLine != null) e.hostLine!,
       if (e.locationName != null) e.locationName!,
     ].join(' · ');
 
@@ -1408,8 +1408,8 @@ class _NextUpCard extends StatelessWidget {
               _line(p, Icons.calendar_today_rounded, when),
               if (e.locationName != null && e.locationName!.trim().isNotEmpty)
                 _line(p, Icons.place_outlined, e.locationName!),
-              if (e.groupName != null)
-                _line(p, Icons.groups_outlined, e.groupName!),
+              if (e.hostLine != null)
+                _line(p, Icons.groups_outlined, e.hostLine!),
               if (_HomeScreenState._wardChip(e) case final String chip)
                 _line(p, Icons.supervisor_account_rounded, chip),
               if (audienceLabel(e.audienceTeams) case final String who)

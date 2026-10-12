@@ -118,15 +118,26 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen>
       }
       _seen.add(txId);
       try {
-        final entitled = await repo.redeem(widget.groupId, txId);
+        final r = await repo.redeem(widget.groupId, txId);
         // Only tell StoreKit we're done once the server has the purchase.
         // Completing early would lose it if the network dropped here.
         await repo.complete(purchase);
         if (!mounted) continue;
         setState(() => _busyProductId = null);
+        if (r.forOtherGroup) {
+          // An older purchase for another group, re-delivered here by
+          // StoreKit: the server applied it to that group. Mention it once
+          // for a fresh purchase; replays from "restore" stay quiet.
+          ref.invalidate(iapCatalogueProvider(r.otherGroupId!));
+          ref.invalidate(groupOverviewProvider(r.otherGroupId!));
+          if (purchase.status == PurchaseStatus.purchased && r.entitled) {
+            _say('Your plan for ${r.otherGroupName ?? 'your other group'} is active.');
+          }
+          continue;
+        }
         ref.invalidate(iapCatalogueProvider(widget.groupId));
         ref.invalidate(groupOverviewProvider(widget.groupId));
-        _say(entitled
+        _say(r.entitled
             ? 'Your plan is active. The features are unlocked now.'
             : purchase.status == PurchaseStatus.restored
                 ? 'Nothing to restore for this group.'
