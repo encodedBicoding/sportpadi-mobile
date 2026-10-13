@@ -1,6 +1,6 @@
 # sportpadi-mobile — common tasks
 FLAVOR ?= dev
-BASE ?= http://10.0.2.2:3000   # Android emulator -> host localhost
+BASE ?= http://10.0.0.117:3000   # Android emulator -> host localhost
 
 .PHONY: get run run-ios run-device gen watch clean api-client
 
@@ -9,6 +9,9 @@ get:
 
 run:
 	flutter run -t lib/main_$(FLAVOR).dart --dart-define=API_BASE_URL=$(BASE)
+
+run-dev-release:
+	flutter run --release -t lib/main_$(FLAVOR).dart --dart-define=API_BASE_URL=$(BASE)
 
 run-ios:
 	flutter run -t lib/main_$(FLAVOR).dart --dart-define=API_BASE_URL=http://localhost:3000
