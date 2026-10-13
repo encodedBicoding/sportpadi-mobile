@@ -25,6 +25,13 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- Links are routed by the app (core/links/deep_links.dart via
+                 app_links), which also sends web-only pages — upgrade,
+                 billing, checkout — back to the browser. Flutter's built-in
+                 deep linking (on by default since Flutter 3.27) would hand
+                 the same URL straight to the router too, and a web-only page
+                 has no route: "GoException: no routes for location". -->
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="false" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
