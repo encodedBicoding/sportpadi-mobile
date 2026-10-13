@@ -30,7 +30,6 @@ import 'package:sportpadi_mobile/features/teams/sport_cards.dart';
 import 'package:sportpadi_mobile/features/tournaments/tournament_modes.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_tab_track.dart';
 import 'package:sportpadi_mobile/data/billing/iap_repository.dart';
-import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
 import 'package:sportpadi_mobile/features/announcements/announcement_entry_points.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
@@ -38,6 +37,7 @@ import 'package:sportpadi_mobile/features/groups/group_admin_sheets.dart';
 import 'package:sportpadi_mobile/features/groups/group_invitations.dart';
 import 'package:sportpadi_mobile/features/groups/group_talk_section.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
+import 'package:sportpadi_mobile/features/groups/plan_gate.dart';
 import 'package:sportpadi_mobile/features/shell/home_shell.dart'
     show ShellBottomBar;
 import 'package:url_launcher/url_launcher.dart';
@@ -726,36 +726,10 @@ void _handleNewTournament(BuildContext context, WidgetRef ref, String groupId) {
     context.push('/groups/$groupId/new-league');
     return;
   }
-  final canBuyInApp = IapRepository.supportedPlatform;
-  if (!canBuyInApp) {
-    // Quiet nudge (server-throttled alongside the wallet one), then the modal.
-    ref
-        .read(walletRepositoryProvider)
-        .requestPlanEmail(groupId, topic: 'tournaments');
-  }
-  showDialog<void>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text("Tournaments aren't enabled for this group"),
-      content: const Text(
-          'Tournament events — brackets, friendlies and inviting teams from '
-          "other groups — aren't switched on for this group yet."),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(),
-          child: Text(canBuyInApp ? 'Not now' : 'OK'),
-        ),
-        if (canBuyInApp)
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              context.push('/groups/$groupId/plan');
-            },
-            child: const Text('See plans'),
-          ),
-      ],
-    ),
-  );
+  showPlanLockedDialog(context, ref, groupId,
+      title: "Tournaments aren't enabled for this group",
+      body: 'Tournament events — brackets, friendlies and inviting teams from '
+          "other groups — aren't switched on for this group yet.");
 }
 
 class _ManageMenu extends ConsumerWidget {
