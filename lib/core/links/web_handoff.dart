@@ -20,6 +20,20 @@ Future<Uri> signedInWebUri(Ref ref, String path) =>
         path);
 
 /// [signedInWebUri] from a widget.
+/// A group's web-only payment page (upgrade, billing) at the address the app
+/// doesn't claim. `/groups/<id>/upgrade` is inside the `/groups/` App Link the
+/// app owns on Android, so opening it — or the hand-off redirecting to it —
+/// lands straight back in the app ("it just reloads"). The web serves the same
+/// pages at `/pay/<id>/<page>`, with a "Back to the app" bar.
+String webPayPath(String groupId, String page) => '/pay/$groupId/$page';
+
+/// `/groups/<id>/upgrade|billing…` → the same page at `/pay/<id>/…` (keeps the query).
+Uri webPayUri(Uri uri) {
+  final m = RegExp(r'^/groups/([^/]+)/(upgrade|billing)(/.*)?$').firstMatch(uri.path);
+  if (m == null) return uri;
+  return uri.replace(path: '/pay/${m[1]}/${m[2]}${m[3] ?? ''}');
+}
+
 Future<Uri> signedInWebUriFor(WidgetRef ref, String path) =>
     _signedIn(ref.read(appConfigProvider).apiBaseUrl, ref.read(dioProvider),
         path);

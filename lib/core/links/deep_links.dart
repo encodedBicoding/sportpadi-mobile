@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:sportpadi_mobile/core/links/link_resolver.dart';
+import 'package:sportpadi_mobile/core/links/web_handoff.dart' show webPayUri;
 import 'package:sportpadi_mobile/core/referral/referral.dart';
 
 /// Universal Links (iOS) and App Links (Android).
@@ -126,8 +127,11 @@ Future<bool> handleDeepLink(
     // and they still share the system cookie jar, so a Stripe or checkout
     // session signed in elsewhere carries over.
     try {
-      final ok = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
-      if (!ok) await launchUrl(uri, mode: LaunchMode.platformDefault);
+      // Group payment pages reopen at their /pay/… address, which the app
+      // doesn't claim — the /groups/… one would come straight back here.
+      final out = webPayUri(uri);
+      final ok = await launchUrl(out, mode: LaunchMode.inAppBrowserView);
+      if (!ok) await launchUrl(out, mode: LaunchMode.platformDefault);
     } catch (e) {
       if (kDebugMode) debugPrint('[deeplink] could not re-open $uri: $e');
     }

@@ -798,7 +798,7 @@ class _ManageMenu extends ConsumerWidget {
               // Android: the plan is bought on the web (Stripe). Opened in a
               // Custom Tab so the return trip lands back in the app.
               // Signed in already (one-tap hand-off), no second login.
-              signedInWebUriFor(ref, '/groups/$groupId/upgrade').then(
+              signedInWebUriFor(ref, webPayPath(groupId, 'upgrade')).then(
                   (url) => launchUrl(url, mode: LaunchMode.inAppBrowserView));
               break;
             case 'promo':
