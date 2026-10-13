@@ -319,5 +319,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- Links are routed by the app (core/links/deep_links.dart via app_links);
+	     Flutter's built-in deep linking would also push them into the router. -->
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
 </dict>
 </plist>
