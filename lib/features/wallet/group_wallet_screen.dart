@@ -73,7 +73,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
       return;
     }
     _awayResuming = true;
-    await _openWeb('/groups/${widget.groupId}/upgrade');
+    await _openWeb(webPayPath(widget.groupId, 'upgrade'));
   }
   bool _planEmailFired = false;
 

@@ -197,7 +197,7 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen>
     if (interval == null || !mounted) return;
     // Signed in already (one-tap hand-off): straight to the plan's checkout.
     final path = Uri(
-        path: '/groups/${widget.groupId}/upgrade',
+        path: webPayPath(widget.groupId, 'upgrade'),
         queryParameters: {
           'tier': plan.tierId,
           'interval': interval
