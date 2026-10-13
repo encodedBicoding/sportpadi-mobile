@@ -16,6 +16,7 @@ import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/info_tip.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart'
@@ -35,8 +36,45 @@ class GroupWalletScreen extends ConsumerStatefulWidget {
   ConsumerState<GroupWalletScreen> createState() => _GroupWalletScreenState();
 }
 
-class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
+class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
+    with WidgetsBindingObserver {
   bool _busy = false;
+
+  /// Sent to the plan page to resume: show what the wallet is now when they're back.
+  bool _awayResuming = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _awayResuming) {
+      _awayResuming = false;
+      _refetch();
+    }
+  }
+
+  /// "Resume" on a paused wallet: the group's plan — bought in the app on
+  /// iOS (App Store), on the web elsewhere (same as the group menu's
+  /// "Upgrade plan"). The wallet unpauses as soon as the plan is back.
+  Future<void> _resume() async {
+    if (_canBuyInApp) {
+      await context.push('/groups/${widget.groupId}/plan');
+      if (mounted) _refetch();
+      return;
+    }
+    _awayResuming = true;
+    await _openWeb('/groups/${widget.groupId}/upgrade');
+  }
   bool _planEmailFired = false;
 
   /// Where a plan-locked feature sends an admin.
@@ -313,11 +351,8 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
         ),
       if (o.isFrozen || pausedByPlan)
         Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: _notice(
-            p,
-            'This wallet is paused. Records stay visible; sales and withdrawals are on hold.',
-          ),
+          padding: const EdgeInsets.only(bottom: 14),
+          child: _pausedNotice(p, byPlan: pausedByPlan),
         ),
       // (No "add a primary card for renewals" prompt here: it's subscription
       // billing, which the app must not surface — App Store 3.1.1.)
@@ -400,22 +435,46 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen> {
     );
   }
 
-  Widget _notice(AppPalette p, String text,
-      {String? action, VoidCallback? onAction}) {
+  /// "Payments paused" — why, and the way back (web `SpNotice` on the wallet
+  /// page): the plan ended, so new payments are on hold; settled money and
+  /// records are safe; Resume restarts the plan.
+  Widget _pausedNotice(AppPalette p, {required bool byPlan}) {
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: p.orangeTint,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(children: [
-        SpIconTile(Icons.pause_circle_outline_rounded,
-            bg: p.surface, fg: p.orangeInk, size: 36, iconSize: 18),
-        const SizedBox(width: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: p.orangeTint, borderRadius: BorderRadius.circular(20)),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(color: p.surface, borderRadius: BorderRadius.circular(14)),
+          child: Icon(Icons.pause_circle_outline_rounded, color: p.orangeInk, size: 20),
+        ),
+        const SizedBox(width: 12),
         Expanded(
-            child: Text(text, style: TextStyle(color: p.ink, fontSize: 12.5))),
-        if (action != null)
-          TextButton(onPressed: onAction, child: Text(action)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const SizedBox(height: 2),
+            Text('Payments paused', style: TextStyle(color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Text(
+              byPlan
+                  ? "Your group's plan has ended, so it's on the Free plan and new ticket payments, fines and "
+                      'withdrawals are on hold. Everything already settled is in your bank and your records are '
+                      'safe — resume the plan to start collecting again.'
+                  : 'New payments and withdrawals are on hold for this wallet. Everything already settled is in '
+                      'your bank and your records are safe. Pull down to refresh — if it stays paused, contact support.',
+              style: TextStyle(color: p.orangeInk, fontSize: 12.5, height: 1.45),
+            ),
+            if (byPlan) ...[
+              const SizedBox(height: 10),
+              SpPill(
+                label: 'Resume',
+                icon: Icons.workspace_premium_outlined,
+                height: 34,
+                onTap: _resume,
+              ),
+            ],
+          ]),
+        ),
       ]),
     );
   }

@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
 import 'package:sportpadi_mobile/data/leagues/leagues_repository.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournament_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
+import 'package:sportpadi_mobile/features/groups/plan_gate.dart';
 import 'package:sportpadi_mobile/features/leagues/group_team_leagues_tab.dart';
 import 'package:sportpadi_mobile/features/tournaments/tournament_modes.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
@@ -46,6 +48,11 @@ class _TournamentModeScreenState extends ConsumerState<TournamentModeScreen> {
     final group = ref.watch(groupProvider(widget.groupId)).valueOrNull;
     final canManage = group?.canManage ?? false;
     final isLeague = m == TMode.league;
+    // Same plan rule as the Tournaments tab's New card. Unknown (still
+    // loading) counts as allowed — the server enforces it anyway.
+    final ov = canManage ? ref.watch(groupOverviewProvider(widget.groupId)).valueOrNull : null;
+    final leagueSetup = canManage && isLeague ? ref.watch(leagueSetupProvider(widget.groupId)).valueOrNull : null;
+    final allowed = isLeague ? (leagueSetup == null || leagueSetup.b('enabled')) : (ov?.canCreateTournaments ?? true);
     final tq = ref.watch(groupTournamentsProvider(widget.groupId));
     final lq = ref.watch(groupLeaguesProvider(widget.groupId));
     // Leagues the group's teams play in (or are invited to) — the old Leagues tab.
@@ -162,14 +169,22 @@ class _TournamentModeScreenState extends ConsumerState<TournamentModeScreen> {
                   if (canManage) ...[
                     const SizedBox(height: 14),
                     SpPill(
-                      label: m.newLabel,
-                      icon: Icons.add_rounded,
+                      label: allowed ? m.newLabel : '${isLeague ? 'Leagues' : 'Tournaments'} are a plan feature',
+                      icon: allowed ? Icons.add_rounded : Icons.lock_outline_rounded,
                       height: 36,
                       expand: true,
                       tone: isLeague ? SpPillTone.soft : SpPillTone.ink,
-                      onTap: () => context.push(isLeague
-                          ? '/groups/${widget.groupId}/new-league'
-                          : '/groups/${widget.groupId}/new-tournament?mode=${m == TMode.multi ? 'multi_team' : 'friendly'}'),
+                      onTap: !allowed
+                          ? () => showPlanLockedDialog(context, ref, widget.groupId,
+                              title: isLeague ? "Leagues aren't enabled for this group" : "Tournaments aren't enabled for this group",
+                              body: isLeague
+                                  ? "Running leagues — seasons, fixtures, tables and promotion — isn't switched on for this group yet."
+                                  : 'Tournament events — brackets, friendlies and inviting teams from '
+                                      "other groups — aren't switched on for this group yet.",
+                              topic: 'tournaments')
+                          : () => context.push(isLeague
+                              ? '/groups/${widget.groupId}/new-league'
+                              : '/groups/${widget.groupId}/new-tournament?mode=${m == TMode.multi ? 'multi_team' : 'friendly'}'),
                     ),
                   ],
                 ]),
