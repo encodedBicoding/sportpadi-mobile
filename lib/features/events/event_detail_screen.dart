@@ -13,6 +13,7 @@ import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/event_models.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
+import 'package:sportpadi_mobile/features/events/event_mvp_card.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
 import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
@@ -651,6 +652,9 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
             imageUrl: e.groupImageUrl,
             verified: e.groupVerified),
       ],
+      // Awards after the event: the MVP (voted when the organiser opted in,
+      // else by stats) and the sport's stat awards — any event with games.
+      if (e.status == 'completed') EventMvpCard(eventId: e.id),
       ...[
         const SizedBox(height: 12),
         // Owner-console ad spot (anchor "event.detail_bottom"); nothing unless set.
@@ -3568,6 +3572,7 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
   late String _recurrence = widget.event.recurrence;
   late bool _private = widget.event.isPrivate;
   late String? _competitive = widget.event.competitiveLevel;
+  late bool _mvpVote = widget.event.mvpVote;
   // Spots: cap + RSVP rule (sent only when changed; lowering never evicts).
   late final TextEditingController _maxPlayers = TextEditingController(
       text: widget.event.capacity.maxPlayers?.toString() ?? '');
@@ -3715,6 +3720,7 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
         'recurrence': _recurrence,
         'visibility': _private ? 'private' : 'public',
         'competitiveLevel': _competitive,
+        if (_mvpVote != widget.event.mvpVote) 'mvpVote': _mvpVote,
         if (int.tryParse(_maxPlayers.text.trim()) !=
             widget.event.capacity.maxPlayers)
           'maxPlayers': int.tryParse(_maxPlayers.text.trim()),
@@ -3888,6 +3894,16 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
               Switch(
                 value: _private,
                 onChanged: (v) => setState(() => _private = v),
+              ),
+            ]),
+            Row(children: [
+              Expanded(
+                child: Text('MVP vote after the event',
+                    style: TextStyle(color: p.ink, fontSize: 13.5)),
+              ),
+              Switch(
+                value: _mvpVote,
+                onChanged: (v) => setState(() => _mvpVote = v),
               ),
             ]),
             if (!_remindersFailed) ...[
