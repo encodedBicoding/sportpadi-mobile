@@ -37,6 +37,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   TimeOfDay? _start;
   TimeOfDay? _end;
   bool _private = false;
+  bool _mvpVote = false;
   // Spots: a cap on players and whether an RSVP holds a spot.
   final _maxPlayers = TextEditingController();
   String _rsvpPolicy = 'open';
@@ -117,6 +118,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
         if (int.tryParse(_maxPlayers.text.trim()) != null)
           'maxPlayers': int.parse(_maxPlayers.text.trim()),
         if (_rsvpPolicy != 'open') 'rsvpPolicy': _rsvpPolicy,
+        if (_mvpVote) 'mvpVote': true,
         if (teamIds.isNotEmpty) 'teamIds': teamIds,
         // Omitted = the server default; [] = no reminders.
         if (!sameReminderSlots(_reminders, kDefaultReminderSlots))
@@ -282,6 +284,15 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                   style: TextStyle(color: p.muted, fontSize: 12)),
               value: _private,
               onChanged: (v) => setState(() => _private = v),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('MVP vote after the event'),
+              subtitle: Text(
+                  'The 3 standout players go to a 24-hour anonymous vote among everyone who checked in.',
+                  style: TextStyle(color: p.muted, fontSize: 12)),
+              value: _mvpVote,
+              onChanged: (v) => setState(() => _mvpVote = v),
             ),
             const SizedBox(height: 10),
             EventSpotsPicker(

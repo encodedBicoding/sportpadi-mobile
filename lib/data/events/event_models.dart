@@ -330,6 +330,7 @@ class EventDetail {
     this.thumbnailUrl,
     this.isPrivate = false,
     this.competitiveLevel,
+    this.mvpVote = false,
     this.recurrence = 'once',
     this.qrCode,
     this.typicalAttendance,
@@ -385,6 +386,9 @@ class EventDetail {
   final String? thumbnailUrl;
   final bool isPrivate;
   final String? competitiveLevel;
+
+  /// The organiser asked for an MVP vote after the event (api events/mvp.ts).
+  final bool mvpVote;
   final String recurrence;
   final String? qrCode;
   final int? typicalAttendance;
@@ -465,6 +469,7 @@ class EventDetail {
       thumbnailUrl: parseStr(j['thumbnailUrl']),
       isPrivate: j['isPrivate'] == true,
       competitiveLevel: parseStr(j['competitiveLevel']),
+      mvpVote: j['mvpVote'] == true,
       recurrence: parseStr(j['recurrence']) ?? 'once',
       qrCode: parseStr(j['qrCode']),
       typicalAttendance: parseInt(j['typicalAttendance']),

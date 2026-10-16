@@ -355,6 +355,25 @@ class EventsRepository {
     }
   }
 
+  /// A completed event's MVP vote + awards (raw JSON; event_mvp_card.dart reads it).
+  Future<Map<String, dynamic>> mvpAwards(String eventId) async {
+    try {
+      final res = await _dio.get('/api/mobile/event-actions/$eventId', queryParameters: {'view': 'mvp'});
+      return res.data is Map ? Map<String, dynamic>.from(res.data as Map) : const {};
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load the awards.');
+    }
+  }
+
+  /// Anonymous MVP vote (checked-in members, while the vote is open).
+  Future<void> voteMvp(String eventId, String playerId) async {
+    try {
+      await _dio.post('/api/mobile/event-actions/$eventId', data: {'action': 'vote-mvp', 'playerId': playerId});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not save your vote.');
+    }
+  }
+
   /// Mute (or unmute) this event's reminders for me.
   Future<void> setRemindersMuted(String eventId, bool muted) async {
     try {
@@ -774,6 +793,10 @@ final groupEventsProvider = FutureProvider.autoDispose
 final eventDetailProvider = FutureProvider.autoDispose
     .family<EventDetail, String>(
         (ref, slug) => ref.watch(eventsRepositoryProvider).bySlug(slug));
+
+final eventMvpProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>, String>((ref, eventId) =>
+        ref.watch(eventsRepositoryProvider).mvpAwards(eventId));
 
 final eventRemindersProvider = FutureProvider.autoDispose
     .family<EventReminders, String>((ref, eventId) =>
