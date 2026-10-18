@@ -54,6 +54,7 @@ import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/shared/widgets/sheet_scroll.dart';
 
 /// Group header geometry: cover banner height and how far the avatar/stats
 /// row hangs below it.
@@ -746,119 +747,23 @@ class _ManageMenu extends ConsumerWidget {
     final pending = isOwner
         ? ref.watch(membershipRequestCountProvider(groupId)).valueOrNull ?? 0
         : 0;
-    final menu = Container(
-      width: 46,
-      height: 46,
-      decoration: BoxDecoration(
-        color: p.surface2,
-        shape: BoxShape.circle,
-      ),
-      child: PopupMenuButton<String>(
-        tooltip: 'Manage',
-        icon: Icon(Icons.more_horiz_rounded, color: p.ink),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        color: p.surface,
-        onSelected: (v) {
-          switch (v) {
-            case 'link':
-              final base = ref.read(appConfigProvider).apiBaseUrl;
-              final me = ref.read(meProvider).valueOrNull?.userId;
-              Clipboard.setData(ClipboardData(
-                  text: withRef('$base/join/$groupId', me, 'group', groupId)));
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text(
-                      'Membership link copied — anyone with it can join.')));
-              break;
-            case 'edit':
-              showSpSheet<void>(
-                context,
-                framed: false,
-                builder: (_) => _EditGroupSheet(groupId: groupId),
-              );
-              break;
-            case 'wallet':
-              context.push('/groups/$groupId/wallet');
-              break;
-            case 'plan':
-              context.push('/groups/$groupId/plan');
-              break;
-            case 'team':
-              context.push('/groups/$groupId/new-team');
-              break;
-            case 'tournament':
-              _handleNewTournament(context, ref, groupId);
-              break;
-            case 'invites':
-              context.push('/groups/$groupId/invites');
-              break;
-            case 'fines':
-              context.push('/groups/$groupId/fines');
-              break;
-            case 'upgrade':
-              // Android: the plan is bought on the web (Stripe). Opened in a
-              // Custom Tab so the return trip lands back in the app.
-              // Signed in already (one-tap hand-off), no second login.
-              signedInWebUriFor(ref, webPayPath(groupId, 'upgrade')).then(
-                  (url) => launchUrl(url, mode: LaunchMode.inAppBrowserView));
-              break;
-            case 'promo':
-              showPromoCodesSheet(context, groupId);
-              break;
-            case 'transfer':
-              showTransferOwnershipSheet(context, groupId);
-              break;
-            case 'requests':
-              context.push('/groups/$groupId/requests');
-              break;
-          }
-        },
-        itemBuilder: (_) {
-          final ov = ref.read(groupOverviewProvider(groupId)).valueOrNull;
-          // Fail open while the overview loads — the server still enforces.
-          final canTournaments = ov?.canCreateTournaments ?? true;
-          // Team building: plan OR promo code (same rule as web + server).
-          final canTeams =
-              ref.read(teamAllowanceProvider(groupId)).valueOrNull?.canBuild ??
-                  true;
-          final ios = IapRepository.supportedPlatform;
-          // The web menu, with two App Store exceptions: "Payment methods" is
-          // the Stripe card for the plan (Apple bills the plan on iOS) and a
-          // promo code that unlocks paid features is a 3.1.1 problem, so
-          // both are Android-only; the plan itself is the in-app purchase.
-          return [
-            _menuItem('link', Icons.link_rounded, 'Copy membership link'),
-            _menuItem('edit', Icons.edit_outlined, 'Edit group'),
-            _menuItem(
-                'wallet', Icons.account_balance_wallet_outlined, 'Wallet'),
-            _menuItem('fines', Icons.gavel_rounded, 'Fines'),
-            if (ios)
-              _menuItem('plan', Icons.workspace_premium_outlined, 'Group plan')
-            else
-              _menuItem(
-                  'upgrade', Icons.workspace_premium_outlined, 'Upgrade plan'),
-            if (!ios)
-              _menuItem(
-                  'promo', Icons.confirmation_number_outlined, 'Promo codes'),
-            if (isOwner)
-              _menuItem(
-                  'requests', Icons.how_to_reg_outlined, 'Membership requests',
-                  badge: pending),
-            if (isOwner)
-              _menuItem(
-                  'transfer', Icons.swap_horiz_rounded, 'Transfer ownership'),
-            const PopupMenuDivider(),
-            if (canTeams) _menuItem('team', Icons.shield_outlined, 'New team'),
-            // Tournaments are a plan feature. On a tier without them the
-            // item is offered only where tapping it can lead somewhere — the
-            // in-app plans screen on iOS. Elsewhere it's hidden, same as the
-            // web tab hides its button.
-            if (canTournaments || IapRepository.supportedPlatform)
-              _menuItem('tournament', Icons.emoji_events_outlined,
-                  canTournaments ? 'New tournament' : 'New tournament · plan'),
-            _menuItem(
-                'invites', Icons.mail_outline_rounded, 'Tournament invites'),
-          ];
-        },
+    // The profile page's menu: a bottom sheet (the popup used to clip
+    // against the screen edge lower down the page).
+    final menu = SpRoundButton(
+      icon: Icons.more_horiz_rounded,
+      tooltip: 'Manage',
+      onTap: () => showSpSheet<void>(
+        context,
+        framed: false,
+        builder: (ctx) => _ManageMenuSheet(
+          groupId: groupId,
+          isOwner: isOwner,
+          pending: pending,
+          onPick: (v) {
+            Navigator.pop(ctx);
+            _act(context, ref, v);
+          },
+        ),
       ),
     );
     return Stack(clipBehavior: Clip.none, children: [
@@ -874,19 +779,267 @@ class _ManageMenu extends ConsumerWidget {
     ]);
   }
 
-  PopupMenuItem<String> _menuItem(String value, IconData icon, String label,
-      {int badge = 0}) {
-    return PopupMenuItem(
-      value: value,
-      child: Row(children: [
-        Icon(icon, size: 18),
-        const SizedBox(width: 10),
-        Text(label),
-        if (badge > 0) ...[
-          const SizedBox(width: 8),
-          _CountBadge(count: badge),
-        ],
-      ]),
+  void _act(BuildContext context, WidgetRef ref, String v) {
+    switch (v) {
+      case 'link':
+        final base = ref.read(appConfigProvider).apiBaseUrl;
+        final me = ref.read(meProvider).valueOrNull?.userId;
+        Clipboard.setData(ClipboardData(
+            text: withRef('$base/join/$groupId', me, 'group', groupId)));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content:
+                Text('Membership link copied — anyone with it can join.')));
+        break;
+      case 'edit':
+        showSpSheet<void>(
+          context,
+          framed: false,
+          builder: (_) => _EditGroupSheet(groupId: groupId),
+        );
+        break;
+      case 'wallet':
+        context.push('/groups/$groupId/wallet');
+        break;
+      case 'plan':
+        context.push('/groups/$groupId/plan');
+        break;
+      case 'team':
+        context.push('/groups/$groupId/new-team');
+        break;
+      case 'tournament':
+        _handleNewTournament(context, ref, groupId);
+        break;
+      case 'invites':
+        context.push('/groups/$groupId/invites');
+        break;
+      case 'fines':
+        context.push('/groups/$groupId/fines');
+        break;
+      case 'upgrade':
+        // Android: the plan is bought on the web (Stripe). Opened in a
+        // Custom Tab so the return trip lands back in the app.
+        // Signed in already (one-tap hand-off), no second login.
+        signedInWebUriFor(ref, webPayPath(groupId, 'upgrade')).then(
+            (url) => launchUrl(url, mode: LaunchMode.inAppBrowserView));
+        break;
+      case 'promo':
+        showPromoCodesSheet(context, groupId);
+        break;
+      case 'transfer':
+        showTransferOwnershipSheet(context, groupId);
+        break;
+      case 'requests':
+        context.push('/groups/$groupId/requests');
+        break;
+    }
+  }
+}
+
+/// The group's manage menu as a bottom sheet — same design as the profile
+/// menu: the group's crest and name, three quick actions, then grouped rows.
+/// The web menu, with two App Store exceptions: "Upgrade plan" (web) is
+/// "Group plan" (in-app purchase) on iOS, and promo codes that unlock paid
+/// features are Android-only (3.1.1).
+class _ManageMenuSheet extends ConsumerWidget {
+  const _ManageMenuSheet({
+    required this.groupId,
+    required this.isOwner,
+    required this.pending,
+    required this.onPick,
+  });
+  final String groupId;
+  final bool isOwner;
+  final int pending;
+  final ValueChanged<String> onPick;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = context.palette;
+    final group = ref.watch(groupProvider(groupId)).valueOrNull;
+    final ov = ref.watch(groupOverviewProvider(groupId)).valueOrNull;
+    // Fail open while the overview loads — the server still enforces.
+    final canTournaments = ov?.canCreateTournaments ?? true;
+    // Team building: plan OR promo code (same rule as web + server).
+    final canTeams =
+        ref.watch(teamAllowanceProvider(groupId)).valueOrNull?.canBuild ?? true;
+    final ios = IapRepository.supportedPlatform;
+
+    Widget quick(String value, IconData icon, String label) => Expanded(
+          child: Material(
+            color: p.surface,
+            borderRadius: BorderRadius.circular(20),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => onPick(value),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Column(children: [
+                  SpIconTile(icon, bg: p.accentTint, fg: p.greenText, size: 40),
+                  const SizedBox(height: 8),
+                  Text(label,
+                      style: TextStyle(
+                          color: p.ink,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            ),
+          ),
+        );
+
+    Widget row(String value, IconData icon, String label, String sub, Color bg,
+            Color fg,
+            {int badge = 0}) =>
+        InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () => onPick(value),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            child: Row(children: [
+              SpIconTile(icon, bg: bg, fg: fg, size: 40),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label,
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700)),
+                    Text(sub,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: p.muted, fontSize: 12)),
+                  ],
+                ),
+              ),
+              if (badge > 0) ...[
+                _CountBadge(count: badge),
+                const SizedBox(width: 6),
+              ],
+              Icon(Icons.chevron_right_rounded, color: p.muted),
+            ]),
+          ),
+        );
+
+    return Container(
+      constraints:
+          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
+      decoration: BoxDecoration(
+        color: p.bg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SheetScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SpGrabber(),
+              const SizedBox(height: 16),
+              Row(children: [
+                ClipOval(
+                  child: Crest(
+                      logoUrl: group?.logoUrl,
+                      label: group?.name ?? 'Group',
+                      size: 46),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(group?.name ?? 'Group',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: p.ink,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800)),
+                      Text(isOwner ? 'Owner · manage this group' : 'Admin · manage this group',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: p.muted, fontSize: 12.5)),
+                    ],
+                  ),
+                ),
+                SpRoundButton(
+                  icon: Icons.close_rounded,
+                  tooltip: 'Close',
+                  onTap: () => Navigator.of(context).pop(),
+                ),
+              ]),
+              const SizedBox(height: 18),
+              Row(children: [
+                quick('wallet', Icons.account_balance_wallet_outlined, 'Wallet'),
+                const SizedBox(width: 8),
+                quick('fines', Icons.gavel_rounded, 'Fines'),
+                const SizedBox(width: 8),
+                quick(ios ? 'plan' : 'upgrade', Icons.workspace_premium_outlined,
+                    ios ? 'Plan' : 'Upgrade'),
+              ]),
+              const SizedBox(height: 18),
+              const Padding(
+                padding: EdgeInsets.only(left: 4, bottom: 8),
+                child: Eyebrow('Group'),
+              ),
+              SpListCard(children: [
+                row('edit', Icons.edit_outlined, 'Edit group',
+                    'Name, logo, description and settings', p.surface2, p.ink),
+                row('link', Icons.link_rounded, 'Copy membership link',
+                    'Anyone with it can join', p.accentTint, p.greenText),
+                if (!ios)
+                  row('promo', Icons.confirmation_number_outlined,
+                      'Promo codes', 'Apply a code to this group',
+                      p.orangeTint, p.orangeInk),
+                if (isOwner)
+                  row('requests', Icons.how_to_reg_outlined,
+                      'Membership requests',
+                      pending > 0
+                          ? '$pending waiting for you'
+                          : 'People asking to join',
+                      p.surface2, p.ink,
+                      badge: pending),
+                if (isOwner)
+                  row('transfer', Icons.swap_horiz_rounded,
+                      'Transfer ownership', 'Hand the group to another admin',
+                      p.surface2, p.ink),
+              ]),
+              const SizedBox(height: 16),
+              const Padding(
+                padding: EdgeInsets.only(left: 4, bottom: 8),
+                child: Eyebrow('Teams & tournaments'),
+              ),
+              SpListCard(children: [
+                if (canTeams)
+                  row('team', Icons.shield_outlined, 'New team',
+                      'Build a team from your members', p.accentTint,
+                      p.greenText),
+                // Tournaments are a plan feature. On a tier without them the
+                // row is offered only where tapping it can lead somewhere —
+                // the in-app plans screen on iOS. Elsewhere it's hidden,
+                // same as the web tab hides its button.
+                if (canTournaments || ios)
+                  row(
+                      'tournament',
+                      Icons.emoji_events_outlined,
+                      'New tournament',
+                      canTournaments
+                          ? 'Brackets, friendlies and leagues'
+                          : 'Not on this plan',
+                      p.orangeTint,
+                      p.orangeInk),
+                row('invites', Icons.mail_outline_rounded,
+                    'Tournament invites', 'Invitations from other groups',
+                    p.surface2, p.ink),
+              ]),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

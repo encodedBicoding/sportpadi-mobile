@@ -225,6 +225,7 @@ class WalletOverview {
     required this.ticketCount,
     this.policy,
     this.progress,
+    this.holdsFunds,
   });
   final bool exists;
   final String? status; // pending | active | frozen | closed …
@@ -239,6 +240,11 @@ class WalletOverview {
   final int ticketCount;
   final WithdrawalPolicy? policy;
   final OnboardingProgress? progress;
+
+  /// Does SportPadi hold this group's money (ledger balance, maturation,
+  /// in-app withdrawals)? The server decides per provider (Stripe and
+  /// Paystack yes; Flutterwave settles to the bank itself).
+  final bool? holdsFunds;
 
   bool get isActive => status == 'active';
   bool get isFrozen => status == 'frozen';
@@ -257,7 +263,7 @@ class WalletOverview {
     return null;
   }
 
-  bool get isStripe => settlementAccount?.isStripe ?? false;
+  bool get isStripe => holdsFunds ?? (settlementAccount?.isStripe ?? false);
 
   factory WalletOverview.fromJson(Map<String, dynamic> j) {
     final w = j['wallet'] is Map
@@ -275,6 +281,7 @@ class WalletOverview {
     return WalletOverview(
       exists: w != null,
       status: parseStr(w?['status']),
+      holdsFunds: w?['holdsFunds'] is bool ? w!['holdsFunds'] as bool : null,
       currency: parseStr(w?['currency']) ?? parseStr(summary['currency']) ?? '',
       currencyExponent: parseInt(w?['currencyExponent']) ??
           parseInt(summary['currencyExponent']) ??

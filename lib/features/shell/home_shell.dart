@@ -192,6 +192,17 @@ class _HomeShellState extends ConsumerState<HomeShell>
       // registered / ask / denied / unavailable.
       debugPrint('[push] device readiness: ${await push.readiness()}');
     }
+    // Allowed but the registration POST failed (usually a 401 because the
+    // shell mounted a beat before the session was in place, or no network
+    // right after an update): one retry shortly after, so the device is
+    // back on the server without waiting for a resume. If it still fails,
+    // the Home card says so and offers "Connect".
+    if (push.enabled && !push.registeredWithServer) {
+      await Future<void>.delayed(const Duration(seconds: 3));
+      if (!mounted) return;
+      final again = await push.onAppResumed();
+      if (mounted) ref.read(pushStatusProvider.notifier).state = again;
+    }
     // Let the first screen land before the soft ask, per the platform
     // guidelines (explain in context, don't ambush on launch).
     await Future<void>.delayed(const Duration(milliseconds: 1500));

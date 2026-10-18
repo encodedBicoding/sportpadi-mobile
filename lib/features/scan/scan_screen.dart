@@ -19,6 +19,7 @@ import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/core/ads/admob.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/features/teams/balance_setup_sheet.dart';
 
 const _mint = Color(0xFF6EDC9E);
 
@@ -263,6 +264,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
           reward: reward,
           doneButton: true,
         );
+        // Checked in to a sport that balances teams by position and this
+        // player hasn't set theirs: ask now, before the teams are made.
+        if (mounted && res['categoryId'] is String) {
+          await showBalanceSetupIfNeeded(context, ref, categoryId: res['categoryId'] as String, dismissible: true);
+        }
         if (done && mounted) context.pop();
         return;
       case 'already_checked_in':

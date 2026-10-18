@@ -32,6 +32,8 @@ import 'package:sportpadi_mobile/features/games/volleyball_widgets.dart';
 import 'package:sportpadi_mobile/features/wards/ward_pickers.dart';
 import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
+import 'package:sportpadi_mobile/shared/format/event_time.dart';
+import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_audience.dart';
@@ -43,6 +45,7 @@ import 'package:sportpadi_mobile/core/referral/referral.dart';
 import 'package:sportpadi_mobile/features/events/rsvp_info_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/features/teams/balance_setup_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 
 const _cancelRepeatingCopy =
@@ -164,181 +167,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
   }
 
   Future<void> _checkBalanceSetup(String eventId) async {
-    final data = await ref.read(eventsRepositoryProvider).balanceSetup(eventId);
-    if (!mounted || data == null) return;
-    if (data['required'] != true) return;
-    final field = data['field'];
-    final categoryId = data['categoryId'];
-    if (field is! Map || categoryId is! String || categoryId.isEmpty) return;
-    await _showBalanceSheet(
-      categoryId: categoryId,
-      categoryName: (data['categoryName'] as String?) ?? 'this sport',
-      label: (field['label'] as String?) ?? 'position',
-      options: field['options'] is List
-          ? (field['options'] as List).map((x) => x.toString()).toList()
-          : const <String>[],
-      maxPicks: field['maxPicks'] is int ? field['maxPicks'] as int : 3,
-    );
-  }
-
-  Future<void> _showBalanceSheet({
-    required String categoryId,
-    required String categoryName,
-    required String label,
-    required List<String> options,
-    required int maxPicks,
-  }) async {
-    final p = context.palette;
-    final picked = <String>{};
-    final freeCtrl = TextEditingController();
-    var saving = false;
-    await showSpSheet<void>(
-      context,
-      isDismissible: false,
-      enableDrag: false,
-      framed: false,
-      builder: (ctx) => PopScope(
-        canPop: false,
-        child: StatefulBuilder(
-          builder: (ctx, setSheet) {
-            final canSave = options.isNotEmpty
-                ? picked.isNotEmpty
-                : freeCtrl.text.trim().isNotEmpty;
-            Future<void> doSave() async {
-              if (saving || !canSave) return;
-              setSheet(() => saving = true);
-              try {
-                final roles = options.isNotEmpty
-                    ? picked.toList()
-                    : [freeCtrl.text.trim()];
-                await ref
-                    .read(eventsRepositoryProvider)
-                    .saveBalanceRoles(categoryId, roles);
-                if (ctx.mounted) Navigator.of(ctx).pop();
-                if (mounted) _flash("You're set for $categoryName ✅");
-              } catch (e) {
-                setSheet(() => saving = false);
-                if (ctx.mounted) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                    content: Text(e.toString()),
-                    behavior: SnackBarBehavior.floating,
-                  ));
-                }
-              }
-            }
-
-            return Container(
-              padding: EdgeInsets.fromLTRB(
-                  20, 16, 20, 28 + MediaQuery.of(ctx).viewInsets.bottom),
-              decoration: BoxDecoration(
-                color: Theme.of(ctx).scaffoldBackgroundColor,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: p.muted.withAlpha(90),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text('Set your ${label.toLowerCase()}',
-                        style: TextStyle(
-                            color: p.ink,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 6),
-                    Text(
-                      '$categoryName events use smart team balancing, and it '
-                      'needs every player\'s ${label.toLowerCase()}. '
-                      '${maxPicks == 1 ? 'Pick one' : 'Pick up to $maxPicks'} — '
-                      'you can change this later from your profile.',
-                      style:
-                          TextStyle(color: p.muted, fontSize: 13, height: 1.45),
-                    ),
-                    const SizedBox(height: 14),
-                    if (options.isNotEmpty)
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final opt in options)
-                            GestureDetector(
-                              onTap: () => setSheet(() {
-                                if (picked.contains(opt)) {
-                                  picked.remove(opt);
-                                } else if (maxPicks == 1) {
-                                  picked
-                                    ..clear()
-                                    ..add(opt);
-                                } else if (picked.length < maxPicks) {
-                                  picked.add(opt);
-                                }
-                              }),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: picked.contains(opt)
-                                      ? p.accent.withAlpha(36)
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(99),
-                                  border: Border.all(
-                                    color: picked.contains(opt)
-                                        ? p.accent
-                                        : p.muted.withAlpha(80),
-                                  ),
-                                ),
-                                child: Text(
-                                  opt,
-                                  style: TextStyle(
-                                    color: picked.contains(opt)
-                                        ? p.accent
-                                        : p.muted,
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      )
-                    else
-                      TextField(
-                        controller: freeCtrl,
-                        onChanged: (_) => setSheet(() {}),
-                        maxLength: 60,
-                        textInputAction: TextInputAction.done,
-                        decoration: InputDecoration(
-                          hintText: 'Your ${label.toLowerCase()}',
-                          counterText: '',
-                        ),
-                      ),
-                    const SizedBox(height: 16),
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 48)),
-                      onPressed: canSave && !saving ? doSave : null,
-                      child: Text(saving ? 'Saving…' : 'Save & continue'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-    freeCtrl.dispose();
+    final saved = await showBalanceSetupIfNeeded(context, ref, eventId: eventId);
+    if (saved && mounted) _flash("You're set ✅");
   }
 
   void _flash(String msg) {
@@ -1205,10 +1035,18 @@ class _EventHeroState extends State<_EventHero> {
       );
 
   Widget _titleCard(BuildContext context, AppPalette p, EventDetail e) {
-    final time = [
-      formatClock(e.startTime),
-      if (e.endTime != null) formatClock(e.endTime),
-    ].where((s) => s != null && s.isNotEmpty).join(' – ');
+    // Venue clock first (that's when you turn up), with the zone label and
+    // the viewer's own time when they're elsewhere — same as the web's
+    // EventTime: "2:30 PM GMT+1" / "9:30 AM your time".
+    final when = formatEventTime(
+      eventDate: e.eventDate,
+      startTime: parseDate(e.startTime),
+      endTime: parseDate(e.endTime),
+      timezone: e.timezone,
+    );
+    final time = when.venueTime == null
+        ? ''
+        : '${when.venueTime}${when.venueZone != null ? ' ${when.venueZone}' : ''}';
     final level =
         e.competitiveLevel != null ? _competitive[e.competitiveLevel!] : null;
     final status = switch (e.status) {
@@ -1299,8 +1137,13 @@ class _EventHeroState extends State<_EventHero> {
         ],
         const SizedBox(height: 12),
         if (e.eventDate != null)
-          InfoRow(Icons.calendar_today_rounded, formatDayYear(e.eventDate)),
-        if (time.isNotEmpty) InfoRow(Icons.schedule_rounded, time),
+          InfoRow(Icons.calendar_today_rounded, formatDayLong(e.eventDate)),
+        if (time.isNotEmpty)
+          InfoRow(
+              Icons.schedule_rounded,
+              when.viewerTime != null
+                  ? '$time\n${when.viewerTime} your time'
+                  : time),
         EventTicketedLine(eventId: e.id),
         if (e.locationName != null)
           InfoRow(
@@ -3079,7 +2922,13 @@ class _TeamsTab extends ConsumerWidget {
                             size: 32)),
                     title: Text(x.displayName,
                         style: TextStyle(color: p.ink, fontSize: 14)),
-                    trailing: x.isSub ? const _RosterTag(text: 'SUB') : null,
+                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                      if (x.draftedRole != null) ...[
+                        _RosterTag(text: 'drafted as ${x.draftedRole}'),
+                        if (x.isSub) const SizedBox(width: 4),
+                      ],
+                      if (x.isSub) const _RosterTag(text: 'SUB'),
+                    ]),
                     onTap: () {
                       // Close the roster, then open their profile.
                       Navigator.of(ctx).pop();

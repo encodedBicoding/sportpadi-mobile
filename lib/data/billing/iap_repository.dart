@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
+import 'package:sportpadi_mobile/data/wallet/fee_terms.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 
 /// A plan a group can buy, as the server describes it.
@@ -20,6 +21,7 @@ class IapPlan {
     required this.features,
     required this.products,
     required this.webPrices,
+    this.fee,
   });
 
   final String tierId;
@@ -35,6 +37,10 @@ class IapPlan {
   /// fallback for layout before StoreKit answers; what the user commits to is
   /// always Apple's own localized price.
   final Map<String, ({int minor, String currency})> webPrices;
+
+  /// The SportPadi fee on this plan's payments — a fact about the plan,
+  /// shown plainly; never a reason to buy on the plan screen.
+  final PlanFee? fee;
 
   factory IapPlan.fromJson(Map<String, dynamic> j) {
     final products = <String, String>{};
@@ -68,6 +74,7 @@ class IapPlan {
       ],
       products: products,
       webPrices: prices,
+      fee: PlanFee.fromJson(j['fee']),
     );
   }
 }

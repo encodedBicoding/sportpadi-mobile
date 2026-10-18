@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
+import 'package:sportpadi_mobile/data/wallet/fee_terms.dart';
 import 'package:sportpadi_mobile/data/wallet/wallet_models.dart';
 
 /// Group wallet management (admins): balance, withdrawals + approvals, ledger,
@@ -150,6 +151,27 @@ class WalletRepository {
     }
   }
 
+  /// What the group pays SportPadi, in full (rate, source, processor, example, pending change).
+  Future<GroupFeeTerms> feeTerms(String groupId) async {
+    try {
+      final res = await _dio.get(_path(groupId), queryParameters: {'view': 'fee-terms'});
+      return GroupFeeTerms.fromJson(Map<String, dynamic>.from(res.data as Map));
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load your fee.');
+    }
+  }
+
+  /// The month's payments with the fee on each ("YYYY-MM"; null = this month).
+  Future<GroupStatement> statement(String groupId, String? month) async {
+    try {
+      final res = await _dio.get(_path(groupId),
+          queryParameters: {'view': 'statement', if (month != null) 'month': month});
+      return GroupStatement.fromJson(Map<String, dynamic>.from(res.data as Map));
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load the statement.');
+    }
+  }
+
   /// What buyers pay and the group receives for [priceMinor].
   Future<FeeQuote> feeQuote(String groupId, int priceMinor) async {
     try {
@@ -180,3 +202,13 @@ final walletLedgerProvider = FutureProvider.autoDispose
 final feeSettingProvider = FutureProvider.autoDispose
     .family<FeeSetting, String>((ref, groupId) =>
         ref.watch(walletRepositoryProvider).feeSetting(groupId));
+
+final feeTermsProvider = FutureProvider.autoDispose
+    .family<GroupFeeTerms, String>((ref, groupId) =>
+        ref.watch(walletRepositoryProvider).feeTerms(groupId));
+
+typedef StatementKey = ({String groupId, String? month});
+
+final walletStatementProvider = FutureProvider.autoDispose
+    .family<GroupStatement, StatementKey>((ref, k) =>
+        ref.watch(walletRepositoryProvider).statement(k.groupId, k.month));

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:sportpadi_mobile/core/env/app_config.dart';
+import 'package:sportpadi_mobile/core/location/location_provider.dart';
 import 'package:sportpadi_mobile/core/network/auth_interceptor.dart';
 import 'package:sportpadi_mobile/core/storage/token_storage.dart';
 
@@ -36,6 +37,19 @@ final dioProvider = Provider<Dio>((ref) {
   );
 
   dio.interceptors.add(AuthInterceptor(tokens));
+  // Where the phone IS: once the app has a GPS fix (Discover, the Home
+  // weather card), every request carries it so the server can show sport
+  // names in that country's words — "football" in Lagos, "soccer" in Surrey
+  // (api categories/aliases.ts). Rounded to ~1 km; nothing is sent until the
+  // user has granted location, and without it the server uses the IP country.
+  dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+    final loc = ref.read(locationProvider).location;
+    if (loc != null) {
+      options.headers['x-sp-geo'] =
+          '${loc.lat.toStringAsFixed(2)},${loc.lng.toStringAsFixed(2)}';
+    }
+    handler.next(options);
+  }));
   if (!config.isProd && kDebugMode) {
     dio.interceptors.add(
       LogInterceptor(requestBody: true, responseBody: true, error: true),
