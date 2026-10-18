@@ -343,6 +343,7 @@ class EventDetail {
     this.maxTeamsPerGame,
     this.isTournament = false,
     this.hasLatePool = false,
+    this.timezone,
     this.canCreateGames = false,
     this.smartShuffle = false,
     this.myWards = const [],
@@ -358,6 +359,11 @@ class EventDetail {
   final DateTime? eventDate;
   final String? startTime;
   final String? endTime;
+
+  /// The venue's IANA zone ("Africa/Lagos") — the stored date/time is that
+  /// venue's wall clock; with this the app can add "your time" when the
+  /// viewer is elsewhere (shared/format/event_time.dart).
+  final String? timezone;
   final String? locationName;
   final String? status;
   final String? categoryEmoji;
@@ -489,6 +495,7 @@ class EventDetail {
       isTournament: j['isTournament'] == true,
       hasLatePool: j['features'] is Map &&
           (j['features'] as Map)['LATE_POOL_ENTRY'] == true,
+      timezone: parseStr(j['timezone']),
       canCreateGames: j['features'] is Map &&
           (j['features'] as Map)['LOCAL_GAME_STATS'] == true,
       smartShuffle: j['features'] is Map &&
@@ -535,17 +542,22 @@ class EventTeamPlayer {
     required this.displayName,
     this.isSub = false,
     this.avatarUrl,
+    this.draftedRole,
   });
   final String userId;
   final String displayName;
   final bool isSub;
   final String? avatarUrl;
 
+  /// The position smart shuffle dealt them under ("ST") — a hint, not a rule.
+  final String? draftedRole;
+
   factory EventTeamPlayer.fromJson(Map<String, dynamic> j) => EventTeamPlayer(
         userId: (j['userId'] ?? '') as String,
         displayName: (j['displayName'] ?? 'Player') as String,
         isSub: j['isSub'] == true,
         avatarUrl: parseStr(j['avatarUrl']),
+        draftedRole: parseStr(j['draftedRole']),
       );
 }
 

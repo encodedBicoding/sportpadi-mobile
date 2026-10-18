@@ -42,6 +42,8 @@ import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/features/home/weather_card.dart';
 import 'package:sportpadi_mobile/data/weather/weather_repository.dart';
 import 'package:sportpadi_mobile/features/home/intent_first_card.dart';
+import 'package:sportpadi_mobile/features/notifications/notifications_nudge_card.dart';
+import 'package:sportpadi_mobile/features/home/balance_gaps_card.dart';
 
 /// Home — the user's personal dashboard: their upcoming events across every
 /// group they belong to (live events beep on the tab), a Kids tab (future),
@@ -249,6 +251,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       const SizedBox(height: 12),
                       const AdDisplay(
                           slots: ['home_top', 'mobile_home'], carousel: true),
+
+                      // This phone can't get pushes for this account (never
+                      // asked, refused, or not registered after a reinstall /
+                      // update): say so until it can. Not throttled, unlike
+                      // the soft-ask sheet.
+                      const NotificationsNudgeCard(
+                          padding: EdgeInsets.only(top: 12)),
+                      // Sports whose team balancing is missing this
+                      // player's position — set it before the next game.
+                      const BalanceGapsCard(padding: EdgeInsets.only(top: 12)),
 
                       // Why they came: a guardian / coach / host who hasn't set
                       // up yet gets that as the first card instead of the quick

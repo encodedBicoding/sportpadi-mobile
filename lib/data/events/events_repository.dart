@@ -14,15 +14,30 @@ class EventsRepository {
 
   /// Compulsory "balance by attribute" gate. Null on any failure — the event
   /// screen fails open rather than blocking on a network error.
-  Future<Map<String, dynamic>?> balanceSetup(String eventId) async {
+  Future<Map<String, dynamic>?> balanceSetup({String? eventId, String? categoryId}) async {
     try {
-      final res = await _dio.get('/api/mobile/balance-setup',
-          queryParameters: {'eventId': eventId});
+      final res = await _dio.get('/api/mobile/balance-setup', queryParameters: {
+        if (eventId != null) 'eventId': eventId,
+        if (categoryId != null) 'categoryId': categoryId,
+      });
       return res.data is Map
           ? Map<String, dynamic>.from(res.data as Map)
           : null;
     } catch (_) {
       return null;
+    }
+  }
+
+  /// Sports the viewer plays in that still need their role for team balancing.
+  Future<List<Map<String, dynamic>>> balanceGaps() async {
+    try {
+      final res = await _dio.get('/api/mobile/balance-setup', queryParameters: {'gaps': '1'});
+      return [
+        for (final x in (res.data is List ? res.data as List : const []))
+          if (x is Map) Map<String, dynamic>.from(x),
+      ];
+    } catch (_) {
+      return const [];
     }
   }
 
@@ -824,3 +839,6 @@ class ReleaseSpotResult {
   /// True when the player had paid and the ticket price was refunded.
   final bool refunded;
 }
+
+final balanceGapsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>(
+    (ref) => ref.watch(eventsRepositoryProvider).balanceGaps());

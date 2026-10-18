@@ -167,6 +167,10 @@ class GroupPromo {
     this.startsAt,
     this.endsAt,
     this.redeemedAt,
+    this.walletUnlocked = false,
+    this.feeTierName,
+    this.feeNetBps,
+    this.feeSource,
   });
   final String code;
   final bool active;
@@ -175,6 +179,13 @@ class GroupPromo {
   final DateTime? endsAt;
   final DateTime? redeemedAt;
 
+  /// Redeem only: the code just gave the group payment collection, and the
+  /// fee that applies (it follows the plan, not the code).
+  final bool walletUnlocked;
+  final String? feeTierName;
+  final int? feeNetBps;
+  final String? feeSource;
+
   factory GroupPromo.fromJson(Map<String, dynamic> j) => GroupPromo(
         code: parseStr(j['code']) ?? '',
         active: j['active'] == true,
@@ -182,6 +193,10 @@ class GroupPromo {
         startsAt: parseDate(j['startsAt'] ?? j['starts_at']),
         endsAt: parseDate(j['endsAt'] ?? j['ends_at']),
         redeemedAt: parseDate(j['redeemedAt'] ?? j['redeemed_at']),
+        walletUnlocked: j['walletUnlocked'] == true,
+        feeTierName: j['feeTerms'] is Map ? parseStr((j['feeTerms'] as Map)['tierName']) : null,
+        feeNetBps: j['feeTerms'] is Map ? parseInt((j['feeTerms'] as Map)['netBps']) : null,
+        feeSource: j['feeTerms'] is Map ? parseStr((j['feeTerms'] as Map)['source']) : null,
       );
 }
 

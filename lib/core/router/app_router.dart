@@ -53,6 +53,7 @@ import 'package:sportpadi_mobile/features/manage/group_fines_screen.dart';
 import 'package:sportpadi_mobile/features/manage/group_tickets_screen.dart';
 import 'package:sportpadi_mobile/features/wallet/group_wallet_screen.dart';
 import 'package:sportpadi_mobile/features/wallet/wallet_withdrawals_screen.dart';
+import 'package:sportpadi_mobile/features/wallet/wallet_statement_screen.dart';
 import 'package:sportpadi_mobile/features/shell/guest_shell.dart';
 import 'package:sportpadi_mobile/features/shell/home_shell.dart';
 import 'package:sportpadi_mobile/features/billing/group_plan_screen.dart';
@@ -489,6 +490,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/groups/:id/wallet/withdrawals',
         builder: (_, st) =>
             WalletWithdrawalsScreen(groupId: st.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/groups/:id/wallet/statement',
+        builder: (_, st) =>
+            WalletStatementScreen(groupId: st.pathParameters['id']!),
       ),
       GoRoute(
         path: '/groups/:id/tickets',

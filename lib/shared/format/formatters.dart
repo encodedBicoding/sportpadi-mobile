@@ -5,6 +5,9 @@ import 'parse.dart';
 
 final _day = DateFormat('EEE, d MMM');
 final _dayYear = DateFormat('d MMM yyyy');
+// The web's event page form (EventHero formatDate: weekday long, month long,
+// day, year) — "Sunday, October 18, 2026".
+final _dayLong = DateFormat('EEEE, MMMM d, yyyy');
 
 /// Event dates are UTC wall-clock values (the web renders them with
 /// timeZone: "UTC") — format the UTC face, never the device-local shift.
@@ -16,6 +19,12 @@ String formatDay(dynamic v) {
 String formatDayYear(dynamic v) {
   final d = v is DateTime ? v : parseDate(v);
   return d == null ? '' : _dayYear.format(d.toUtc());
+}
+
+/// "Sunday, October 18, 2026" — the event page's date row, same as the web.
+String formatDayLong(dynamic v) {
+  final d = v is DateTime ? v : parseDate(v);
+  return d == null ? '' : _dayLong.format(d.toUtc());
 }
 
 /// Event start/end times arrive as ISO datetimes (often on the 1970 epoch day);

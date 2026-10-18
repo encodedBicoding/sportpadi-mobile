@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/groups/group_admin_repository.dart';
+import 'package:sportpadi_mobile/data/wallet/fee_terms.dart';
+import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
 import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart'
@@ -264,6 +266,9 @@ class _PromoCodesSheetState extends ConsumerState<_PromoCodesSheet> {
   final _code = TextEditingController();
   bool _busy = false;
   String? _error;
+  // When a code just gave the group a wallet, say what its payments cost —
+  // the fee follows the plan, not the promo.
+  GroupPromo? _unlocked;
 
   @override
   void dispose() {
@@ -288,6 +293,10 @@ class _PromoCodesSheetState extends ConsumerState<_PromoCodesSheet> {
       // A code can unlock team building — refresh what the Teams tab offers.
       ref.invalidate(teamAllowanceProvider(widget.groupId));
       if (!mounted) return;
+      if (promo.walletUnlocked && promo.feeNetBps != null) {
+        setState(() => _unlocked = promo);
+        ref.invalidate(feeTermsProvider(widget.groupId));
+      }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(promo.active
               ? 'Code ${promo.code} applied.'
@@ -340,6 +349,28 @@ class _PromoCodesSheetState extends ConsumerState<_PromoCodesSheet> {
             label: _busy ? 'Applying…' : 'Apply code',
             onTap: _busy ? null : _redeem,
           ),
+          if (_unlocked != null) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                  color: p.accentTint, borderRadius: BorderRadius.circular(16)),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('You can now collect payments.',
+                        style: TextStyle(
+                            color: p.ink, fontWeight: FontWeight.w800, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    Text(
+                      'On the ${_unlocked!.feeTierName ?? 'current'} plan, SportPadi keeps ${feePhrase(_unlocked!.feeNetBps!)} of each payment '
+                      '(${feeSourcePhrase(_unlocked!.feeSource ?? 'default', _unlocked!.feeTierName)}). The fee follows your plan, not the promo code — '
+                      'every payment shows it, and your wallet statement adds it up each month.',
+                      style: TextStyle(color: p.ink, fontSize: 12.5, height: 1.4),
+                    ),
+                  ]),
+            ),
+          ],
           const SizedBox(height: 22),
           const Eyebrow('Applied to this group'),
           const SizedBox(height: 8),

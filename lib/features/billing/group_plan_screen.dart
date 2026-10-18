@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/links/web_handoff.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/billing/iap_repository.dart';
+import 'package:sportpadi_mobile/data/wallet/fee_terms.dart';
 import 'package:sportpadi_mobile/data/groups/groups_repository.dart'
     show groupOverviewProvider;
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
@@ -456,6 +457,38 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen>
   }
 }
 
+/// The plan's fee on payments, stated plainly on every card: the fee follows
+/// the plan a group is on, not the features it has, so a promo-code wallet on
+/// the Free plan pays the Free plan's rate. Facts only (App Store 3.1.1).
+class _PlanFeeLine extends StatelessWidget {
+  const _PlanFeeLine({required this.fee});
+  final PlanFee fee;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final line = fee.line;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+          color: p.surface2, borderRadius: BorderRadius.circular(14)),
+      child: Text.rich(
+        TextSpan(children: [
+          TextSpan(
+              text: '${line.label}: ',
+              style: TextStyle(color: p.muted, fontWeight: FontWeight.w600)),
+          TextSpan(
+              text: line.value,
+              style: TextStyle(color: p.ink, fontWeight: FontWeight.w800)),
+          if (line.note != null)
+            TextSpan(text: ' · ${line.note}', style: TextStyle(color: p.muted)),
+        ]),
+        style: const TextStyle(fontSize: 12, height: 1.35),
+      ),
+    );
+  }
+}
+
 /// One plan: name, pitch and features, then how to pay — "Pay with Apple"
 /// and, where allowed, "Pay with card". Prices come in the sheet each opens.
 class _PlanCard extends StatelessWidget {
@@ -502,6 +535,10 @@ class _PlanCard extends StatelessWidget {
               Text(plan.description!,
                   style:
                       TextStyle(color: p.muted, fontSize: 12.5, height: 1.35)),
+            ],
+            if (plan.fee != null) ...[
+              const SizedBox(height: 10),
+              _PlanFeeLine(fee: plan.fee!),
             ],
             if (plan.features.isNotEmpty) ...[
               const SizedBox(height: 10),
