@@ -664,8 +664,26 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
         const SizedBox(height: 20),
         SpSectionTitle('Not playing', count: d.notPlaying.length),
         const SizedBox(height: 10),
+        // Removed by the coach, or declined: one tap puts them back in the
+        // squad (accepted on the coach's behalf, like "Add" above).
         SpListCard(children: [
-          for (final m in d.notPlaying) _row(m, d, p),
+          for (final m in d.notPlaying)
+            _row(m, d, p,
+                trailing: d.canManage && !d.isOver
+                    ? TextButton(
+                        onPressed: _busy
+                            ? null
+                            : () => _run(
+                                () => repo.addSquadPlayer(widget.eventId,
+                                    d.tournamentTeamId, m.playerId),
+                                success: 'Back in the squad'),
+                        style:
+                            TextButton.styleFrom(foregroundColor: p.greenText),
+                        child: const Text('Add back',
+                            style: TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w700)),
+                      )
+                    : null),
         ]),
       ],
       if (d.coaches.isNotEmpty) ...[
