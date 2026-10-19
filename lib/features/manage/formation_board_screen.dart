@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -797,17 +798,44 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
       left: (st.x / 100) * w - groupW / 2,
       top: (st.y / 100) * h - 16,
       width: groupW,
-      child: GestureDetector(
-        onPanUpdate: _readOnly
-            ? null
-            : (d) {
-                setState(() {
-                  st.x = _clamp(st.x + d.delta.dx / w * 100);
-                  st.y = _clamp(st.y + d.delta.dy / h * 100);
-                });
-                _dirty = true;
-                _debounce?.cancel();
-                _debounce = Timer(const Duration(milliseconds: 600), _save);
+      // The board sits in a ListView: a plain pan recognizer loses every
+      // vertical drag to the scroll view (the token only moved sideways on
+      // the phone). _TokenDragRecognizer claims the pointer on touch-down,
+      // so a token drags freely in any direction and the page doesn't scroll
+      // underneath it; scrolling still works from anywhere else on the pitch.
+      child: RawGestureDetector(
+        gestures: _readOnly
+            ? const <Type, GestureRecognizerFactory>{}
+            : <Type, GestureRecognizerFactory>{
+                _TokenDragRecognizer: GestureRecognizerFactoryWithHandlers<_TokenDragRecognizer>(
+                  () => _TokenDragRecognizer(),
+                  (r) {
+                    // Claiming on touch-down also swallows the token's tap, so
+                    // a touch that barely moved is treated as the tap (menu).
+                    var moved = 0.0;
+                    r.onStart = (_) => moved = 0;
+                    r.onUpdate = (d) {
+                      moved += d.delta.distance;
+                      if (moved < 6) return;
+                      setState(() {
+                        st.x = _clamp(st.x + d.delta.dx / w * 100);
+                        st.y = _clamp(st.y + d.delta.dy / h * 100);
+                      });
+                      _dirty = true;
+                      _debounce?.cancel();
+                      _debounce = Timer(const Duration(milliseconds: 600), _save);
+                    };
+                    r.onEnd = (_) {
+                      if (moved < 6) {
+                        _tokenMenu(m);
+                        return;
+                      }
+                      // Save on release too, so a quick drag isn't left to the debounce.
+                      _debounce?.cancel();
+                      _save();
+                    };
+                  },
+                ),
               },
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           SizedBox(
@@ -952,5 +980,17 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
         ),
       ),
     );
+  }
+}
+
+
+/// A pan that wins the gesture arena the moment the finger lands, so a
+/// formation token can be dragged inside a scroll view (otherwise the
+/// scroll view takes every vertical drag and the token stays put).
+class _TokenDragRecognizer extends PanGestureRecognizer {
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    super.addAllowedPointer(event);
+    resolve(GestureDisposition.accepted);
   }
 }
