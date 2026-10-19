@@ -706,6 +706,13 @@ class _RecordSheetState extends State<_RecordSheet> {
     final g = widget.game;
     final def = widget.def;
     final onField = g.onFieldFor(_teamId);
+    // The bench too — subbed off, never-logged subs, late squad additions.
+    // The record on screen can lag the real game; the scorer shouldn't be
+    // blocked by it. Sent off stays out.
+    final bench = g.participants
+        .where((x) => x.teamId == _teamId && !x.onField && !x.sentOff)
+        .toList();
+    final pickable = [...onField, ...bench];
     final needsRelated = def.requiresRelated;
     final wantsRelated = def.assistAllowed || needsRelated;
     final canRecord =
@@ -818,8 +825,8 @@ class _RecordSheetState extends State<_RecordSheet> {
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.0)),
           const SizedBox(height: 6),
-          if (onField.isEmpty)
-            Text('No players on the pitch for this team.',
+          if (pickable.isEmpty)
+            Text('No players in the game for this team.',
                 style: TextStyle(color: p.muted, fontSize: 12.5))
           else
             Wrap(spacing: 6, runSpacing: 6, children: [
@@ -831,6 +838,25 @@ class _RecordSheetState extends State<_RecordSheet> {
                           if (_relatedId == x.playerId) _relatedId = null;
                         })),
             ]),
+          if (bench.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text('BENCH',
+                style: TextStyle(
+                    color: p.muted,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.0)),
+            const SizedBox(height: 6),
+            Wrap(spacing: 6, runSpacing: 6, children: [
+              for (final x in bench)
+                playerChip(x.playerId, x.displayName, x.jersey,
+                    selected: _playerId == x.playerId,
+                    onTap: () => setState(() {
+                          _playerId = x.playerId;
+                          if (_relatedId == x.playerId) _relatedId = null;
+                        })),
+            ]),
+          ],
           if (wantsRelated) ...[
             const SizedBox(height: 14),
             Text(
@@ -843,7 +869,7 @@ class _RecordSheetState extends State<_RecordSheet> {
             ),
             const SizedBox(height: 6),
             Wrap(spacing: 6, runSpacing: 6, children: [
-              for (final x in onField)
+              for (final x in pickable)
                 if (x.playerId != _playerId)
                   playerChip(x.playerId, x.displayName, x.jersey,
                       selected: _relatedId == x.playerId,
