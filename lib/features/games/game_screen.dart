@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
 import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
+import 'package:sportpadi_mobile/features/events/event_mvp_card.dart';
 import 'package:sportpadi_mobile/features/games/basketball_widgets.dart';
 import 'package:sportpadi_mobile/features/games/officiant_panel.dart';
 import 'package:sportpadi_mobile/features/games/officiants_card.dart';
@@ -20,6 +21,7 @@ import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 /// Live game screen — a faithful port of the web GameClient layout:
 /// scoreboard card with the clock strip, draw-resolution + shootout cards,
@@ -203,6 +205,10 @@ class GameScreen extends ConsumerWidget {
                         VolleyballSummary(game: g)
                       else
                         _SummaryCard(game: g),
+                      // Tournament / league matches: MVP vote (24h) then
+                      // the awards — same card as a group event's.
+                      const SizedBox(height: 12),
+                      EventMvpCard(gameId: gameId),
                     ],
                     if (g.canTime && _awaitingDraw(g)) ...[
                       const SizedBox(height: 12),
@@ -1062,17 +1068,41 @@ class _TimelineCard extends ConsumerWidget {
                     ],
                   ),
           ),
-          if (g.canScore && (g.isLive || g.status == 'completed'))
+          // ✎ corrects who it was (keeps the stat and its minute); 🗑 deletes.
+          if (g.canScore && (g.isLive || g.status == 'completed')) ...[
+            if (!isSub)
+              InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => _edit(context, ref, a),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(6, 1, 4, 4),
+                  child: Icon(Icons.edit_outlined, size: 15, color: p.muted),
+                ),
+              ),
             InkWell(
+              customBorder: const CircleBorder(),
               onTap: () => _void(context, ref, a),
               child: Padding(
-                padding: const EdgeInsets.only(left: 6, top: 1),
-                child: Icon(Icons.undo_rounded, size: 15, color: p.muted),
+                padding: const EdgeInsets.fromLTRB(4, 1, 2, 4),
+                child: Icon(Icons.delete_outline_rounded,
+                    size: 15, color: p.muted),
               ),
             ),
+          ],
         ],
       ),
     );
+  }
+
+  Future<void> _edit(
+      BuildContext context, WidgetRef ref, GameActivity a) async {
+    final saved = await showSpSheet<bool>(
+      context,
+      builder: (_) => _EditActivitySheet(game: game, gameId: gameId, activity: a),
+    );
+    if (saved == true) {
+      await ref.read(liveGameProvider(gameId).notifier).refresh();
+    }
   }
 
   Future<void> _void(
@@ -1080,16 +1110,16 @@ class _TimelineCard extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Void this entry?'),
+        title: const Text('Delete this entry?'),
         content: Text(
-            '"${game.defFor(a.type)?.label ?? a.type} — ${a.playerName}" is removed and the score recomputed.'),
+            '"${game.defFor(a.type)?.label ?? a.type} — ${a.playerName}" is removed and the score recomputed. To fix who it was, use edit instead — it keeps the minute.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Keep')),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Void')),
+              child: const Text('Delete')),
         ],
       ),
     );
@@ -1516,5 +1546,198 @@ Future<void> _gameAct(BuildContext context, WidgetRef ref, String gameId,
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
+  }
+}
+
+
+// ---------------------------------------------------------------------------
+// Edit a recorded stat — the type and the moment stay; the team, the player,
+// the assist / second player and (minute-clock sports) the minute change.
+// ---------------------------------------------------------------------------
+
+class _EditActivitySheet extends ConsumerStatefulWidget {
+  const _EditActivitySheet(
+      {required this.game, required this.gameId, required this.activity});
+  final GameDetail game;
+  final String gameId;
+  final GameActivity activity;
+
+  @override
+  ConsumerState<_EditActivitySheet> createState() =>
+      _EditActivitySheetState();
+}
+
+class _EditActivitySheetState extends ConsumerState<_EditActivitySheet> {
+  late String _teamId = widget.activity.teamId;
+  late String? _playerId = widget.activity.playerId;
+  late String? _relatedId = widget.activity.relatedPlayerId;
+  late final TextEditingController _minute = TextEditingController(
+      text: widget.activity.minute?.toString() ?? '');
+  bool _busy = false;
+
+  bool get _minuteEditable =>
+      !widget.game.isBasketball && !widget.game.isVolleyball;
+
+  @override
+  void dispose() {
+    _minute.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final pid = _playerId;
+    if (pid == null) return;
+    setState(() => _busy = true);
+    try {
+      final def = widget.game.defFor(widget.activity.type);
+      final wantsRelated =
+          (def?.assistAllowed ?? false) || (def?.requiresRelated ?? false);
+      await ref.read(gamesRepositoryProvider).editActivity(
+            widget.gameId,
+            widget.activity.id,
+            teamId: _teamId,
+            playerId: pid,
+            relatedPlayerId: wantsRelated ? _relatedId : widget.activity.relatedPlayerId,
+            minute: int.tryParse(_minute.text.trim()),
+            minuteEditable: _minuteEditable,
+          );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Updated')));
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final g = widget.game;
+    final def = g.defFor(widget.activity.type);
+    final needsRelated = def?.requiresRelated ?? false;
+    final wantsRelated = (def?.assistAllowed ?? false) || needsRelated;
+    final side = g.participants
+        .where((x) => x.teamId == _teamId && !x.sentOff)
+        .toList()
+      ..sort((a, b) => (b.onField ? 1 : 0) - (a.onField ? 1 : 0));
+    final everyone = g.participants.where((x) => !x.sentOff).toList();
+    final relatedPool = needsRelated ? everyone : side;
+
+    Widget label(String t) => Padding(
+          padding: const EdgeInsets.only(bottom: 6, top: 12),
+          child: Text(t,
+              style: TextStyle(
+                  color: p.muted,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.0)),
+        );
+    Widget chip(String text, bool selected, VoidCallback onTap) => Material(
+          color: selected ? p.accent : p.surface,
+          borderRadius: BorderRadius.circular(999),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(999),
+            onTap: _busy ? null : onTap,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: selected ? p.accent : p.line),
+              ),
+              child: Text(text,
+                  style: TextStyle(
+                      color: selected ? Colors.white : p.ink,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600)),
+            ),
+          ),
+        );
+    String name(GamePlayer x) =>
+        '${x.jersey != null ? '#${x.jersey} ' : ''}${x.displayName}${x.onField ? '' : ' · bench'}';
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SpSheetHeader(
+          title: 'Edit ${(def?.label ?? 'entry').toLowerCase()}',
+          subtitle: 'Keeps the stat and when it happened — change who it was credited to.',
+          icon: Icons.edit_outlined,
+        ),
+        label('TEAM'),
+        Wrap(spacing: 6, runSpacing: 6, children: [
+          for (final t in g.teams)
+            chip(t.name, _teamId == t.teamId, () => setState(() {
+                  if (_teamId != t.teamId) {
+                    _teamId = t.teamId;
+                    _playerId = null;
+                    if (!needsRelated) _relatedId = null;
+                  }
+                })),
+        ]),
+        label('PLAYER'),
+        if (side.isEmpty)
+          Text('No players in the game for this team.',
+              style: TextStyle(color: p.muted, fontSize: 12.5))
+        else
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            for (final x in side)
+              chip(name(x), _playerId == x.playerId, () => setState(() {
+                    _playerId = x.playerId;
+                    if (_relatedId == x.playerId) _relatedId = null;
+                  })),
+          ]),
+        if (wantsRelated) ...[
+          label(needsRelated ? 'SECOND PLAYER' : 'ASSIST (OPTIONAL)'),
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            if (!needsRelated)
+              chip('No assist', _relatedId == null,
+                  () => setState(() => _relatedId = null)),
+            for (final x in relatedPool)
+              if (x.playerId != _playerId)
+                chip(name(x), _relatedId == x.playerId,
+                    () => setState(() => _relatedId = x.playerId)),
+          ]),
+        ],
+        if (_minuteEditable) ...[
+          label('MINUTE'),
+          SizedBox(
+            width: 120,
+            child: TextField(
+              controller: _minute,
+              keyboardType: TextInputType.number,
+              maxLength: 3,
+              decoration: InputDecoration(
+                counterText: '',
+                hintText: 'e.g. 34',
+                filled: true,
+                fillColor: p.surface2,
+                isDense: true,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none),
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 18),
+        SpButton(
+          label: _busy ? 'Saving…' : 'Save',
+          icon: Icons.check_rounded,
+          expand: true,
+          onTap: _busy ||
+                  _playerId == null ||
+                  (needsRelated && _relatedId == null)
+              ? null
+              : _save,
+        ),
+      ],
+    );
   }
 }

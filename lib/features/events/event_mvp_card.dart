@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
+import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 
@@ -16,9 +18,14 @@ import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 /// spotlight (by votes, or by stats when too few voted), the vote split and
 /// the sport's stat awards. Events without a vote still show the MVP by stats
 /// and the awards; nothing when the event had no completed games.
+///
+/// With [gameId] instead it's a tournament / league MATCH's own vote, MVP and
+/// stat awards (api `games/mvp.ts`); a league MVP confirmed by the organiser
+/// shows as such.
 class EventMvpCard extends ConsumerStatefulWidget {
-  const EventMvpCard({super.key, required this.eventId});
+  const EventMvpCard({super.key, this.eventId = '', this.gameId});
   final String eventId;
+  final String? gameId;
 
   @override
   ConsumerState<EventMvpCard> createState() => _EventMvpCardState();
@@ -49,8 +56,14 @@ class _EventMvpCardState extends ConsumerState<EventMvpCard> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _voting = playerId);
     try {
-      await ref.read(eventsRepositoryProvider).voteMvp(widget.eventId, playerId);
-      ref.invalidate(eventMvpProvider(widget.eventId));
+      final gid = widget.gameId;
+      if (gid != null) {
+        await ref.read(gamesRepositoryProvider).voteMvp(gid, playerId);
+        ref.invalidate(gameMvpProvider(gid));
+      } else {
+        await ref.read(eventsRepositoryProvider).voteMvp(widget.eventId, playerId);
+        ref.invalidate(eventMvpProvider(widget.eventId));
+      }
       messenger.showSnackBar(const SnackBar(content: Text('Vote in — it stays anonymous.')));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e is ApiException ? e.message : 'Could not save your vote.')));
@@ -70,7 +83,10 @@ class _EventMvpCardState extends ConsumerState<EventMvpCard> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final d = ref.watch(eventMvpProvider(widget.eventId)).valueOrNull;
+    final gid = widget.gameId;
+    final d = gid != null
+        ? ref.watch(gameMvpProvider(gid)).valueOrNull
+        : ref.watch(eventMvpProvider(widget.eventId)).valueOrNull;
     // Any completed local event with games has a stats MVP + awards; the vote is extra.
     if (d == null) return const SizedBox.shrink();
     final poll = d['poll'] is Map ? Map<String, dynamic>.from(d['poll'] as Map) : null;
@@ -83,6 +99,10 @@ class _EventMvpCardState extends ConsumerState<EventMvpCard> {
     final myVote = poll?['myVote'] as String?;
     final canVote = poll?['canVote'] == true;
     final total = (poll?['totalVotes'] as num?)?.toInt();
+    // On a match page: 'match' = this match's own vote; 'event' = a local game
+    // showing its event's (the vote and awards cover the whole session).
+    final scope = d['scope'] as String?;
+    final ofEvent = scope == 'event' && d['event'] is Map ? Map<String, dynamic>.from(d['event'] as Map) : null;
 
     List<String> strs(dynamic v) => [for (final x in (v as List? ?? const [])) '$x'];
 
@@ -114,7 +134,7 @@ class _EventMvpCardState extends ConsumerState<EventMvpCard> {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Text(open ? 'MVP VOTE' : 'AWARDS',
+          Text('${open ? 'MVP VOTE' : 'AWARDS'}${ofEvent != null ? ' · WHOLE EVENT' : ''}',
               style: const TextStyle(color: _gold, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.6)),
           const Spacer(),
           if (open && closes != null)
@@ -132,7 +152,8 @@ class _EventMvpCardState extends ConsumerState<EventMvpCard> {
           const SizedBox(height: 6),
           const Text('Who was the MVP?', style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w800)),
           const SizedBox(height: 2),
-          Text("The three standouts from the event's games. Votes are anonymous — results when voting closes.",
+          Text(
+              '${scope == 'match' ? 'The three standouts from this match.' : "The three standouts from the event's games."} Votes are anonymous — results when voting closes.',
               style: TextStyle(color: Colors.white.withAlpha(178), fontSize: 12.5)),
         ] else if (mvp != null) ...[
           const SizedBox(height: 12),
@@ -164,7 +185,9 @@ class _EventMvpCardState extends ConsumerState<EventMvpCard> {
               Text(
                   mvp['by'] == 'votes'
                       ? 'Voted by the players · ${mvp['votes']} of ${total ?? mvp['votes']} votes'
-                      : poll != null
+                      : mvp['by'] == 'organiser'
+                          ? 'Confirmed by the organiser'
+                          : poll != null
                           ? 'Picked by stats — too few votes'
                           : 'Picked by stats',
                   style: TextStyle(color: Colors.white.withAlpha(178), fontSize: 12)),
@@ -301,6 +324,23 @@ class _EventMvpCardState extends ConsumerState<EventMvpCard> {
           Padding(
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              if (ofEvent != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: GestureDetector(
+                    onTap: () {
+                      final slug = '${ofEvent['slug'] ?? ''}';
+                      context.push('/events/${slug.isNotEmpty ? slug : ofEvent['id']}');
+                    },
+                    child: Text.rich(TextSpan(style: TextStyle(color: p.muted, fontSize: 12.5), children: [
+                      const TextSpan(text: 'For all of '),
+                      TextSpan(
+                          text: '${ofEvent['title'] ?? 'the event'}',
+                          style: TextStyle(color: p.ink, fontWeight: FontWeight.w600)),
+                      const TextSpan(text: ', not just this game.'),
+                    ])),
+                  ),
+                ),
               if (poll != null) ...[
                 for (final n in nominees) open ? nomineeCard(n) : splitRow(n),
               ],

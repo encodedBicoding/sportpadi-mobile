@@ -171,6 +171,37 @@ class TournamentsRepository {
       _act(eventId, {'action': 'cancel'},
           fallback: 'Could not cancel the tournament.');
 
+  /// Edit the details after creation: title, description, date & times,
+  /// location ('' clears it). Nothing about teams, fees or format. Returns
+  /// how many people were told about a new day, time or venue.
+  Future<int> updateTournament(
+    String eventId, {
+    required String title,
+    required String? description,
+    required String eventDate, // YYYY-MM-DD
+    required String? startTime, // HH:MM
+    required String? endTime,
+    required String? locationName,
+    required String? timezone,
+  }) async {
+    try {
+      final r = await _dio.post('/api/mobile/tournaments/$eventId', data: {
+        'action': 'update',
+        'title': title,
+        'description': description,
+        'eventDate': eventDate,
+        'startTime': startTime,
+        'endTime': endTime,
+        'locationName': locationName,
+        'timezone': timezone,
+      });
+      final d = r.data;
+      return d is Map && d['notified'] is num ? (d['notified'] as num).toInt() : 0;
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not save the details.');
+    }
+  }
+
   /// End the tournament: results stand, a live game is finalised at its
   /// current score, an unplayed one is abandoned. Nothing is refunded.
   Future<void> completeTournament(String eventId) =>

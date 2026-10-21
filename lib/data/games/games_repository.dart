@@ -119,9 +119,48 @@ class GamesRepository {
           },
           fallback: 'Could not record that.');
 
+  /// A completed tournament / league match's MVP vote + awards (raw JSON,
+  /// the same shape event_mvp_card.dart reads for events; api games/mvp.ts).
+  Future<Map<String, dynamic>> mvpAwards(String gameId) async {
+    try {
+      final res = await _dio.get('/api/mobile/games/$gameId', queryParameters: {'view': 'mvp'});
+      return res.data is Map ? Map<String, dynamic>.from(res.data as Map) : const {};
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load the awards.');
+    }
+  }
+
+  /// Anonymous match MVP vote (players and coaches in the match, while open).
+  Future<void> voteMvp(String gameId, String playerId) =>
+      _post(gameId, {'action': 'voteMvp', 'playerId': playerId},
+          fallback: 'Could not save your vote.');
+
   Future<void> voidActivity(String gameId, String activityId) =>
       _post(gameId, {'action': 'void', 'activityId': activityId},
-          fallback: 'Could not void that entry.');
+          fallback: 'Could not delete that entry.');
+
+  /// Correct a recorded stat in place — the type and the moment stay; the
+  /// team, player, second player (null clears it) and minute can change.
+  Future<void> editActivity(
+    String gameId,
+    String activityId, {
+    required String teamId,
+    required String playerId,
+    required String? relatedPlayerId,
+    int? minute,
+    bool minuteEditable = false,
+  }) =>
+      _post(
+          gameId,
+          {
+            'action': 'editActivity',
+            'activityId': activityId,
+            'teamId': teamId,
+            'playerId': playerId,
+            'relatedPlayerId': relatedPlayerId,
+            if (minuteEditable) 'minute': minute,
+          },
+          fallback: 'Could not save that change.');
 
   Future<void> substitute(
     String gameId, {
@@ -276,3 +315,9 @@ class OfficiantCandidate {
         status: j['status'] as String?,
       );
 }
+
+
+/// A completed tournament / league match's MVP vote + awards.
+final gameMvpProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>, String>((ref, gameId) =>
+        ref.watch(gamesRepositoryProvider).mvpAwards(gameId));
