@@ -67,6 +67,19 @@
 				<string>com.googleusercontent.apps.912400814442-vh4apvldg04oea6sa8gs6k7lasnpsm1m</string>
 			</array>
 		</dict>
+		<!-- sportpadi://sportpadi.com/<path>: the hand-off from a web page opened
+		     inside Gmail / Outlook / WhatsApp, where Universal Links never fire
+		     (the web's OpenInAppBar). Resolved like the https link. -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>com.sportpadi.app.links</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>sportpadi</string>
+			</array>
+		</dict>
 	</array>
 	
 	<key>NSUserTrackingUsageDescription</key>

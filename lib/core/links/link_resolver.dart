@@ -69,7 +69,10 @@ LinkTarget resolveLink(String? url) {
   final raw = url.trim();
 
   final uri = Uri.tryParse(raw);
-  final path = (raw.startsWith('http') ? uri?.path : null) ?? _pathOf(raw);
+  // https://sportpadi.com/<path> and our own sportpadi://sportpadi.com/<path>
+  // (the web's "Open in the app" hand-off) read the same way.
+  final isUrl = raw.startsWith('http') || raw.startsWith('sportpadi:');
+  final path = (isUrl ? uri?.path : null) ?? _pathOf(raw);
   if (path.isEmpty) return _none;
   final query = uri?.queryParameters ?? const <String, String>{};
 

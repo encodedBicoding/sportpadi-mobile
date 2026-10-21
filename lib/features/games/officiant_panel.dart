@@ -348,8 +348,8 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
             const SizedBox(height: 4),
             Text(
               'Something happened right at the end? Record it here — the '
-              'final score and result update automatically. Undo a mistake '
-              'from the timeline below.',
+              'final score and result update automatically. Fix who a stat '
+              'was credited to with ✎ on the timeline below, or delete it.',
               style: TextStyle(color: p.muted, fontSize: 11.5),
             ),
             const SizedBox(height: 8),

@@ -23,7 +23,9 @@ import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/features/tournaments/live_scores_sync.dart';
 import 'package:sportpadi_mobile/features/tournaments/officiant_picker.dart';
 import 'package:sportpadi_mobile/features/venues/venues.dart';
+import 'package:sportpadi_mobile/shared/format/event_time.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
+import 'package:sportpadi_mobile/shared/format/instant.dart' show deviceTimezone;
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
@@ -191,7 +193,26 @@ class TournamentDetailScreen extends ConsumerWidget {
                             event: event,
                             mode: mode,
                             status: status,
-                            onShare: share),
+                            onShare: share,
+                            onEdit: canManage && !ended
+                                ? () async {
+                                    final saved = await showSpSheet<bool>(
+                                      context,
+                                      builder: (_) => _EditTournamentSheet(
+                                          eventId: eventId,
+                                          isFriendly: isFriendly,
+                                          event: event),
+                                    );
+                                    if (saved == true) {
+                                      ref.invalidate(
+                                          tournamentDetailProvider(eventId));
+                                      ref.invalidate(
+                                          tournamentMatchProvider(eventId));
+                                      ref.invalidate(
+                                          tournamentGamesProvider(eventId));
+                                    }
+                                  }
+                                : null),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                           child: Column(
@@ -333,7 +354,7 @@ String _fmtSchedDate(String ymd) {
   final mo = int.tryParse(parts[1]);
   final d = int.tryParse(parts[2]);
   if (y == null || mo == null || d == null) return ymd;
-  return formatDayYear(DateTime.utc(y, mo, d));
+  return formatDayLong(DateTime.utc(y, mo, d));
 }
 
 int _pow10(int e) {
@@ -667,11 +688,15 @@ class _HeaderCard extends StatelessWidget {
     required this.mode,
     required this.status,
     required this.onShare,
+    this.onEdit,
   });
   final Map<String, dynamic> event;
   final String mode;
   final String status;
   final VoidCallback onShare;
+
+  /// Organiser's edit, in the cover beside Share — same spot as the event page.
+  final VoidCallback? onEdit;
 
   static const double _coverH = 190;
   static const double _overlap = 50;
@@ -687,8 +712,12 @@ class _HeaderCard extends StatelessWidget {
         : mode == 'multi_team'
             ? 'Multi-team'
             : 'Friendly';
-    final start = formatClock(event['startTime']);
-    final end = formatClock(event['endTime']);
+    // Same as the event page: the long date, the venue clock with its zone,
+    // and the viewer's own time when they're elsewhere ("9:30 AM your time").
+    final when = formatEventTimeJson(event);
+    final time = when.venueTime == null
+        ? ''
+        : '${when.venueTime}${when.venueZone != null ? ' ${when.venueZone}' : ''}';
     final location = parseStr(event['locationName']);
     final description = parseStr(event['description']);
     final canPop = context.canPop() || Navigator.of(context).canPop();
@@ -748,10 +777,13 @@ class _HeaderCard extends StatelessWidget {
                 fontWeight: FontWeight.w800)),
         const SizedBox(height: 10),
         InfoRow(
-            Icons.calendar_today_rounded, formatDayYear(event['eventDate'])),
-        if (start != null)
+            Icons.calendar_today_rounded, formatDayLong(event['eventDate'])),
+        if (time.isNotEmpty)
           InfoRow(
-              Icons.schedule_rounded, end != null ? '$start – $end' : start),
+              Icons.schedule_rounded,
+              when.viewerTime != null
+                  ? '$time\n${when.viewerTime} your time'
+                  : time),
         if (location != null) InfoRow(Icons.place_outlined, location),
         if (description != null) ...[
           const SizedBox(height: 8),
@@ -799,8 +831,15 @@ class _HeaderCard extends StatelessWidget {
       Positioned(
         right: 16,
         top: 12,
-        child: SpRoundButton(
-            icon: Icons.ios_share_rounded, tooltip: 'Share', onTap: onShare),
+        child: Row(children: [
+          if (onEdit != null) ...[
+            SpRoundButton(
+                icon: Icons.edit_outlined, tooltip: 'Edit', onTap: onEdit!),
+            const SizedBox(width: 8),
+          ],
+          SpRoundButton(
+              icon: Icons.ios_share_rounded, tooltip: 'Share', onTap: onShare),
+        ]),
       ),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, _coverH - _overlap, 16, 0),
@@ -3169,6 +3208,217 @@ class _InviteTeamSheetState extends ConsumerState<_InviteTeamSheet> {
                     ),
             ),
           ],
+        ]);
+  }
+}
+
+
+// ---------------------------------------------------------------------------
+// Edit details — title, description, date & times, location. The organiser
+// who skipped the venue at creation fixes it here (web: "Edit details").
+// ---------------------------------------------------------------------------
+
+class _EditTournamentSheet extends ConsumerStatefulWidget {
+  const _EditTournamentSheet(
+      {required this.eventId, required this.isFriendly, required this.event});
+  final String eventId;
+  final bool isFriendly;
+  final Map<String, dynamic> event;
+
+  @override
+  ConsumerState<_EditTournamentSheet> createState() =>
+      _EditTournamentSheetState();
+}
+
+class _EditTournamentSheetState extends ConsumerState<_EditTournamentSheet> {
+  late final TextEditingController _title;
+  late final TextEditingController _description;
+  late final TextEditingController _location;
+  DateTime? _date;
+  TimeOfDay? _start;
+  TimeOfDay? _end;
+  bool _busy = false;
+
+  /// A stored time-of-day (1970-01-01THH:MM:00Z) → TimeOfDay.
+  static TimeOfDay? _tod(Object? v) {
+    if (v is! String || v.isEmpty) return null;
+    final d = DateTime.tryParse(v)?.toUtc();
+    return d == null ? null : TimeOfDay(hour: d.hour, minute: d.minute);
+  }
+
+  static String _hhmm(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.event;
+    _title = TextEditingController(text: (e['title'] ?? '') as String);
+    _description =
+        TextEditingController(text: (e['description'] ?? '') as String);
+    _location =
+        TextEditingController(text: (e['locationName'] ?? '') as String);
+    // Shown the way the app shows event dates (UTC calendar day).
+    final ed = parseDate(e['eventDate'])?.toUtc();
+    _date = ed == null ? null : DateTime(ed.year, ed.month, ed.day);
+    _start = _tod(e['startTime']);
+    _end = _tod(e['endTime']);
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _description.dispose();
+    _location.dispose();
+    super.dispose();
+  }
+
+  InputDecoration _deco(AppPalette p, String label, String hint) =>
+      InputDecoration(
+        labelText: label,
+        hintText: hint,
+        filled: true,
+        fillColor: p.surface2,
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none),
+      );
+
+  Future<void> _save() async {
+    final d = _date;
+    if (_title.text.trim().isEmpty || d == null) return;
+    setState(() => _busy = true);
+    try {
+      final notified =
+          await ref.read(tournamentsRepositoryProvider).updateTournament(
+            widget.eventId,
+            title: _title.text.trim(),
+            description: _description.text.trim().isEmpty
+                ? null
+                : _description.text.trim(),
+            eventDate:
+                '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}',
+            startTime: _start == null ? null : _hhmm(_start!),
+            endTime: _end == null ? null : _hhmm(_end!),
+            locationName:
+                _location.text.trim().isEmpty ? null : _location.text.trim(),
+            timezone: deviceTimezone,
+          );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(notified > 0
+              ? 'Details saved — $notified ${notified == 1 ? 'person' : 'people'} told'
+              : 'Details saved')));
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final kind = widget.isFriendly ? 'friendly' : 'tournament';
+    Widget pick(String label, String value, VoidCallback onTap) => Expanded(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: _busy ? null : onTap,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                  color: p.surface2,
+                  borderRadius: BorderRadius.circular(16)),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label,
+                        style: TextStyle(color: p.muted, fontSize: 11)),
+                    const SizedBox(height: 2),
+                    Text(value,
+                        style: TextStyle(
+                            color: p.ink,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600)),
+                  ]),
+            ),
+          ),
+        );
+    return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SpSheetHeader(
+            title: 'Edit $kind',
+            subtitle:
+                'Title, when and where. Teams, fees and format have their own flows.',
+            icon: Icons.edit_outlined,
+          ),
+          TextField(
+              controller: _title,
+              maxLength: 120,
+              onChanged: (_) => setState(() {}),
+              decoration: _deco(p, 'Title', 'Sunday friendly')),
+          const SizedBox(height: 4),
+          TextField(
+              controller: _description,
+              maxLength: 1000,
+              maxLines: 3,
+              decoration:
+                  _deco(p, 'Description', 'Format, rules, what to bring…')),
+          const SizedBox(height: 8),
+          Row(children: [
+            pick(
+                'Date',
+                _date == null
+                    ? 'Pick a day'
+                    : formatDay(DateTime.utc(_date!.year, _date!.month, _date!.day)),
+                () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _date ?? DateTime.now(),
+                firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                lastDate: DateTime.now().add(const Duration(days: 730)),
+              );
+              if (picked != null) setState(() => _date = picked);
+            }),
+            const SizedBox(width: 8),
+            pick('Starts', _start == null ? '—' : _start!.format(context),
+                () async {
+              final t = await showTimePicker(
+                  context: context,
+                  initialTime: _start ?? const TimeOfDay(hour: 10, minute: 0));
+              if (t != null) setState(() => _start = t);
+            }),
+            const SizedBox(width: 8),
+            pick('Ends', _end == null ? '—' : _end!.format(context), () async {
+              final t = await showTimePicker(
+                  context: context,
+                  initialTime: _end ?? const TimeOfDay(hour: 12, minute: 0));
+              if (t != null) setState(() => _end = t);
+            }),
+          ]),
+          const SizedBox(height: 12),
+          TextField(
+              controller: _location,
+              maxLength: 200,
+              decoration: _deco(p, 'Location', 'Ikeja GRA pitch')),
+          Text(
+              'We pin it on the map; matches without a venue play here. Times are in the venue\'s zone.',
+              style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.35)),
+          const SizedBox(height: 12),
+          SpButton(
+            label: _busy ? 'Saving…' : 'Save',
+            icon: Icons.check_rounded,
+            expand: true,
+            onTap: _busy || _title.text.trim().isEmpty || _date == null
+                ? null
+                : _save,
+          ),
         ]);
   }
 }

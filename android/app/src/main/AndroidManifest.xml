@@ -76,6 +76,16 @@
                 <data android:pathPrefix="/profile"/>
                 <data android:pathPrefix="/discover"/>
             </intent-filter>
+            <!-- Our own scheme, sportpadi://sportpadi.com/<path>: the hand-off
+                 from a web page opened inside Gmail / WhatsApp / Instagram,
+                 whose in-app browsers never trigger App Links (the web's
+                 OpenInAppBar). Same paths as above, read by the same resolver. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="sportpadi"/>
+            </intent-filter>
         </activity>
         <!-- Push presentation. Without these three, FCM falls back to its own
              channel (default importance: no heads-up banner, no sound) and to
