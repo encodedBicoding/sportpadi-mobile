@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:sportpadi_mobile/core/analytics/device_id.dart';
 import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/location/location_provider.dart';
 import 'package:sportpadi_mobile/core/network/auth_interceptor.dart';
@@ -48,6 +49,10 @@ final dioProvider = Provider<Dio>((ref) {
       options.headers['x-sp-geo'] =
           '${loc.lat.toStringAsFixed(2)},${loc.lng.toStringAsFixed(2)}';
     }
+    // This install's analytics id, so a sign-up is tied to the device's
+    // earlier visits (core/analytics/usage_tracker.dart).
+    final did = DeviceId.value;
+    if (did != null) options.headers['x-sp-device'] = did;
     handler.next(options);
   }));
   if (!config.isProd && kDebugMode) {

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/analytics/analytics_service.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
+import 'package:sportpadi_mobile/core/analytics/usage_tracker.dart';
 import 'package:sportpadi_mobile/features/auth/claim_account_screen.dart';
 import 'package:sportpadi_mobile/features/auth/sign_in_screen.dart';
 import 'package:sportpadi_mobile/features/auth/forgot_password_screen.dart';
@@ -587,10 +588,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  // Owner-console usage analytics (core/analytics/usage_tracker.dart):
+  // sessions, foreground time and the path through the app's screens.
+  final usage = ref.watch(usageTrackerProvider)..start();
   router.routerDelegate.addListener(() {
-    analytics
-        .logScreen(router.routerDelegate.currentConfiguration.uri.toString());
+    final loc = router.routerDelegate.currentConfiguration.uri.toString();
+    analytics.logScreen(loc);
+    usage.onRoute(loc);
   });
+  usage.onRoute('/');
   refresh.router = router;
   return router;
 });
