@@ -1526,7 +1526,8 @@ class _Scoreboard extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         color: p.hero,
       ),
-      child: Row(children: [
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+      Row(children: [
         side(home),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -1553,13 +1554,9 @@ class _Scoreboard extends StatelessWidget {
                         fontSize: 11,
                         fontWeight: FontWeight.w800)),
               ])
-            else
+            else if (status == 'completed' || status == 'abandoned')
               Text(
-                status == 'completed'
-                    ? 'FULL TIME'
-                    : status == 'abandoned'
-                        ? 'ABANDONED'
-                        : scheduled,
+                status == 'completed' ? 'FULL TIME' : 'ABANDONED',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                     color: Color(0xFF6EDC9E),
@@ -1570,6 +1567,27 @@ class _Scoreboard extends StatelessWidget {
           ]),
         ),
         side(away),
+      ]),
+        // The kickoff on its own line under team-vs-team: a long date in the
+        // middle column squeezed the away crest against the card edge.
+        if (!live) ...[
+          const SizedBox(height: 12),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.calendar_today_rounded, size: 12, color: p.heroMuted),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(scheduled,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  style: TextStyle(
+                      color: status == 'scheduled'
+                          ? const Color(0xFF6EDC9E)
+                          : p.heroMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700)),
+            ),
+          ]),
+        ],
       ]),
     );
   }
@@ -2094,13 +2112,8 @@ class _MatchesCard extends ConsumerWidget {
                             fontSize: 9,
                             fontWeight: FontWeight.w800)),
                   ])
-                else
-                  Text(
-                    status == 'completed'
-                        ? 'FT'
-                        : (schedule.isEmpty ? 'TBD' : schedule),
-                    style: TextStyle(color: p.muted, fontSize: 9),
-                  ),
+                else if (status == 'completed')
+                  Text('FT', style: TextStyle(color: p.muted, fontSize: 9)),
               ]),
             ),
             Expanded(
@@ -2134,6 +2147,20 @@ class _MatchesCard extends ConsumerWidget {
                     initialVenueId: parseStr(venue?['id'])),
               ),
           ]),
+          if (status != 'live')
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Icons.schedule_rounded, size: 12, color: p.muted),
+                const SizedBox(width: 3),
+                Flexible(
+                  child: Text(schedule.isEmpty ? 'Kickoff TBD' : schedule,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: p.muted, fontSize: 11, fontWeight: FontWeight.w600)),
+                ),
+              ]),
+            ),
           if (venue != null)
             Padding(
               padding: const EdgeInsets.only(top: 4),
