@@ -526,17 +526,37 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
                 ],
               ]),
               const SizedBox(height: 2),
-              Text(
-                  group.isOwner
-                      ? 'You own this group'
-                      : canManage
-                          ? 'You manage this group'
-                          : group.isMember
-                              ? 'You\'re a member'
-                              : group.isFollower
-                                  ? 'You follow this group'
-                                  : 'Public group',
-                  style: TextStyle(color: p.muted, fontSize: 12.5)),
+              Row(children: [
+                Flexible(
+                  child: Text(
+                      group.isOwner
+                          ? 'You own this group'
+                          : canManage
+                              ? 'You manage this group'
+                              : group.isMember
+                                  ? 'You\'re a member'
+                                  : group.isFollower
+                                      ? 'You follow this group'
+                                      : 'Public group',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: p.muted, fontSize: 12.5)),
+                ),
+                // Members (not staff — theirs is in the ⋯ menu) can leave.
+                if (group.isMember && !canManage && !group.isOwner)
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => confirmLeaveGroup(context, ref, groupId, name),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(6, 4, 4, 4),
+                      child: Text('· Leave',
+                          style: TextStyle(
+                              color: p.danger,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+              ]),
             ]),
           ),
         ]),
@@ -828,6 +848,14 @@ class _ManageMenu extends ConsumerWidget {
       case 'transfer':
         showTransferOwnershipSheet(context, groupId);
         break;
+      case 'leave':
+        if (isOwner) {
+          showTransferOwnershipSheet(context, groupId);
+        } else {
+          confirmLeaveGroup(context, ref, groupId,
+              ref.read(groupProvider(groupId)).valueOrNull?.name ?? 'this group');
+        }
+        break;
       case 'requests':
         context.push('/groups/$groupId/requests');
         break;
@@ -1035,6 +1063,19 @@ class _ManageMenuSheet extends ConsumerWidget {
                 row('invites', Icons.mail_outline_rounded,
                     'Tournament invites', 'Invitations from other groups',
                     p.surface2, p.ink),
+              ]),
+              const SizedBox(height: 16),
+              // The owner hands the group over before leaving.
+              SpListCard(children: [
+                row(
+                    'leave',
+                    Icons.logout_rounded,
+                    'Leave group',
+                    isOwner
+                        ? 'Transfer ownership first'
+                        : 'Stop being a member',
+                    p.liveTint,
+                    p.danger),
               ]),
             ],
           ),

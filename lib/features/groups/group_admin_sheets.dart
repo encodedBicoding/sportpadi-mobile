@@ -445,3 +445,44 @@ class _PromoCodesSheetState extends ConsumerState<_PromoCodesSheet> {
         ]);
   }
 }
+
+
+/// "Leave group" — any member but the owner (who hands the group over
+/// first; [showTransferOwnershipSheet]). Confirms, leaves, refreshes the
+/// group and the user's group list. Returns true when they left.
+Future<bool> confirmLeaveGroup(
+    BuildContext context, WidgetRef ref, String groupId, String groupName) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text('Leave $groupName?'),
+      content: const Text(
+          "You'll come off its teams and stop getting its updates. Your past games, stats and XP stay on your profile. To come back, you'll need an invite or the group's join link."),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Stay')),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: Colors.red),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Leave group'),
+        ),
+      ],
+    ),
+  );
+  if (ok != true || !context.mounted) return false;
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final wards = await ref.read(groupAdminRepositoryProvider).leave(groupId);
+    ref.invalidate(groupProvider(groupId));
+    ref.invalidate(myGroupsProvider);
+    messenger.showSnackBar(SnackBar(
+        content: Text(wards > 0
+            ? "You've left $groupName — $wards ${wards == 1 ? 'ward' : 'wards'} who joined with you left too."
+            : "You've left $groupName.")));
+    return true;
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text('$e')));
+    return false;
+  }
+}
