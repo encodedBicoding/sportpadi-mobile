@@ -89,6 +89,19 @@ class GroupAdminRepository {
       throw apiError(e, fallback: 'Could not transfer ownership.');
     }
   }
+
+  /// Leave a group yourself (not the owner — they transfer it first).
+  /// Returns how many wards who joined through you left too.
+  Future<int> leave(String groupId) async {
+    try {
+      final res = await _dio.post('/api/mobile/groups/$groupId',
+          data: {'action': 'leave'});
+      final d = res.data;
+      return d is Map ? ((d['wardsRemoved'] as num?)?.toInt() ?? 0) : 0;
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not leave the group.');
+    }
+  }
 }
 
 class GroupFines {
