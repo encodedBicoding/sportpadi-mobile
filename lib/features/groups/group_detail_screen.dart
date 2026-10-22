@@ -34,6 +34,7 @@ import 'package:sportpadi_mobile/features/announcements/announcement_entry_point
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/features/groups/group_admin_sheets.dart';
+import 'package:sportpadi_mobile/data/groups/group_admin_repository.dart';
 import 'package:sportpadi_mobile/features/groups/group_invitations.dart';
 import 'package:sportpadi_mobile/features/groups/group_talk_section.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
@@ -845,6 +846,10 @@ class _ManageMenu extends ConsumerWidget {
       case 'promo':
         showPromoCodesSheet(context, groupId);
         break;
+      case 'pro':
+        showProOfferSheet(context, groupId,
+            ref.read(groupProvider(groupId)).valueOrNull?.name ?? 'your group');
+        break;
       case 'transfer':
         showTransferOwnershipSheet(context, groupId);
         break;
@@ -891,6 +896,9 @@ class _ManageMenuSheet extends ConsumerWidget {
     final canTeams =
         ref.watch(teamAllowanceProvider(groupId)).valueOrNull?.canBuild ?? true;
     final ios = IapRepository.supportedPlatform;
+    // The Free plan's "Try Pro features for free" (Android; not once on).
+    final offer = ios ? null : ref.watch(freeOfferProvider(groupId)).valueOrNull;
+    final showOffer = offer != null && !offer.isOn;
 
     Widget quick(String value, IconData icon, String label) => Expanded(
           child: Material(
@@ -1015,6 +1023,16 @@ class _ManageMenuSheet extends ConsumerWidget {
                 child: Eyebrow('Group'),
               ),
               SpListCard(children: [
+                if (showOffer)
+                  row(
+                      'pro',
+                      Icons.auto_awesome_rounded,
+                      offer.status == 'opted_out'
+                          ? 'Switch Pro features back on'
+                          : 'Try Pro features for free',
+                      'Free while SportPadi runs the offer',
+                      p.accentTint,
+                      p.greenText),
                 row('edit', Icons.edit_outlined, 'Edit group',
                     'Name, logo, description and settings', p.surface2, p.ink),
                 row('link', Icons.link_rounded, 'Copy membership link',

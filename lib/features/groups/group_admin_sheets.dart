@@ -13,6 +13,7 @@ import 'package:sportpadi_mobile/data/groups/member_models.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart'
     show teamAllowanceProvider;
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
+import 'package:sportpadi_mobile/features/groups/pro_offer.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
@@ -324,6 +325,9 @@ class _PromoCodesSheetState extends ConsumerState<_PromoCodesSheet> {
             title: 'Promo codes',
             subtitle: 'Got a code from SportPadi? Apply it to this group.',
           ),
+          // The Free plan's "Try Pro features for free" (Android; renders
+          // nothing when there's no offer for this group).
+          _OfferAbove(groupId: widget.groupId),
           TextField(
             controller: _code,
             textCapitalization: TextCapitalization.characters,
@@ -431,13 +435,26 @@ class _PromoCodesSheetState extends ConsumerState<_PromoCodesSheet> {
                                         style: TextStyle(
                                             color: p.muted, fontSize: 12)),
                                   Text(
-                                      '${_day(pr.startsAt)} – ${_day(pr.endsAt)}',
+                                      pr.active && pr.renewsOn != null
+                                          ? 'Renews ${_day(pr.renewsOn)}'
+                                          : pr.autoRenew
+                                              ? 'From ${_day(pr.startsAt)} · auto-renews'
+                                              : '${_day(pr.startsAt)} – ${_day(pr.endsAt)}',
                                       style: TextStyle(
                                           color: p.muted, fontSize: 11)),
                                 ]),
                           ),
-                          SpBadge(pr.active ? 'Active' : 'Ended',
-                              tone: pr.active ? p.greenText : p.muted),
+                          SpBadge(
+                              pr.active
+                                  ? 'Active'
+                                  : pr.optedOut
+                                      ? 'Opted out'
+                                      : 'Ended',
+                              tone: pr.active
+                                  ? p.greenText
+                                  : pr.optedOut
+                                      ? p.orangeInk
+                                      : p.muted),
                         ]),
                       ),
                   ]),
@@ -485,4 +502,35 @@ Future<bool> confirmLeaveGroup(
     messenger.showSnackBar(SnackBar(content: Text('$e')));
     return false;
   }
+}
+
+
+/// The offer card above the code field, with its own spacing (nothing when
+/// there's no offer for the group).
+class _OfferAbove extends ConsumerWidget {
+  const _OfferAbove({required this.groupId});
+  final String groupId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!proOfferAllowedHere) return const SizedBox.shrink();
+    final o = ref.watch(freeOfferProvider(groupId)).valueOrNull;
+    if (o == null) return const SizedBox.shrink();
+    final name = ref.watch(groupProvider(groupId)).valueOrNull?.name ?? 'your group';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: ProOfferCard(groupId: groupId, groupName: name),
+    );
+  }
+}
+
+/// The offer on its own sheet (from the group's manage menu).
+Future<void> showProOfferSheet(BuildContext context, String groupId, String groupName) {
+  return showSpSheet<void>(
+    context,
+    builder: (_) => Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const SizedBox(height: 4),
+      ProOfferCard(groupId: groupId, groupName: groupName),
+    ]),
+  );
 }
