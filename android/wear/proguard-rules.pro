@@ -1,0 +1,3 @@
+-keep class com.sportpadi.watch.** { *; }
+-dontwarn okhttp3.**
+-dontwarn org.conscrypt.**

@@ -13,7 +13,6 @@
 // Batches go to POST /api/t every 30 s while open and when the app goes to
 // the background. Locations are sent without query strings. Never throws.
 import 'dart:async';
-import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
@@ -22,15 +21,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/analytics/device_id.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 
-String _uuidV4() {
-  final r = Random.secure();
-  final b = List<int>.generate(16, (_) => r.nextInt(256));
-  b[6] = (b[6] & 0x0f) | 0x40;
-  b[8] = (b[8] & 0x3f) | 0x80;
-  String hex(int from, int to) =>
-      b.sublist(from, to).map((x) => x.toRadixString(16).padLeft(2, '0')).join();
-  return '${hex(0, 4)}-${hex(4, 6)}-${hex(6, 8)}-${hex(8, 10)}-${hex(10, 16)}';
-}
 
 class _Page {
   _Page(this.path) : at = DateTime.now();
@@ -47,7 +37,7 @@ class UsageTracker with WidgetsBindingObserver {
   static const _flushEvery = Duration(seconds: 30);
 
   bool _started = false;
-  String _sessionId = _uuidV4();
+  String _sessionId = uuidV4();
   DateTime _sessionStart = DateTime.now();
   DateTime? _backgroundSince;
   DateTime? _foregroundSince = DateTime.now();
@@ -142,7 +132,7 @@ class UsageTracker with WidgetsBindingObserver {
         _foregroundSince = DateTime.now();
         if (away != null && DateTime.now().difference(away) > _sessionGap) {
           // A new visit: fresh session, and the screen on show starts again.
-          _sessionId = _uuidV4();
+          _sessionId = uuidV4();
           _sessionStart = DateTime.now();
           _page?.at = DateTime.now();
           _page?.ms = 0;

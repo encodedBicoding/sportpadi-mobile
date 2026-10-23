@@ -24,6 +24,8 @@ plugins {
     // Firebase (push notifications) — only applied by :app when
     // google-services.json exists, so builds work before Firebase is set up.
     id("com.google.gms.google-services") version "4.4.2" apply false
+    id("org.jetbrains.kotlin.plugin.compose") version "2.4.0" apply false
 }
 
 include(":app")
+include(":wear")

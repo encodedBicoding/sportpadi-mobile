@@ -6,6 +6,8 @@ import UIKit
   /// Kept for plugins that only learn about the launch AFTER it happened
   /// (see didInitializeImplicitFlutterEngine).
   private var launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+  /// Smartwatch pairing (WatchBridge.swift) — kept alive for the app's life.
+  private var watchBridge: WatchBridge?
 
   override func application(
     _ application: UIApplication,
@@ -17,6 +19,12 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
+    // Smartwatch pairing: hands the session to a paired Apple Watch and
+    // relays its taps back (lib/core/watch/watch_bridge.dart).
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "SportPadiWatchBridge") {
+      watchBridge = WatchBridge(messenger: registrar.messenger())
+    }
 
     // iOS push fix (UIScene lifecycle).
     //

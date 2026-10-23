@@ -14,6 +14,8 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    /** Smartwatch pairing (WatchBridge.kt) — lives as long as the engine. */
+    private var watchBridge: WatchBridge? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,6 +32,9 @@ class MainActivity : FlutterActivity() {
      */
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        // Smartwatch pairing: hands the session to a paired Wear OS watch and
+        // relays its taps back (lib/core/watch/watch_bridge.dart).
+        watchBridge = WatchBridge(applicationContext, flutterEngine.dartExecutor.binaryMessenger)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "sportpadi/officiate")
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -54,6 +59,12 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    override fun onDestroy() {
+        watchBridge?.dispose()
+        watchBridge = null
+        super.onDestroy()
     }
 
     private fun isLockTaskOn(): Boolean {

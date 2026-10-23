@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
+import 'package:sportpadi_mobile/core/watch/watch_bridge.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
 import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
@@ -41,6 +42,7 @@ const _lockChannel = MethodChannel('sportpadi/officiate');
 class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
     with WidgetsBindingObserver {
   Timer? _tick;
+  WatchBridge? _watch;
   bool _busy = false;
   bool _pinned = false;
   bool _leaving = false;
@@ -65,6 +67,10 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
       if (mounted) setState(() {});
     });
     _lockIn();
+    // A paired watch opens straight onto this match.
+    final watch = ref.read(watchBridgeProvider);
+    _watch = watch;
+    watch.setCurrentGame(widget.gameId);
   }
 
   @override
@@ -72,6 +78,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
     WidgetsBinding.instance.removeObserver(this);
     _tick?.cancel();
     _release();
+    _watch?.setCurrentGame(null);
     super.dispose();
   }
 

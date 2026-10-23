@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/analytics/analytics_service.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/core/analytics/usage_tracker.dart';
+import 'package:sportpadi_mobile/core/watch/watch_bridge.dart';
 import 'package:sportpadi_mobile/features/auth/claim_account_screen.dart';
 import 'package:sportpadi_mobile/features/auth/sign_in_screen.dart';
 import 'package:sportpadi_mobile/features/auth/forgot_password_screen.dart';
@@ -597,6 +598,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     usage.onRoute(loc);
   });
   usage.onRoute('/');
+  // Smartwatch pairing (core/watch/watch_bridge.dart): hands the session to
+  // a paired watch; a match tapped on the watch opens here too.
+  ref.watch(watchBridgeProvider)
+    ..onOpenGame = ((gameId) => router.push('/games/$gameId'))
+    ..start();
   refresh.router = router;
   return router;
 });

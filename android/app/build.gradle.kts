@@ -102,4 +102,6 @@ if (file("google-services.json").exists()) {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // Smartwatch pairing (WatchBridge.kt): Wear OS Data Layer + messages.
+    implementation("com.google.android.gms:play-services-wearable:18.2.0")
 }

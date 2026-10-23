@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The phone's WatchBridge.kt looks for this to know a SportPadi watch is paired. -->
+    <string-array name="android_wear_capabilities">
+        <item>sportpadi_watch</item>
+    </string-array>
+</resources>
