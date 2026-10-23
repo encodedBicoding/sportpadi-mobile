@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
 import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
+import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/events/event_mvp_card.dart';
 import 'package:sportpadi_mobile/features/games/basketball_widgets.dart';
 import 'package:sportpadi_mobile/features/games/officiant_panel.dart';
@@ -478,14 +479,14 @@ class _ScoreTeam extends StatelessWidget {
 }
 
 /// The clock under the scores — timer, phase, Paused.
-class _ClockStrip extends StatefulWidget {
+class _ClockStrip extends ConsumerStatefulWidget {
   const _ClockStrip({required this.game});
   final GameDetail game;
   @override
-  State<_ClockStrip> createState() => _ClockStripState();
+  ConsumerState<_ClockStrip> createState() => _ClockStripState();
 }
 
-class _ClockStripState extends State<_ClockStrip> {
+class _ClockStripState extends ConsumerState<_ClockStrip> {
   Timer? _tick;
 
   @override
@@ -547,17 +548,26 @@ class _ClockStripState extends State<_ClockStrip> {
         ],
         if (info.paused) ...[
           const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: const Color(0x29FFB57D),
-              borderRadius: BorderRadius.circular(999),
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0x29FFB57D),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              // "Paused · by Ade" — whoever paused it, from any device.
+              child: Text(
+                  pausedLabel(
+                      g,
+                      ref.watch(authControllerProvider
+                          .select((s) => s.valueOrNull?.user?.id))),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      color: Color(0xFFFFB57D),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700)),
             ),
-            child: const Text('Paused',
-                style: TextStyle(
-                    color: Color(0xFFFFB57D),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700)),
           ),
         ],
       ]),

@@ -10,6 +10,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/watch/watch_bridge.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
+import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
 import 'package:sportpadi_mobile/features/games/basketball_widgets.dart';
@@ -505,11 +506,18 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                   ],
                   if (paused) ...[
                     const SizedBox(width: 8),
-                    _Pill(
-                        prof.pauseLabel == 'Stop clock'
-                            ? 'Clock stopped'
-                            : 'Paused',
-                        color: _white),
+                    Flexible(
+                      child: _Pill(
+                          // Another officiant (or their watch) may have done it.
+                          pausedLabel(
+                              g,
+                              ref.watch(authControllerProvider
+                                  .select((s) => s.valueOrNull?.user?.id)),
+                              base: prof.pauseLabel == 'Stop clock'
+                                  ? 'Clock stopped'
+                                  : 'Paused'),
+                          color: _white),
+                    ),
                   ],
                 ]),
                 if (bb?.shotClock != null && g.isLive) ...[
