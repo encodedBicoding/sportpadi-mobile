@@ -518,11 +518,16 @@ class GameDetail {
     this.durationMinutes,
     this.basketball,
     this.volleyball,
+    this.clockBy,
   });
 
   final String id;
   final String status;
   final List<GameTeam> teams;
+
+  /// Who last touched the match clock, from any device (phone, web, watch):
+  /// attributes.clock.lastBy — for "Paused · by Ade".
+  final ClockBy? clockBy;
   final List<GamePlayer> participants;
   final List<GameRosterEntry> roster;
   final List<GameRosterEntry> bench;
@@ -707,6 +712,44 @@ class GameDetail {
       durationMinutes: duration,
       basketball: BasketballInfo.fromJson(j['basketball']),
       volleyball: VolleyballInfo.fromJson(j['volleyball']),
+      clockBy: attrs is Map && attrs['clock'] is Map
+          ? ClockBy.fromJson((attrs['clock'] as Map)['lastBy'])
+          : null,
     );
   }
+}
+
+/// The last clock action on a match and who took it
+/// (attributes.clock.lastBy, stamped server-side on every clock action).
+class ClockBy {
+  const ClockBy({required this.name, this.userId, this.action, this.via});
+  final String name;
+  final String? userId;
+
+  /// kickoff · pause · resume · stoppage · endPhase · startNext · fullTime …
+  final String? action;
+
+  /// web · app · watchos · wearos
+  final String? via;
+
+  static ClockBy? fromJson(dynamic j) {
+    if (j is! Map) return null;
+    final name = j['name'];
+    if (name is! String || name.isEmpty) return null;
+    return ClockBy(
+      name: name,
+      userId: j['userId'] is String ? j['userId'] as String : null,
+      action: j['action'] is String ? j['action'] as String : null,
+      via: j['via'] is String ? j['via'] as String : null,
+    );
+  }
+}
+
+/// "Paused · by Ade" (or "· by you") while the clock is stopped by a pause;
+/// just [base] when we don't know who, or it stopped for another reason.
+String pausedLabel(GameDetail g, String? myUserId, {String base = 'Paused'}) {
+  final by = g.clockBy;
+  if (by == null || by.action != 'pause') return base;
+  final who = myUserId != null && by.userId == myUserId ? 'you' : by.name;
+  return '$base · by $who';
 }

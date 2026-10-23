@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:sportpadi_mobile/core/analytics/device_id.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
@@ -50,10 +51,14 @@ class GamesRepository {
     }
   }
 
-  Future<void> start(String gameId) =>
-      _post(gameId, {'action': 'start'}, fallback: 'Could not start the game.');
+  // Clock actions carry a client action id: a retry on a flaky link is a
+  // no-op server-side (docs/design/watch-officiant.md).
+  Future<void> start(String gameId) => _post(
+      gameId, {'action': 'start', 'actionId': newActionId()},
+      fallback: 'Could not start the game.');
 
-  Future<void> complete(String gameId) => _post(gameId, {'action': 'complete'},
+  Future<void> complete(String gameId) => _post(
+      gameId, {'action': 'complete', 'actionId': newActionId()},
       fallback: 'Could not complete the game.');
 
   Future<void> abandon(String gameId) => _post(gameId, {'action': 'abandon'},
@@ -66,12 +71,14 @@ class GamesRepository {
             'action': 'timer',
             'timerAction': timerAction,
             if (minutes != null) 'minutes': minutes,
+            'actionId': newActionId(),
           },
           fallback: 'Clock update failed.');
 
-  Future<void> phase(String gameId, String phaseAction) =>
-      _post(gameId, {'action': 'phase', 'phaseAction': phaseAction},
-          fallback: 'Could not change the period.');
+  Future<void> phase(String gameId, String phaseAction) => _post(
+      gameId,
+      {'action': 'phase', 'phaseAction': phaseAction, 'actionId': newActionId()},
+      fallback: 'Could not change the period.');
 
   /// Team timeout: 'call' | 'undo' | 'end' (basketball / volleyball).
   Future<void> timeout(String gameId, String teamId, String timeoutAction) =>

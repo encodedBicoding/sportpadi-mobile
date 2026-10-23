@@ -4,7 +4,8 @@ import 'dart:math';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-String _uuidV4() {
+/// A fresh v4 UUID (client ids for idempotent requests, analytics sessions).
+String uuidV4() {
   final r = Random.secure();
   final b = List<int>.generate(16, (_) => r.nextInt(256));
   b[6] = (b[6] & 0x0f) | 0x40;
@@ -34,7 +35,7 @@ class DeviceId {
         return _value = v;
       }
     } catch (_) {}
-    final fresh = _uuidV4().replaceAll('-', '');
+    final fresh = uuidV4().replaceAll('-', '');
     try {
       await storage.write(key: _key, value: fresh);
     } catch (_) {}
@@ -42,3 +43,6 @@ class DeviceId {
   }
 }
 
+
+/// A client id for an idempotent clock action (games.* `actionId`).
+String newActionId() => uuidV4();
