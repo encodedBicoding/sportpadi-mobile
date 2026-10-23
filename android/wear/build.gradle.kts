@@ -21,8 +21,17 @@ android {
         targetSdk = 35
         // Keep in step with :app (pubspec version); Play needs the Wear APK's
         // versionCode to differ from the phone APK's — hence the offset.
-        versionCode = 20_000_000 + (findProperty("wearVersionCode")?.toString()?.toIntOrNull() ?: 1)
-        versionName = findProperty("wearVersionName")?.toString() ?: "1.0.0"
+        // Defaults to the phone app's version (pubspec → local.properties,
+        // written by every `flutter build`/`flutter run`); -PwearVersionCode /
+        // -PwearVersionName override.
+        val flutterProps = Properties().also { p ->
+            rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { p.load(it) }
+        }
+        val baseCode = findProperty("wearVersionCode")?.toString()?.toIntOrNull()
+            ?: flutterProps.getProperty("flutter.versionCode")?.toIntOrNull() ?: 1
+        versionCode = 20_000_000 + baseCode
+        versionName = findProperty("wearVersionName")?.toString()
+            ?: flutterProps.getProperty("flutter.versionName") ?: "1.0.0"
     }
 
     val keystoreProperties = Properties()

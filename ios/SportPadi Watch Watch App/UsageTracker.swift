@@ -76,9 +76,14 @@ final class UsageTracker: ObservableObject {
     }
   }
 
+  /// Milliseconds since 1970 as Int64. Apple Watch hardware is arm64_32:
+  /// `Int` is 32-bit there (max ~2.1 billion) and today's epoch-ms is ~1.8
+  /// trillion — `Int(...)` would trap. The simulator is 64-bit, so it hid this.
+  static func epochMs(_ d: Date) -> Int64 { Int64(d.timeIntervalSince1970 * 1000) }
+
   private func accrue() {
     guard let since = foregroundSince else { return }
-    let ms = min(Int(Date().timeIntervalSince(since) * 1000), 15 * 60_000)
+    let ms = Int(min(max(0, Date().timeIntervalSince(since)), 15 * 60) * 1000)   // capped before converting (32-bit Int)
     foregroundSince = Date()
     activeMs += ms
     if var p = page { p.ms += ms; page = p }
@@ -86,7 +91,7 @@ final class UsageTracker: ObservableObject {
 
   private func closePage() {
     guard let p = page else { return }
-    queue.append(["kind": "page", "path": p.path, "at": Int(p.at.timeIntervalSince1970 * 1000), "ms": p.ms])
+    queue.append(["kind": "page", "path": p.path, "at": Self.epochMs(p.at), "ms": p.ms])
     if queue.count > 60 { queue.removeFirst(queue.count - 60) }
     page = nil
   }
@@ -103,7 +108,7 @@ final class UsageTracker: ObservableObject {
     var body: [String: Any] = [
       "deviceId": deviceId,
       "sessionId": sessionId,
-      "startedAt": Int(sessionStart.timeIntervalSince1970 * 1000),
+      "startedAt": Self.epochMs(sessionStart),
       "activeMs": active,
       "tz": TimeZone.current.identifier,
       "lang": Locale.current.identifier,

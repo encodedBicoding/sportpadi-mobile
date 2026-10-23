@@ -44,21 +44,45 @@ struct BoardClock {
   }
 }
 
-/// Kick-off as the officiant sees it: "Sat 25 Oct · 15:00" or "Today · 15:00".
+/// Kick-off as the officiant sees it: "Sun 25 Oct · 15:00", "Today · 15:00".
+///
+/// The event date is a calendar day stored as midnight UTC, so it's read in
+/// UTC (never shifted into the watch's time zone — in the Americas that turns
+/// Sunday into Saturday) and compared with today's date on the officiant's
+/// own calendar.
 enum When {
+  private static let utc: Calendar = {
+    var c = Calendar(identifier: .gregorian)
+    c.timeZone = TimeZone(identifier: "UTC")!
+    return c
+  }()
+
+  /// Days from today (the watch's calendar) to the event's calendar day.
+  static func daysAway(_ eventDay: Date, now: Date = Date()) -> Int? {
+    let today = Calendar.current.dateComponents([.year, .month, .day], from: now)
+    let day = utc.dateComponents([.year, .month, .day], from: eventDay)
+    guard let a = utc.date(from: today), let b = utc.date(from: day) else { return nil }
+    return utc.dateComponents([.day], from: a, to: b).day
+  }
+
   static func line(date: String?, startTime: String?) -> String {
     guard let d = ISO.date(date) else { return "" }
-    let cal = Calendar.current
     let day: String
-    if cal.isDateInToday(d) { day = "Today" }
-    else if cal.isDateInTomorrow(d) { day = "Tomorrow" }
-    else {
-      let f = DateFormatter(); f.dateFormat = "EEE d MMM"; f.timeZone = TimeZone(identifier: "UTC")
+    switch daysAway(d) {
+    case 0: day = "Today"
+    case 1: day = "Tomorrow"
+    case -1: day = "Yesterday"
+    default:
+      let f = DateFormatter()
+      f.dateFormat = "EEE d MMM"
+      f.timeZone = TimeZone(identifier: "UTC")
       day = f.string(from: d)
     }
     guard let t = ISO.date(startTime) else { return day }
     // Times are the venue's wall clock stored as UTC — show them as-is.
-    let f = DateFormatter(); f.dateFormat = "HH:mm"; f.timeZone = TimeZone(identifier: "UTC")
+    let f = DateFormatter()
+    f.dateFormat = "HH:mm"
+    f.timeZone = TimeZone(identifier: "UTC")
     return "\(day) · \(f.string(from: t))"
   }
 }

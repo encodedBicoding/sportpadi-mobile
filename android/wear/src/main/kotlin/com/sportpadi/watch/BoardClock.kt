@@ -65,10 +65,13 @@ fun whenLine(date: String?, startTime: String?): String {
     val d = parseIso(date) ?: return ""
     val z = java.time.ZoneOffset.UTC
     val day = d.atZone(z).toLocalDate()
-    val today = Instant.now().atZone(z).toLocalDate()
+    // The event date is a calendar day stored as midnight UTC (read in UTC);
+    // "today" is the officiant's own calendar day.
+    val today = java.time.LocalDate.now()
     val dayText = when (day) {
         today -> "Today"
         today.plusDays(1) -> "Tomorrow"
+        today.minusDays(1) -> "Yesterday"
         else -> day.format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM"))
     }
     val t = parseIso(startTime) ?: return dayText

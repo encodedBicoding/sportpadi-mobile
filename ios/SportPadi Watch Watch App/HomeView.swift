@@ -9,9 +9,16 @@ struct HomeView: View {
   @EnvironmentObject private var router: WatchRouter
   @StateObject private var model = HomeModel()
   @Environment(\.scenePhase) private var scenePhase
+  /// The navigation path lives in view state, not in the ObservableObject:
+  /// NavigationStack writes it while SwiftUI is updating the view, and a
+  /// @Published path turns that into "Publishing changes from within view
+  /// updates".
+  @State private var path: [String] = []
+  /// The phone's officiant-mode match, followed once.
+  @State private var followed: String?
 
   var body: some View {
-    NavigationStack(path: $model.path) {
+    NavigationStack(path: $path) {
       Group {
         if ctx.needsPhoneUpdate {
           Pitch(icon: "iphone.and.arrow.forward", title: "Update SportPadi", text: "Update the app on your phone to use the watch.")
@@ -31,15 +38,22 @@ struct HomeView: View {
       if phase == .active { Task { await model.load() } }
     }
     .onChange(of: ctx.token) { _, _ in Task { await model.load() } }
-    .onChange(of: ctx.currentGameId) { _, id in model.openIfNew(id) }
+    .onChange(of: ctx.currentGameId) { _, id in follow(id) }
     .onChange(of: router.openGameId) { _, id in
       // A tapped notification: straight to that match (its invite is on the way in).
       guard let id else { return }
       router.openGameId = nil
       Task { await model.load() }
-      model.path = [id]
+      path = [id]
     }
-    .onAppear { model.openIfNew(ctx.currentGameId) }
+    .onAppear { follow(ctx.currentGameId) }
+  }
+
+  /// The phone entered officiant mode on a match: open it here, once.
+  private func follow(_ gameId: String?) {
+    guard let gameId, gameId != followed else { return }
+    followed = gameId
+    if path.last != gameId { path = [gameId] }
   }
 
   @ViewBuilder private var list: some View {
@@ -52,7 +66,10 @@ struct HomeView: View {
         if let h = model.home, !h.invites.isEmpty {
           Section("Invites") {
             ForEach(h.invites) { inv in InviteRow(invite: inv, busy: model.responding == inv.gameId) { accept in
-              Task { await model.respond(inv.gameId, accept: accept) }
+              Task {
+                let ok = await model.respond(inv.gameId, accept: accept)
+                if ok && accept { path = [inv.gameId] }
+              }
             } }
           }
         }
@@ -78,8 +95,6 @@ final class HomeModel: ObservableObject {
   @Published var loading = false
   @Published var error: String?
   @Published var responding: String?
-  @Published var path: [String] = []
-  private var opened: String?
 
   func load() async {
     loading = true
@@ -92,23 +107,18 @@ final class HomeModel: ObservableObject {
     }
   }
 
-  func respond(_ gameId: String, accept: Bool) async {
+  /// Accept / decline; true when the server took it.
+  func respond(_ gameId: String, accept: Bool) async -> Bool {
     responding = gameId
     defer { responding = nil }
     do {
       try await ApiClient.shared.respond(gameId, accept: accept)
       await load()
-      if accept { path = [gameId] }
+      return true
     } catch {
       self.error = error.localizedDescription
+      return false
     }
-  }
-
-  /// The phone entered officiant mode on a match: follow it, once.
-  func openIfNew(_ gameId: String?) {
-    guard let gameId, gameId != opened else { return }
-    opened = gameId
-    path = [gameId]
   }
 }
 

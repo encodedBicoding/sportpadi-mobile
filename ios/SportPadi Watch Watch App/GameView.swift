@@ -57,7 +57,10 @@ struct GameView: View {
   private var isLive: Bool { model.game?.status == "live" }
 
   private var refusalShown: Binding<Bool> {
-    Binding(get: { queue.refusal != nil }, set: { shown in if !shown { queue.refusal = nil } })
+    Binding(get: { queue.refusal != nil }, set: { shown in
+      // SwiftUI calls this mid-update when the alert closes: clear it after.
+      if !shown { Task { @MainActor in ActionQueue.shared.refusal = nil } }
+    })
   }
 
   // MARK: lifecycle
