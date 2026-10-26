@@ -7,6 +7,10 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Play's advertising-ID declaration covers the whole listing (phone +
+         Wear). The watch shows no ads, but every artifact must carry it or
+         Play Console flags the release. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 
     <application
         android:name=".WatchApp"

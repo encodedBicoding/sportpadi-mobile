@@ -1,20 +1,23 @@
 // The Free plan's "Try Pro features for free" offer (web
 // components/groups/ProOfferCard.tsx; docs/design/2026-redesign.md row 173).
 // A promo code flagged as the offer (e.g. WELCOME) that the group's OWNER
-// switches on by accepting the Pro Features Offer Terms. Android only: on
-// iOS, unlocking features outside in-app purchase is off-limits (App Store
-// 3.1.1), same as promo codes — iOS owners can accept it on the web.
+// switches on by accepting the Pro Features Offer Terms. The native card is
+// Android only; on iPhone the group page's offer ad (ProOfferScreen) opens the
+// offer on the web in the in-app browser, signed in, and the owner accepts it
+// there.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:sportpadi_mobile/core/env/app_config.dart';
+import 'package:sportpadi_mobile/core/links/web_handoff.dart' show signedInWebUriFor, webPayPath;
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/billing/iap_repository.dart';
 import 'package:sportpadi_mobile/data/groups/group_admin_repository.dart';
 import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
@@ -332,5 +335,128 @@ class _TermsSheetState extends ConsumerState<_TermsSheet> {
         onTap: _agree && !_busy ? _accept : null,
       ),
     ]);
+  }
+}
+
+
+/// The offer on its own screen — where the group page's ad and offer links
+/// (/groups/:id/upgrade#pro-offer, /groups/:id/pro-offer) land in the app.
+/// Android: the native card (same as the manage sheet). iPhone: the offer
+/// isn't drawn natively — this opens it on the web in the in-app browser,
+/// already signed in (the one-tap hand-off), and steps back out of the way.
+class ProOfferScreen extends ConsumerStatefulWidget {
+  const ProOfferScreen({super.key, required this.groupId});
+  final String groupId;
+
+  @override
+  ConsumerState<ProOfferScreen> createState() => _ProOfferScreenState();
+}
+
+class _ProOfferScreenState extends ConsumerState<ProOfferScreen> {
+  bool _opening = false;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!proOfferAllowedHere) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openOnWeb(popAfter: true));
+    }
+  }
+
+  /// The upgrade page at its /pay/… address (one the app doesn't claim, so it
+  /// can't bounce back here), scrolled to the offer.
+  Future<void> _openOnWeb({bool popAfter = false}) async {
+    if (_opening) return;
+    setState(() {
+      _opening = true;
+      _failed = false;
+    });
+    var ok = false;
+    try {
+      final url = await signedInWebUriFor(ref, '${webPayPath(widget.groupId, 'upgrade')}#pro-offer');
+      ok = await launchUrl(url, mode: LaunchMode.inAppBrowserView);
+      if (!ok) ok = await launchUrl(url, mode: LaunchMode.platformDefault);
+    } catch (_) {
+      ok = false;
+    }
+    if (!mounted) return;
+    setState(() {
+      _opening = false;
+      _failed = !ok;
+    });
+    // Opened: this screen has done its job — back to where the ad was.
+    if (ok && popAfter && Navigator.of(context).canPop()) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final groupId = widget.groupId;
+    final group = ref.watch(groupProvider(groupId)).valueOrNull;
+    final Widget body;
+    if (!proOfferAllowedHere) {
+      body = _failed
+          ? Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const _ProOfferNote(
+                    title: "Couldn't open the offer",
+                    text: 'Check your connection and try again.'),
+                SpButton(label: 'Open the offer', onTap: () => _openOnWeb(popAfter: true)),
+              ]),
+            )
+          : const _ProOfferNote(title: 'Opening the offer…', text: 'It opens in a browser window, already signed in.');
+    } else {
+      final offer = ref.watch(freeOfferProvider(groupId));
+      if (offer.isLoading && !offer.hasValue) {
+        body = const Center(child: CircularProgressIndicator());
+      } else if (offer.valueOrNull == null) {
+        body = const _ProOfferNote(
+            title: 'Nothing to switch on',
+            text: "This group can't take the free Pro features offer right now — "
+                "it's for groups on the Free plan, while the offer is running, "
+                'and only the group\'s admins can see it.');
+      } else {
+        body = ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          children: [ProOfferCard(groupId: groupId, groupName: group?.name ?? 'your group')],
+        );
+      }
+    }
+    return Scaffold(
+      backgroundColor: p.bg,
+      body: SafeArea(
+        bottom: false,
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: SpHeader(title: 'Pro features', subtitle: group?.name),
+          ),
+          Expanded(child: body),
+        ]),
+      ),
+    );
+  }
+}
+
+class _ProOfferNote extends StatelessWidget {
+  const _ProOfferNote({required this.title, required this.text});
+  final String title;
+  final String text;
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.auto_awesome_outlined, color: p.muted, size: 34),
+        const SizedBox(height: 10),
+        Text(title,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 6),
+        Text(text, textAlign: TextAlign.center, style: TextStyle(color: p.muted, fontSize: 13.5, height: 1.4)),
+      ]),
+    );
   }
 }

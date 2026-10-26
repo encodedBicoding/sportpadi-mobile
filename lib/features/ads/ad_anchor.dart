@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart' show TemplateType;
 
 import 'package:sportpadi_mobile/core/ads/admob.dart';
+import 'package:sportpadi_mobile/data/ads/ads_repository.dart' show AdContext;
 import 'package:sportpadi_mobile/data/ads/placements.dart';
 import 'package:sportpadi_mobile/features/ads/ad_display.dart';
 
@@ -24,9 +25,14 @@ class AdAnchor extends ConsumerWidget {
     required this.anchor,
     this.hasContent = true,
     this.padding = EdgeInsets.zero,
+    this.context = const {},
   });
 
   final String anchor;
+
+  /// What the screen shows ({'group': {'id': …}}): ads linking to
+  /// /groups/{group.id}/… open THIS group (packages/lib/src/adLinks.ts).
+  final AdContext context;
 
   /// False while the screen is empty/loading, so a unit never shows on a
   /// screen without content.
@@ -38,11 +44,12 @@ class AdAnchor extends ConsumerWidget {
     if (!hasContent) return const SizedBox.shrink();
     final p = ref.watch(placementProvider(anchor));
     if (p == null) return const SizedBox.shrink();
-    return _fill(p, anchor, 0, padding);
+    return _fill(p, anchor, 0, padding, this.context);
   }
 }
 
-Widget _fill(AdPlacement p, String anchor, int position, EdgeInsets padding) {
+Widget _fill(AdPlacement p, String anchor, int position, EdgeInsets padding,
+    [AdContext context = const {}]) {
   Widget w;
   String label;
   if (p.isFirstParty) {
@@ -52,7 +59,7 @@ Widget _fill(AdPlacement p, String anchor, int position, EdgeInsets padding) {
       // into another slot.
       key: ValueKey('ad:$anchor:$position:${p.slotKey}'),
       padding: padding,
-      child: AdDisplay(slots: [p.slotKey!]),
+      child: AdDisplay(slots: [p.slotKey!], context: context),
     );
   } else if (p.isAdMob) {
     label = 'AdMob ${p.format}';
@@ -124,7 +131,8 @@ class _DebugFrame extends StatelessWidget {
 /// count, then ask [after] for each row index — it answers with the ad
 /// widget for that gap, or null.
 class AdInterleave {
-  AdInterleave._(this._p, this._anchor, this._rows, this.padding);
+  AdInterleave._(this._p, this._anchor, this._rows, this.padding,
+      [this.context = const {}]);
 
   /// Watches the anchor's placement — call during build().
   static AdInterleave of(
@@ -133,9 +141,10 @@ class AdInterleave {
     int count, {
     bool hasMore = false,
     EdgeInsets padding = const EdgeInsets.only(bottom: 6),
+    AdContext context = const {},
   }) =>
       from(ref.watch(placementProvider(anchor)), anchor, count,
-          hasMore: hasMore, padding: padding);
+          hasMore: hasMore, padding: padding, context: context);
 
   /// From a placement already watched higher up (for builders that run
   /// outside the widget's own build, e.g. AsyncView's `data:`).
@@ -146,14 +155,18 @@ class AdInterleave {
     int count, {
     bool hasMore = false,
     EdgeInsets padding = const EdgeInsets.only(bottom: 6),
+    AdContext context = const {},
   }) =>
       AdInterleave._(p, anchor,
-          p?.adRows(count, hasMore: hasMore) ?? const [], padding);
+          p?.adRows(count, hasMore: hasMore) ?? const [], padding, context);
 
   final AdPlacement? _p;
   final String _anchor;
   final List<int> _rows;
   final EdgeInsets padding;
+
+  /// What the screen shows — see [AdAnchor.context].
+  final AdContext context;
 
   bool get any => _rows.isNotEmpty;
 
@@ -162,7 +175,7 @@ class AdInterleave {
     if (p == null) return null;
     final pos = _rows.indexOf(index);
     if (pos < 0) return null;
-    return _fill(p, _anchor, pos, padding);
+    return _fill(p, _anchor, pos, padding, context);
   }
 
   /// [after] as a spreadable list (one widget or none) for collection-for

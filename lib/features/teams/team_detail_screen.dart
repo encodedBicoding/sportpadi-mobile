@@ -293,7 +293,7 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
                       else if (_tab == 4)
                         TeamLeaguesSection(teamId: teamId)
                       else
-                        _GamesTab(teamId: teamId),
+                        _GamesTab(teamId: teamId, groupId: t.groupId),
                     ])),
                   ),
                 ]),
@@ -682,6 +682,12 @@ class _StripesPainter extends CustomPainter {
 // player for stats (and admin edits: jersey, positions, starter, captain).
 // ---------------------------------------------------------------------------
 
+/// What a team screen shows, for page-linked ads (/groups/{group.id}/teams/{team.id}).
+Map<String, Map<String, String>> _teamAdContext(String teamId, String? groupId) => {
+      'team': {'id': teamId},
+      if (groupId != null && groupId.isNotEmpty) 'group': {'id': groupId},
+    };
+
 class _PlayersTab extends ConsumerWidget {
   const _PlayersTab({required this.team, required this.onChanged});
   final TeamDetail team;
@@ -731,7 +737,8 @@ class _PlayersTab extends ConsumerWidget {
     }
     // Ads between roster rows — owner console anchor "team.players".
     final ads = AdInterleave.of(ref, 'team.players', roster.length,
-        padding: const EdgeInsets.symmetric(vertical: 8));
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        context: _teamAdContext(team.id, team.groupId));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1289,7 +1296,8 @@ class _TournamentsTab extends ConsumerWidget {
         }
         // Ads between tournaments — owner console anchor "team.tournaments".
         final ads = AdInterleave.of(ref, 'team.tournaments', list.length,
-            padding: const EdgeInsets.symmetric(vertical: 8));
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            context: _teamAdContext(team.id, team.groupId));
         return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -1590,8 +1598,9 @@ class _CoachesTab extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 
 class _GamesTab extends ConsumerWidget {
-  const _GamesTab({required this.teamId});
+  const _GamesTab({required this.teamId, this.groupId});
   final String teamId;
+  final String? groupId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1600,7 +1609,8 @@ class _GamesTab extends ConsumerWidget {
     final list = games.valueOrNull ?? const <TeamGame>[];
     // Ads between games — owner console anchor "team.games".
     final ads = AdInterleave.of(ref, 'team.games', list.length,
-        padding: const EdgeInsets.symmetric(vertical: 8));
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        context: _teamAdContext(teamId, groupId));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
