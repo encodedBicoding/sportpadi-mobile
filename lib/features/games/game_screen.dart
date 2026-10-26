@@ -193,9 +193,15 @@ class GameScreen extends ConsumerWidget {
                     // match: the tap controls sit around it (accidental-
                     // click risk).
                     if (!(g.canScore && g.isLive))
-                      const AdAnchor(
+                      AdAnchor(
                           anchor: 'game.detail_mid',
-                          padding: EdgeInsets.only(top: 12)),
+                          padding: const EdgeInsets.only(top: 12),
+                          // Page links ({game.id}, {event.slug}) open THIS game / event.
+                          context: {
+                            'game': {'id': gameId},
+                            if (g.eventSlug != null)
+                              'event': {'slug': g.eventSlug!},
+                          }),
                     if (g.status == 'completed') ...[
                       // Web parity: the post-match summary replaces the
                       // lineups.

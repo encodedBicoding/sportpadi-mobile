@@ -98,11 +98,15 @@ class ServedSlot {
     required this.slotId,
     required this.display,
     required this.ads,
+    this.rotateSeconds = 8,
   });
   final String key;
   final String slotId;
   final String display;
   final List<ServedAd> ads;
+
+  /// "rotator" slots: seconds between switches.
+  final int rotateSeconds;
 
   bool get isPopup =>
       display == 'bottom_sheet' || display == 'modal' || display == 'whats_new';
@@ -133,8 +137,10 @@ class AdsRepository {
 
   /// What each slot picked for this viewer. [popup]: of the pop-up slots,
   /// only the best one with something to show ([keys] may be empty = all).
+  /// [context]: what the screen shows ({'group': {'id': …}}) — fills ad
+  /// links like /groups/{group.id}/wallet server-side.
   Future<List<ServedSlot>> serveSlots(List<String> keys,
-      {bool popup = false}) async {
+      {bool popup = false, AdContext context = const {}}) async {
     try {
       final anon = await anonId();
       final v = await appVersion();
@@ -145,6 +151,7 @@ class AdsRepository {
         if (v != null) 'v': v,
         if (anon != null) 'anon': anon,
         if (popup) 'mode': 'popup',
+        ...adContextParams(context),
       });
       final slots = res.data is Map ? (res.data['slots'] as List? ?? []) : [];
       final out = <ServedSlot>[];
@@ -155,6 +162,7 @@ class AdsRepository {
           key: (m['key'] ?? '') as String,
           slotId: slotId,
           display: parseStr(m['display']) ?? 'banner',
+          rotateSeconds: (m['rotateSeconds'] is num) ? (m['rotateSeconds'] as num).toInt().clamp(3, 120).toInt() : 8,
           ads: [
             for (final a in (m['ads'] as List? ?? []))
               ServedAd.fromJson(Map<String, dynamic>.from(a as Map), slotId),
@@ -283,13 +291,50 @@ final servedAdsProvider = FutureProvider.autoDispose
 });
 
 /// The same, per slot with each slot's display (AdDisplay draws each slot in
-/// its own format).
+/// its own format). The key is the comma-joined slot keys, optionally
+/// followed by `|` and the screen's context ([adSlotsKey]).
 final servedSlotsProvider = FutureProvider.autoDispose
-    .family<List<ServedSlot>, String>((ref, joinedKeys) async {
+    .family<List<ServedSlot>, String>((ref, key) async {
   final repo = ref.watch(adsRepositoryProvider);
   final loc = ref.watch(locationProvider.select((s) => s.location));
   await repo
       .personalizeIfPermitted(known: loc)
       .timeout(const Duration(seconds: 5), onTimeout: () => false);
-  return repo.serveSlots(joinedKeys.split(','));
+  final bar = key.indexOf('|');
+  final joinedKeys = bar < 0 ? key : key.substring(0, bar);
+  final ctx = bar < 0 ? const <String, Map<String, String>>{} : adContextFromKey(key.substring(bar + 1));
+  return repo.serveSlots(joinedKeys.split(','), context: ctx);
 });
+
+/// What a screen is showing, for page-linked ads: {'group': {'id': …},
+/// 'event': {'id': …, 'slug': …}}. Entities and fields: packages/lib/src/
+/// adLinks.ts (group, event, team, tournament, game). The server validates.
+typedef AdContext = Map<String, Map<String, String>>;
+
+/// `c.group.id=…` query parameters (GET /api/mobile/ads).
+Map<String, String> adContextParams(AdContext c) => {
+      for (final e in c.entries)
+        for (final f in e.value.entries)
+          if (f.value.isNotEmpty) 'c.${e.key}.${f.key}': f.value,
+    };
+
+/// A stable provider key for slots + context (sorted, so equal contexts share a serve).
+String adSlotsKey(List<String> slots, AdContext context) {
+  final p = adContextParams(context).entries.toList()
+    ..sort((a, b) => a.key.compareTo(b.key));
+  final joined = slots.join(',');
+  if (p.isEmpty) return joined;
+  return '$joined|${p.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&')}';
+}
+
+AdContext adContextFromKey(String s) {
+  final out = <String, Map<String, String>>{};
+  for (final part in s.split('&')) {
+    final eq = part.indexOf('=');
+    if (eq < 0) continue;
+    final k = part.substring(0, eq).split('.');
+    if (k.length != 3 || k[0] != 'c') continue;
+    (out[k[1]] ??= {})[k[2]] = Uri.decodeComponent(part.substring(eq + 1));
+  }
+  return out;
+}

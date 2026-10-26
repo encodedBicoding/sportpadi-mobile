@@ -75,6 +75,18 @@ LinkTarget resolveLink(String? url) {
   final path = (isUrl ? uri?.path : null) ?? _pathOf(raw);
   if (path.isEmpty) return _none;
   final query = uri?.queryParameters ?? const <String, String>{};
+  final hashAt = raw.indexOf('#');
+  final fragment = (uri?.fragment.isNotEmpty ?? false)
+      ? uri!.fragment
+      : (hashAt >= 0 ? raw.substring(hashAt + 1) : '');
+
+  // The free Pro features offer, natively — before the web-only rule below
+  // catches /upgrade: the web's /groups/x/upgrade#pro-offer (the group
+  // page's ad, offer emails) or /groups/x/pro-offer.
+  final offer = RegExp(r'^/groups/([^/]+)/(upgrade|pro-offer)/?$').firstMatch(path);
+  if (offer != null && (offer[2] == 'pro-offer' || fragment == 'pro-offer')) {
+    return _route('/groups/${offer[1]}/pro-offer');
+  }
 
   if (_mustStayOnWeb(path)) return _web;
 
@@ -316,7 +328,7 @@ LinkTarget resolveLink(String? url) {
 
 /// A bare path, tolerating one that arrived without its leading slash.
 String _pathOf(String raw) {
-  final q = raw.indexOf('?');
+  final q = raw.indexOf(RegExp(r'[?#]'));
   final justPath = q >= 0 ? raw.substring(0, q) : raw;
   if (justPath.isEmpty) return '';
   return justPath.startsWith('/') ? justPath : '/$justPath';

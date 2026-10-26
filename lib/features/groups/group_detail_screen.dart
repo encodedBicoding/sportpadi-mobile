@@ -680,6 +680,17 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Owner-console ad spot (anchor "group.after_header"): a
+              // full-width rectangle right under the profile header — e.g.
+              // the free Pro offer for this group's owner. Nothing unless the
+              // console fills it; the context makes its link and audience
+              // about THIS group.
+              AdAnchor(
+                  anchor: 'group.after_header',
+                  padding: const EdgeInsets.only(top: 4, bottom: 14),
+                  context: {
+                    'group': {'id': groupId}
+                  }),
               // Pinned announcements first — above the overview tiles
               // (Leaderboard, Wallet…) — for members and followers alike (the
               // server decides what each one gets). At most two; the rest
@@ -700,9 +711,13 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
                 isMember: group.isMember || canManage,
               ),
               // Owner-console ad spot (anchor "group.detail_bottom"); nothing unless set.
-              const AdAnchor(
+              AdAnchor(
                   anchor: 'group.detail_bottom',
-                  padding: EdgeInsets.only(top: 14)),
+                  padding: const EdgeInsets.only(top: 14),
+                  // Page links (/groups/{group.id}/wallet) open THIS group.
+                  context: {
+                    'group': {'id': groupId}
+                  }),
               // Group reputation (gamification): level, streak, achievements.
               GroupReputationCard(groupId: groupId),
             ],

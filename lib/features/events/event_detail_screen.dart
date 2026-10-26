@@ -488,8 +488,14 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
       ...[
         const SizedBox(height: 12),
         // Owner-console ad spot (anchor "event.detail_bottom"); nothing unless set.
-        const AdAnchor(
-            anchor: 'event.detail_bottom', padding: EdgeInsets.only(top: 14)),
+        AdAnchor(
+            anchor: 'event.detail_bottom',
+            padding: const EdgeInsets.only(top: 14),
+            // Page links ({event.slug}, {group.id}) open THIS event / group.
+            context: {
+              'event': {'id': e.id, 'slug': e.slug},
+              if (e.groupId != null) 'group': {'id': e.groupId!},
+            }),
       ],
       // The matches section pushes the check-in QR down the page —
       // organisers get a one-tap way back to it.

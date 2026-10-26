@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' show Random;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -29,8 +30,12 @@ class AdDisplay extends ConsumerStatefulWidget {
     required this.slots,
     this.carousel = false,
     this.interval = const Duration(seconds: 6),
+    this.context = const {},
   });
   final List<String> slots;
+
+  /// What the screen shows — fills ad links like /groups/{group.id}/wallet.
+  final AdContext context;
   final bool carousel;
   final Duration interval;
 
@@ -125,7 +130,7 @@ class _AdDisplayState extends ConsumerState<AdDisplay> {
   @override
   Widget build(BuildContext context) {
     final slots =
-        ref.watch(servedSlotsProvider(widget.slots.join(','))).valueOrNull;
+        ref.watch(servedSlotsProvider(adSlotsKey(widget.slots, widget.context))).valueOrNull;
     final inline = [
       for (final s in slots ?? const <ServedSlot>[])
         if (!s.isPopup)
@@ -133,6 +138,7 @@ class _AdDisplayState extends ConsumerState<AdDisplay> {
             key: s.key,
             slotId: s.slotId,
             display: s.display,
+            rotateSeconds: s.rotateSeconds,
             ads: [
               for (final a in s.ads)
                 if (!_closed.contains(a.id)) a
@@ -163,6 +169,13 @@ class _AdDisplayState extends ConsumerState<AdDisplay> {
                 onSeen: _impress,
               ),
             'top_bar' => _topBar(s.ads.first),
+            // One ad at a time, switching at random — not a carousel.
+            'rotator' => _Rotator(
+                key: ValueKey('rot:${s.slotId}:${s.ads.map((a) => a.id).join(',')}'),
+                ads: s.ads,
+                interval: Duration(seconds: s.rotateSeconds),
+                frame: _frame,
+              ),
             _ => Builder(builder: (_) {
                 final ad = s.ads.first;
                 _impress(ad);
@@ -276,6 +289,80 @@ class _AdDisplayState extends ConsumerState<AdDisplay> {
             rest: p.muted.withAlpha(80)),
       ],
     ]);
+  }
+}
+
+/// Rotating banner: ONE ad at a time in the slot's spot, fading to another
+/// picked at random every [interval] (never the same one twice in a row).
+/// No swiping, no dots, no order. Holds still while a finger is on it and
+/// while the app is in the background; [frame] draws each ad (and counts its
+/// view the first time it comes up).
+class _Rotator extends StatefulWidget {
+  const _Rotator({
+    super.key,
+    required this.ads,
+    required this.interval,
+    required this.frame,
+  });
+  final List<ServedAd> ads;
+  final Duration interval;
+  final Widget Function(ServedAd ad) frame;
+
+  @override
+  State<_Rotator> createState() => _RotatorState();
+}
+
+class _RotatorState extends State<_Rotator> with WidgetsBindingObserver {
+  final _rand = Random();
+  late int _idx = widget.ads.isEmpty ? 0 : _rand.nextInt(widget.ads.length);
+  Timer? _timer;
+  bool _held = false;
+  bool _foreground = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _start();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _foreground = state == AppLifecycleState.resumed;
+  }
+
+  void _start() {
+    _timer?.cancel();
+    if (widget.ads.length <= 1) return;
+    _timer = Timer.periodic(widget.interval, (_) {
+      if (!mounted || _held || !_foreground) return;
+      final n = widget.ads.length;
+      var j = _rand.nextInt(n - 1);
+      if (j >= _idx % n) j++;
+      setState(() => _idx = j);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.ads.isEmpty) return const SizedBox.shrink();
+    final ad = widget.ads[_idx % widget.ads.length];
+    return Listener(
+      onPointerDown: (_) => _held = true,
+      onPointerUp: (_) => _held = false,
+      onPointerCancel: (_) => _held = false,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 450),
+        child: KeyedSubtree(key: ValueKey(ad.id), child: widget.frame(ad)),
+      ),
+    );
   }
 }
 

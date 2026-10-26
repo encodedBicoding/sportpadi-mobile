@@ -243,10 +243,17 @@ class TournamentDetailScreen extends ConsumerWidget {
                                 ),
                                 // Owner-console ad spot (anchor "tournament.detail_bottom");
                                 // nothing unless set.
-                                const AdAnchor(
+                                AdAnchor(
                                     anchor: 'tournament.detail_bottom',
-                                    padding:
-                                        EdgeInsets.fromLTRB(20, 14, 20, 0)),
+                                    padding: const EdgeInsets.fromLTRB(
+                                        20, 14, 20, 0),
+                                    // Page links open THIS tournament / group.
+                                    context: {
+                                      'tournament': {'id': eventId},
+                                      'event': {'id': eventId},
+                                      if (hostGroupId.isNotEmpty)
+                                        'group': {'id': hostGroupId},
+                                    }),
                                 const SizedBox(height: 14),
                                 _MatchSection(
                                   eventId: eventId,
@@ -271,10 +278,17 @@ class TournamentDetailScreen extends ConsumerWidget {
                                 ),
                                 // Owner-console ad spot (anchor "tournament.detail_bottom");
                                 // nothing unless set.
-                                const AdAnchor(
+                                AdAnchor(
                                     anchor: 'tournament.detail_bottom',
-                                    padding:
-                                        EdgeInsets.fromLTRB(20, 14, 20, 0)),
+                                    padding: const EdgeInsets.fromLTRB(
+                                        20, 14, 20, 0),
+                                    // Page links open THIS tournament / group.
+                                    context: {
+                                      'tournament': {'id': eventId},
+                                      'event': {'id': eventId},
+                                      if (hostGroupId.isNotEmpty)
+                                        'group': {'id': hostGroupId},
+                                    }),
                                 const SizedBox(height: 14),
                                 _MatchesCard(
                                   eventId: eventId,

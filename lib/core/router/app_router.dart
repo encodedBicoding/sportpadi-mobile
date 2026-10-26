@@ -16,6 +16,7 @@ import 'package:sportpadi_mobile/features/discussions/discussions_screen.dart';
 import 'package:sportpadi_mobile/features/discussions/my_discussions_screen.dart';
 import 'package:sportpadi_mobile/features/events/event_detail_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_detail_screen.dart';
+import 'package:sportpadi_mobile/features/groups/pro_offer.dart' show ProOfferScreen;
 import 'package:sportpadi_mobile/features/join/join_group_screen.dart';
 import 'package:sportpadi_mobile/features/notifications/notifications_screen.dart';
 import 'package:sportpadi_mobile/features/announcements/announcement_composer_screen.dart';
@@ -298,6 +299,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, s) => GroupDetailScreen(
             groupId: s.pathParameters['id']!,
             initialTab: s.uri.queryParameters['tab']),
+      ),
+      // The free Pro features offer (the group page's ad, offer emails).
+      GoRoute(
+        path: '/groups/:id/pro-offer',
+        builder: (_, s) => ProOfferScreen(groupId: s.pathParameters['id']!),
       ),
       GoRoute(
         path: '/teams/:id',

@@ -281,10 +281,16 @@ class _GroupLeaderboardScreenState
           final rest = podium ? rows.sublist(3) : rows;
           final listAds = AdInterleave.from(
               adPlacement, 'leaderboard.rows', rest.length,
-              padding: const EdgeInsets.symmetric(vertical: 8));
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              context: {
+                'group': {'id': groupId}
+              });
           final tableAds = AdInterleave.from(
               adPlacement, 'leaderboard.rows', rows.length,
-              padding: const EdgeInsets.symmetric(vertical: 10));
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              context: {
+                'group': {'id': groupId}
+              });
           LeaderboardRow? mine;
           for (final r in rows) {
             if (r.playerId == me) mine = r;
