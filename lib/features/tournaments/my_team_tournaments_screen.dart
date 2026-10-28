@@ -506,7 +506,10 @@ class _EntryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final date = e.eventDate;
+    // The event date is a calendar day stored as midnight UTC: read it in
+    // UTC (like the web), never in the phone's zone — in the Americas that
+    // shows the day before.
+    final date = e.eventDate?.toUtc();
     final live = e.bucket == 'live';
     final past = e.bucket == 'past';
     final cancelled = e.tournamentStatus == 'cancelled';

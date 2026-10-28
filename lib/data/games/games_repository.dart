@@ -137,6 +137,24 @@ class GamesRepository {
     }
   }
 
+  /// Kudos after full time (api games/kudos.ts): who tagged whom, my tag,
+  /// whether I can give one, my teammates and the tag list.
+  Future<GameKudos> kudos(String gameId) async {
+    try {
+      final res = await _dio.get('/api/mobile/games/$gameId', queryParameters: {'view': 'kudos'});
+      return GameKudos.fromJson(res.data is Map ? Map<String, dynamic>.from(res.data as Map) : const {});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load kudos.');
+    }
+  }
+
+  Future<void> giveKudos(String gameId, String playerId, String tag) =>
+      _post(gameId, {'action': 'kudos', 'playerId': playerId, 'tag': tag},
+          fallback: 'Could not send your kudos.');
+
+  Future<void> removeKudos(String gameId) =>
+      _post(gameId, {'action': 'removeKudos'}, fallback: 'Could not take that back.');
+
   /// Anonymous match MVP vote (players and coaches in the match, while open).
   Future<void> voteMvp(String gameId, String playerId) =>
       _post(gameId, {'action': 'voteMvp', 'playerId': playerId},
@@ -328,3 +346,58 @@ class OfficiantCandidate {
 final gameMvpProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>, String>((ref, gameId) =>
         ref.watch(gamesRepositoryProvider).mvpAwards(gameId));
+
+
+/// Kudos on one game (api games/kudos.ts kudosView).
+class GameKudos {
+  const GameKudos({
+    required this.received,
+    required this.mine,
+    required this.canGive,
+    required this.teammates,
+    required this.tags,
+  });
+
+  /// playerId → tag → count.
+  final Map<String, Map<String, int>> received;
+  final ({String toUser, String tag})? mine;
+  final bool canGive;
+  final List<String> teammates;
+  final List<({String key, String label, String icon, String hint})> tags;
+
+  factory GameKudos.fromJson(Map<String, dynamic> j) {
+    final rec = <String, Map<String, int>>{};
+    if (j['received'] is Map) {
+      for (final e in (j['received'] as Map).entries) {
+        if (e.value is Map) {
+          rec['${e.key}'] = {
+            for (final t in (e.value as Map).entries)
+              if (t.value is num) '${t.key}': (t.value as num).toInt(),
+          };
+        }
+      }
+    }
+    final m = j['mine'];
+    return GameKudos(
+      received: rec,
+      mine: m is Map && m['toUser'] is String && m['tag'] is String
+          ? (toUser: m['toUser'] as String, tag: m['tag'] as String)
+          : null,
+      canGive: j['canGive'] == true,
+      teammates: [for (final t in (j['teammates'] as List? ?? const [])) '$t'],
+      tags: [
+        for (final t in (j['tags'] as List? ?? const []))
+          if (t is Map)
+            (
+              key: '${t['key'] ?? ''}',
+              label: '${t['label'] ?? ''}',
+              icon: '${t['icon'] ?? ''}',
+              hint: '${t['hint'] ?? ''}',
+            ),
+      ],
+    );
+  }
+}
+
+final gameKudosProvider = FutureProvider.autoDispose.family<GameKudos, String>(
+    (ref, gameId) => ref.watch(gamesRepositoryProvider).kudos(gameId));

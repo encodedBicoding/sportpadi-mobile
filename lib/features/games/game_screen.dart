@@ -14,6 +14,7 @@ import 'package:sportpadi_mobile/features/events/event_mvp_card.dart';
 import 'package:sportpadi_mobile/features/games/basketball_widgets.dart';
 import 'package:sportpadi_mobile/features/games/officiant_panel.dart';
 import 'package:sportpadi_mobile/features/games/officiants_card.dart';
+import 'package:sportpadi_mobile/features/games/post_match_cards.dart';
 import 'package:sportpadi_mobile/features/games/scoreboard_widgets.dart';
 import 'package:sportpadi_mobile/features/games/timeout_widgets.dart';
 import 'package:sportpadi_mobile/features/games/volleyball_widgets.dart';
@@ -203,19 +204,27 @@ class GameScreen extends ConsumerWidget {
                               'event': {'slug': g.eventSlug!},
                           }),
                     if (g.status == 'completed') ...[
-                      // Web parity: the post-match summary replaces the
-                      // lineups.
+                      // Web order (GameClient): MVP vote + awards, then
+                      // "Your match" for players, then the post-match
+                      // summary, which replaces the lineups.
+                      // Tournament / league matches: MVP vote (24h) then
+                      // the awards — same card as a group event's.
+                      const SizedBox(height: 12),
+                      EventMvpCard(gameId: gameId),
+                      // Your match — XP, your stats, unlocks (players only).
+                      YourMatchCard(gameId: gameId),
                       const SizedBox(height: 12),
                       if (g.isBasketball)
                         BasketballSummary(game: g)
                       else if (g.isVolleyball)
                         VolleyballSummary(game: g)
-                      else
+                      else ...[
                         _SummaryCard(game: g),
-                      // Tournament / league matches: MVP vote (24h) then
-                      // the awards — same card as a group event's.
-                      const SizedBox(height: 12),
-                      EventMvpCard(gameId: gameId),
+                        // Per team: totals, scorers, contributions.
+                        PostMatchTeamCards(game: g),
+                      ],
+                      // Kudos — tag a teammate for the work no stat records.
+                      KudosCard(gameId: gameId, game: g),
                     ],
                     if (g.canTime && _awaitingDraw(g)) ...[
                       const SizedBox(height: 12),
@@ -1462,24 +1471,23 @@ class _SummaryCard extends StatelessWidget {
         : wentEt
             ? 'After extra time'
             : 'Full time';
+    // The recorded result first (a shootout winner can be level on goals),
+    // then the score.
     GameTeam? winner;
     for (final t in g.teams) {
-      if (winner == null || t.score > winner.score) winner = t;
+      if (t.result == 'win') winner = t;
     }
-    final drawn = g.teams.length > 1 &&
-        g.teams.every((t) => t.score == g.teams.first.score);
-    final result = drawn ? 'Draw' : '${winner?.name ?? '—'} won';
-
-    // Scorers: goals credited to the scorer's own team (web logic).
-    final byTeam = <String, Map<String, int>>{};
-    for (final a in g.activities) {
-      if (a.type != 'goal') continue;
-      final names = byTeam.putIfAbsent(a.teamId, () => {});
-      names['${a.jersey != null ? '#${a.jersey} ' : ''}${a.playerName}'] =
-          (names['${a.jersey != null ? '#${a.jersey} ' : ''}${a.playerName}'] ??
-                  0) +
-              1;
+    if (winner == null && !g.teams.any((t) => t.result == 'draw')) {
+      for (final t in g.teams) {
+        if (winner == null || t.score > winner.score) winner = t;
+      }
+      if (g.teams.length > 1 &&
+          g.teams.every((t) => t.score == g.teams.first.score)) {
+        winner = null;
+      }
     }
+    final drawn = winner == null;
+    final result = winner == null ? 'Draw' : '${winner.name} won';
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       // Result pill — mirrors the web "🏆 Full time · X won" line.
@@ -1503,51 +1511,6 @@ class _SummaryCard extends StatelessWidget {
           ),
         ]),
       ),
-      if (byTeam.isNotEmpty) ...[
-        const SizedBox(height: 12),
-        GlassCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Scorers',
-                  style: TextStyle(
-                      color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 10),
-              for (final t in g.teams)
-                if (byTeam[t.teamId]?.isNotEmpty ?? false) ...[
-                  Row(children: [
-                    Container(
-                      width: 9,
-                      height: 9,
-                      decoration: BoxDecoration(
-                          color: teamColor(t.color, p), shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 7),
-                    Text(t.name,
-                        style: TextStyle(
-                            color: p.ink,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700)),
-                  ]),
-                  const SizedBox(height: 4),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16, bottom: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final e in byTeam[t.teamId]!.entries)
-                          Text(
-                            '⚽ ${e.key}${e.value > 1 ? ' ×${e.value}' : ''}',
-                            style: TextStyle(color: p.muted, fontSize: 12.5),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-            ],
-          ),
-        ),
-      ],
     ]);
   }
 }
