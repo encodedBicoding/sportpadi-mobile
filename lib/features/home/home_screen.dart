@@ -301,7 +301,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       // already shared, point at Browse.
                       if (_nextUp(f.upcoming) case final EventSummary n) ...[
                         const SizedBox(height: 14),
-                        _NextUpCard(event: n, live: _live(n)),
+                        _NextUpCard(event: n, live: _live(n), onNow: _onNow(n)),
                       ] else if (f.upcoming.isNotEmpty ||
                           f.past.isNotEmpty ||
                           ref.watch(locationProvider).location == null) ...[
@@ -400,18 +400,59 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// "now" — correct whatever zone the viewer or the venue is in. An event
   /// that has started but not ended still counts (you can still get there);
   /// one with no time at all counts for its whole day. Sorted by start.
-  static EventSummary? _nextUp(List<EventSummary> upcoming) {
+  ///
+  /// "Next up" = what you should be at, or heading to (web twin
+  /// pickNextUp in components/home/NextUpCard.tsx):
+  ///   1. live (a game kicked off) always wins;
+  ///   2. an event that started within the last hour stays — you're on
+  ///      your way;
+  ///   3. after that, an event that starts BEFORE the current one ends takes
+  ///      over (two overlapping events: the next kick-off is the news);
+  ///   4. otherwise the event in progress stays until it ends — tomorrow's
+  ///      never pushes out one you're at now; several in progress → the
+  ///      latest start.
+  static const _grace = Duration(hours: 1);
+
+  static EventSummary? _nextUp(List<EventSummary> upcoming, [DateTime? at]) {
     for (final e in upcoming) {
       if (_live(e)) return e;
     }
-    // The feed arrives soonest-first from the server, so the first event
-    // that hasn't ended by this device's clock is the one.
-    final now = DateTime.now().toUtc();
-    for (final e in upcoming) {
-      final end = e.endsAt ?? e.startsAt?.add(const Duration(hours: 2));
-      if (end != null && !end.isBefore(now)) return e;
+    final now = (at ?? DateTime.now()).toUtc();
+    DateTime? endOf(EventSummary e) =>
+        e.endsAt ?? e.startsAt?.add(const Duration(hours: 2));
+    final open = upcoming.where((e) {
+      final end = endOf(e);
+      return end != null && !end.isBefore(now);
+    }).toList();
+    final inProgress = open
+        .where((e) => e.startsAt != null && !e.startsAt!.isAfter(now))
+        .toList()
+      ..sort((a, b) => b.startsAt!.compareTo(a.startsAt!));
+    final notStarted = open
+        .where((e) => e.startsAt == null || e.startsAt!.isAfter(now))
+        .toList()
+      ..sort((a, b) => (a.startsAt ?? DateTime.utc(9999))
+          .compareTo(b.startsAt ?? DateTime.utc(9999)));
+    final soon = notStarted.isEmpty ? null : notStarted.first;
+    if (inProgress.isEmpty) return soon;
+    final cur = inProgress.first;
+    if (now.difference(cur.startsAt!) < _grace) return cur;
+    final curEnd = endOf(cur);
+    if (soon != null &&
+        soon.startsAt != null &&
+        curEnd != null &&
+        soon.startsAt!.isBefore(curEnd)) {
+      return soon;
     }
-    return null;
+    return cur;
+  }
+
+  /// Started by the clock (not necessarily a live game).
+  static bool _onNow(EventSummary e) {
+    final now = DateTime.now().toUtc();
+    final start = e.startsAt;
+    final end = e.endsAt ?? start?.add(const Duration(hours: 2));
+    return start != null && end != null && !start.isAfter(now) && !end.isBefore(now);
   }
 
   // ── Pieces ────────────────────────────────────────────────────────────────
@@ -1346,12 +1387,14 @@ class _NothingUpNextCard extends ConsumerWidget {
 }
 
 class _NextUpCard extends StatelessWidget {
-  const _NextUpCard({required this.event, required this.live});
+  const _NextUpCard({required this.event, required this.live, this.onNow = false});
   final EventSummary event;
   final bool live;
+  final bool onNow;
 
   String _eyebrow() {
     if (live) return 'LIVE NOW';
+    if (onNow) return 'ON NOW';
     final d = event.eventDate?.toUtc();
     if (d == null) return 'NEXT UP';
     final now = DateTime.now();
