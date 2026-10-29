@@ -307,22 +307,11 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                 const SizedBox(height: 8),
                 // One row of event types (web layout): pick the event, then
                 // the team, the player — and the assist when it's a goal.
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final def in g.schema)
-                      if (def.type != 'substitution')
-                        _MiniAction(
-                          label:
-                              '${def.icon != null ? '${def.icon} ' : ''}${def.label}',
-                          onTap: _busy ? null : () => _recordActivity(def),
-                        ),
-                    _MiniAction(
-                      label: '🔁 Sub',
-                      onTap: _busy ? null : _substituteFlow,
-                    ),
-                  ],
+                _RecordPad(
+                  schema: g.schema,
+                  busy: _busy,
+                  onRecord: _recordActivity,
+                  onSub: _substituteFlow,
                 ),
                 const SizedBox(height: 10),
               ],
@@ -368,18 +357,10 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                 onRecord: _recordBb,
               )
             else
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final def in g.schema)
-                    if (def.type != 'substitution')
-                      _MiniAction(
-                        label:
-                            '${def.icon != null ? '${def.icon} ' : ''}${def.label}',
-                        onTap: _busy ? null : () => _recordActivity(def),
-                      ),
-                ],
+              _RecordPad(
+                schema: g.schema,
+                busy: _busy,
+                onRecord: _recordActivity,
               ),
           ],
         ],
@@ -892,5 +873,71 @@ class _RecordSheetState extends State<_RecordSheet> {
         ],
       ),
     );
+  }
+}
+
+
+/// The scoring pad: one chip per action the sport defines. Grouped by side
+/// (Attack · Defence · Discipline — docs/design/match-rating.md) when the
+/// schema says sides, so eleven soccer actions don't land in one heap; a
+/// flat row otherwise, as before.
+class _RecordPad extends StatelessWidget {
+  const _RecordPad({
+    required this.schema,
+    required this.busy,
+    required this.onRecord,
+    this.onSub,
+  });
+  final List<ActivityDef> schema;
+  final bool busy;
+  final void Function(ActivityDef def) onRecord;
+  final VoidCallback? onSub;
+
+  static const _order = ['attack', 'defence', 'support', 'discipline'];
+  static const _titles = {
+    'attack': 'Attack',
+    'defence': 'Defence',
+    'support': 'Support',
+    'discipline': 'Discipline',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final acts = schema.where((d) => d.type != 'substitution').toList();
+    Widget chip(ActivityDef def) => _MiniAction(
+          label: '${def.icon != null ? '${def.icon} ' : ''}${def.label}',
+          onTap: busy ? null : () => onRecord(def),
+        );
+    final sub = onSub == null
+        ? null
+        : _MiniAction(label: '🔁 Sub', onTap: busy ? null : onSub);
+    if (!acts.any((d) => d.side != null)) {
+      return Wrap(spacing: 8, runSpacing: 8, children: [
+        for (final def in acts) chip(def),
+        if (sub != null) sub,
+      ]);
+    }
+    final groups = [
+      for (final side in _order)
+        (side, acts.where((d) => (d.side ?? 'attack') == side).toList()),
+    ].where((g) => g.$2.isNotEmpty).toList();
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      for (var i = 0; i < groups.length; i++) ...[
+        if (i > 0) const SizedBox(height: 8),
+        Text(_titles[groups[i].$1] ?? groups[i].$1,
+            style: TextStyle(
+                color: p.muted,
+                fontSize: 10.5,
+                letterSpacing: 0.8,
+                fontWeight: FontWeight.w800)),
+        const SizedBox(height: 4),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          for (final def in groups[i].$2) chip(def),
+          // The sub sits with the support actions (or last).
+          if (sub != null && (groups[i].$1 == 'support' || (i == groups.length - 1 && !groups.any((g) => g.$1 == 'support')))) sub,
+        ]),
+      ],
+    ]);
   }
 }

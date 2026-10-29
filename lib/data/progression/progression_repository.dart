@@ -179,6 +179,7 @@ class MyProgression {
     required this.weekly,
     required this.unlocked,
     required this.catalogue,
+    this.kudos = const [],
   });
   final int level;
   final String title;
@@ -190,6 +191,9 @@ class MyProgression {
   final Streak? weekly;
   final List<Achievement> unlocked;
   final List<Achievement> catalogue;
+
+  /// Kudos from teammates, all time: tag, label, icon, count.
+  final List<({String tag, String label, String icon, int count})> kudos;
 
   static MyProgression? fromJson(Map<String, dynamic> j) {
     if (j['available'] != true) return null;
@@ -231,6 +235,15 @@ class MyProgression {
               description: parseStr(a['description']) ?? '',
               xp: _int(a['xp']),
               unlocked: got.contains(parseStr(a['key'])))
+      ],
+      kudos: [
+        for (final k in _list(j['kudos']))
+          (
+            tag: parseStr(k['tag']) ?? '',
+            label: parseStr(k['label']) ?? '',
+            icon: parseStr(k['icon']) ?? '',
+            count: _int(k['count']),
+          )
       ],
     );
   }
@@ -343,9 +356,17 @@ class MatchSummary {
     required this.unlocked,
     this.identity,
     this.eventTitle,
+    this.rating,
+    this.kudos = const [],
   });
   final String status;
   final bool played;
+
+  /// My match rating (1–10, 6.0 = par), once completed.
+  final double? rating;
+
+  /// Kudos teammates gave me on this game.
+  final List<({String tag, String label, String icon, int count})> kudos;
   final List<
           ({String name, int score, String? result, bool mine, String? color})>
       teams;
@@ -392,6 +413,18 @@ class MatchSummary {
               weeklyStreak: _int(id['weeklyStreak'])
             ),
       eventTitle: parseStr(_map(j['event'])['title']),
+      rating: j['rating'] is Map && (j['rating'] as Map)['rating'] is num
+          ? ((j['rating'] as Map)['rating'] as num).toDouble()
+          : null,
+      kudos: [
+        for (final k in _list(j['kudos']))
+          (
+            tag: parseStr(k['tag']) ?? '',
+            label: parseStr(k['label']) ?? '',
+            icon: parseStr(k['icon']) ?? '',
+            count: _int(k['count']),
+          )
+      ],
     );
   }
 }

@@ -521,6 +521,23 @@ class ProfileProgressionSection extends ConsumerWidget {
                     ),
                   ]),
                 ),
+            // Kudos from teammates — the work no stat records.
+            if (d.kudos.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('Kudos from teammates',
+                  style: TextStyle(color: p.muted, fontSize: 11.5, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              Wrap(spacing: 6, runSpacing: 6, children: [
+                for (final k in d.kudos)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                        color: p.orange.withAlpha(38), borderRadius: BorderRadius.circular(99)),
+                    child: Text('${k.icon} ${k.label}${k.count > 1 ? ' ×${k.count}' : ''}',
+                        style: TextStyle(color: p.ink, fontSize: 11.5, fontWeight: FontWeight.w700)),
+                  ),
+              ]),
+            ],
           ]),
         ),
       ]),

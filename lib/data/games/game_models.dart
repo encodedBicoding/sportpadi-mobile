@@ -149,6 +149,11 @@ class ActivityDef {
     this.requiresRelated = false,
     this.assistAllowed = false,
     this.scorePoints,
+    this.scoreTeam,
+    this.tally = const {},
+    this.assistTally = const {},
+    this.side,
+    this.weight,
   });
   final String type;
   final String label;
@@ -156,6 +161,23 @@ class ActivityDef {
   final bool requiresRelated;
   final bool assistAllowed;
   final int? scorePoints;
+
+  /// Who a scoring activity scores for: "own" (a goal) or "opponent" (an own goal).
+  final String? scoreTeam;
+
+  /// What one of these adds to the player's stat line (e.g. {goals: 1}).
+  final Map<String, int> tally;
+
+  /// What the assisting player gets (e.g. {assists: 1}).
+  final Map<String, int> assistTally;
+
+  /// attack | defence | support | discipline — groups the scoring pad.
+  final String? side;
+
+  /// Match-rating points; negative for a mistake (own goal, missed penalty).
+  final double? weight;
+
+  bool get isMistake => (weight ?? 0) < 0 || side == 'discipline';
 
   factory ActivityDef.fromJson(Map<String, dynamic> j) {
     final assist = j['assist'];
@@ -167,9 +189,21 @@ class ActivityDef {
       requiresRelated: j['requiresRelated'] == true,
       assistAllowed: assist is Map && assist['allowed'] == true,
       scorePoints: score is Map ? parseInt(score['points']) : null,
+      scoreTeam: score is Map ? parseStr(score['team']) : null,
+      tally: _intMap(j['tally']),
+      assistTally: assist is Map ? _intMap(assist['tally']) : const {},
+      side: parseStr(j['side']),
+      weight: j['weight'] is num ? (j['weight'] as num).toDouble() : null,
     );
   }
 }
+
+Map<String, int> _intMap(dynamic v) => v is Map
+    ? {
+        for (final e in v.entries)
+          if (e.value is num) '${e.key}': (e.value as num).toInt(),
+      }
+    : const {};
 
 /// Per-phase clock accounting.
 class PhaseTimer {
@@ -519,11 +553,15 @@ class GameDetail {
     this.basketball,
     this.volleyball,
     this.clockBy,
+    this.ratings = const {},
   });
 
   final String id;
   final String status;
   final List<GameTeam> teams;
+
+  /// Match ratings once completed (1–10, 6.0 = par): playerId → rating.
+  final Map<String, double> ratings;
 
   /// Who last touched the match clock, from any device (phone, web, watch):
   /// attributes.clock.lastBy — for "Paused · by Ade".
@@ -715,6 +753,13 @@ class GameDetail {
       clockBy: attrs is Map && attrs['clock'] is Map
           ? ClockBy.fromJson((attrs['clock'] as Map)['lastBy'])
           : null,
+      ratings: j['ratings'] is Map
+          ? {
+              for (final e in (j['ratings'] as Map).entries)
+                if (e.value is Map && (e.value as Map)['rating'] is num)
+                  '${e.key}': ((e.value as Map)['rating'] as num).toDouble(),
+            }
+          : const {},
     );
   }
 }
