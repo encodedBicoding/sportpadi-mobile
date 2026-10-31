@@ -8,7 +8,10 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
+import 'package:sportpadi_mobile/data/payments/payment_models.dart' show formatMoney;
+import 'package:sportpadi_mobile/data/payments/payments_repository.dart';
 import 'package:sportpadi_mobile/data/tickets/tickets_repository.dart';
+import 'package:sportpadi_mobile/features/payments/checkout_flow.dart';
 import 'package:sportpadi_mobile/data/wards/ward_models.dart';
 import 'package:sportpadi_mobile/data/wards/wards_repository.dart';
 import 'package:sportpadi_mobile/features/wards/ward_pickers.dart';
@@ -282,12 +285,32 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         if (done && mounted) context.pop();
         return;
       case 'payment_required':
-        await _showSheet(
+        // Pay right here (the web scanner does): the outstanding mandatory
+        // ticket(s) in one hosted checkout, then scan again. Same flow the
+        // multi-person sheet already gives guardians for a ward.
+        final outstanding = res['outstanding'] is List
+            ? [
+                for (final t in res['outstanding'] as List)
+                  if (t is Map && t['id'] is String) t['id'] as String
+              ]
+            : const <String>[];
+        final totalMinor = (res['totalMinor'] as num?)?.toInt() ?? 0;
+        final currency = res['currency'] as String? ?? '';
+        final exponent = (res['currencyExponent'] as num?)?.toInt() ?? 2;
+        final amount = outstanding.isNotEmpty && currency.isNotEmpty && totalMinor > 0
+            ? formatMoney(totalMinor, currency, exponent)
+            : null;
+        final pay = await _showSheet(
           tone: _Tone.warning,
           head: 'Payment required',
-          body: res['reason'] as String? ??
-              'This event needs a paid ticket before check-in. Open the event page to pay, then scan again.',
+          body: outstanding.isNotEmpty
+              ? 'To check in to $title, settle ${outstanding.length == 1 ? 'the ticket' : '${outstanding.length} tickets'}'
+                  '${amount != null ? ' ($amount)' : ''}. After paying, scan the QR again.'
+              : (res['reason'] as String? ??
+                  'This event needs a paid ticket before check-in. Open the event page to pay, then scan again.'),
+          actionLabel: outstanding.isNotEmpty ? 'Pay${amount != null ? ' $amount' : ' now'}' : null,
         );
+        if (pay && mounted && outstanding.isNotEmpty) await _payOutstanding(outstanding);
         return;
       case 'rsvp_required':
         // "RSVP required" event and this player holds no spot: the event
@@ -359,6 +382,39 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
   /// The result sheet (web: ScanResultModal). Returns true when the primary
   /// action ("Done" or [actionLabel]) was tapped.
+  /// The hosted checkout for the ticket(s) that blocked my check-in, then
+  /// verify and say whether to scan again.
+  Future<void> _payOutstanding(List<String> ticketIds) async {
+    try {
+      final repo = ref.read(paymentsRepositoryProvider);
+      final co = ticketIds.length == 1
+          ? await repo.startCheckout(ticketIds.first)
+          : await repo.startBulkCheckout(ticketIds);
+      if (!mounted) return;
+      final done = await runHostedCheckout(context, co.url);
+      if (!mounted) return;
+      final status = done && co.code.isNotEmpty ? await repo.verify(co.code) : 'cancelled';
+      if (!mounted) return;
+      ref.invalidate(myTicketsProvider);
+      ref.invalidate(eventDetailProvider);
+      if (status == 'paid') {
+        HapticFeedback.mediumImpact();
+        await _showSheet(
+          tone: _Tone.success,
+          head: 'Paid',
+          body: 'Your ticket is paid. Scan the QR again to check in.',
+        );
+      } else if (status != 'cancelled') {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Payment $status — try scanning again in a moment.')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      }
+    }
+  }
+
   Future<bool> _showSheet({
     required _Tone tone,
     required String head,
