@@ -253,6 +253,20 @@ class ProgressScreen extends ConsumerWidget {
                         progress: d.progress,
                         xp: d.xp,
                         nextLevelXp: d.nextLevelXp),
+                    // Level · XP · last 7 days, spelled out.
+                    if (ref.watch(yourWeekProvider).valueOrNull case final YourWeek w) ...[
+                      const SizedBox(height: 12),
+                      PointsStrip(week: w),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () => context.push('/xp'),
+                          icon: const Icon(Icons.history_rounded, size: 18),
+                          label: const Text('How I earned it'),
+                        ),
+                      ),
+                    ],
                   ]),
             ),
             const SizedBox(height: 12),
