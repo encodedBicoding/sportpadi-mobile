@@ -1202,7 +1202,7 @@ class _HomeHeader extends ConsumerWidget {
             // XP, plainly: the total and how it moved this week.
             if (week != null) ...[
               const SizedBox(height: 4),
-              PointsLine(week: week, onTap: () => context.push('/progress')),
+              PointsLine(week: week, onTap: () => context.push('/xp')),
             ],
           ]),
         ),

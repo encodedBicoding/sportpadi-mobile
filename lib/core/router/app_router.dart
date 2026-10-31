@@ -40,6 +40,7 @@ import 'package:sportpadi_mobile/features/players/player_tournament_stats_screen
 import 'package:sportpadi_mobile/features/groups/group_events_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_leaderboard_screen.dart';
 import 'package:sportpadi_mobile/features/progression/progression_screens.dart';
+import 'package:sportpadi_mobile/features/progression/xp_history_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_people_screen.dart';
 import 'package:sportpadi_mobile/features/groups/membership_requests_screen.dart';
 import 'package:sportpadi_mobile/features/payments/outstanding_tickets_screen.dart';
@@ -242,6 +243,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       // Gamification (docs/gamification/phase-2.md).
       GoRoute(path: '/progress', builder: (_, __) => const ProgressScreen()),
+      // XP history — where the Home header's XP line lands.
+      GoRoute(path: '/xp', builder: (_, __) => const XpHistoryScreen()),
       GoRoute(
           path: '/leaderboards',
           builder: (_, __) => const LeaderboardsScreen()),

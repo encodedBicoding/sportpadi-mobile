@@ -517,6 +517,14 @@ class ProgressionRepository {
   Future<MyProgression?> me() async =>
       MyProgression.fromJson(await _get('/api/mobile/progression/me'));
 
+  /// XP history: newest first, paged by [cursor] (the last row's occurredAt).
+  Future<XpLedgerPage> ledger({String? cursor, int limit = 40}) async {
+    final j = await _get('/api/mobile/progression/ledger',
+        query: {'limit': limit, if (cursor != null) 'cursor': cursor},
+        fallback: 'Could not load your XP history.');
+    return XpLedgerPage.fromJson(j);
+  }
+
   Future<void> setPublic(bool value) async {
     try {
       await _dio.post('/api/mobile/progression/me', data: {'public': value});
@@ -632,3 +640,47 @@ final strengthsProvider = FutureProvider.autoDispose
         ref
             .watch(progressionRepositoryProvider)
             .strengths(k.userId, k.categoryId));
+
+
+/// One line of the XP history: what, how much, when, and where it came from.
+class XpLedgerItem {
+  const XpLedgerItem({
+    required this.id,
+    required this.kind,
+    required this.xp,
+    required this.reason,
+    required this.occurredAt,
+    this.eventId,
+    this.eventTitle,
+    this.eventSlug,
+    this.gameId,
+    this.groupName,
+  });
+  final String id, kind, reason;
+  final int xp;
+  final DateTime occurredAt;
+  final String? eventId, eventTitle, eventSlug, gameId, groupName;
+
+  factory XpLedgerItem.fromJson(Map<String, dynamic> j) => XpLedgerItem(
+        id: parseStr(j['id']) ?? '',
+        kind: parseStr(j['kind']) ?? '',
+        xp: _int(j['xp']),
+        reason: parseStr(j['reason']) ?? '',
+        occurredAt: parseDate(j['occurredAt']) ?? DateTime.now(),
+        eventId: parseStr(j['eventId']),
+        eventTitle: parseStr(j['eventTitle']),
+        eventSlug: parseStr(j['eventSlug']),
+        gameId: parseStr(j['gameId']),
+        groupName: parseStr(j['groupName']),
+      );
+}
+
+class XpLedgerPage {
+  const XpLedgerPage({required this.items, this.nextCursor});
+  final List<XpLedgerItem> items;
+  final String? nextCursor;
+  factory XpLedgerPage.fromJson(Map<String, dynamic> j) => XpLedgerPage(
+        items: [for (final i in _list(j['items'])) XpLedgerItem.fromJson(i)],
+        nextCursor: parseStr(j['nextCursor']),
+      );
+}
