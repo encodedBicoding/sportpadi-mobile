@@ -221,6 +221,9 @@ class YourWeekCard extends ConsumerWidget {
             const SizedBox(width: 8),
             StreakPill(streak: d.streak, compact: true),
           ]),
+          // Level, XP and the week's movement — spelled out.
+          const SizedBox(height: 12),
+          PointsStrip(week: d),
           if (q != null && q.quests.isNotEmpty) ...[
             const SizedBox(height: 12),
             LayoutBuilder(builder: (context, c) {
@@ -666,5 +669,110 @@ class GroupReputationCard extends ConsumerWidget {
         ]),
       ),
     );
+  }
+}
+
+
+String _fmtPts(int n) {
+  final s = n.abs().toString();
+  final b = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) b.write(',');
+    b.write(s[i]);
+  }
+  return '${n < 0 ? '-' : ''}$b';
+}
+
+/// "1,240 XP · ▲ 85 in 7d" — the Home header's one-liner. Tapping opens
+/// Progress. Loss shows in amber ("▼ 12"), nothing moved shows "no change".
+class PointsLine extends StatelessWidget {
+  const PointsLine({super.key, required this.week, this.onTap});
+  final YourWeek week;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final r = week.recent;
+    final net = r?.net ?? 0;
+    final Color tone = net > 0 ? p.accentDeep : net < 0 ? p.amber : p.muted;
+    final move = r == null
+        ? ''
+        : net == 0
+            ? 'no change in ${r.days}d'
+            : '${net > 0 ? '▲' : '▼'} ${_fmtPts(net.abs())} in ${r.days}d';
+    return Semantics(
+      button: onTap != null,
+      label: '${_fmtPts(week.xp)} XP, level ${week.level}. $move',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.stars_rounded, size: 14, color: p.orange),
+            const SizedBox(width: 4),
+            Text('${_fmtPts(week.xp)} XP',
+                style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
+            if (move.isNotEmpty) ...[
+              Text(' · ', style: TextStyle(color: p.muted, fontSize: 12.5)),
+              Text(move, style: TextStyle(color: tone, fontSize: 12.5, fontWeight: FontWeight.w700)),
+            ],
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+/// Three tiles — Level · XP · Last N days (gained / lost) — for the
+/// "Your week" card and the Progress screen.
+class PointsStrip extends StatelessWidget {
+  const PointsStrip({super.key, required this.week});
+  final YourWeek week;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final r = week.recent;
+    Widget tile(String label, String value, {Color? valueColor, String? sub}) => Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(color: p.surface2, borderRadius: BorderRadius.circular(12)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label.toUpperCase(),
+                  style: TextStyle(color: p.muted, fontSize: 9.5, letterSpacing: 0.8, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 2),
+              Text(value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: valueColor ?? p.ink,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      fontFeatures: const [FontFeature.tabularFigures()])),
+              if (sub != null)
+                Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.muted, fontSize: 10.5)),
+            ]),
+          ),
+        );
+    final toNext = week.nextLevelXp == null ? null : week.nextLevelXp! - week.xp;
+    final net = r?.net ?? 0;
+    return Row(children: [
+      tile('Level', '${week.level} · ${week.title}', sub: toNext == null ? 'Top level' : '${_fmtPts(toNext)} to next'),
+      const SizedBox(width: 8),
+      tile('XP', _fmtPts(week.xp), sub: 'all time'),
+      const SizedBox(width: 8),
+      tile(
+        'Last ${r?.days ?? 7} days',
+        r == null ? '—' : net == 0 ? '0' : '${net > 0 ? '+' : ''}${_fmtPts(net)}',
+        valueColor: net > 0 ? p.accentDeep : net < 0 ? p.amber : null,
+        sub: r == null || (r.gained == 0 && r.lost == 0)
+            ? 'nothing yet'
+            : r.lost == 0
+                ? 'earned ${_fmtPts(r.gained)} XP'
+                : '+${_fmtPts(r.gained)} / ${_fmtPts(r.lost)} XP',
+      ),
+    ]);
   }
 }

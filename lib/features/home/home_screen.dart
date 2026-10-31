@@ -31,7 +31,7 @@ import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart'
 import 'package:sportpadi_mobile/data/notifications/notifications_repository.dart'
     show unreadCountProvider;
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart'
-    show yourWeekProvider;
+    show yourWeekProvider, YourWeek;
 import 'package:sportpadi_mobile/features/shell/home_shell.dart'
     show homeTabIndexProvider;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
@@ -1199,6 +1199,11 @@ class _HomeHeader extends ConsumerWidget {
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.5,
                     height: 1.15)),
+            // XP, plainly: the total and how it moved this week.
+            if (week != null) ...[
+              const SizedBox(height: 4),
+              PointsLine(week: week, onTap: () => context.push('/progress')),
+            ],
           ]),
         ),
         // Inbox (announcements) sits beside the bell with its own badge.
@@ -1292,10 +1297,11 @@ class _HomeHeader extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(9),
                             border: Border.all(color: p.bg, width: 2),
                           ),
-                          child: Text('${week.level}',
+                          // "Lv 7", not a bare number nobody can place.
+                          child: Text('Lv ${week.level}',
                               style: const TextStyle(
                                   color: Color(0xFF1A0E04),
-                                  fontSize: 10,
+                                  fontSize: 9.5,
                                   fontWeight: FontWeight.w800,
                                   height: 1)),
                         ),

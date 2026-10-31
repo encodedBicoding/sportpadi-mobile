@@ -123,8 +123,12 @@ class YourWeek {
       required this.progress,
       required this.streak,
       this.quests,
-      this.next});
+      this.next,
+      this.recent});
   final int level, xp;
+
+  /// Points gained / lost / net over the last [RecentXp.days] days.
+  final RecentXp? recent;
   final int? nextLevelXp;
   final String title;
   final double progress;
@@ -144,6 +148,7 @@ class YourWeek {
       streak: Streak.fromJson(_map(j['streak'])),
       quests:
           j['quests'] is Map ? WeekQuests.fromJson(_map(j['quests'])) : null,
+      recent: j['recent'] is Map ? RecentXp.fromJson(_map(j['recent'])) : null,
       next: n == null
           ? null
           : NextUnlock(
@@ -153,6 +158,14 @@ class YourWeek {
               target: _int(n['target'])),
     );
   }
+}
+
+/// Points gained and lost over the last [days] days.
+class RecentXp {
+  const RecentXp({required this.days, required this.gained, required this.lost, required this.net});
+  final int days, gained, lost, net;
+  factory RecentXp.fromJson(Map<String, dynamic> j) => RecentXp(
+      days: _int(j['days']), gained: _int(j['gained']), lost: _int(j['lost']), net: _int(j['net']));
 }
 
 class Achievement {
