@@ -31,7 +31,7 @@ import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart'
 import 'package:sportpadi_mobile/data/notifications/notifications_repository.dart'
     show unreadCountProvider;
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart'
-    show yourWeekProvider, YourWeek;
+    show yourWeekProvider;
 import 'package:sportpadi_mobile/features/shell/home_shell.dart'
     show homeTabIndexProvider;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';

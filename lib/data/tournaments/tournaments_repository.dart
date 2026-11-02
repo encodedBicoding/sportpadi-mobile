@@ -405,6 +405,78 @@ class TournamentsRepository {
     }
   }
 
+  // ── Team registration (open registration link) ─────────────────────────
+
+  /// What /register/<token> shows: the tournament, places left, fee, grade
+  /// rule, rules, the teams in, and (signed in) my teams with whether each
+  /// can enter. 404 → the link isn't valid.
+  Future<Map<String, dynamic>> registrationPage(String token) async {
+    try {
+      final res = await _dio.get('/api/mobile/register/$token');
+      if (res.data is! Map) {
+        throw ApiException("This registration link isn't valid.", statusCode: 404);
+      }
+      return Map<String, dynamic>.from(res.data as Map);
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load the registration page.');
+    }
+  }
+
+  /// Enter a team. Returns the server's status: approved | pending |
+  /// payment_required (then call [payRegistration]).
+  Future<Map<String, dynamic>> register(String token, String teamId) async {
+    try {
+      final res = await _dio.post('/api/mobile/register/$token',
+          data: {'action': 'register', 'teamId': teamId});
+      return res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {};
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not register the team.');
+    }
+  }
+
+  /// Hosted-checkout URL for a registration's entry fee.
+  Future<String> payRegistration(String token, String tournamentTeamId) async {
+    try {
+      final res = await _dio.post('/api/mobile/register/$token',
+          data: {'action': 'pay', 'tournamentTeamId': tournamentTeamId});
+      final url = res.data is Map ? res.data['url'] : null;
+      if (url is! String || url.isEmpty) {
+        throw ApiException('Could not start the payment.');
+      }
+      return url;
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not start the payment.');
+    }
+  }
+
+  /// Pull a registration that hasn't been approved yet (a paid one is
+  /// refunded in full).
+  Future<bool> withdrawRegistration(String token, String tournamentTeamId) async {
+    try {
+      final res = await _dio.post('/api/mobile/register/$token',
+          data: {'action': 'withdraw', 'tournamentTeamId': tournamentTeamId});
+      return res.data is Map && res.data['refunded'] == true;
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not withdraw the registration.');
+    }
+  }
+
+  /// Organiser: who can enter — open/close the link, approval, grade rule,
+  /// deadline, rules; `rotateLink` mints a fresh link. Returns {registration, link}.
+  Future<Map<String, dynamic>> setRegistration(
+          String eventId, Map<String, dynamic> patch) =>
+      act(eventId, {'action': 'setRegistration', ...patch});
+
+  /// Organiser: approve or turn down a team that registered through the
+  /// link. A rejected paid team is refunded in full.
+  Future<Map<String, dynamic>> respondRegistration(
+          String eventId, String tournamentTeamId, bool approve) =>
+      act(eventId, {
+        'action': 'respondRegistration',
+        'tournamentTeamId': tournamentTeamId,
+        'decision': approve ? 'approve' : 'reject',
+      });
+
   Future<Map<String, dynamic>> get(String eventId) async {
     try {
       final res = await _dio.get('/api/mobile/tournaments/$eventId');
@@ -484,3 +556,8 @@ final myCallsProvider = FutureProvider.autoDispose<MyCalls>(
 final teamTournamentsProvider = FutureProvider.autoDispose
     .family<List<TeamTournamentEntry>, String>((ref, teamId) =>
         ref.watch(tournamentsRepositoryProvider).forTeam(teamId));
+
+/// The registration link's page, by token.
+final registrationPageProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>, String>((ref, token) =>
+        ref.watch(tournamentsRepositoryProvider).registrationPage(token));

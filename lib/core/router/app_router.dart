@@ -26,6 +26,7 @@ import 'package:sportpadi_mobile/features/inbox/conversation_screen.dart';
 import 'package:sportpadi_mobile/features/inbox/inbox_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_messages_screen.dart';
 import 'package:sportpadi_mobile/features/join/join_team_screen.dart';
+import 'package:sportpadi_mobile/features/register/register_team_screen.dart';
 import 'package:sportpadi_mobile/features/manage/create_event_screen.dart';
 import 'package:sportpadi_mobile/features/manage/create_team_screen.dart';
 import 'package:sportpadi_mobile/features/manage/create_tournament_screen.dart';
@@ -173,6 +174,9 @@ final routerProvider = Provider<GoRouter>((ref) {
             loc == '/forgot-password' ||
             loc == '/home' ||
             loc.startsWith('/join') ||
+            // A tournament's registration link reads signed out, like a
+            // join link — it asks for an account only to register.
+            loc.startsWith('/register/') ||
             loc.startsWith('/claim/')) {
           return null;
         }
@@ -595,6 +599,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/join-team/:teamId',
         builder: (_, s) => JoinTeamScreen(teamId: s.pathParameters['teamId']!),
+      ),
+      // A tournament's registration link (the "call for teams" post).
+      GoRoute(
+        path: '/register/:token',
+        builder: (_, s) => RegisterTeamScreen(token: s.pathParameters['token']!),
       ),
     ],
   );

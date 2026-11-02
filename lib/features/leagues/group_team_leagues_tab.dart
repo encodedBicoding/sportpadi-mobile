@@ -155,8 +155,11 @@ class _LeagueHub extends ConsumerWidget {
     final feeDue = fee != null && (fee.str('status') == 'due' || fee.str('status') == 'pending');
     final feeLabel = fee == null ? '' : spotMoney(fee.i('amountMinor'), fee.str('currency'), fee.i('exponent', 2));
 
+    // Registered through the league's link: nothing to answer — the
+    // organiser confirms (or turns the team down, with a note).
+    final selfRegistered = e.raw['selfRegistered'] == true;
     final (String badge, Color? tone) = switch (phase) {
-      'invited' => ('Invited', p.orangeInk),
+      'invited' => (selfRegistered ? 'Awaiting approval' : 'Invited', p.orangeInk),
       'upcoming' => ('Starting soon', p.ink),
       'active' => ('Playing', p.greenText),
       _ => (champion ? 'Champions' : 'Finished', champion ? p.greenText : null),
@@ -192,8 +195,15 @@ class _LeagueHub extends ConsumerWidget {
             ),
         ]),
 
+        if (phase == 'invited' && selfRegistered) ...[
+          const SizedBox(height: 10),
+          Text(
+              '$teamName registered for this league and is waiting for ${organiser ?? 'the organiser'} to confirm its place'
+              '${feeDue ? ' — pay the entry fee from the registration link to complete it' : ''}.',
+              style: TextStyle(color: p.muted, fontSize: 12.5)),
+        ],
         // Invited: answer it
-        if (phase == 'invited') ...[
+        if (phase == 'invited' && !selfRegistered) ...[
           const SizedBox(height: 10),
           Text(
               'Accepting enters $teamName and registers its current players '

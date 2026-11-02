@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
+import 'package:sportpadi_mobile/features/documents/team_documents.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart' show deviceTimezone;
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
@@ -35,7 +36,17 @@ class _CreateTournamentScreenState
   final _search = TextEditingController();
   final _fee = TextEditingController();
   final _venue = TextEditingController();
+  final _rules = TextEditingController();
   String? _categoryId;
+
+  /// Who can enter (web twin: RegistrationPanel GradePicker/ApprovalPicker).
+  /// Open registration mints a link any team registers through — the
+  /// "call for teams" post; the grade rule applies to invited teams too.
+  bool _openReg = false;
+  String _approval = 'auto';
+  String _grade = 'any';
+  int? _maxAge;
+  List<String> _docIds = const [];
   DateTime? _date;
   late String _mode = widget.initialMode == 'multi_team' ? 'multi_team' : 'friendly';
   String? _hostTeamId;
@@ -68,6 +79,7 @@ class _CreateTournamentScreenState
     _search.dispose();
     _fee.dispose();
     _venue.dispose();
+    _rules.dispose();
     super.dispose();
   }
 
@@ -188,6 +200,13 @@ class _CreateTournamentScreenState
         if (_isMulti && _venue.text.trim().isNotEmpty) 'locationName': _venue.text.trim(),
         'timezone': deviceTimezone,
         'feeMinor': _feeMinor(),
+        if (_mode == 'multi_team')
+          'registration': _openReg ? 'open' : 'invite_only',
+        'grade': _grade,
+        'maxAge': _grade == 'kids' ? _maxAge : null,
+        'approval': _docIds.isNotEmpty ? 'manual' : _approval,
+        if (_rules.text.trim().isNotEmpty) 'rules': _rules.text.trim(),
+        if (_openReg && _mode == 'multi_team') 'documentTypeIds': _docIds,
       });
       ref.invalidate(groupTournamentsProvider(widget.groupId));
       final eventId = res['eventId'];
@@ -526,6 +545,125 @@ class _CreateTournamentScreenState
                 ]),
           ),
 
+          // ── Who can enter ─────────────────────────────────────────────
+          const SizedBox(height: 14),
+          GlassCard(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Eyebrow('Who can enter'),
+                  const SizedBox(height: 10),
+                  const _FieldLabel('Open to'),
+                  const SizedBox(height: 6),
+                  Wrap(spacing: 8, runSpacing: 8, children: [
+                    for (final g in const [
+                      ('any', 'Any team'),
+                      ('adults', 'Adults'),
+                      ('kids', 'Kids'),
+                    ])
+                      _Chip(
+                          label: g.$2,
+                          selected: _grade == g.$1,
+                          onTap: () => setState(() => _grade = g.$1)),
+                  ]),
+                  if (_grade == 'kids') ...[
+                    const SizedBox(height: 8),
+                    Wrap(spacing: 8, runSpacing: 8, children: [
+                      for (final a in const [null, 12, 16, 18])
+                        _Chip(
+                            label: a == null ? 'Any age' : 'U$a',
+                            selected: _maxAge == a,
+                            onTap: () => setState(() => _maxAge = a)),
+                    ]),
+                  ],
+                  const SizedBox(height: 4),
+                  Text(
+                      _grade == 'any'
+                          ? 'Adults and kids teams can enter.'
+                          : _grade == 'adults'
+                              ? "Kids teams can't enter or be invited."
+                              : 'Only kids teams'
+                                  '${_maxAge != null ? ' up to under-$_maxAge' : ''}'
+                                  ' can enter or be invited.',
+                      style: TextStyle(color: p.muted, fontSize: 11.5)),
+                  if (_mode == 'multi_team') ...[
+                    const SizedBox(height: 12),
+                    const _FieldLabel('How do teams get in?'),
+                    const SizedBox(height: 6),
+                    Row(children: [
+                      Expanded(
+                        child: _ChoiceCard(
+                          title: 'Teams I invite',
+                          sub: 'Only teams you add take part.',
+                          selected: !_openReg,
+                          onTap: () => setState(() => _openReg = false),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _ChoiceCard(
+                          title: 'Open registration',
+                          sub: 'Share a link — any team can register, pay and join.',
+                          selected: _openReg,
+                          onTap: () => setState(() => _openReg = true),
+                        ),
+                      ),
+                    ]),
+                    if (_openReg) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                          'You get a registration link and a ready-to-paste '
+                          '"call for teams" post. You can still invite teams you know.',
+                          style: TextStyle(color: p.muted, fontSize: 11.5)),
+                      const SizedBox(height: 12),
+                      DocumentPicker(
+                          categoryId: _categoryId,
+                          value: _docIds,
+                          onChanged: (v) => setState(() => _docIds = v)),
+                      if (_docIds.isNotEmpty) const SizedBox(height: 12),
+                      const _FieldLabel('Approval'),
+                      const SizedBox(height: 6),
+                      if (_docIds.isNotEmpty)
+                        Text('Required documents mean you review each team, so approval is manual.',
+                            style: TextStyle(color: p.muted, fontSize: 11.5))
+                      else
+                        Row(children: [
+                          Expanded(
+                            child: _ChoiceCard(
+                              title: 'Automatic',
+                              sub: 'A team is in as soon as it registers (and pays).',
+                              selected: _approval == 'auto',
+                              onTap: () => setState(() => _approval = 'auto'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _ChoiceCard(
+                              title: 'I approve each team',
+                              sub: 'Turning a paid team down refunds it in full.',
+                              selected: _approval == 'manual',
+                              onTap: () => setState(() => _approval = 'manual'),
+                            ),
+                          ),
+                        ]),
+                      const SizedBox(height: 12),
+                      const _FieldLabel('Rules & what teams should know (optional)'),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _rules,
+                        maxLines: 4,
+                        minLines: 2,
+                        maxLength: 2000,
+                        decoration: const InputDecoration(
+                          hintText: 'Format, squad size, kit, kick-off, refund policy…',
+                          counterText: '',
+                        ),
+                      ),
+                    ],
+                  ],
+                ]),
+          ),
+
           // ── Entry fee ─────────────────────────────────────────────────
           if (wallet != null && wallet.active) ...[
             const SizedBox(height: 14),
@@ -546,11 +684,14 @@ class _CreateTournamentScreenState
                     ),
                     const SizedBox(height: 6),
                     Text(
-                        _pickMany
-                            ? 'Optional. Each invited team pays this into your '
-                                'group wallet when they accept.'
-                            : 'Optional. The invited team pays this into your '
-                                'group wallet when they accept.',
+                        _openReg
+                            ? 'Optional. Each team pays this into your group '
+                                'wallet when it registers.'
+                            : _pickMany
+                                ? 'Optional. Each invited team pays this into your '
+                                    'group wallet when they accept.'
+                                : 'Optional. The invited team pays this into your '
+                                    'group wallet when they accept.',
                         style: TextStyle(color: p.muted, fontSize: 11.5)),
                   ]),
             ),
@@ -579,10 +720,12 @@ class _CreateTournamentScreenState
           SpButton(
             label: _busy
                 ? 'Creating…'
-                : _pickMany
-                    ? 'Create & invite ${_guests.length} '
-                        '${_guests.length == 1 ? 'team' : 'teams'}'
-                    : 'Create & invite',
+                : _openReg && _mode == 'multi_team'
+                    ? 'Create & get link'
+                    : _pickMany
+                        ? 'Create & invite ${_guests.length} '
+                            '${_guests.length == 1 ? 'team' : 'teams'}'
+                        : 'Create & invite',
             icon: Icons.arrow_forward_rounded,
             expand: true,
             tone: SpButtonTone.brand,
