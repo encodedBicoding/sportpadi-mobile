@@ -588,8 +588,11 @@ class FramedAvatar extends ConsumerWidget {
 
 /// A group's own level, streak, numbers and achievements (group page).
 class GroupReputationCard extends ConsumerWidget {
-  const GroupReputationCard({super.key, required this.groupId});
+  const GroupReputationCard({super.key, required this.groupId, this.isAdmin = false});
   final String groupId;
+
+  /// Admins also get the way into missions (web parity).
+  final bool isAdmin;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -665,6 +668,19 @@ class GroupReputationCard extends ConsumerWidget {
                       style: TextStyle(color: p.ink, fontSize: 11)),
                 ),
             ]),
+          ],
+          if (isAdmin) ...[
+            const SizedBox(height: 10),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => context.push('/groups/$groupId/missions'),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.rocket_launch_outlined, size: 14, color: p.greenText),
+                const SizedBox(width: 6),
+                Text('Missions for your players',
+                    style: TextStyle(color: p.greenText, fontSize: 12, fontWeight: FontWeight.w700)),
+              ]),
+            ),
           ],
         ]),
       ),

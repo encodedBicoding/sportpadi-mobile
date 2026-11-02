@@ -221,6 +221,10 @@ Future<void> showGroupAnnouncementsSheet(
   bool withInbox = false,
   bool canMute = true,
   String? teamId,
+  /// The header's one-line explainer (the Talk section's); the group's name otherwise.
+  String? subtitle,
+  /// Something urgent is waiting: the header's icon goes red.
+  bool urgent = false,
 }) =>
     showSpSheet<void>(
       context,
@@ -230,6 +234,8 @@ Future<void> showGroupAnnouncementsSheet(
         withInbox: withInbox,
         canMute: canMute,
         teamId: teamId,
+        subtitle: subtitle,
+        urgent: urgent,
       ),
     );
 
@@ -240,12 +246,16 @@ class _GroupAnnouncementsSheet extends ConsumerStatefulWidget {
     required this.withInbox,
     required this.canMute,
     this.teamId,
+    this.subtitle,
+    this.urgent = false,
   });
   final String groupId;
   final String groupName;
   final bool withInbox;
   final bool canMute;
   final String? teamId;
+  final String? subtitle;
+  final bool urgent;
 
   @override
   ConsumerState<_GroupAnnouncementsSheet> createState() =>
@@ -302,15 +312,17 @@ class _GroupAnnouncementsSheetState
       children: [
         SpSheetHeader(
           icon: Icons.campaign_outlined,
+          iconBg: widget.urgent ? p.liveTint : p.orangeTint,
+          iconFg: widget.urgent ? p.danger : p.orangeInk,
           title: 'Announcements',
-          subtitle: widget.groupName,
+          subtitle: widget.subtitle ?? widget.groupName,
         ),
         if (widget.withInbox) ...[
           SpListCard(children: [
             ListTile(
               leading: const Icon(Icons.inbox_outlined),
               title: const Text('Open Inbox'),
-              subtitle: Text('All your announcements, from every group',
+              subtitle: Text("Every announcement you've received",
                   style: TextStyle(color: p.muted, fontSize: 12)),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => _go('/inbox'),

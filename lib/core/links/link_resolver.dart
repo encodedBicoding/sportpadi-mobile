@@ -150,7 +150,7 @@ LinkTarget resolveLink(String? url) {
   // Everything the app has a dedicated group sub-screen for, one to one
   // (`requests`: the owner's membership requests — "X asked to join").
   m = RegExp(
-    r'^/groups/([^/]+)/(tickets|leaderboard|members|followers|events|outstanding|invites|plan|fines|requests)/?$',
+    r'^/groups/([^/]+)/(tickets|leaderboard|members|followers|events|outstanding|invites|plan|fines|requests|missions)/?$',
   ).firstMatch(path);
   if (m != null) return _route('/groups/${m[1]}/${m[2]}');
 

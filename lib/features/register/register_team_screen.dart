@@ -531,7 +531,7 @@ class _EnteredRow extends StatelessWidget {
             Icon(Icons.check_circle_rounded, color: p.greenText, size: 22)
           else if (unpaid)
             FilledButton(
-              style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
+              style: FilledButton.styleFrom(visualDensity: VisualDensity.compact, minimumSize: const Size(0, 36), padding: const EdgeInsets.symmetric(horizontal: 14), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
               onPressed: () => onPay(id),
               child: Text('Pay ${feeLabel ?? ''}'),
             )

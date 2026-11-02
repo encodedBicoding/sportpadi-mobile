@@ -246,7 +246,7 @@ class _RegistrationCardState extends ConsumerState<RegistrationCard> {
           Text('Awaiting payment', style: TextStyle(color: p.muted, fontSize: 11, fontWeight: FontWeight.w600))
         else
           FilledButton.icon(
-            style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
+            style: FilledButton.styleFrom(visualDensity: VisualDensity.compact, minimumSize: const Size(0, 36), padding: const EdgeInsets.symmetric(horizontal: 14), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
             onPressed: _busy ? null : () => _review(r),
             icon: Icon((r['documents'] as List? ?? const []).isNotEmpty ? Icons.description_outlined : Icons.check_rounded, size: 16),
             label: const Text('Review'),

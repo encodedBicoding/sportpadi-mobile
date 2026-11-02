@@ -27,6 +27,7 @@ import 'package:sportpadi_mobile/features/inbox/inbox_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_messages_screen.dart';
 import 'package:sportpadi_mobile/features/join/join_team_screen.dart';
 import 'package:sportpadi_mobile/features/register/register_team_screen.dart';
+import 'package:sportpadi_mobile/features/groups/group_missions_screen.dart';
 import 'package:sportpadi_mobile/features/manage/create_event_screen.dart';
 import 'package:sportpadi_mobile/features/manage/create_team_screen.dart';
 import 'package:sportpadi_mobile/features/manage/create_tournament_screen.dart';
@@ -500,6 +501,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/groups/:id/wallet',
         builder: (_, st) =>
             GroupWalletScreen(groupId: st.pathParameters['id']!),
+      ),
+      // Admins: missions for the group's players (web: /groups/:id/missions).
+      GoRoute(
+        path: '/groups/:id/missions',
+        builder: (_, st) => GroupMissionsScreen(groupId: st.pathParameters['id']!),
       ),
       GoRoute(
         path: '/groups/:id/wallet/withdrawals',

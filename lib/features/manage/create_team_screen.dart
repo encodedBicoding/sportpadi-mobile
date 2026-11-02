@@ -218,13 +218,13 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
               ),
             ]),
             const SizedBox(height: 10),
-            _KitPicker(
+            KitPicker(
               label: 'Primary',
               value: _kitPrimary,
               onChanged: (v) => setState(() => _kitPrimary = v),
             ),
             const SizedBox(height: 8),
-            _KitPicker(
+            KitPicker(
               label: 'Secondary',
               value: _kitSecondary,
               onChanged: (v) => setState(() => _kitSecondary = v),
@@ -275,9 +275,10 @@ class _Label extends StatelessWidget {
           fontWeight: FontWeight.w700));
 }
 
-/// One row of kit swatches with the chosen one ringed.
-class _KitPicker extends StatelessWidget {
-  const _KitPicker({
+/// One row of kit swatches with the chosen one ringed (create + edit team).
+class KitPicker extends StatelessWidget {
+  const KitPicker({
+    super.key,
     required this.label,
     required this.value,
     required this.onChanged,
