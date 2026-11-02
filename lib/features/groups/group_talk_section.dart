@@ -82,23 +82,30 @@ class GroupTalkSection extends ConsumerWidget {
         ? _groupTiles(context, ref)
         : _teamTiles(context, ref, team);
     if (tiles.isEmpty) return const SizedBox.shrink();
+    // Web's phone layout: an eyebrow, then one card of rows divided by
+    // hairlines — icon tile (with the unread badge), name, status, chevron.
+    final p = context.palette;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(top: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SpSectionTitle('Talk'),
-          const SizedBox(height: 10),
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (var i = 0; i < tiles.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 8),
-                  Expanded(child: tiles[i]),
-                ],
-              ],
+          const Padding(padding: EdgeInsets.only(left: 4, bottom: 8), child: Eyebrow('Talk')),
+          Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: p.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: dark ? Border.all(color: p.line) : null,
+              boxShadow: cardShadow(context),
             ),
+            child: Column(children: [
+              for (var i = 0; i < tiles.length; i++) ...[
+                if (i > 0) Divider(height: 1, thickness: 1, color: p.surface2),
+                tiles[i],
+              ],
+            ]),
           ),
         ],
       ),
@@ -125,13 +132,11 @@ class GroupTalkSection extends ConsumerWidget {
     // Members always; staff for the composer; anyone else only while
     // something here was sent to them.
     final showAnnouncements = isMember || composer != null || unseen > 0;
-    final announcementsStatus = urgent
-        ? '${counts.urgent} urgent'
-        : unseen > 0
-            ? '$unseen new'
-            : muted
-                ? 'Muted'
-                : 'News from the group';
+    final announcementsStatus = unseen > 0
+        ? (urgent ? '$unseen new · ${counts.urgent} urgent' : '$unseen new')
+        : muted
+            ? 'Muted · urgent ones still come through'
+            : 'News from the group';
 
     // ── Messages: what I can start here (start-options).
     final o = ref.watch(messageStartOptionsProvider(groupId)).valueOrNull;
@@ -150,16 +155,27 @@ class GroupTalkSection extends ConsumerWidget {
     final String messagesStatus;
     if (counts.messages > 0) {
       messagesStatus = '${counts.messages} unread';
-    } else if (selfBlocked && staff == null) {
-      messagesStatus = 'Your guardian contacts admins for you';
     } else if (staff != null) {
-      messagesStatus = staff.isAdmin ? 'Conversations' : 'Message a member';
+      messagesStatus = staff.isAdmin ? 'Conversations' : 'Message your players';
+    } else if (selfBlocked && !canContactAdmins && !hasCoaches) {
+      messagesStatus = 'Through your guardian';
     } else if (canContactAdmins && hasCoaches) {
       messagesStatus = 'Talk to the admins or coaches';
-    } else if (hasCoaches) {
-      messagesStatus = 'Message your coach';
+    } else if (canContactAdmins) {
+      messagesStatus = 'Talk to the admins';
     } else {
-      messagesStatus = 'Contact the admins';
+      messagesStatus = 'Message a coach';
+    }
+    // The Messages sheet's one-line explainer (web's msgExplainer).
+    final String messagesExplainer;
+    if (staff != null && staff.isAdmin) {
+      messagesExplainer = 'Every conversation in the group, and reports.';
+    } else if (staff != null) {
+      messagesExplainer = 'Message the players on your teams.';
+    } else if (selfBlocked && !canContactAdmins && !hasCoaches) {
+      messagesExplainer = 'Messages with admins and coaches go through your guardian.';
+    } else {
+      messagesExplainer = "Message the group's admins — every admin sees it and can answer.";
     }
 
     // ── Discussions: only for people in a space here (members, or a
@@ -174,15 +190,16 @@ class GroupTalkSection extends ConsumerWidget {
         : null;
     final topTitle = hot == null || hot.isEmpty ? '' : hot.first.title.trim();
     final discussionsStatus = counts.discussions > 0
-        ? '${counts.discussions} new'
+        ? '${counts.discussions} with new activity'
         : topTitle.isEmpty
-            ? 'Start a discussion'
+            ? (hot == null ? 'Questions, issues and ideas' : 'Start a discussion')
             : topTitle;
 
     return <Widget>[
       if (showAnnouncements)
         _TalkTile(
           icon: Icons.campaign_outlined,
+          tint: _Tint.orange,
           label: 'Announcements',
           status: announcementsStatus,
           badge: unseen,
@@ -193,6 +210,8 @@ class GroupTalkSection extends ConsumerWidget {
               context,
               groupId: groupId,
               groupName: groupName,
+              subtitle: "News and updates from the group's admins and coaches.",
+              urgent: urgent,
               withInbox: true,
               canMute: isMember,
             ),
@@ -201,14 +220,16 @@ class GroupTalkSection extends ConsumerWidget {
       if (showMessages)
         _TalkTile(
           icon: Icons.chat_bubble_outline_rounded,
+          tint: _Tint.green,
           label: 'Messages',
           status: messagesStatus,
           badge: counts.messages,
-          onTap: () => _afterSheet(context, _openMessages(context)),
+          onTap: () => _afterSheet(context, _openMessages(context, messagesExplainer)),
         ),
       if (showDiscussions)
         _TalkTile(
           icon: Icons.forum_outlined,
+          tint: _Tint.green,
           label: 'Discussions',
           status: discussionsStatus,
           badge: counts.discussions,
@@ -239,13 +260,9 @@ class GroupTalkSection extends ConsumerWidget {
     final unseen = counts.announcements;
     final urgent = counts.urgent > 0;
     final showAnnouncements = inTeam || canAnnounce || unseen > 0;
-    final announcementsStatus = urgent
-        ? '${counts.urgent} urgent'
-        : unseen > 0
-            ? '$unseen new'
-            : canAnnounce
-                ? 'Announce to the team'
-                : 'News for the team';
+    final announcementsStatus = unseen > 0
+        ? (urgent ? '$unseen new · ${counts.urgent} urgent' : '$unseen new')
+        : 'News from the team';
 
     // ── Messages: this team's coaches; its players for staff.
     final o = ref.watch(messageStartOptionsProvider(groupId)).valueOrNull;
@@ -255,17 +272,24 @@ class GroupTalkSection extends ConsumerWidget {
     // "Message coach".
     final selfBlocked = inTeam && o?.selfBlockedReason != null;
     final showMessages = coaches.isNotEmpty || toPlayers || selfBlocked;
+    final coachNames = {for (final c in coaches) c.name}.toList();
     final String messagesStatus;
     if (counts.messages > 0) {
       messagesStatus = '${counts.messages} unread';
-    } else if (selfBlocked && !toPlayers) {
-      messagesStatus = 'Your guardian contacts admins for you';
-    } else if (coaches.length == 1) {
-      messagesStatus = 'Message ${coaches.first.name}';
-    } else if (coaches.isNotEmpty) {
-      messagesStatus = 'Message your coach';
+    } else if (toPlayers) {
+      messagesStatus = 'Message a player on this team';
+    } else if (coachNames.isNotEmpty) {
+      messagesStatus = 'Message ${coachNames.join(', ')}';
     } else {
-      messagesStatus = 'Message a player';
+      messagesStatus = 'Through your guardian';
+    }
+    final String messagesExplainer;
+    if (toPlayers) {
+      messagesExplainer = 'Message a player on this team — for a ward, their guardians.';
+    } else if (selfBlocked && coaches.isEmpty) {
+      messagesExplainer = 'Messages with admins and coaches go through your guardian.';
+    } else {
+      messagesExplainer = "Message this team's coaches. The group's admins can see every conversation.";
     }
 
     // ── Discussions: the team's, for the people in its space.
@@ -277,15 +301,16 @@ class GroupTalkSection extends ConsumerWidget {
         : null;
     final topTitle = hot == null || hot.isEmpty ? '' : hot.first.title.trim();
     final discussionsStatus = counts.discussions > 0
-        ? '${counts.discussions} new'
+        ? '${counts.discussions} with new activity'
         : topTitle.isEmpty
-            ? 'Start a discussion'
+            ? (hot == null ? 'Questions, issues and ideas' : 'Start a discussion')
             : topTitle;
 
     return <Widget>[
       if (showAnnouncements)
         _TalkTile(
           icon: Icons.campaign_outlined,
+          tint: _Tint.orange,
           label: 'Announcements',
           status: announcementsStatus,
           badge: unseen,
@@ -296,6 +321,8 @@ class GroupTalkSection extends ConsumerWidget {
               context,
               groupId: groupId,
               groupName: groupName,
+              subtitle: "News and updates from the team's coaches and the group's admins.",
+              urgent: urgent,
               withInbox: true,
               canMute: false,
               teamId: teamId,
@@ -305,14 +332,16 @@ class GroupTalkSection extends ConsumerWidget {
       if (showMessages)
         _TalkTile(
           icon: Icons.chat_bubble_outline_rounded,
+          tint: _Tint.green,
           label: 'Messages',
           status: messagesStatus,
           badge: counts.messages,
-          onTap: () => _afterSheet(context, _openTeamMessages(context, teamId)),
+          onTap: () => _afterSheet(context, _openTeamMessages(context, teamId, messagesExplainer)),
         ),
       if (inTeam)
         _TalkTile(
           icon: Icons.forum_outlined,
+          tint: _Tint.green,
           label: 'Discussions',
           status: discussionsStatus,
           badge: counts.discussions,
@@ -339,7 +368,7 @@ class GroupTalkSection extends ConsumerWidget {
 
   /// Contact the admins (for me / each ward), Message coach, staff's
   /// Message a member and admins' Conversations.
-  Future<void> _openMessages(BuildContext context) {
+  Future<void> _openMessages(BuildContext context, String explainer) {
     return showSpSheet<void>(
       context,
       builder: (sheetContext) => Column(
@@ -348,7 +377,7 @@ class GroupTalkSection extends ConsumerWidget {
           SpSheetHeader(
             icon: Icons.chat_bubble_outline_rounded,
             title: 'Messages',
-            subtitle: groupName,
+            subtitle: explainer,
           ),
           GroupMessagesSection(
             groupId: groupId,
@@ -362,7 +391,7 @@ class GroupTalkSection extends ConsumerWidget {
 
   /// Team page: Message coach (this team's) and, for its staff, Message a
   /// player.
-  Future<void> _openTeamMessages(BuildContext context, String teamId) {
+  Future<void> _openTeamMessages(BuildContext context, String teamId, String explainer) {
     return showSpSheet<void>(
       context,
       builder: (sheetContext) => Column(
@@ -371,7 +400,7 @@ class GroupTalkSection extends ConsumerWidget {
           SpSheetHeader(
             icon: Icons.chat_bubble_outline_rounded,
             title: 'Messages',
-            subtitle: groupName,
+            subtitle: explainer,
           ),
           TeamMessagesSection(
             groupId: groupId,
@@ -398,7 +427,9 @@ class GroupTalkSection extends ConsumerWidget {
             SpSheetHeader(
               icon: Icons.forum_outlined,
               title: 'Discussions',
-              subtitle: groupName,
+              subtitle: team == null
+                  ? 'Questions, issues and ideas for the group and your teams — out in the open.'
+                  : 'Questions, issues and ideas for the team — out in the open.',
               trailing: TextButton(
                 onPressed: () =>
                     launch((c) => c.push('/groups/$groupId/discussions$q')),
@@ -429,11 +460,16 @@ class GroupTalkSection extends ConsumerWidget {
   }
 }
 
-/// One Talk tile: icon (with a notification badge, top-right), name and a
-/// status line. Red — tile and badge — when something urgent is waiting.
+enum _Tint { orange, green }
+
+/// One Talk row (web's TalkTile on phones): icon tile with the unread badge,
+/// name, one status line, chevron. Announcements are orange (red, with a
+/// rail down the left, when something urgent is waiting); Messages and
+/// Discussions green. The status reads bold when something is new.
 class _TalkTile extends StatelessWidget {
   const _TalkTile({
     required this.icon,
+    required this.tint,
     required this.label,
     required this.status,
     required this.onTap,
@@ -441,6 +477,7 @@ class _TalkTile extends StatelessWidget {
     this.urgent = false,
   });
   final IconData icon;
+  final _Tint tint;
   final String label;
   final String status;
   final VoidCallback onTap;
@@ -450,71 +487,58 @@ class _TalkTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final tone = urgent ? p.danger : p.greenText;
-    final fill = urgent ? p.liveTint : p.surface;
+    final Color fg = urgent ? p.danger : tint == _Tint.orange ? p.orangeInk : p.greenText;
+    final Color bg = urgent ? p.liveTint : tint == _Tint.orange ? p.orangeTint : p.accentTint;
     return Semantics(
       button: true,
       label: badge > 0 ? '$label, $badge new. $status' : '$label. $status',
       excludeSemantics: true,
       onTap: onTap,
       child: Material(
-        color: fill,
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
           onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              border: dark ? Border.all(color: p.line) : null,
-              boxShadow: urgent ? null : cardShadow(context),
-            ),
-            child: Column(children: [
-              Stack(clipBehavior: Clip.none, children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: urgent ? p.surface : tone.withAlpha(30),
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: Icon(icon, size: 20, color: tone),
-                ),
-                if (badge > 0)
-                  Positioned(
-                    top: -5,
-                    right: -8,
-                    child: _Badge(
-                      count: badge,
-                      color: urgent ? p.danger : p.accentDeep,
-                      border: fill,
+          child: Stack(children: [
+            if (urgent)
+              Positioned(left: 0, top: 0, bottom: 0, child: Container(width: 3, color: p.danger)),
+            Padding(
+              padding: EdgeInsets.fromLTRB(urgent ? 16 : 14, 12, 12, 12),
+              child: Row(children: [
+                Stack(clipBehavior: Clip.none, children: [
+                  SpIconTile(icon, bg: bg, fg: fg, size: 40, iconSize: 20),
+                  if (badge > 0)
+                    Positioned(
+                      top: -6,
+                      right: -6,
+                      child: _Badge(
+                        count: badge,
+                        color: urgent ? p.danger : p.orange,
+                        border: p.surface,
+                      ),
                     ),
-                  ),
+                ]),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w700, height: 1.2)),
+                    const SizedBox(height: 2),
+                    Text(status,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: urgent ? p.danger : badge > 0 ? p.ink : p.muted,
+                            fontSize: 11.5,
+                            fontWeight: urgent || badge > 0 ? FontWeight.w600 : FontWeight.w400)),
+                  ]),
+                ),
+                const SizedBox(width: 8),
+                Icon(Icons.chevron_right_rounded, size: 18, color: p.muted),
               ]),
-              const SizedBox(height: 8),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(label,
-                    maxLines: 1,
-                    style: TextStyle(
-                        color: p.ink,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700)),
-              ),
-              const SizedBox(height: 2),
-              Text(status,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: urgent ? p.danger : p.muted,
-                      fontSize: 11.5,
-                      height: 1.3)),
-            ]),
-          ),
+            ),
+          ]),
         ),
       ),
     );
@@ -532,9 +556,9 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 20,
-      constraints: const BoxConstraints(minWidth: 20),
-      padding: const EdgeInsets.symmetric(horizontal: 5),
+      height: 18,
+      constraints: const BoxConstraints(minWidth: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: color,

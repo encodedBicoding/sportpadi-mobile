@@ -561,6 +561,32 @@ class ProgressionRepository {
     }
   }
 
+  /// Group admins: the group's missions, with the presets and rule kinds
+  /// the New-mission form offers (web: /groups/:id/missions).
+  Future<GroupMissions> groupMissions(String groupId) async {
+    try {
+      return GroupMissions.fromJson(await _get('/api/mobile/progression/group/$groupId', query: {'view': 'missions'}));
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not load missions.');
+    }
+  }
+
+  Future<void> createMission(String groupId, Map<String, dynamic> body) async {
+    try {
+      await _dio.post('/api/mobile/progression/group/$groupId', data: {'action': 'createMission', ...body});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not publish the mission.');
+    }
+  }
+
+  Future<void> archiveMission(String groupId, String key) async {
+    try {
+      await _dio.post('/api/mobile/progression/group/$groupId', data: {'action': 'archiveMission', 'key': key});
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not end the mission.');
+    }
+  }
+
   Future<void> startSeason(String groupId, String name) async {
     try {
       await _dio.post('/api/mobile/progression/group/$groupId',
@@ -682,5 +708,62 @@ class XpLedgerPage {
   factory XpLedgerPage.fromJson(Map<String, dynamic> j) => XpLedgerPage(
         items: [for (final i in _list(j['items'])) XpLedgerItem.fromJson(i)],
         nextCursor: parseStr(j['nextCursor']),
+      );
+}
+
+final groupMissionsProvider = FutureProvider.autoDispose
+    .family<GroupMissions, String>((ref, groupId) => ref.watch(progressionRepositoryProvider).groupMissions(groupId));
+
+/* ─── Group missions (admins) ─── */
+
+class MissionPreset {
+  const MissionPreset({required this.key, required this.title, required this.description, required this.ruleKind, required this.target, required this.xp});
+  final String key;
+  final String title;
+  final String description;
+  final String ruleKind;
+  final int target;
+  final int xp;
+  factory MissionPreset.fromJson(Map<String, dynamic> j) => MissionPreset(
+        key: j['key'] as String,
+        title: j['title'] as String? ?? '',
+        description: j['description'] as String? ?? '',
+        ruleKind: j['ruleKind'] as String? ?? 'checkin',
+        target: (j['target'] as num?)?.toInt() ?? 1,
+        xp: (j['xp'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class GroupMission {
+  const GroupMission({required this.key, required this.title, required this.ruleKind, required this.target, required this.xp, required this.live, required this.completions, this.endsAt});
+  final String key;
+  final String title;
+  final String ruleKind;
+  final int target;
+  final int xp;
+  final bool live;
+  final int completions;
+  final DateTime? endsAt;
+  factory GroupMission.fromJson(Map<String, dynamic> j) => GroupMission(
+        key: j['key'] as String,
+        title: j['title'] as String? ?? 'Mission',
+        ruleKind: j['ruleKind'] as String? ?? '',
+        target: (j['target'] as num?)?.toInt() ?? 1,
+        xp: (j['xp'] as num?)?.toInt() ?? 0,
+        live: j['live'] == true,
+        completions: (j['completions'] as num?)?.toInt() ?? 0,
+        endsAt: j['endsAt'] is String ? DateTime.tryParse(j['endsAt'] as String) : null,
+      );
+}
+
+class GroupMissions {
+  const GroupMissions({required this.presets, required this.kinds, required this.missions});
+  final List<MissionPreset> presets;
+  final List<String> kinds;
+  final List<GroupMission> missions;
+  factory GroupMissions.fromJson(Map<String, dynamic> j) => GroupMissions(
+        presets: [for (final e in (j['presets'] as List? ?? const [])) if (e is Map) MissionPreset.fromJson(Map<String, dynamic>.from(e))],
+        kinds: [for (final e in (j['kinds'] as List? ?? const [])) e.toString()],
+        missions: [for (final e in (j['missions'] as List? ?? const [])) if (e is Map) GroupMission.fromJson(Map<String, dynamic>.from(e))],
       );
 }

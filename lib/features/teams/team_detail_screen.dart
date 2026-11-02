@@ -39,6 +39,7 @@ import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/features/documents/team_documents.dart';
+import 'package:sportpadi_mobile/features/teams/edit_team_sheet.dart';
 
 /// Team page — mirrors the web team page: header + record, then scrollable
 /// tabs: Players (starters/subs, invite, add), Formation, Coaches, Games.
@@ -234,13 +235,6 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
                         ),
                       ),
                     ),
-                  // "Create team event" for the group's admins and this
-                  // team's coaches.
-                  if (t.groupId != null)
-                    SliverToBoxAdapter(
-                      child:
-                          _TeamEventButton(groupId: t.groupId!, teamId: teamId),
-                    ),
                   // Tab chips pin while the header scrolls away.
                   SliverPersistentHeader(
                     pinned: true,
@@ -328,9 +322,12 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
 /// when the event-audiences endpoint lists the team (admins: every team;
 /// coaches: the teams they coach); hidden for everyone else.
 class _TeamEventButton extends ConsumerWidget {
-  const _TeamEventButton({required this.groupId, required this.teamId});
+  const _TeamEventButton({required this.groupId, required this.teamId, this.primary = false});
   final String groupId;
   final String teamId;
+
+  /// A coach (no Add player / Invite link above it): the ink button.
+  final bool primary;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -340,24 +337,24 @@ class _TeamEventButton extends ConsumerWidget {
     }
     final p = context.palette;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 6, 20, 4),
+      padding: EdgeInsets.only(top: primary ? 14 : 8),
       child: Material(
-        color: p.surface,
-        shape: StadiumBorder(side: BorderSide(color: p.line)),
+        color: primary ? p.ink : p.surface2,
+        shape: const StadiumBorder(),
         child: InkWell(
           customBorder: const StadiumBorder(),
           onTap: () => context.push('/groups/$groupId/new-event?team=$teamId'),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 12),
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.event_available_outlined, size: 17, color: p.ink),
+              Icon(Icons.event_available_outlined, size: 17, color: primary ? p.bg : p.ink),
               const SizedBox(width: 6),
               Flexible(
                 child: Text('Create team event',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        color: p.ink,
+                        color: primary ? p.bg : p.ink,
                         fontSize: 14,
                         fontWeight: FontWeight.w700)),
               ),
@@ -422,18 +419,39 @@ class _Header extends ConsumerWidget {
       padding: const EdgeInsets.all(18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: p.surface, width: 3),
+          Stack(clipBehavior: Clip.none, children: [
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: p.surface, width: 3),
+              ),
+              child: Crest(
+                  logoUrl: t.logoUrl,
+                  kitPrimary: t.kitPrimary,
+                  kitSecondary: t.kitSecondary,
+                  label: t.name,
+                  size: 64),
             ),
-            child: Crest(
-                logoUrl: t.logoUrl,
-                kitPrimary: t.kitPrimary,
-                kitSecondary: t.kitSecondary,
-                label: t.name,
-                size: 64),
-          ),
+            // Managers: change the team logo (web's camera button on the crest).
+            if (t.canManage)
+              Positioned(
+                right: -2,
+                bottom: -2,
+                child: Material(
+                  color: p.accentDeep,
+                  shape: CircleBorder(side: BorderSide(color: p.surface, width: 2)),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => pickAndSaveTeamLogo(context, ref, t),
+                    child: const SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: Icon(Icons.photo_camera_rounded, size: 14, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
+          ]),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -533,6 +551,12 @@ class _Header extends ConsumerWidget {
             ),
           ]),
         ],
+        // "Create team event" — for the group's admins and this team's
+        // coaches — right under Add player / Invite link, as on the web
+        // (a quiet button for managers, the primary one for a coach).
+        if (t.groupId != null)
+          _TeamEventButton(
+              groupId: t.groupId!, teamId: teamId, primary: !t.canManage),
       ]),
     );
 
@@ -571,6 +595,12 @@ class _Header extends ConsumerWidget {
             // Group admins: delete the team (confirmed; the server refuses
             // while it's in an unfinished tournament).
             if (t.canManage) ...[
+              SpRoundButton(
+                icon: Icons.edit_outlined,
+                tooltip: 'Edit team',
+                onTap: () => showEditTeamSheet(context, t),
+              ),
+              const SizedBox(width: 8),
               SpRoundButton(
                 icon: Icons.delete_outline_rounded,
                 tooltip: 'Delete team',

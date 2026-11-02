@@ -167,7 +167,7 @@ class _TeamDocumentRowState extends ConsumerState<TeamDocumentRow> {
           const SizedBox(width: 6),
           if (t.wantsFile)
             FilledButton.tonal(
-              style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
+              style: FilledButton.styleFrom(visualDensity: VisualDensity.compact, minimumSize: const Size(0, 36), padding: const EdgeInsets.symmetric(horizontal: 14), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
               onPressed: _busy ? null : _chooseSource,
               child: _busy
                   ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))

@@ -563,10 +563,27 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
         ]),
         if (desc.isNotEmpty) ...[
           const SizedBox(height: 12),
-          Text(desc,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: p.muted, fontSize: 13.5, height: 1.5)),
+          // Admins tap the description to change it (web: Edit group).
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: canManage ? () => _editDescription(context, ref, desc) : null,
+            child: Text(desc,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: p.muted, fontSize: 13.5, height: 1.5)),
+          ),
+        ] else if (canManage) ...[
+          // Web: "+ Add a description…" under the name.
+          const SizedBox(height: 12),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _editDescription(context, ref, ''),
+            child: Text('+ Add a description…',
+                style: TextStyle(
+                    color: p.greenText,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600)),
+          ),
         ],
         const SizedBox(height: 14),
         Row(children: [
@@ -699,17 +716,19 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
                 groupId: groupId,
                 padding: const EdgeInsets.only(top: 4, bottom: 18),
               ),
-              _OverviewSection(groupId: groupId, canManage: canManage),
-              // Talk: Announcements (Open Inbox, Announce / Sent, mute),
-              // Messages (Contact the admins / Message coach / Message a
-              // member / Conversations) and Discussions as three tiles with
-              // notification badges, each opening a sheet — so they don't
-              // crowd the page. Messages and Discussions are for members.
+              // Talk — before the overview tiles (Leaderboard, Wallet, Plan…),
+              // as on the web: Announcements (Open Inbox, Announce / Sent,
+              // mute), Messages (Contact the admins / Message coach / Message
+              // a member / Conversations) and Discussions as one card of rows
+              // with notification badges, each opening a sheet. Messages and
+              // Discussions are for members.
               GroupTalkSection(
                 groupId: groupId,
                 groupName: name,
                 isMember: group.isMember || canManage,
               ),
+              const SizedBox(height: 18),
+              _OverviewSection(groupId: groupId, canManage: canManage),
               // Owner-console ad spot (anchor "group.detail_bottom"); nothing unless set.
               AdAnchor(
                   anchor: 'group.detail_bottom',
@@ -719,7 +738,7 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
                     'group': {'id': groupId}
                   }),
               // Group reputation (gamification): level, streak, achievements.
-              GroupReputationCard(groupId: groupId),
+              GroupReputationCard(groupId: groupId, isAdmin: canManage),
             ],
           ),
         ),
@@ -729,6 +748,72 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
 
   void _openInvite(BuildContext context) =>
       showGroupInviteSheet(context, groupId);
+
+  /// Add or change the group's description without the whole Edit group
+  /// form (web: the "+ Add a description…" link opens Edit group).
+  Future<void> _editDescription(
+      BuildContext context, WidgetRef ref, String current) async {
+    final ctl = TextEditingController(text: current);
+    final saved = await showSpSheet<String>(
+      context,
+      builder: (ctx) {
+        final p = ctx.palette;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SpSheetHeader(
+              title: current.isEmpty ? 'Add a description' : 'Edit description',
+              subtitle: 'What the group is about — shown on its page and in Discover.',
+              icon: Icons.notes_rounded,
+            ),
+            TextField(
+              controller: ctl,
+              autofocus: true,
+              minLines: 3,
+              maxLines: 6,
+              maxLength: 600,
+              decoration: const InputDecoration(
+                  hintText: 'e.g. Sunday 7-a-side at Burnaby Lake, all levels welcome.'),
+            ),
+            const SizedBox(height: 8),
+            Row(children: [
+              if (current.isNotEmpty)
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(''),
+                  style: TextButton.styleFrom(foregroundColor: p.muted),
+                  child: const Text('Remove'),
+                ),
+              const Spacer(),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 44),
+                    padding: const EdgeInsets.symmetric(horizontal: 22)),
+                onPressed: () => Navigator.of(ctx).pop(ctl.text.trim()),
+                child: const Text('Save'),
+              ),
+            ]),
+          ],
+        );
+      },
+    );
+    ctl.dispose();
+    if (saved == null || saved == current || !context.mounted) return;
+    try {
+      await ref
+          .read(groupsRepositoryProvider)
+          .updateGroup(groupId, {'description': saved.isEmpty ? null : saved});
+      ref.invalidate(groupProvider(groupId));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(saved.isEmpty ? 'Description removed' : 'Description saved')));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      }
+    }
+  }
 }
 
 /// The admin's "Invite people" sheet (group page and the Members page).

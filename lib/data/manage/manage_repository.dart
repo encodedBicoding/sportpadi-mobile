@@ -44,6 +44,17 @@ class ManageRepository {
     }
   }
 
+  /// Edit a group team (web twin: EditTeamDialog / the crest's camera
+  /// button): any of name, username, grade, ageLimit, kitPrimary,
+  /// kitSecondary, logoUrl, description, homeVenue.
+  Future<void> updateTeam(String teamId, Map<String, dynamic> patch) async {
+    try {
+      await _dio.patch('/api/mobile/teams/$teamId', data: patch);
+    } catch (e) {
+      throw apiError(e, fallback: 'Could not update the team.');
+    }
+  }
+
   /// Delete a group team (group admins). The server refuses while the team is
   /// entered in a tournament that hasn't finished — its message says which.
   Future<void> deleteTeam(String teamId) async {
