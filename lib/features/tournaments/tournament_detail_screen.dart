@@ -22,6 +22,7 @@ import 'package:sportpadi_mobile/features/payments/checkout_flow.dart';
 import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/features/tournaments/live_scores_sync.dart';
 import 'package:sportpadi_mobile/features/tournaments/officiant_picker.dart';
+import 'package:sportpadi_mobile/features/tournaments/registration_card.dart';
 import 'package:sportpadi_mobile/features/venues/venues.dart';
 import 'package:sportpadi_mobile/shared/format/event_time.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
@@ -263,6 +264,23 @@ class TournamentDetailScreen extends ConsumerWidget {
                                   category: category,
                                 ),
                               ] else ...[
+                                // Who can enter: the registration link, its
+                                // settings and teams awaiting a decision
+                                // (organiser only, multi-team).
+                                if (canManage && m['registration'] is Map) ...[
+                                  const SizedBox(height: 14),
+                                  RegistrationCard(
+                                    eventId: eventId,
+                                    reg: Map<String, dynamic>.from(m['registration'] as Map),
+                                    rows: [
+                                      for (final raw in (m['teams'] is List ? m['teams'] as List : const []))
+                                        if (raw is Map) Map<String, dynamic>.from(raw),
+                                    ],
+                                    maxTeams: maxTeams,
+                                    ended: ended,
+                                    categoryId: category != null ? parseStr(category['id']) : null,
+                                  ),
+                                ],
                                 const SizedBox(height: 14),
                                 _TeamsCard(
                                   eventId: eventId,
@@ -1924,7 +1942,7 @@ class _TeamsCard extends ConsumerWidget {
             role == 'host'
                 ? SpBadge('Host', tone: p.orange)
                 : SpBadge(
-                    status,
+                    status == 'pending' && r['source'] == 'registration' ? 'awaiting approval' : status,
                     tone: status == 'approved'
                         ? p.accent
                         : status == 'rejected'

@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/leagues/leagues_repository.dart';
 import 'package:sportpadi_mobile/features/leagues/league_commercials.dart';
 import 'package:sportpadi_mobile/features/leagues/league_sheets.dart';
+import 'package:sportpadi_mobile/features/tournaments/registration_card.dart';
 import 'package:sportpadi_mobile/features/leagues/league_venues.dart';
 import 'package:sportpadi_mobile/features/leagues/league_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
@@ -631,7 +632,44 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
         .toList();
     final otherDivs =
         d.list('divisions').where((x) => x.s('id') != id).toList();
+    final reg = d.o('registration');
     return [
+      // Who can enter: the registration link, its settings (documents,
+      // approval, grade) and teams that registered and await a decision.
+      if (reg != null) ...[
+        RegistrationCard(
+          eventId: id,
+          isLeague: true,
+          categoryId: l.s('categoryId'),
+          reg: reg.raw,
+          rows: [
+            for (final t in d.list('teams'))
+              {
+                'id': t.s('id'),
+                'status': t.s('status') == 'declined' ? 'rejected' : t.s('status'),
+                'source': t.s('source') ?? 'invite',
+                'feeStatus': t.o('fee')?.s('status') == 'due' ? 'pending' : (t.o('fee')?.s('status') ?? 'none'),
+                'feeMinor': t.o('fee')?.iOrNull('amountMinor'),
+                'feeCurrency': t.o('fee')?.s('currency'),
+                'feeCurrencyExponent': t.o('fee')?.iOrNull('exponent'),
+                'createdAt': t.s('createdAt'),
+                'review': t.o('review')?.raw,
+                'documents': t.raw['documents'],
+                'team': {
+                  'id': t.s('teamId'),
+                  'name': t.s('name'),
+                  'username': t.s('slug'),
+                  'logoUrl': t.s('logoUrl'),
+                  'kitPrimary': t.s('kitPrimary'),
+                  'groupName': t.s('groupName'),
+                },
+              },
+          ],
+          maxTeams: l.i('teamsMax', 20),
+          ended: status == 'completed' || status == 'cancelled',
+        ),
+        const SizedBox(height: 14),
+      ],
       if (status != 'completed' && status != 'cancelled')
         SpButton(
             label: 'Invite teams',
@@ -670,7 +708,12 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                             style: TextStyle(color: p.muted, fontSize: 11.5)),
                       ]),
                 ),
-                SpBadge(t.s('status') == 'approved' ? 'In' : 'Invited',
+                SpBadge(
+                    t.s('status') == 'approved'
+                        ? 'In'
+                        : t.s('source') == 'registration'
+                            ? 'Awaiting approval'
+                            : 'Invited',
                     tone: t.s('status') == 'approved'
                         ? p.greenText
                         : p.orangeInk),

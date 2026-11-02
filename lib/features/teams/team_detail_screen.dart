@@ -38,6 +38,7 @@ import 'package:sportpadi_mobile/shared/widgets/team_tile.dart'
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
+import 'package:sportpadi_mobile/features/documents/team_documents.dart';
 
 /// Team page — mirrors the web team page: header + record, then scrollable
 /// tabs: Players (starters/subs, invite, add), Formation, Coaches, Games.
@@ -200,6 +201,8 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
                 if (hasLeagues) (4, 'Leagues'),
                 (2, 'Coaches'),
                 (3, 'Games'),
+                // Documents tournaments / leagues may require; kept once here.
+                if (t.canManage) (5, 'Documents'),
               ];
               return RefreshIndicator(
                 onRefresh: _pullRefresh,
@@ -292,6 +295,8 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
                         _CoachesTab(team: t)
                       else if (_tab == 4)
                         TeamLeaguesSection(teamId: teamId)
+                      else if (_tab == 5)
+                        TeamDocumentsTab(teamId: teamId, teamName: t.name)
                       else
                         _GamesTab(teamId: teamId, groupId: t.groupId),
                     ])),

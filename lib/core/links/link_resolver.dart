@@ -237,6 +237,9 @@ LinkTarget resolveLink(String? url) {
   if (m != null) return _route('/teams/${m[1]}');
   m = RegExp(r'^/join-team/([^/]+)').firstMatch(path);
   if (m != null) return _route('/join-team/${m[1]}');
+  // Tournament registration link (/register/<token>) — the call-for-teams post.
+  m = RegExp(r'^/register/([A-Za-z0-9]{8,40})/?$').firstMatch(path);
+  if (m != null) return _route('/register/${m[1]}');
 
   // ── Events, games, invites ────────────────────────────────────────────────
   // Bare /events: the event-reminder digest ("3 events coming up"). The web

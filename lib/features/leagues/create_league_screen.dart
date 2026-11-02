@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/leagues/leagues_repository.dart';
+import 'package:sportpadi_mobile/features/documents/team_documents.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
 import 'package:sportpadi_mobile/features/leagues/league_sheets.dart';
 import 'package:sportpadi_mobile/features/leagues/league_widgets.dart';
@@ -38,6 +39,15 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
   bool _awayGoals = false;
   bool _twoLegTies = false;
   bool _busy = false;
+
+  /// Who can enter (leagues/registration.ts): open registration link,
+  /// approval, grade rule, rules, required documents.
+  bool _openReg = false;
+  String _approval = 'auto';
+  String _grade = 'any';
+  int? _maxAge;
+  List<String> _docIds = const [];
+  final _rules = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -239,9 +249,69 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                     ],
                   ]),
                 ),
+                const SizedBox(height: 14),
+                GlassCard(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Eyebrow('Who can enter'),
+                    const SizedBox(height: 10),
+                    Text('Open to', style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 6),
+                    Wrap(spacing: 8, runSpacing: 8, children: [
+                      for (final g in const [('any', 'Any team'), ('adults', 'Adults'), ('kids', 'Kids')])
+                        ChoiceChip(label: Text(g.$2), selected: _grade == g.$1, onSelected: (_) => setState(() => _grade = g.$1)),
+                    ]),
+                    if (_grade == 'kids') ...[
+                      const SizedBox(height: 6),
+                      Wrap(spacing: 8, runSpacing: 8, children: [
+                        for (final a in const [null, 12, 16, 18])
+                          ChoiceChip(label: Text(a == null ? 'Any age' : 'U$a'), selected: _maxAge == a, onSelected: (_) => setState(() => _maxAge = a)),
+                      ]),
+                    ],
+                    const SizedBox(height: 12),
+                    Text('How do teams get in?', style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 6),
+                    Wrap(spacing: 8, children: [
+                      ChoiceChip(label: const Text('Teams I invite'), selected: !_openReg, onSelected: (_) => setState(() => _openReg = false)),
+                      ChoiceChip(label: const Text('Open registration'), selected: _openReg, onSelected: (_) => setState(() => _openReg = true)),
+                    ]),
+                    const SizedBox(height: 4),
+                    Text(
+                        _openReg
+                            ? 'You get a registration link and a ready-to-paste "call for teams" post. You can still invite teams you know.'
+                            : 'Only teams you invite take part.',
+                        style: TextStyle(color: p.muted, fontSize: 11.5)),
+                    if (_openReg) ...[
+                      const SizedBox(height: 12),
+                      DocumentPicker(categoryId: sportId, value: _docIds, onChanged: (v) => setState(() => _docIds = v)),
+                      if (_docIds.isNotEmpty) const SizedBox(height: 12),
+                      Text('Approval', style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 6),
+                      if (_docIds.isNotEmpty)
+                        Text('Required documents mean you review each team, so approval is manual.',
+                            style: TextStyle(color: p.muted, fontSize: 11.5))
+                      else
+                        Wrap(spacing: 8, children: [
+                          ChoiceChip(label: const Text('Automatic'), selected: _approval == 'auto', onSelected: (_) => setState(() => _approval = 'auto')),
+                          ChoiceChip(label: const Text('I approve each team'), selected: _approval == 'manual', onSelected: (_) => setState(() => _approval = 'manual')),
+                        ]),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _rules,
+                        minLines: 2,
+                        maxLines: 4,
+                        maxLength: 2000,
+                        decoration: const InputDecoration(
+                          labelText: 'Rules & what teams should know (optional)',
+                          hintText: 'Match days, squad size, kit, kick-off, refund policy…',
+                          counterText: '',
+                        ),
+                      ),
+                    ],
+                  ]),
+                ),
                 const SizedBox(height: 18),
                 SpButton(
-                  label: 'Create league',
+                  label: _openReg ? 'Create & get link' : 'Create league',
                   expand: true,
                   onTap: canSubmit
                       ? () {
@@ -275,10 +345,17 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
         'seasonEndsOn': _ends == null ? null : ymdOf(_ends!),
         'rosterLockAt': _lock?.toUtc().toIso8601String(),
         if (_twoLegTies) 'awayGoals': _awayGoals,
+        'registration': _openReg ? 'open' : 'invite_only',
+        'grade': _grade,
+        'maxAge': _grade == 'kids' ? _maxAge : null,
+        'approval': _docIds.isNotEmpty ? 'manual' : _approval,
+        if (_rules.text.trim().isNotEmpty) 'rules': _rules.text.trim(),
+        if (_openReg) 'documentTypeIds': _docIds,
       }));
       ref.invalidate(groupLeaguesProvider(widget.groupId));
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('League created — invite teams next')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(_openReg ? 'League created — your registration link is ready' : 'League created — invite teams next')));
       context.pushReplacement('/groups/${widget.groupId}/leagues/${r.str('id')}');
     } catch (e) {
       if (!mounted) return;
