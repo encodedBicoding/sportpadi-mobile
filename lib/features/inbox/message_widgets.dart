@@ -104,7 +104,7 @@ class ConversationRow extends StatelessWidget {
           ].join(' · ')
         : [
             if (c.subtitle.isNotEmpty) c.subtitle,
-            if (c.subtitle != c.groupName) c.groupName,
+            if (c.hasGroup && c.subtitle != c.groupName) c.groupName,
           ].join(' · ');
     return GlassCard(
       onTap: onTap,
@@ -208,7 +208,8 @@ Future<MessageAttachment?> pickMessageImage(
         bytes,
         picked.mimeType ?? 'image/jpeg',
         assetType: 'groupImage',
-        scopeId: groupId,
+        // Profile threads have no group: an unscoped upload.
+        scopeId: groupId.isEmpty ? null : groupId,
       );
   return MessageAttachment(url: url, kind: 'image');
 }

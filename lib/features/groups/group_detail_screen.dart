@@ -170,10 +170,10 @@ class GroupDetailScreen extends ConsumerWidget {
     };
     return Scaffold(
       backgroundColor: p.bg,
-      // Keep the dock in reach here: Groups is lit, and any tab jumps back
-      // to the shell on that tab.
+      // Keep the dock in reach here (nothing lit — Groups isn't a tab any
+      // more); any tab jumps back to the shell on that tab.
       bottomNavigationBar: ShellBottomBar(
-        index: 2,
+        index: -1,
         onSelect: (i) => ShellBottomBar.goToTab(context, ref, i),
       ),
       body: SafeArea(

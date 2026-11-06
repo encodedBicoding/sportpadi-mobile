@@ -8,8 +8,9 @@ import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/features/players/player_record.dart';
+import 'package:sportpadi_mobile/features/players/scout_header.dart';
+import 'package:sportpadi_mobile/features/profile/social_links.dart';
 import 'package:sportpadi_mobile/features/sports/sport_record_card.dart';
-import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
@@ -85,7 +86,7 @@ class PlayerProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
-  int _tab = 0; // 0 groups, 1 tournaments, 2 posts
+  int _tab = 0; // 0 groups, 1 tournaments, 2 highlights
 
   String get userId => widget.userId;
 
@@ -101,6 +102,8 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
     ref.invalidate(playerProfileProvider(userId));
     ref.invalidate(playerRecordsProvider(userId));
     ref.invalidate(identityProvider(userId));
+    ref.invalidate(playerHonoursProvider(userId));
+    ref.invalidate(followStateProvider(userId));
     return settleAll([
       ref.read(playerProfileProvider(userId).future),
       if (shown) ref.read(playerStatsProvider(userId).future),
@@ -125,8 +128,16 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
 
     final categories = listOf(stats?['categories']);
     final tournaments = listOf(stats?['tournaments']);
-    // Every active category comes back; "Sports" counts the ones played.
-    final sportsPlayed = categories.where(hasPlayed).length;
+    // The scouting header (honours, recent matches, average rating) — the
+    // slowest read, so it lands last and never holds the page.
+    final honours = data.hasValue && !restricted
+        ? ref.watch(playerHonoursProvider(userId)).valueOrNull
+        : null;
+    // The sport they play most leads the header; stats never cross sports.
+    final sorted = [...categories]
+      ..sort((a, b) => (parseInt(mapOf(b['overall'])['games']) ?? 0)
+          .compareTo(parseInt(mapOf(a['overall'])['games']) ?? 0));
+    final primary = sorted.isEmpty ? null : sorted.first;
 
     return Scaffold(
       backgroundColor: p.bg,
@@ -152,9 +163,6 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                       _Hero(
                         userId: userId,
                         profile: profile,
-                        sports: 0,
-                        groups: 0,
-                        tournaments: 0,
                         statsLoaded: false,
                         restricted: true,
                         privateProfile: privateProfile,
@@ -178,9 +186,13 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                     _Hero(
                       userId: userId,
                       profile: profile,
-                      sports: sportsPlayed,
-                      groups: groups.length,
-                      tournaments: tournaments.length,
+                      primary: primary,
+                      sports: listOf(m['sports']),
+                      teams: listOf(m['teams']),
+                      playsIn: parseStr(m['playsIn']),
+                      links: SocialLink.listFrom(m['links']),
+                      games: parseInt(honours?['games']),
+                      avgRating: parseDouble(honours?['avgRating']),
                       statsLoaded: stats != null,
                       onBack: _back,
                     ),
@@ -189,6 +201,13 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          HonoursSection(
+                              honours: listOf(honours?['honours']),
+                              loading: honours == null),
+                          RecentMatchesSection(
+                              recent: listOf(honours?['recent']),
+                              loading: honours == null,
+                              playerId: userId),
                           // One sport card per sport played, each opening
                           // that sport's own record page.
                           PlayerRecordsSection(
@@ -219,7 +238,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                                   onTap: () => setState(() => _tab = 1)),
                               _PillTab(
                                   icon: Icons.photo_library_outlined,
-                                  label: 'Posts',
+                                  label: 'Highlights',
                                   count: posts.length,
                                   selected: _tab == 2,
                                   onTap: () => setState(() => _tab = 2)),
@@ -232,6 +251,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                             ..._tournamentsTab(tournaments)
                           else
                             ..._posts(p, posts),
+                          RecordFootnote(games: parseInt(honours?['games'])),
                         ],
                       ),
                     ),
@@ -257,7 +277,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
     );
   }
 
-  // ── groups / tournaments / posts ──────────────────────────────────────
+  // ── groups / tournaments / highlights ──────────────────────────────────────
 
   List<Widget> _groups(AppPalette p, List<Map<String, dynamic>> groups) {
     if (groups.isEmpty) {
@@ -375,7 +395,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
   List<Widget> _posts(AppPalette p, List<Map<String, dynamic>> posts) {
     if (posts.isEmpty) {
       return const [
-        _Empty(icon: Icons.photo_library_outlined, text: 'No posts yet.'),
+        _Empty(icon: Icons.photo_library_outlined, text: 'No highlights yet.'),
       ];
     }
     return [
@@ -398,7 +418,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                       color: p.surface2,
                       alignment: Alignment.center,
                       padding: const EdgeInsets.all(8),
-                      child: Text(parseStr(post['caption']) ?? 'Post',
+                      child: Text(parseStr(post['caption']) ?? 'Highlight',
                           maxLines: 4,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
@@ -417,19 +437,31 @@ class _Hero extends ConsumerWidget {
   const _Hero({
     required this.userId,
     required this.profile,
-    required this.sports,
-    required this.groups,
-    required this.tournaments,
     required this.statsLoaded,
     required this.onBack,
+    this.primary,
+    this.sports = const [],
+    this.teams = const [],
+    this.playsIn,
+    this.links = const [],
+    this.games,
+    this.avgRating,
     this.restricted = false,
     this.privateProfile = false,
   });
   final String userId;
   final Map<String, dynamic> profile;
-  final int sports;
-  final int groups;
-  final int tournaments;
+
+  /// Scouting header (docs/design/scouting-profile.md): the sport they play
+  /// most, their per-sport setup, the teams they're on, where they play, and
+  /// the headline numbers.
+  final Map<String, dynamic>? primary;
+  final List<Map<String, dynamic>> sports;
+  final List<Map<String, dynamic>> teams;
+  final String? playsIn;
+  final List<SocialLink> links;
+  final int? games;
+  final double? avgRating;
   final bool statsLoaded;
   final VoidCallback onBack;
 
@@ -543,11 +575,19 @@ class _Hero extends ConsumerWidget {
                 ),
               ),
             ],
+            if (!restricted)
+              ScoutByline(
+                  primary: primary,
+                  sports: sports,
+                  teams: teams,
+                  playsIn: playsIn),
             if (id != null) ...[
               const SizedBox(height: 10),
               LevelBadge(
                   level: id.level, title: id.title, streak: id.weeklyStreak),
             ],
+            if (!restricted) SocialLinksRow(links),
+            if (!restricted) FollowCounts(userId: userId),
             if (restricted && privateProfile) ...[
               const SizedBox(height: 16),
               const WardPrivateNote(
@@ -562,15 +602,18 @@ class _Hero extends ConsumerWidget {
               // Positions / strong foot are per-sport: they live in the sport's
               // own card below, not up here as one fixed fact.
               const SizedBox(height: 16),
+              HeadlineTiles(
+                  primary: primary,
+                  games: games,
+                  avgRating: avgRating,
+                  loaded: statsLoaded),
+              const SizedBox(height: 12),
               Row(children: [
-                _Stat(value: statsLoaded ? '$sports' : '–', label: 'Sports'),
+                Expanded(child: Center(child: FollowButton(userId: userId))),
                 const SizedBox(width: 8),
-                _Stat(value: '$groups', label: 'Groups'),
-                const SizedBox(width: 8),
-                _Stat(
-                    value: statsLoaded ? '$tournaments' : '–',
-                    label: 'Tournaments',
-                    accent: true),
+                Expanded(
+                    child: Center(
+                        child: MessageButton(userId: userId, name: name))),
               ]),
             ],
           ]),
@@ -622,38 +665,6 @@ class _Hero extends ConsumerWidget {
   }
 }
 
-class _Stat extends StatelessWidget {
-  const _Stat({required this.value, required this.label, this.accent = false});
-  final String value;
-  final String label;
-  final bool accent;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-        decoration: BoxDecoration(
-          color: accent ? p.accentTint : p.surface2,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(children: [
-          Text(value,
-              style: TextStyle(
-                  color: accent ? p.greenText : p.ink,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800)),
-          const SizedBox(height: 2),
-          Text(label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: p.muted, fontSize: 11)),
-        ]),
-      ),
-    );
-  }
-}
 
 class _PlayerCover extends CustomPainter {
   _PlayerCover(this.base, this.green, this.warm);

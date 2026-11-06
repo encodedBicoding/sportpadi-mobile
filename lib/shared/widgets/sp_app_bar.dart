@@ -7,10 +7,12 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/attention/attention_repository.dart';
 import 'package:sportpadi_mobile/data/notifications/notifications_repository.dart';
+import 'package:sportpadi_mobile/features/groups/my_groups_menu.dart';
 import 'package:sportpadi_mobile/features/inbox/inbox_button.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/data/wards/wards_repository.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
+import 'package:sportpadi_mobile/core/links/link_resolver.dart' show HomeTab;
 import 'package:sportpadi_mobile/features/shell/home_shell.dart'
     show homeTabIndexProvider;
 import 'package:sportpadi_mobile/shared/widgets/app_logo.dart';
@@ -236,7 +238,7 @@ class _SideMenu extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(24),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(24),
-                      onTap: () => go('tab:4'),
+                      onTap: () => go('tab:${HomeTab.profile}'),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Row(children: [
@@ -305,11 +307,19 @@ class _SideMenu extends ConsumerWidget {
                         active: tab == 0),
                     item(Icons.explore_outlined, 'Browse', 'tab:1',
                         active: tab == 1),
-                    item(Icons.groups_outlined, 'Groups', 'tab:2',
-                        active: tab == 2),
-                    item(Icons.emoji_events_outlined, 'Tournaments', 'tab:3',
-                        badge: waiting?.tournaments.total, active: tab == 3),
+                    item(Icons.emoji_events_outlined, 'Tournaments',
+                        'tab:${HomeTab.tournaments}',
+                        badge: waiting?.tournaments.total,
+                        active: tab == HomeTab.tournaments),
                   ]),
+
+                  // Groups left the dock: yours are listed here, invites too.
+                  const SizedBox(height: 18),
+                  const Padding(
+                    padding: EdgeInsets.only(left: 4, bottom: 8),
+                    child: Eyebrow('My groups'),
+                  ),
+                  MyGroupsMenu(onGo: go),
 
                   const SizedBox(height: 18),
                   const Padding(

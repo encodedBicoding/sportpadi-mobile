@@ -26,7 +26,6 @@ import 'package:sportpadi_mobile/features/notifications/notification_permission_
 import 'package:sportpadi_mobile/features/settings/timezone_provider.dart';
 import 'package:sportpadi_mobile/features/shell/notification_target.dart';
 import 'package:sportpadi_mobile/features/browse/browse_screen.dart';
-import 'package:sportpadi_mobile/features/groups/groups_list_screen.dart';
 import 'package:sportpadi_mobile/features/profile/profile_screen.dart';
 import 'package:sportpadi_mobile/features/tournaments/my_tournaments_screen.dart';
 import 'package:sportpadi_mobile/core/referral/referral.dart';
@@ -125,7 +124,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
       ref.invalidate(messagesUnreadProvider);
       // And the side-menu button's dot (everything waiting, in one call).
       ref.invalidate(attentionProvider);
-      // Group invitations that arrived while away (Groups tab list).
+      // Group invitations that arrived while away (menu badge, /groups).
       ref.invalidate(groupInvitationCountProvider);
       // Crossed a border while away? Re-read the phone's zone.
       // ignore: discarded_futures
@@ -218,10 +217,8 @@ class _HomeShellState extends ConsumerState<HomeShell>
       case 1:
         return const BrowseScreen();
       case 2:
-        return const GroupsListScreen();
-      case 3:
         return const MyTournamentsScreen();
-      case 4:
+      case 3:
         return const ProfileScreen();
       default:
         return const HomeScreen();
@@ -239,10 +236,11 @@ class _HomeShellState extends ConsumerState<HomeShell>
         ref.invalidate(messagesUnreadProvider);
         ref.invalidate(attentionProvider);
       }
+      // Groups left the dock (docs/design/2026-redesign.md): they live in
+      // the user menu and on /groups.
       const names = [
         '/tab/home',
         '/tab/browse',
-        '/tab/groups',
         '/tab/tournaments',
         '/tab/profile'
       ];
@@ -306,11 +304,6 @@ class ShellBottomBar extends ConsumerWidget {
                 icon: Icons.explore_outlined,
                 selectedIcon: Icons.explore_rounded,
                 label: 'Browse',
-              ),
-              const SpDockItem(
-                icon: Icons.groups_outlined,
-                selectedIcon: Icons.groups_rounded,
-                label: 'Groups',
               ),
               SpDockItem(
                 icon: Icons.emoji_events_outlined,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
+import 'package:sportpadi_mobile/core/links/link_resolver.dart' show HomeTab;
 import 'package:sportpadi_mobile/features/shell/home_shell.dart'
     show homeTabIndexProvider;
 
@@ -16,7 +17,7 @@ void openPlayerProfile(BuildContext context, WidgetRef ref, String? userId) {
   final me = ref.read(authControllerProvider).valueOrNull?.user?.id;
   if (me != null && me == userId) {
     // Profile is tab 4 of the signed-in shell.
-    ref.read(homeTabIndexProvider.notifier).state = 4;
+    ref.read(homeTabIndexProvider.notifier).state = HomeTab.profile;
     context.go('/home');
     return;
   }

@@ -21,9 +21,8 @@ library;
 class HomeTab {
   static const home = 0;
   static const browse = 1;
-  static const groups = 2;
-  static const tournaments = 3;
-  static const profile = 4;
+  static const tournaments = 2;
+  static const profile = 3;
 }
 
 typedef LinkTarget = ({String? route, int? tab, bool web});
@@ -317,7 +316,11 @@ LinkTarget resolveLink(String? url) {
   if (path.startsWith('/discover') || path.startsWith('/browse')) {
     return _tab(HomeTab.browse);
   }
-  if (RegExp(r'^/groups/?$').hasMatch(path)) return _tab(HomeTab.groups);
+  // /groups is a page now (Groups left the dock); ?tab=invites opens Invites.
+  if (RegExp(r'^/groups/?$').hasMatch(path)) {
+    if (query['create'] == '1') return _route('/groups?create=1');
+    return _route(query['tab'] == 'invites' ? '/groups?tab=invites' : '/groups');
+  }
   if (path == '/' ||
       path.startsWith('/dashboard') ||
       path.startsWith('/home')) {

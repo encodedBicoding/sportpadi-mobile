@@ -13,6 +13,7 @@ class Profile {
     this.email,
     this.intent,
     this.intentSeenAt,
+    this.links = const [],
   });
 
   final String? userId;
@@ -30,6 +31,9 @@ class Profile {
   final String? intent;
   final String? intentSeenAt;
 
+  /// Social links (`[{ platform, url, label }]`, docs/design/scouting-profile.md).
+  final List<Map<String, dynamic>> links;
+
   factory Profile.fromJson(Map<String, dynamic> j) => Profile(
         userId: parseStr(j['userId']),
         displayName: (j['displayName'] ?? j['username'] ?? 'You') as String,
@@ -42,6 +46,11 @@ class Profile {
         email: parseStr(j['email']),
         intent: parseStr(j['intent']),
         intentSeenAt: parseStr(j['intentSeenAt']),
+        links: [
+          if (j['links'] is List)
+            for (final l in j['links'] as List)
+              if (l is Map) Map<String, dynamic>.from(l),
+        ],
       );
 }
 

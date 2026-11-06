@@ -16,6 +16,7 @@ import 'package:sportpadi_mobile/features/discussions/discussions_screen.dart';
 import 'package:sportpadi_mobile/features/discussions/my_discussions_screen.dart';
 import 'package:sportpadi_mobile/features/events/event_detail_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_detail_screen.dart';
+import 'package:sportpadi_mobile/features/groups/groups_list_screen.dart';
 import 'package:sportpadi_mobile/features/groups/pro_offer.dart' show ProOfferScreen;
 import 'package:sportpadi_mobile/features/join/join_group_screen.dart';
 import 'package:sportpadi_mobile/features/notifications/notifications_screen.dart';
@@ -37,12 +38,15 @@ import 'package:sportpadi_mobile/features/games/officiate_screen.dart';
 import 'package:sportpadi_mobile/features/payments/my_fines_screen.dart';
 import 'package:sportpadi_mobile/features/players/player_group_stats_screen.dart';
 import 'package:sportpadi_mobile/features/players/player_profile_screen.dart';
+import 'package:sportpadi_mobile/features/players/scout_header.dart';
 import 'package:sportpadi_mobile/features/players/player_event_stats_screen.dart';
 import 'package:sportpadi_mobile/features/players/player_tournament_stats_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_events_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_leaderboard_screen.dart';
 import 'package:sportpadi_mobile/features/progression/progression_screens.dart';
 import 'package:sportpadi_mobile/features/progression/xp_history_screen.dart';
+import 'package:sportpadi_mobile/features/progression/profile_progress_screen.dart';
+import 'package:sportpadi_mobile/features/profile/social_links.dart';
 import 'package:sportpadi_mobile/features/groups/group_people_screen.dart';
 import 'package:sportpadi_mobile/features/groups/membership_requests_screen.dart';
 import 'package:sportpadi_mobile/features/payments/outstanding_tickets_screen.dart';
@@ -303,6 +307,24 @@ final routerProvider = Provider<GoRouter>((ref) {
             PlayerProfileScreen(userId: st.pathParameters['id']!),
       ),
       GoRoute(
+        path: '/players/:id/followers',
+        builder: (_, st) => FollowersScreen(
+            userId: st.pathParameters['id']!,
+            which: st.uri.queryParameters['which'] ?? 'followers'),
+      ),
+      // Groups left the dock: /groups is a page (all your groups, Discover,
+      // Invites); the menu lists the first few.
+      GoRoute(
+        path: '/groups',
+        builder: (_, st) => GroupsListScreen(
+            initialTab: st.uri.queryParameters['tab'] == 'invites'
+                ? 2
+                : st.uri.queryParameters['tab'] == 'discover'
+                    ? 1
+                    : null,
+            openCreate: st.uri.queryParameters['create'] == '1'),
+      ),
+      GoRoute(
         path: '/groups/:id',
         builder: (_, s) => GroupDetailScreen(
             groupId: s.pathParameters['id']!,
@@ -468,6 +490,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
           path: '/profile/records',
           builder: (_, __) => const MyRecordsScreen()),
+      GoRoute(
+          path: '/profile/progress',
+          builder: (_, __) => const ProfileProgressScreen()),
+      GoRoute(
+          path: '/profile/links',
+          builder: (_, __) => const SocialLinksScreen()),
       GoRoute(
         path: '/profile/records/:categoryId',
         builder: (_, st) => SportRecordScreen(
