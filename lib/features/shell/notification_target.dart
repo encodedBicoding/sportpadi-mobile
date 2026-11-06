@@ -27,8 +27,8 @@ import 'package:sportpadi_mobile/features/shell/home_shell.dart';
 Future<void> openNotificationTarget(WidgetRef ref, String? url) async {
   final router = ref.read(routerProvider);
   void inbox() => router.push('/notifications');
-  // A group invitation lands on Groups → Invites ("/groups?tab=invites"):
-  // fresh count and list even if that tab was already open.
+  // A group invitation lands on /groups → Invites ("/groups?tab=invites"):
+  // fresh count and list even if that page was already open.
   ref.invalidate(groupInvitationCountProvider);
   final asked = Uri.tryParse(url?.trim() ?? '');
   if (asked != null &&

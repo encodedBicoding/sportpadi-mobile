@@ -13,12 +13,20 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart'
     show SideMenuButton;
+import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 
 class GroupsListScreen extends ConsumerStatefulWidget {
-  const GroupsListScreen({super.key});
+  const GroupsListScreen({super.key, this.initialTab, this.openCreate = false});
+
+  /// Opened as a page (/groups[?tab=invites]) now that Groups left the dock:
+  /// 0 mine · 1 discover · 2 invites.
+  final int? initialTab;
+
+  /// /groups?create=1 (the menu's "New group"): open the create sheet at once.
+  final bool openCreate;
 
   @override
   ConsumerState<GroupsListScreen> createState() => _GroupsListScreenState();
@@ -26,7 +34,7 @@ class GroupsListScreen extends ConsumerStatefulWidget {
 
 class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
   String _query = '';
-  int _tab = 0; // 0 = mine, 1 = discover, 2 = invites
+  late int _tab = widget.initialTab ?? 0; // 0 = mine, 1 = discover, 2 = invites
   final _scroll = ScrollController();
   final _invites = GlobalKey<InvitationsTabState>();
 
@@ -36,7 +44,10 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
     // Invites page as you scroll.
     _scroll.addListener(_maybeMoreInvites);
     // Opened from a "You've been invited" notification → Invites.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _takeTabRequest());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _takeTabRequest();
+      if (widget.openCreate && mounted) _openCreate(context);
+    });
   }
 
   /// Near the end of the list (or it doesn't fill the screen yet): the next
@@ -122,8 +133,17 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
                 children: [
-                  // Tab title, New, and the side menu (this tab has no app bar).
+                  // Title, New, and the side menu (a page now, so a back button first).
                   Row(children: [
+                    if (context.canPop()) ...[
+                      SpRoundButton(
+                        icon: Icons.arrow_back_ios_new_rounded,
+                        iconSize: 18,
+                        tooltip: 'Back',
+                        onTap: () => context.pop(),
+                      ),
+                      const SizedBox(width: 10),
+                    ],
                     Expanded(
                       child: Text('Groups',
                           style: TextStyle(

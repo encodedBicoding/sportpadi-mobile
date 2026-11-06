@@ -6,25 +6,28 @@ import 'package:image_picker/image_picker.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/shell/home_shell.dart';
-import 'package:sportpadi_mobile/data/events/event_models.dart';
-import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/groups/group_models.dart';
+import 'package:sportpadi_mobile/data/events/events_repository.dart'
+    show eventsRepositoryProvider;
 import 'package:sportpadi_mobile/data/profile/profile_models.dart';
+import 'package:sportpadi_mobile/features/profile/social_links.dart';
+import 'package:sportpadi_mobile/features/players/scout_header.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
+import 'package:sportpadi_mobile/features/groups/my_groups_menu.dart';
+import 'package:sportpadi_mobile/core/links/link_resolver.dart' show HomeTab;
 import 'package:sportpadi_mobile/features/players/aka_card.dart';
 import 'package:sportpadi_mobile/features/players/player_profile_screen.dart'
     show playerRecordsProvider, playerStatsProvider;
 import 'package:sportpadi_mobile/features/players/player_record.dart';
-import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
-import 'package:sportpadi_mobile/shared/widgets/event_tile_square.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sheet_scroll.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
-import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
+import 'package:sportpadi_mobile/features/progression/progression_widgets.dart'
+    show frameColor;
 import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 import 'package:sportpadi_mobile/data/wards/wards_repository.dart'
@@ -35,7 +38,7 @@ import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 /// Profile (2026) — dark pitch cover with QR / menu round buttons, identity
 /// card with the avatar sitting on its edge (upload, frame, @username copy,
 /// Edit profile / Public view), the Wards card, progression, pinned pill tabs
-/// (Groups / Tournaments / Events / Posts) across all sports. My sports and
+/// (Groups / Tournaments / Highlights) across all sports. My sports and
 /// My records live on their own pages, under the menu's "Activity & stats".
 /// The menu is a bottom sheet: quick tab tiles, then personal pages as icon
 /// rows.
@@ -63,9 +66,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     ref.invalidate(myGroupAkasProvider);
     ref.invalidate(identityProvider(userId ?? ''));
     ref.invalidate(myWardsProvider);
-    ref.invalidate(myProgressionProvider);
-    ref.invalidate(strengthsProvider);
-    ref.invalidate(attendedEventsProvider);
+    if (userId != null) ref.invalidate(playerHonoursProvider(userId));
     return settleAll([
       ref.read(meProvider.future),
       // The rest is only on screen (watched) once the profile is.
@@ -75,8 +76,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ref.read(myGroupAkasProvider.future),
         ref.read(identityProvider(userId ?? '').future),
         ref.read(myWardsProvider.future),
-        ref.read(myProgressionProvider.future),
-        if (_tab == 2) ref.read(attendedEventsProvider.future),
       ],
     ]);
   }
@@ -124,13 +123,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           final stats = userId == null
               ? null
               : ref.watch(playerStatsProvider(userId)).valueOrNull;
-          final categories = listOf(stats?['categories']);
           final tournaments = listOf(stats?['tournaments']);
-          // Progression's "Your game" follows the most-played sport — the
-          // stats payload lists categories most-played first.
-          final topCategoryId = categories.isEmpty
+          // Your top honours and latest matches — the same read a scout gets
+          // (docs/design/scouting-profile.md); progress lives under the menu.
+          final honours = userId == null
               ? null
-              : parseStr(categories.first['categoryId']);
+              : ref.watch(playerHonoursProvider(userId)).valueOrNull;
+          final allHonours = listOf(honours?['honours']);
           // No sport picker here any more: the tabs cover every sport.
           final groups =
               ref.watch(myGroupsProvider).valueOrNull ?? const <GroupSummary>[];
@@ -154,16 +153,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       // right under the cover (nothing for everyone else).
                       WardsProfileCard(
                           onOpen: () => context.push('/profile/wards')),
-                      // Gamification: level, streak, "Your game", achievements.
-                      ProfileProgressionSection(
-                        userId: userId,
-                        categoryId: topCategoryId,
-                        categoryNames: {
-                          for (final c in categories)
-                            if (parseStr(c['categoryId']) != null)
-                              parseStr(c['categoryId'])!:
-                                  parseStr(c['name']) ?? 'Sport',
-                        },
+                      // Top three honours and last five matches, across all
+                      // sports — what a scout sees first.
+                      HonoursSection(
+                        honours: allHonours.take(3).toList(),
+                        loading: honours == null,
+                        total: allHonours.length,
+                        onMore: userId == null
+                            ? null
+                            : () => context.push('/players/$userId'),
+                      ),
+                      RecentMatchesSection(
+                        recent: listOf(honours?['recent']).take(5).toList(),
+                        loading: honours == null,
+                        playerId: userId ?? '',
                       ),
                       // Owner-console ad spot after the first few cards
                       // (anchor "profile.mid"); nothing unless set.
@@ -187,7 +190,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           groups.length,
                           tournaments.length,
                           0,
-                          0,
                         ],
                         onChanged: (i) => setState(() => _tab = i)),
                   ),
@@ -209,13 +211,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       playerId: userId,
                       title: 'My tournaments',
                     )
-                  else if (_tab == 2)
-                    _AttendedEventsGrid(userId: userId)
                   else
                     const _EmptyNote(
                       icon: Icons.image_outlined,
-                      title: 'Posts are coming',
-                      text: 'Share photos from events — coming soon.',
+                      title: 'Highlights are coming',
+                      text: 'Your best moments — photos and clips from your games — will live here. Coming soon.',
                     ),
                 ])),
               ),
@@ -400,6 +400,7 @@ class _HeroState extends ConsumerState<_Hero> {
                 style: TextStyle(color: p.muted, fontSize: 13.5, height: 1.5),
               ),
             ],
+            SocialLinksRow(SocialLink.listFrom(profile.links)),
             const SizedBox(height: 16),
             Row(children: [
               Expanded(
@@ -741,7 +742,8 @@ class _ProfileMenuSheet extends StatelessWidget {
                 const SizedBox(width: 8),
                 quick('tab:1', Icons.explore_outlined, 'Discover'),
                 const SizedBox(width: 8),
-                quick('tab:2', Icons.groups_outlined, 'Groups'),
+                quick('tab:${HomeTab.tournaments}',
+                    Icons.emoji_events_outlined, 'Tournaments'),
               ]),
               const SizedBox(height: 18),
               const Padding(
@@ -764,6 +766,12 @@ class _ProfileMenuSheet extends StatelessWidget {
               const SizedBox(height: 16),
               const Padding(
                 padding: EdgeInsets.only(left: 4, bottom: 8),
+                child: Eyebrow('My groups'),
+              ),
+              MyGroupsMenu(onGo: onPick),
+              const SizedBox(height: 16),
+              const Padding(
+                padding: EdgeInsets.only(left: 4, bottom: 8),
                 child: Eyebrow('Activity & stats'),
               ),
               SpListCard(children: [
@@ -776,6 +784,9 @@ class _ProfileMenuSheet extends StatelessWidget {
                     p.greenText),
                 row('/profile/records', Icons.insights_rounded, 'My records',
                     'Your numbers, sport by sport', p.orangeTint, p.orangeInk),
+                row('/profile/progress', Icons.trending_up_rounded,
+                    'Progress & achievements', 'Level, XP, streak and badges',
+                    p.accentTint, p.greenText),
               ]),
               const SizedBox(height: 16),
               const Padding(
@@ -783,6 +794,8 @@ class _ProfileMenuSheet extends StatelessWidget {
                 child: Eyebrow('You'),
               ),
               SpListCard(children: [
+                row('/profile/links', Icons.link_rounded, 'Social links',
+                    'Instagram, TikTok, X and more on your profile', p.surface2, p.ink),
                 WardsMenuRow(onTap: () => onPick('/profile/wards')),
                 row('/notifications', Icons.notifications_outlined,
                     'Notifications', "What's new for you", p.surface2, p.ink),
@@ -894,6 +907,47 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
               expand: true,
               onTap: _busy ? null : _save,
             ),
+            const SizedBox(height: 10),
+            // Social links save on their own (docs/design/scouting-profile.md),
+            // so a handle typo never blocks a name change.
+            Material(
+              color: p.surface,
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  context.push('/profile/links');
+                },
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  child: Row(children: [
+                    Icon(Icons.link_rounded, size: 20, color: p.ink),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Social links',
+                              style: TextStyle(
+                                  color: p.ink,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700)),
+                          Text(
+                              widget.profile.links.isEmpty
+                                  ? 'Instagram, TikTok, X, Facebook, Threads — any platform'
+                                  : '${widget.profile.links.length} on your profile',
+                              style:
+                                  TextStyle(color: p.muted, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right_rounded, color: p.muted),
+                  ]),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -909,7 +963,7 @@ class _ProfileTabs extends StatelessWidget {
   const _ProfileTabs({
     required this.tab,
     required this.onChanged,
-    this.counts = const [0, 0, 0, 0],
+    this.counts = const [0, 0, 0],
   });
   final int tab;
   final ValueChanged<int> onChanged;
@@ -970,59 +1024,8 @@ class _ProfileTabs extends StatelessWidget {
       child: Row(children: [
         pill(0, Icons.groups_outlined, 'Groups'),
         pill(1, Icons.emoji_events_outlined, 'Tournaments'),
-        pill(2, Icons.calendar_month_outlined, 'Events'),
-        pill(3, Icons.image_outlined, 'Posts'),
+        pill(2, Icons.image_outlined, 'Highlights'),
       ]),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Attended events grid — square tiles like the web EventTile.
-// ---------------------------------------------------------------------------
-
-class _AttendedEventsGrid extends ConsumerWidget {
-  const _AttendedEventsGrid({this.userId});
-
-  /// Whose record an event opens. Without it, tiles open the event itself.
-  final String? userId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final p = context.palette;
-    final events = ref.watch(attendedEventsProvider);
-    final list = events.valueOrNull ?? const <EventSummary>[];
-    if (events.isLoading) {
-      return GlassCard(
-          child:
-              Text('Loading…', style: TextStyle(color: p.muted, fontSize: 13)));
-    }
-    if (list.isEmpty) {
-      return const _EmptyNote(
-        icon: Icons.calendar_month_outlined,
-        text: 'No events attended yet.',
-      );
-    }
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      padding: EdgeInsets.zero,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
-      children: [
-        // Your record in that event — not the event's scoresheet. The event
-        // itself is one deliberate tap further, inside.
-        for (final e in list)
-          EventTileSquare(
-            event: e,
-            onTap: userId == null
-                ? null
-                : () => context.push(e.isTournament
-                    ? '/players/$userId/tournaments/${e.id}'
-                    : '/players/$userId/events/${e.id}'),
-          ),
-      ],
     );
   }
 }

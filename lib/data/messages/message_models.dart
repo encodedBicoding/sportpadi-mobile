@@ -59,14 +59,18 @@ class ConversationItem {
     this.muted = false,
     this.createdAt,
     this.staffName,
+    this.otherUserId,
   });
 
   final String id;
+
+  /// Empty for a profile thread (no group).
   final String groupId;
   final String groupName;
   final String? groupImageUrl;
 
-  /// `direct` or `contact_admins`.
+  /// `direct`, `contact_admins`, or `profile` (two people, no group —
+  /// docs/design/scouting-profile.md).
   final String kind;
 
   /// `open` · `closed` · `locked`.
@@ -92,7 +96,12 @@ class ConversationItem {
   /// Oversight list only: who's on the staff side ("Coach Sam", "Admins").
   final String? staffName;
 
+  /// Profile threads: the other person, so the row can open their profile.
+  final String? otherUserId;
+
   bool get isContactAdmins => kind == 'contact_admins';
+  bool get isProfile => kind == 'profile';
+  bool get hasGroup => groupId.isNotEmpty;
   bool get isOpen => status == 'open';
   bool get isClosed => status == 'closed';
   bool get isLocked => status == 'locked';
@@ -116,6 +125,7 @@ class ConversationItem {
         muted: muted,
         createdAt: createdAt,
         staffName: staffName,
+        otherUserId: otherUserId,
       );
 
   factory ConversationItem.fromJson(Map<String, dynamic> j) => ConversationItem(
@@ -123,7 +133,12 @@ class ConversationItem {
         groupId: parseStr(j['groupId']) ?? '',
         groupName: parseStr(j['groupName']) ?? 'Group',
         groupImageUrl: parseStr(j['groupImageUrl']),
-        kind: j['kind'] == 'contact_admins' ? 'contact_admins' : 'direct',
+        kind: switch (j['kind']) {
+          'contact_admins' => 'contact_admins',
+          'profile' => 'profile',
+          _ => 'direct',
+        },
+        otherUserId: parseStr(j['otherUserId']),
         status: switch (j['status']) {
           'closed' => 'closed',
           'locked' => 'locked',
@@ -216,9 +231,12 @@ class ConversationInfo {
     this.canClose = false,
     this.isAdmin = false,
     this.mutedUntil,
+    this.otherUserId,
   });
 
   final String id;
+
+  /// Empty id for a profile thread (no group).
   final MessageGroupRef group;
   final String? teamName;
   final String kind;
@@ -236,7 +254,12 @@ class ConversationInfo {
   final bool isAdmin;
   final DateTime? mutedUntil;
 
+  /// Profile threads: the other person (docs/design/scouting-profile.md).
+  final String? otherUserId;
+
   bool get isContactAdmins => kind == 'contact_admins';
+  bool get isProfile => kind == 'profile';
+  bool get hasGroup => group.id.isNotEmpty;
   bool get isOversight => mySide == 'oversight';
   bool get isStaffSide => mySide == 'staff';
   bool get isClosed => status == 'closed';
@@ -252,7 +275,12 @@ class ConversationInfo {
         id: parseStr(j['id']) ?? '',
         group: MessageGroupRef.fromJson(_map(j['group'])),
         teamName: parseStr(j['teamName']),
-        kind: j['kind'] == 'contact_admins' ? 'contact_admins' : 'direct',
+        kind: switch (j['kind']) {
+          'contact_admins' => 'contact_admins',
+          'profile' => 'profile',
+          _ => 'direct',
+        },
+        otherUserId: parseStr(j['otherUserId']),
         status: switch (j['status']) {
           'closed' => 'closed',
           'locked' => 'locked',

@@ -404,6 +404,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
   // ── build ────────────────────────────────────────────────────────────────
 
   String _subtitle(ConversationInfo c) {
+    if (c.isProfile) return 'Direct message';
     if (c.isOversight) {
       return [
         'with ${c.staffName}',
@@ -443,7 +444,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
             if (c.canClose)
               const PopupMenuItem(
                   value: 'close', child: Text('Close conversation')),
-            PopupMenuItem(value: 'group', child: Text('Open ${c.group.name}')),
+            if (c.hasGroup)
+              PopupMenuItem(
+                  value: 'group', child: Text('Open ${c.group.name}')),
+            if (c.isProfile && c.otherUserId != null)
+              const PopupMenuItem(value: 'profile', child: Text('View profile')),
           ];
     return Scaffold(
       backgroundColor: p.bg,
@@ -475,6 +480,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
                           _close();
                         case 'group':
                           context.push('/groups/${info.group.id}');
+                        case 'profile':
+                          context.push('/players/${info.otherUserId}');
                       }
                     },
                     itemBuilder: (_) => menu,
@@ -711,26 +718,40 @@ class _InfoStrip extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(children: [
-                      Crest(
-                          logoUrl: c.group.imageUrl,
-                          label: c.group.name,
-                          size: 18),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                            [
-                              c.group.name,
-                              if (c.teamName != null) c.teamName!,
-                            ].join(' · '),
+                    if (c.isProfile)
+                      GestureDetector(
+                        onTap: c.otherUserId == null
+                            ? null
+                            : () => context.push('/players/${c.otherUserId}'),
+                        child: Text('Direct message · View profile',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                color: p.ink,
+                                color: p.muted,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600)),
-                      ),
-                    ]),
+                      )
+                    else
+                      Row(children: [
+                        Crest(
+                            logoUrl: c.group.imageUrl,
+                            label: c.group.name,
+                            size: 18),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                              [
+                                c.group.name,
+                                if (c.teamName != null) c.teamName!,
+                              ].join(' · '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: p.ink,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600)),
+                        ),
+                      ]),
                     if (ward != null) ...[
                       const SizedBox(height: 5),
                       AboutWardChip(ward.firstName),
@@ -757,7 +778,10 @@ class _InfoStrip extends StatelessWidget {
               Icon(Icons.visibility_outlined, size: 14, color: p.muted),
               const SizedBox(width: 6),
               Expanded(
-                child: Text("Visible to ${c.group.name}'s admins",
+                child: Text(
+                    c.isProfile
+                        ? 'Just the two of you. Either can end it; reports go to SportPadi.'
+                        : "Visible to ${c.group.name}'s admins",
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: p.muted, fontSize: 11.5)),
