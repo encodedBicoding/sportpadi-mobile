@@ -14,6 +14,7 @@ import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Building blocks shared by the Messages tab, the thread, the new-message
 /// flow and the admins' oversight screen.
@@ -47,7 +48,7 @@ class AboutWardChip extends StatelessWidget {
         Icon(Icons.child_care_rounded, size: 12, color: p.wardInk),
         const SizedBox(width: 4),
         Flexible(
-          child: Text('About $name',
+          child: Text(context.l10n.inbox_about3(name),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -71,7 +72,7 @@ class ConversationStatusPill extends StatelessWidget {
     final p = context.palette;
     if (status == 'open') return const SizedBox.shrink();
     final locked = status == 'locked';
-    return SpBadge(locked ? 'Locked' : 'Closed',
+    return SpBadge(locked ? context.l10n.inbox_locked2 : context.l10n.inbox_closed,
         icon: locked ? Icons.lock_outline_rounded : Icons.check_circle_outline,
         tone: locked ? p.orangeInk : null);
   }
@@ -160,11 +161,11 @@ class ConversationRow extends StatelessWidget {
                     TextSpan(children: [
                       if (c.lastFromMe && !oversight)
                         TextSpan(
-                            text: 'You: ',
+                            text: context.l10n.inbox_you2,
                             style: TextStyle(
                                 color: p.muted, fontWeight: FontWeight.w600)),
                       TextSpan(
-                          text: preview.isEmpty ? 'Photo' : preview,
+                          text: preview.isEmpty ? context.l10n.inbox_photo : preview,
                           style: TextStyle(
                               color: unread ? p.ink : p.muted,
                               fontWeight:
@@ -415,8 +416,8 @@ class _ReportSheetState extends ConsumerState<_ReportSheet> {
               );
       if (!mounted) return;
       Navigator.of(context).pop(already
-          ? "You've already reported this — the admins will look at it."
-          : "Thanks — your report was sent to the group's admins.");
+          ? l10n.inbox_youveAlreadyReportedThisThe
+          : l10n.inbox_thanksYourReportWasSent);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -438,8 +439,8 @@ class _ReportSheetState extends ConsumerState<_ReportSheet> {
           icon: Icons.flag_outlined,
           iconBg: p.liveTint,
           iconFg: p.danger,
-          title: 'Report this $what',
-          subtitle: "Reports go to the group's admins and the SportPadi team.",
+          title: context.l10n.inbox_reportThis2(what),
+          subtitle: context.l10n.inbox_reportsGoToTheGroups,
         ),
         SpListCard(children: [
           for (final r in messageReportReasons)
@@ -462,8 +463,8 @@ class _ReportSheetState extends ConsumerState<_ReportSheet> {
           maxLines: 5,
           maxLength: 1000,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            hintText: 'Anything the admins should know (optional)',
+          decoration: InputDecoration(
+            hintText: context.l10n.inbox_anythingTheAdminsShouldKnow,
           ),
         ),
         if (_error != null) ...[
@@ -472,7 +473,7 @@ class _ReportSheetState extends ConsumerState<_ReportSheet> {
         ],
         const SizedBox(height: 10),
         SpButton(
-          label: _busy ? 'Sending…' : 'Send report',
+          label: _busy ? context.l10n.inbox_sending : context.l10n.inbox_sendReport,
           icon: Icons.flag_outlined,
           expand: true,
           onTap: _reason == null || _busy ? null : _send,

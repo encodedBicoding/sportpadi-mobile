@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/data/discussions/discussions_repository.dart';
 import 'package:sportpadi_mobile/features/discussions/discussion_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Where discussions surface outside their own screens: the group and team
 /// pages' Talk sheets (the top 5 hot ones I can see there), and Settings.
@@ -137,10 +138,10 @@ class _DiscussionsPreview extends ConsumerWidget {
         children: [
           if (showTitle) ...[
             SpSectionTitle(
-              'Discussions',
+              context.l10n.inbox_discussions,
               trailing: TextButton(
                 onPressed: () => open('/groups/$groupId/discussions$q'),
-                child: const Text('See all'),
+                child: Text(context.l10n.inbox_seeAll),
               ),
             ),
             const SizedBox(height: 6),
@@ -149,8 +150,7 @@ class _DiscussionsPreview extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Text(
-                  'No discussions yet. Ask a question, raise an issue or '
-                  'share an idea.',
+                  context.l10n.inbox_noDiscussionsYetAskA,
                   style: TextStyle(color: p.muted, fontSize: 13, height: 1.4)),
             ),
           for (final d in items)
@@ -165,7 +165,7 @@ class _DiscussionsPreview extends ConsumerWidget {
               ),
             ),
           _QuietButton(
-            label: 'Start a discussion',
+            label: context.l10n.inbox_startADiscussion,
             icon: Icons.add_comment_outlined,
             onTap: () => open('/groups/$groupId/discussions/new$q'),
           ),
@@ -219,12 +219,11 @@ class _DiscussionNotificationsCardState
       padding: const EdgeInsets.fromLTRB(16, 4, 12, 4),
       child: SwitchListTile(
         contentPadding: EdgeInsets.zero,
-        title: Text('Comments and replies',
+        title: Text(context.l10n.inbox_commentsAndReplies,
             style: TextStyle(
                 color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700)),
         subtitle: Text(
-            'When someone comments on your discussion or replies to your '
-            'comment. New discussions never notify anyone.',
+            context.l10n.inbox_whenSomeoneCommentsOnYour,
             style: TextStyle(color: p.muted, fontSize: 12)),
         value: _pending ?? saved,
         onChanged: list == null ? null : _set,

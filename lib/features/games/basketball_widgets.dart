@@ -4,6 +4,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Basketball on the game screen — web twin: components/games/basketball.tsx.
 /// A player-first score pad, the team-fouls / bonus strip, the first-to-N
@@ -55,20 +56,21 @@ class PadAct {
   final bool assist;
 }
 
-const _acts = [
-  PadAct('two_points', '+2', PadTone.score, assist: true),
-  PadAct('three_points', '+3', PadTone.score, assist: true),
-  PadAct('free_throw', '+1 FT', PadTone.score),
-  PadAct('two_miss', 'Miss 2', PadTone.miss),
-  PadAct('three_miss', 'Miss 3', PadTone.miss),
-  PadAct('ft_miss', 'Miss FT', PadTone.miss),
-  PadAct('off_rebound', 'Off. reb', PadTone.stat),
-  PadAct('def_rebound', 'Def. reb', PadTone.stat),
-  PadAct('steal', 'Steal', PadTone.stat),
-  PadAct('block', 'Block', PadTone.stat),
-  PadAct('turnover', 'Turnover', PadTone.stat),
-  PadAct('foul', 'Foul', PadTone.foul),
-];
+// A getter (not const) so the labels follow the language on screen.
+List<PadAct> get _acts => [
+      const PadAct('two_points', '+2', PadTone.score, assist: true),
+      const PadAct('three_points', '+3', PadTone.score, assist: true),
+      PadAct('free_throw', l10n.game_actFreeThrow, PadTone.score),
+      PadAct('two_miss', l10n.game_actMiss2, PadTone.miss),
+      PadAct('three_miss', l10n.game_actMiss3, PadTone.miss),
+      PadAct('ft_miss', l10n.game_actMissFt, PadTone.miss),
+      PadAct('off_rebound', l10n.game_actOffReb, PadTone.stat),
+      PadAct('def_rebound', l10n.game_actDefReb, PadTone.stat),
+      PadAct('steal', l10n.game_actSteal, PadTone.stat),
+      PadAct('block', l10n.game_actBlock, PadTone.stat),
+      PadAct('turnover', l10n.game_actTurnover, PadTone.stat),
+      PadAct('foul', l10n.game_actFoul, PadTone.foul),
+    ];
 
 typedef PadRecord = Future<void> Function({
   required String teamId,
@@ -94,7 +96,7 @@ class PlayerScorePad extends StatelessWidget {
     this.busy = false,
     this.amend = false,
     this.onSub,
-    this.assistWord = 'Assisted by?',
+    this.assistWord,
     this.icon = Icons.sports_rounded,
   });
   final GameDetail game;
@@ -110,7 +112,9 @@ class PlayerScorePad extends StatelessWidget {
   final bool busy;
   final bool amend;
   final VoidCallback? onSub;
-  final String assistWord;
+
+  /// Sheet subtitle asking for the assist; null = "Assisted by?".
+  final String? assistWord;
   final IconData icon;
 
   Future<void> _open(BuildContext context, GamePlayer player) async {
@@ -133,7 +137,7 @@ class PlayerScorePad extends StatelessWidget {
         player: player,
         acts: available,
         mates: mates,
-        assistWord: assistWord,
+        assistWord: assistWord ?? context.l10n.game_assistedBy,
         icon: icon,
       ),
     );
@@ -187,7 +191,7 @@ class PlayerScorePad extends StatelessWidget {
                     x
               ];
               if (players.isEmpty) {
-                return Text('No one on court.',
+                return Text(context.l10n.game_noOneOnCourt,
                     style: TextStyle(color: p.muted, fontSize: 12));
               }
               final w = (c.maxWidth - 6) / 2;
@@ -247,7 +251,7 @@ class PlayerScorePad extends StatelessWidget {
           child: TextButton.icon(
             onPressed: busy ? null : onSub,
             icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-            label: const Text('Substitution'),
+            label: Text(context.l10n.game_substitution),
           ),
         ),
     ]);
@@ -309,14 +313,14 @@ class _BasketballScorePadState extends State<BasketballScorePad> {
               color: p.orangeTint, borderRadius: BorderRadius.circular(14)),
           child: Row(children: [
             Expanded(
-              child: Text('Offensive rebound',
+              child: Text(context.l10n.game_offensiveRebound,
                   style: TextStyle(
                       color: p.orangeInk,
                       fontSize: 13,
                       fontWeight: FontWeight.w700)),
             ),
             SpButton(
-              label: 'Shot clock to $short',
+              label: context.l10n.game_shotClockTo2(short),
               onTap: () {
                 widget.onShotShort!();
                 setState(() => _offer = false);
@@ -324,7 +328,7 @@ class _BasketballScorePadState extends State<BasketballScorePad> {
             ),
             TextButton(
                 onPressed: () => setState(() => _offer = false),
-                child: const Text('Skip')),
+                child: Text(context.l10n.game_skip)),
           ]),
         ),
       PlayerScorePad(
@@ -384,7 +388,7 @@ class _ActionSheetState extends State<_ActionSheet> {
           SpSheetHeader(
             icon: widget.icon,
             title: '${_jn(pl.jersey)}${pl.displayName}',
-            subtitle: _assistFor == null ? 'What happened?' : widget.assistWord,
+            subtitle: _assistFor == null ? context.l10n.game_whatHappened : widget.assistWord,
           ),
           if (_assistFor == null)
             GridView.count(
@@ -442,7 +446,7 @@ class _ActionSheetState extends State<_ActionSheet> {
             ]),
             const SizedBox(height: 12),
             SpButton(
-                label: 'No assist',
+                label: context.l10n.game_noAssist,
                 expand: true,
                 onTap: () => _done(_assistFor!)),
           ],
@@ -476,7 +480,7 @@ class TeamFoulsStrip extends StatelessWidget {
             end ? MainAxisAlignment.end : MainAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Fouls ', style: TextStyle(color: muted, fontSize: 12)),
+          Text(context.l10n.game_fouls, style: TextStyle(color: muted, fontSize: 12)),
           Text('$n',
               style: TextStyle(
                   color: ink, fontSize: 13, fontWeight: FontWeight.w800)),
@@ -488,7 +492,7 @@ class TeamFoulsStrip extends StatelessWidget {
                 decoration: BoxDecoration(
                     color: const Color(0x33FFB57D),
                     borderRadius: BorderRadius.circular(999)),
-                child: Text('BONUS ${opp.name.split(' ').first.toUpperCase()}',
+                child: Text(context.l10n.game_bonus2(opp.name.split(' ').first.toUpperCase()),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -501,7 +505,7 @@ class TeamFoulsStrip extends StatelessWidget {
           if (oneAway) ...[
             const SizedBox(width: 6),
             Flexible(
-              child: Text('1 to bonus',
+              child: Text(context.l10n.game_t1ToBonus,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -524,7 +528,7 @@ class TeamFoulsStrip extends StatelessWidget {
         Expanded(child: side(a, b)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Text((bb.foulPeriod ?? 'Team fouls').toUpperCase(),
+          child: Text((bb.foulPeriod ?? context.l10n.game_teamFouls).toUpperCase(),
               style: TextStyle(
                   color: muted,
                   fontSize: 10,
@@ -564,19 +568,17 @@ class TargetReachedCard extends StatelessWidget {
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(
-                '${w.name} reached ${bb.rules.targetScore}'
-                '${other != null ? ' — ${w.score}–${other.score}' : ''}',
+                context.l10n.game_reached2(w.name, bb.rules.targetScore, (other != null ? ' — ${w.score}–${other.score}' : '')),
                 style: TextStyle(
                     color: p.ink, fontSize: 14, fontWeight: FontWeight.w800)),
             Text(
-                'First to ${bb.rules.targetScore}${bb.rules.winBy > 1 ? ', win by ${bb.rules.winBy}' : ''}. '
-                'End the game to lock in the result.',
+                context.l10n.game_firstToEndTheGame(bb.rules.targetScore, (bb.rules.winBy > 1 ? ', win by ${bb.rules.winBy}' : '')),
                 style: TextStyle(color: p.muted, fontSize: 12)),
           ]),
         ),
         if (onEnd != null) ...[
           const SizedBox(width: 8),
-          SpButton(label: 'End game', onTap: onEnd),
+          SpButton(label: context.l10n.game_endGame, onTap: onEnd),
         ],
       ]),
     );
@@ -667,14 +669,14 @@ class BasketballSummary extends StatelessWidget {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(wentOT ? 'Final · after overtime' : 'Final',
+                    Text(wentOT ? context.l10n.game_finalAfterOvertime : context.l10n.game_finalLabel2,
                         style: TextStyle(color: p.muted, fontSize: 12)),
                     Text(
                         winner != null
-                            ? '${winner.name} won'
+                            ? context.l10n.game_won2(winner.name)
                             : game.teams.any((t) => t.result == 'draw')
-                                ? 'Tied'
-                                : 'Match summary',
+                                ? context.l10n.game_tied
+                                : context.l10n.game_matchSummary,
                         style: TextStyle(
                             color: p.ink,
                             fontSize: 16,
@@ -692,7 +694,7 @@ class BasketballSummary extends StatelessWidget {
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                c('TEAM', w: 120, color: p.muted, align: TextAlign.left),
+                c(context.l10n.game_team3, w: 120, color: p.muted, align: TextAlign.left),
                 for (final per in periods) c(per, color: p.muted),
                 c('T', w: 44, color: p.muted),
               ]),
@@ -739,7 +741,7 @@ class BasketballSummary extends StatelessWidget {
                       Text(
                         names[leaders[i].$2!.playerId] != null
                             ? '${_jn(names[leaders[i].$2!.playerId]!.jersey)}${names[leaders[i].$2!.playerId]!.displayName}'
-                            : 'Player',
+                            : context.l10n.game_player,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: p.muted, fontSize: 11.5),
@@ -807,7 +809,7 @@ class BasketballSummary extends StatelessWidget {
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800)),
                       ),
-                      Text('Box score',
+                      Text(context.l10n.game_boxScore,
                           style: TextStyle(color: p.muted, fontSize: 11)),
                     ]),
                     const SizedBox(height: 8),
@@ -817,7 +819,7 @@ class BasketballSummary extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(children: [
-                              c('PLAYER',
+                              c(context.l10n.game_player2,
                                   w: 130,
                                   color: p.muted,
                                   align: TextAlign.left),
@@ -835,7 +837,7 @@ class BasketballSummary extends StatelessWidget {
                                     names[l.playerId] != null
                                         ? '${_jn(names[l.playerId]!.jersey)}${names[l.playerId]!.displayName}'
                                             '${names[l.playerId]!.sentOff ? ' · out' : ''}'
-                                        : 'Player',
+                                        : context.l10n.game_player,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: cell(bold: true),
@@ -859,7 +861,7 @@ class BasketballSummary extends StatelessWidget {
                             if (tot != null) ...[
                               const Divider(height: 12, thickness: 1.5),
                               Row(children: [
-                                c('Team',
+                                c(context.l10n.game_team,
                                     w: 130, bold: true, align: TextAlign.left),
                                 for (var i = 0; i < heads.length; i++)
                                   c(vals(tot)[i],
@@ -875,8 +877,7 @@ class BasketballSummary extends StatelessWidget {
                     if (tot != null) ...[
                       const SizedBox(height: 8),
                       Text(
-                        '3PT ${_pct(tot.tpm, tot.tpa)} · FT ${_pct(tot.ftm, tot.fta)} · '
-                        'Off. reb ${tot.oreb} · Def. reb ${tot.dreb}',
+                        context.l10n.game_t3ptFtOffRebDef2(_pct(tot.tpm, tot.tpa), _pct(tot.ftm, tot.fta), tot.oreb, tot.dreb),
                         style: TextStyle(color: p.muted, fontSize: 11),
                       ),
                     ],
@@ -943,12 +944,12 @@ class BasketballFormatFields extends StatelessWidget {
       decoration: BoxDecoration(
           color: p.surface2, borderRadius: BorderRadius.circular(16)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Text('🏀 Game format',
+        Text(context.l10n.game_gameFormat,
             style: TextStyle(
                 color: p.ink, fontSize: 13, fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
         SpSegmented(
-          options: const ['4 quarters', 'First to N'],
+          options: [context.l10n.game_t4Quarters, context.l10n.game_firstToN],
           index: timed ? 0 : 1,
           onChanged: (i) =>
               onChanged(value.copyWith(format: i == 0 ? 'timed' : 'target')),
@@ -956,51 +957,51 @@ class BasketballFormatFields extends StatelessWidget {
         const SizedBox(height: 12),
         if (timed)
           Row(children: [
-            field('Minutes per quarter', value.quarterMinutes, 1, 30,
+            field(context.l10n.game_minutesPerQuarter, value.quarterMinutes, 1, 30,
                 (n) => onChanged(value.copyWith(quarterMinutes: n)),
-                hint: 'FIBA 10 · NBA 12'),
+                hint: context.l10n.game_fiba10Nba12),
             const SizedBox(width: 12),
-            field('Overtime (min)', value.overtimeMinutes, 1, 15,
+            field(context.l10n.game_overtimeMin, value.overtimeMinutes, 1, 15,
                 (n) => onChanged(value.copyWith(overtimeMinutes: n)),
-                hint: 'When tied after the 4th'),
+                hint: context.l10n.game_whenTiedAfterThe4th),
           ])
         else
           Row(children: [
-            field('Points to win', value.targetScore, 1, 200,
+            field(context.l10n.game_pointsToWin, value.targetScore, 1, 200,
                 (n) => onChanged(value.copyWith(targetScore: n))),
             const SizedBox(width: 12),
-            field('Win by', value.winBy, 1, 5,
+            field(context.l10n.game_winBy2, value.winBy, 1, 5,
                 (n) => onChanged(value.copyWith(winBy: n)),
-                hint: '1 = next basket wins'),
+                hint: context.l10n.game_t1NextBasketWins),
           ]),
         const SizedBox(height: 10),
         Row(children: [
-          field('Fouls to foul out', value.foulLimit, 1, 10,
+          field(context.l10n.game_foulsToFoulOut, value.foulLimit, 1, 10,
               (n) => onChanged(value.copyWith(foulLimit: n)),
-              hint: 'FIBA 5 · NBA 6'),
+              hint: context.l10n.game_fiba5Nba6),
           const SizedBox(width: 12),
-          field('Bonus from team foul', value.bonusAt, 0, 15,
+          field(context.l10n.game_bonusFromTeamFoul, value.bonusAt, 0, 15,
               (n) => onChanged(value.copyWith(bonusAt: n)),
-              hint: timed ? 'Per quarter · 0 = off' : 'Whole game · 0 = off'),
+              hint: timed ? context.l10n.game_perQuarter0Off : context.l10n.game_wholeGame0Off),
         ]),
         const SizedBox(height: 10),
         if (timed)
           Row(children: [
-            field('Timeouts 1st half', value.timeoutsFirstHalf, 0, 10,
+            field(context.l10n.game_timeouts1stHalf, value.timeoutsFirstHalf, 0, 10,
                 (n) => onChanged(value.copyWith(timeoutsFirstHalf: n))),
             const SizedBox(width: 12),
             field('2nd half', value.timeoutsSecondHalf, 0, 10,
                 (n) => onChanged(value.copyWith(timeoutsSecondHalf: n)),
-                hint: 'Max 2 in the last 2 min'),
+                hint: context.l10n.game_max2InTheLast),
             const SizedBox(width: 12),
-            field('Per OT', value.timeoutsPerOvertime, 0, 5,
+            field(context.l10n.game_perOt, value.timeoutsPerOvertime, 0, 5,
                 (n) => onChanged(value.copyWith(timeoutsPerOvertime: n))),
           ])
         else
           Row(children: [
-            field('Timeouts per team', value.timeoutsPerGame, 0, 10,
+            field(context.l10n.game_timeoutsPerTeam, value.timeoutsPerGame, 0, 10,
                 (n) => onChanged(value.copyWith(timeoutsPerGame: n)),
-                hint: 'Whole game · 0 = none'),
+                hint: context.l10n.game_wholeGame0None),
           ]),
         if (timed) ...[
           const SizedBox(height: 10),
@@ -1016,12 +1017,12 @@ class BasketballFormatFields extends StatelessWidget {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Shot clock',
+                      Text(context.l10n.game_shotClock,
                           style: TextStyle(
                               color: p.ink,
                               fontSize: 13,
                               fontWeight: FontWeight.w800)),
-                      Text('Runs with the game clock and buzzes at 0',
+                      Text(context.l10n.game_runsWithTheGameClock,
                           style: TextStyle(color: p.muted, fontSize: 11)),
                     ]),
               ),
@@ -1035,22 +1036,21 @@ class BasketballFormatFields extends StatelessWidget {
           if (value.shotClock > 0) ...[
             const SizedBox(height: 10),
             Row(children: [
-              field('Shot clock (s)', value.shotClock, 10, 35,
+              field(context.l10n.game_shotClockS, value.shotClock, 10, 35,
                   (n) => onChanged(value.copyWith(shotClock: n)),
-                  hint: 'FIBA / NBA 24'),
+                  hint: context.l10n.game_fibaNba24),
               const SizedBox(width: 12),
-              field('After off. rebound', value.shotClockShort, 5, 35,
+              field(context.l10n.game_afterOffRebound, value.shotClockShort, 5, 35,
                   (n) => onChanged(value.copyWith(shotClockShort: n)),
-                  hint: 'FIBA / NBA 14'),
+                  hint: context.l10n.game_fibaNba14),
             ]),
           ],
         ],
         const SizedBox(height: 8),
         Text(
           timed
-              ? 'The clock counts down each quarter and stops on every whistle. Tied at the end? Overtime, as many as it takes.'
-              : 'No clock to beat — the first team to ${value.targetScore}'
-                  '${value.winBy > 1 ? ', ahead by ${value.winBy},' : ''} wins.',
+              ? context.l10n.game_theClockCountsDownEach
+              : context.l10n.game_noClockToBeatThe(value.targetScore, (value.winBy > 1 ? ', ahead by ${value.winBy},' : '')),
           style: TextStyle(color: p.muted, fontSize: 11, height: 1.35),
         ),
       ]),

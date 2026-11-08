@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/data/events/event_models.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 class EventsRepository {
   EventsRepository(this._dio);
@@ -132,7 +133,7 @@ class EventsRepository {
     try {
       final res = await _dio.get('/api/mobile/events/$slug');
       if (res.data == null || res.data is! Map) {
-        throw ApiException('Event not found.', statusCode: 404);
+        throw ApiException(l10n.common_eventNotFound, statusCode: 404);
       }
       return EventDetail.fromJson(Map<String, dynamic>.from(res.data as Map));
     } catch (e) {
@@ -437,7 +438,7 @@ class EventsRepository {
         ),
       );
       if ((res.statusCode ?? 500) >= 300) {
-        throw ApiException('Upload failed.', statusCode: res.statusCode);
+        throw ApiException(l10n.common_uploadFailed, statusCode: res.statusCode);
       }
       return d['publicUrl'] as String;
     } catch (e) {

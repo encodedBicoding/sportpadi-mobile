@@ -15,6 +15,7 @@ import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The group OWNER's membership requests (`/groups/:id/requests`, also where
 /// the "X asked to join" notification lands): Pending, Approved and
@@ -54,7 +55,7 @@ class _MembershipRequestsScreenState
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: SpHeader(
-              title: 'Membership requests',
+              title: context.l10n.group_membershipRequests,
               subtitle: group?.name,
             ),
           ),
@@ -65,9 +66,11 @@ class _MembershipRequestsScreenState
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
               child: SpSegmented(
                 options: [
-                  pending > 0 ? 'Pending · $pending' : 'Pending',
-                  'Approved',
-                  'Declined',
+                  pending > 0
+                      ? context.l10n.group_pendingCount(pending)
+                      : context.l10n.group_pending,
+                  context.l10n.group_approved,
+                  context.l10n.group_declined,
                 ],
                 index: _tab,
                 onChanged: (i) => setState(() => _tab = i),
@@ -109,19 +112,18 @@ class _RequestsListState extends ConsumerState<_RequestsList> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(approve
-            ? 'Let ${r.displayName} join?'
-            : 'Decline ${r.displayName}’s request?'),
+            ? l10n.group_letJoin(r.displayName)
+            : l10n.group_declineSRequest(r.displayName)),
         content: Text(approve
-            ? 'They become a member of the group and are told so.'
-            : "They're told it wasn't approved, and can keep following the "
-                'group.'),
+            ? l10n.group_theyBecomeAMemberOf
+            : l10n.group_theyreToldItWasntApproved),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(l10n.group_cancel)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text(approve ? 'Approve' : 'Decline')),
+              child: Text(approve ? l10n.group_approve : l10n.group_decline2)),
         ],
       ),
     );
@@ -137,8 +139,8 @@ class _RequestsListState extends ConsumerState<_RequestsList> {
           .decide(groupId, requestId: r.id, approve: approve);
       messenger.showSnackBar(SnackBar(
           content: Text(approve
-              ? '${r.displayName} is now a member.'
-              : 'Request declined.')));
+              ? l10n.group_isNowAMember(r.displayName)
+              : l10n.group_requestDeclined)));
       // The member count on the group page.
       if (approve) container.invalidate(groupProvider(groupId));
     } catch (e) {
@@ -182,9 +184,9 @@ class _RequestsListState extends ConsumerState<_RequestsList> {
         data: (items) {
           if (items.isEmpty) {
             final (IconData icon, String text) = switch (widget.status) {
-              'approved' => (Icons.how_to_reg_outlined, 'No approved requests'),
-              'declined' => (Icons.block_rounded, 'No declined requests'),
-              _ => (Icons.inbox_outlined, 'No one is waiting to join'),
+              'approved' => (Icons.how_to_reg_outlined, context.l10n.group_noApprovedRequests),
+              'declined' => (Icons.block_rounded, context.l10n.group_noDeclinedRequests),
+              _ => (Icons.inbox_outlined, context.l10n.group_noOneIsWaitingToJoin),
             };
             return ListView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -201,8 +203,7 @@ class _RequestsListState extends ConsumerState<_RequestsList> {
                 if (widget.status == 'pending') ...[
                   const SizedBox(height: 6),
                   Text(
-                      'Followers can ask to join from the group page — '
-                      "you'll get a notification.",
+                      context.l10n.group_followersCanAskToJoin,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: p.muted, fontSize: 13)),
                 ],
@@ -316,8 +317,8 @@ class _RequestCard extends StatelessWidget {
             Expanded(
               child: Text(
                   since != null
-                      ? 'Following since ${fmtInstant(since, style: InstantStyle.date)}'
-                      : 'Not following the group',
+                      ? context.l10n.group_followingSince(fmtInstant(since, style: InstantStyle.date))
+                      : context.l10n.group_notFollowingTheGroup,
                   style: TextStyle(color: p.muted, fontSize: 12)),
             ),
             if (!r.isPending)
@@ -337,7 +338,7 @@ class _RequestCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: SpButton(
-                  label: 'Approve',
+                  label: context.l10n.group_approve,
                   icon: Icons.check_rounded,
                   tone: SpButtonTone.brand,
                   expand: true,
@@ -352,10 +353,10 @@ class _RequestCard extends StatelessWidget {
   }
 
   static String _statusLabel(String status) => switch (status) {
-        'approved' => 'Approved',
-        'declined' => 'Declined',
-        'cancelled' => 'Withdrawn',
-        _ => 'Pending',
+        'approved' => l10n.group_approved,
+        'declined' => l10n.group_declined,
+        'cancelled' => l10n.group_withdrawn,
+        _ => l10n.group_pending,
       };
 }
 
@@ -379,7 +380,7 @@ class _DeclineButton extends StatelessWidget {
             Icon(Icons.close_rounded,
                 size: 18, color: onTap != null ? p.ink : p.muted),
             const SizedBox(width: 6),
-            Text('Decline',
+            Text(context.l10n.group_decline2,
                 style: TextStyle(
                     color: onTap != null ? p.ink : p.muted,
                     fontSize: 14,
@@ -405,7 +406,7 @@ class _OwnerOnly extends StatelessWidget {
             child:
                 SpIconTile(Icons.lock_outline_rounded, size: 60, iconSize: 28)),
         const SizedBox(height: 14),
-        Text('Only the group owner can see membership requests',
+        Text(context.l10n.group_onlyTheGroupOwnerCan,
             textAlign: TextAlign.center,
             style: TextStyle(
                 color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),

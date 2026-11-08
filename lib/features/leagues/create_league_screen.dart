@@ -12,6 +12,7 @@ import 'package:sportpadi_mobile/features/leagues/league_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// New tournament → League (web CreateLeagueDialog): sport chips, format
 /// (the owner's standards for that sport), competition, season, division,
@@ -55,26 +56,26 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
     final q = ref.watch(leagueSetupProvider(widget.groupId));
     final teams = ref.watch(groupTeamsProvider(widget.groupId)).valueOrNull ?? const [];
     return SpSubPage(
-      title: 'New league',
-      subtitle: 'A season of fixtures with a live table',
+      title: context.l10n.league_newLeague,
+      subtitle: context.l10n.league_aSeasonOfFixturesWith,
       body: AsyncView(
         value: q,
         onRetry: () => ref.invalidate(leagueSetupProvider(widget.groupId)),
         data: (setup) {
           if (!setup.b('enabled')) {
-            return const Padding(
-              padding: EdgeInsets.all(20),
+            return Padding(
+              padding: const EdgeInsets.all(20),
               child: SpEmpty(
                   icon: Icons.lock_rounded,
-                  title: 'Leagues are a plan feature',
-                  text: "Your group's plan doesn't include leagues yet — upgrade to run a season."),
+                  title: context.l10n.league_leaguesAreAPlanFeature,
+                  text: context.l10n.league_yourGroupsPlanDoesntInclude),
             );
           }
           final sports = setup.list('sports');
           if (sports.isEmpty) {
-            return const Padding(
-              padding: EdgeInsets.all(20),
-              child: SpEmpty(icon: Icons.emoji_events_rounded, text: 'No league formats are available for your group yet.'),
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: SpEmpty(icon: Icons.emoji_events_rounded, text: context.l10n.league_noLeagueFormatsAreAvailable),
             );
           }
           // Default sport: the one most of the group's teams play.
@@ -101,7 +102,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
             children: [
               GlassCard(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Eyebrow('Sport'),
+                  Eyebrow(context.l10n.league_sport),
                   const SizedBox(height: 10),
                   Wrap(spacing: 8, runSpacing: 8, children: [
                     for (final s in sports)
@@ -116,7 +117,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                       ),
                   ]),
                   const SizedBox(height: 14),
-                  const Eyebrow('Format'),
+                  Eyebrow(context.l10n.league_format),
                   const SizedBox(height: 8),
                   for (final f in formats)
                     Padding(
@@ -146,52 +147,52 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                 const SizedBox(height: 14),
                 GlassCard(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                    const Eyebrow('The season'),
+                    Eyebrow(context.l10n.league_theSeason),
                     if (comps.isNotEmpty) ...[
-                      const FieldLabel('Competition'),
+                      FieldLabel(context.l10n.league_competition),
                       DropdownButtonFormField<String>(
                         key: ValueKey('comp-$sportId'),
                         initialValue: _competitionId,
                         decoration: fieldDeco(context, ''),
                         items: [
-                          const DropdownMenuItem(value: '', child: Text('New competition…')),
+                          DropdownMenuItem(value: '', child: Text(context.l10n.league_newCompetition)),
                           for (final c in comps) DropdownMenuItem(value: c.str('id'), child: Text(c.str('name'))),
                         ],
                         onChanged: (v) => setState(() => _competitionId = v ?? ''),
                       ),
                     ] else
-                      const FieldLabel('Competition'),
+                      FieldLabel(context.l10n.league_competition),
                     if (_competitionId.isEmpty) ...[
                       if (comps.isNotEmpty) const SizedBox(height: 8),
                       TextField(
                         controller: _competitionName,
                         textCapitalization: TextCapitalization.words,
-                        decoration: fieldDeco(context, 'e.g. Surrey Sunday League'),
+                        decoration: fieldDeco(context, context.l10n.league_eGSurreySundayLeague),
                         onChanged: (_) => setState(() {}),
                       ),
                     ],
-                    const FieldLabel('Season'),
+                    FieldLabel(context.l10n.league_season),
                     TextField(
                         controller: _season,
-                        decoration: fieldDeco(context, 'Fall 2026/2027'),
+                        decoration: fieldDeco(context, context.l10n.league_fall20262027),
                         onChanged: (_) => setState(() {})),
                     if (std.b('usesDivisions')) ...[
-                      const FieldLabel('Division (optional)'),
+                      FieldLabel(context.l10n.league_divisionOptional),
                       TextField(
-                          controller: _division, decoration: fieldDeco(context, 'Division 1'), onChanged: (_) => setState(() {})),
+                          controller: _division, decoration: fieldDeco(context, context.l10n.league_division1), onChanged: (_) => setState(() {})),
                     ],
                     if (std.b('usesDivisions') && std.b('usesPromotionRelegation') && _division.text.trim().isNotEmpty)
                       Row(children: [
                         Expanded(
                           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                            const FieldLabel('Go up'),
+                            FieldLabel(context.l10n.league_goUp),
                             TextField(controller: _promote, keyboardType: TextInputType.number, decoration: fieldDeco(context, '0')),
                           ]),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                            const FieldLabel('Go down'),
+                            FieldLabel(context.l10n.league_goDown),
                             TextField(controller: _relegate, keyboardType: TextInputType.number, decoration: fieldDeco(context, '0')),
                           ]),
                         ),
@@ -199,7 +200,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                     Row(children: [
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                          const FieldLabel('Starts'),
+                          FieldLabel(context.l10n.league_starts),
                           PickField(
                               text: _starts == null ? '—' : fixtureDay(ymdOf(_starts!)),
                               onTap: () async {
@@ -211,7 +212,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                          const FieldLabel('Ends'),
+                          FieldLabel(context.l10n.league_ends),
                           PickField(
                               text: _ends == null ? '—' : fixtureDay(ymdOf(_ends!)),
                               onTap: () async {
@@ -221,10 +222,10 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                         ]),
                       ),
                     ]),
-                    FieldLabel(lockRequired ? 'Roster cutoff' : 'Roster cutoff (optional)'),
+                    FieldLabel(lockRequired ? context.l10n.league_rosterCutoff2 : context.l10n.league_rosterCutoffOptional),
                     PickField(
                       icon: Icons.lock_clock_rounded,
-                      text: _lock == null ? 'No cutoff' : MaterialLocalizations.of(context).formatFullDate(_lock!),
+                      text: _lock == null ? context.l10n.league_noCutoff : MaterialLocalizations.of(context).formatFullDate(_lock!),
                       onClear: _lock == null ? null : () => setState(() => _lock = null),
                       onTap: () async {
                         final d = await pickDay(context, _lock);
@@ -233,15 +234,15 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                        "After it, coaches can't change their registered players, and each player gets a league pass you can scan to confirm they're eligible.",
+                        context.l10n.league_afterItCoachesCantChange,
                         style: TextStyle(color: p.muted, fontSize: 11.5)),
                     if (std.b('twoLegTies')) ...[
                       const SizedBox(height: 10),
                       SwitchListTile.adaptive(
                         contentPadding: EdgeInsets.zero,
-                        title: Text('Away goals rule', style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
+                        title: Text(context.l10n.league_awayGoalsRule, style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
                         subtitle: Text(
-                            'In two-leg ties level on aggregate, the side that scored more away goes through. Off: straight to extra time / penalties.',
+                            context.l10n.league_inTwoLegTiesLevel2,
                             style: TextStyle(color: p.muted, fontSize: 11.5)),
                         value: _awayGoals,
                         onChanged: (v) => setState(() => _awayGoals = v),
@@ -252,47 +253,47 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                 const SizedBox(height: 14),
                 GlassCard(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Eyebrow('Who can enter'),
+                    Eyebrow(context.l10n.league_whoCanEnter2),
                     const SizedBox(height: 10),
-                    Text('Open to', style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                    Text(context.l10n.league_openTo, style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 6),
                     Wrap(spacing: 8, runSpacing: 8, children: [
-                      for (final g in const [('any', 'Any team'), ('adults', 'Adults'), ('kids', 'Kids')])
+                      for (final g in [('any', context.l10n.league_anyTeam), ('adults', context.l10n.league_adults), ('kids', context.l10n.league_kids)])
                         ChoiceChip(label: Text(g.$2), selected: _grade == g.$1, onSelected: (_) => setState(() => _grade = g.$1)),
                     ]),
                     if (_grade == 'kids') ...[
                       const SizedBox(height: 6),
                       Wrap(spacing: 8, runSpacing: 8, children: [
                         for (final a in const [null, 12, 16, 18])
-                          ChoiceChip(label: Text(a == null ? 'Any age' : 'U$a'), selected: _maxAge == a, onSelected: (_) => setState(() => _maxAge = a)),
+                          ChoiceChip(label: Text(a == null ? context.l10n.league_anyAge : context.l10n.league_u(a)), selected: _maxAge == a, onSelected: (_) => setState(() => _maxAge = a)),
                       ]),
                     ],
                     const SizedBox(height: 12),
-                    Text('How do teams get in?', style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                    Text(context.l10n.league_howDoTeamsGetIn, style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 6),
                     Wrap(spacing: 8, children: [
-                      ChoiceChip(label: const Text('Teams I invite'), selected: !_openReg, onSelected: (_) => setState(() => _openReg = false)),
-                      ChoiceChip(label: const Text('Open registration'), selected: _openReg, onSelected: (_) => setState(() => _openReg = true)),
+                      ChoiceChip(label: Text(context.l10n.league_teamsIInvite), selected: !_openReg, onSelected: (_) => setState(() => _openReg = false)),
+                      ChoiceChip(label: Text(context.l10n.league_openRegistration), selected: _openReg, onSelected: (_) => setState(() => _openReg = true)),
                     ]),
                     const SizedBox(height: 4),
                     Text(
                         _openReg
-                            ? 'You get a registration link and a ready-to-paste "call for teams" post. You can still invite teams you know.'
-                            : 'Only teams you invite take part.',
+                            ? context.l10n.league_youGetARegistrationLink
+                            : context.l10n.league_onlyTeamsYouInviteTake,
                         style: TextStyle(color: p.muted, fontSize: 11.5)),
                     if (_openReg) ...[
                       const SizedBox(height: 12),
                       DocumentPicker(categoryId: sportId, value: _docIds, onChanged: (v) => setState(() => _docIds = v)),
                       if (_docIds.isNotEmpty) const SizedBox(height: 12),
-                      Text('Approval', style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                      Text(context.l10n.league_approval, style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 6),
                       if (_docIds.isNotEmpty)
-                        Text('Required documents mean you review each team, so approval is manual.',
+                        Text(context.l10n.league_requiredDocumentsMeanYouReview,
                             style: TextStyle(color: p.muted, fontSize: 11.5))
                       else
                         Wrap(spacing: 8, children: [
-                          ChoiceChip(label: const Text('Automatic'), selected: _approval == 'auto', onSelected: (_) => setState(() => _approval = 'auto')),
-                          ChoiceChip(label: const Text('I approve each team'), selected: _approval == 'manual', onSelected: (_) => setState(() => _approval = 'manual')),
+                          ChoiceChip(label: Text(context.l10n.league_automatic), selected: _approval == 'auto', onSelected: (_) => setState(() => _approval = 'auto')),
+                          ChoiceChip(label: Text(context.l10n.league_iApproveEachTeam), selected: _approval == 'manual', onSelected: (_) => setState(() => _approval = 'manual')),
                         ]),
                       const SizedBox(height: 12),
                       TextField(
@@ -300,9 +301,9 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                         minLines: 2,
                         maxLines: 4,
                         maxLength: 2000,
-                        decoration: const InputDecoration(
-                          labelText: 'Rules & what teams should know (optional)',
-                          hintText: 'Match days, squad size, kit, kick-off, refund policy…',
+                        decoration: InputDecoration(
+                          labelText: context.l10n.league_rulesWhatTeamsShouldKnow2,
+                          hintText: context.l10n.league_matchDaysSquadSizeKit,
                           counterText: '',
                         ),
                       ),
@@ -311,7 +312,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                 ),
                 const SizedBox(height: 18),
                 SpButton(
-                  label: _openReg ? 'Create & get link' : 'Create league',
+                  label: _openReg ? context.l10n.league_createGetLink : context.l10n.league_createLeague,
                   expand: true,
                   onTap: canSubmit
                       ? () {
@@ -355,12 +356,12 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
       ref.invalidate(groupLeaguesProvider(widget.groupId));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(_openReg ? 'League created — your registration link is ready' : 'League created — invite teams next')));
+          content: Text(_openReg ? l10n.league_leagueCreatedYourRegistrationLink : l10n.league_leagueCreatedInviteTeamsNext)));
       context.pushReplacement('/groups/${widget.groupId}/leagues/${r.str('id')}');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e is ApiException ? e.message : 'Could not create the league.')));
+          .showSnackBar(SnackBar(content: Text(e is ApiException ? e.message : l10n.league_couldNotCreateTheLeague)));
       setState(() => _busy = false);
     }
   }

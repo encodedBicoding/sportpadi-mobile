@@ -13,6 +13,7 @@ import 'package:sportpadi_mobile/features/leagues/group_team_leagues_tab.dart';
 import 'package:sportpadi_mobile/features/tournaments/tournament_modes.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// One tournament mode for a group (web `/groups/[id]/tournaments/mode/[mode]`):
 /// 1v1 friendlies, multi-team tournaments or leagues — search, filter by
@@ -43,7 +44,7 @@ class _TournamentModeScreenState extends ConsumerState<TournamentModeScreen> {
     final p = context.palette;
     final m = TMode.fromSlug(widget.mode);
     if (m == null) {
-      return const SpSubPage(title: 'Tournaments', body: Center(child: Text("That tournament mode doesn't exist.")));
+      return SpSubPage(title: context.l10n.tournament_tournaments, body: Center(child: Text(context.l10n.tournament_thatTournamentModeDoesntExist)));
     }
     final group = ref.watch(groupProvider(widget.groupId)).valueOrNull;
     final canManage = group?.canManage ?? false;
@@ -108,13 +109,18 @@ class _TournamentModeScreenState extends ConsumerState<TournamentModeScreen> {
     };
     final statuses = isLeague
         ? [
-            ('all', 'All'),
-            ('running', 'Running'),
-            ('upcoming', 'Starting soon'),
-            if (invites > 0) ('invited', 'Invitations · $invites'),
-            ('past', 'Finished'),
+            ('all', context.l10n.tournament_all),
+            ('running', context.l10n.tournament_runningLabel),
+            ('upcoming', context.l10n.tournament_startingSoon),
+            if (invites > 0) ('invited', context.l10n.tournament_invitationsCount(invites)),
+            ('past', context.l10n.tournament_finished),
           ]
-        : [('all', 'All'), ('upcoming', 'Upcoming'), ('live', 'Live'), ('past', 'Past')];
+        : [
+            ('all', context.l10n.tournament_all),
+            ('upcoming', context.l10n.tournament_upcoming),
+            ('live', context.l10n.tournament_live),
+            ('past', context.l10n.tournament_pastLabel),
+          ];
 
     Future<void> refresh() async {
       ref.invalidate(isLeague ? groupLeaguesProvider(widget.groupId) : groupTournamentsProvider(widget.groupId));
@@ -136,7 +142,7 @@ class _TournamentModeScreenState extends ConsumerState<TournamentModeScreen> {
               child: Stack(children: [
                 Positioned(right: -6, top: 0, child: Opacity(opacity: 0.9, child: ModeArt(m, width: 140))),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('TOURNAMENT MODE', style: TextStyle(color: sub, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.4)),
+                  Text(context.l10n.tournament_tournamentMode2, style: TextStyle(color: sub, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.4)),
                   const SizedBox(height: 4),
                   Text(m.title, style: TextStyle(color: fg, fontSize: 24, fontWeight: FontWeight.w800, height: 1.1)),
                   const SizedBox(height: 4),
@@ -149,9 +155,11 @@ class _TournamentModeScreenState extends ConsumerState<TournamentModeScreen> {
                   // Three counts share the width (no fixed gaps, so a phone never overflows).
                   Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                     for (final (n, label) in [
-                      (total, isLeague ? 'Seasons' : 'Total'),
-                      (live, isLeague ? 'Running' : 'Live'),
-                      isLeague && invites > 0 ? (invites, 'Invitations') : (soon, isLeague ? 'Starting soon' : 'Upcoming'),
+                      (total, isLeague ? context.l10n.tournament_seasons : context.l10n.tournament_total),
+                      (live, isLeague ? context.l10n.tournament_runningLabel : context.l10n.tournament_live),
+                      isLeague && invites > 0
+                          ? (invites, context.l10n.tournament_invitations)
+                          : (soon, isLeague ? context.l10n.tournament_startingSoon : context.l10n.tournament_upcoming),
                     ])
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -169,18 +177,17 @@ class _TournamentModeScreenState extends ConsumerState<TournamentModeScreen> {
                   if (canManage) ...[
                     const SizedBox(height: 14),
                     SpPill(
-                      label: allowed ? m.newLabel : '${isLeague ? 'Leagues' : 'Tournaments'} are a plan feature',
+                      label: allowed ? m.newLabel : context.l10n.tournament_areAPlanFeature2((isLeague ? context.l10n.tournament_leagues : context.l10n.tournament_tournaments)),
                       icon: allowed ? Icons.add_rounded : Icons.lock_outline_rounded,
                       height: 36,
                       expand: true,
                       tone: isLeague ? SpPillTone.soft : SpPillTone.ink,
                       onTap: !allowed
                           ? () => showPlanLockedDialog(context, ref, widget.groupId,
-                              title: isLeague ? "Leagues aren't enabled for this group" : "Tournaments aren't enabled for this group",
+                              title: isLeague ? context.l10n.tournament_leaguesArentEnabledForThis : context.l10n.tournament_tournamentsArentEnabledForThis,
                               body: isLeague
-                                  ? "Running leagues — seasons, fixtures, tables and promotion — isn't switched on for this group yet."
-                                  : 'Tournament events — brackets, friendlies and inviting teams from '
-                                      "other groups — aren't switched on for this group yet.",
+                                  ? context.l10n.tournament_runningLeaguesSeasonsFixturesTables
+                                  : context.l10n.tournament_tournamentEventsBracketsFriendliesAnd,
                               topic: 'tournaments')
                           : () => context.push(isLeague
                               ? '/groups/${widget.groupId}/new-league'
@@ -198,7 +205,7 @@ class _TournamentModeScreenState extends ConsumerState<TournamentModeScreen> {
               onChanged: (_) => setState(() {}),
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
-                hintText: isLeague ? 'Search competition, season or division' : 'Search title, team or sport',
+                hintText: isLeague ? context.l10n.tournament_searchCompetitionSeasonOrDivision : context.l10n.tournament_searchTitleTeamOrSport,
                 prefixIcon: Icon(Icons.search_rounded, color: p.muted),
                 filled: true,
                 fillColor: p.surface,
@@ -214,12 +221,16 @@ class _TournamentModeScreenState extends ConsumerState<TournamentModeScreen> {
                 for (final (v, label) in statuses) _Chip(label, _status == v, () => setState(() => _status = v)),
                 if (!isLeague) ...[
                   const _Divider(),
-                  for (final (v, label) in const [('all', 'Any side'), ('host', 'Hosting'), ('away', 'Away')])
+                  for (final (v, label) in [
+                    ('all', context.l10n.tournament_anySide),
+                    ('host', context.l10n.tournament_hosting),
+                    ('away', context.l10n.tournament_away),
+                  ])
                     _Chip(label, _side == v, () => setState(() => _side = v)),
                 ],
                 if (!isLeague && sports.length > 1) ...[
                   const _Divider(),
-                  _Chip('All sports', _sport == 'all', () => setState(() => _sport = 'all')),
+                  _Chip(context.l10n.tournament_allSports, _sport == 'all', () => setState(() => _sport = 'all')),
                   for (final s in sports) _Chip(s, _sport == s, () => setState(() => _sport = s)),
                 ],
               ]),
@@ -237,15 +248,17 @@ class _TournamentModeScreenState extends ConsumerState<TournamentModeScreen> {
                   const SizedBox(height: 12),
                   Text(
                       total > 0
-                          ? 'Nothing matches — try another search or filter.'
-                          : 'No ${m.plural.toLowerCase()} yet${canManage ? ' — start one with “${m.newLabel}”.' : '.'}',
+                          ? context.l10n.tournament_nothingMatchesTryAnotherSearch
+                          : (canManage
+                              ? context.l10n.tournament_noModeYetStartOne(m.plural.toLowerCase(), m.newLabel)
+                              : context.l10n.tournament_noModeYet(m.plural.toLowerCase())),
                       textAlign: TextAlign.center,
                       style: TextStyle(color: p.muted, fontSize: 13.5)),
                 ]),
               )
             else if (isLeague) ...[
               if (shownL.isNotEmpty && entryMatches > 0) ...[
-                SpSectionTitle('Organised by this group', count: shownL.length),
+                SpSectionTitle(context.l10n.tournament_organisedByThisGroup, count: shownL.length),
                 const SizedBox(height: 8),
               ],
               for (final l in shownL)
@@ -255,7 +268,7 @@ class _TournamentModeScreenState extends ConsumerState<TournamentModeScreen> {
                 ),
               if (entryMatches > 0) ...[
                 const SizedBox(height: 8),
-                SpSectionTitle('Your teams play in', count: entryMatches),
+                SpSectionTitle(context.l10n.tournament_yourTeamsPlayIn, count: entryMatches),
                 const SizedBox(height: 8),
                 GroupTeamLeaguesTab(groupId: widget.groupId, phases: entryPhases, search: _search.text, embedded: true),
               ],

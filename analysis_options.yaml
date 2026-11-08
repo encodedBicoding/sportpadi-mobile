@@ -5,6 +5,8 @@ analyzer:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
     - "lib/data/api/generated/**"
+    # gen-l10n output (namespace_key getters): generated, not hand-written.
+    - "lib/l10n/generated/**"
     - build/**
     - android/**
     - ios/**

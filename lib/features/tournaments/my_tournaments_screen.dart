@@ -16,6 +16,7 @@ import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart'
 import 'package:sportpadi_mobile/shared/widgets/team_tile.dart'
     show kitGradient;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Bottom-nav "Tournaments" tab, team first (2026): call-ups waiting for you
 /// on top, then one card per team the user plays for (or runs as a group
@@ -63,7 +64,7 @@ class MyTournamentsScreen extends ConsumerWidget {
                   // Tab title, invitations, and the side menu.
                   Row(children: [
                     Expanded(
-                      child: Text('Tournaments',
+                      child: Text(context.l10n.tournament_tournaments,
                           style: TextStyle(
                               color: p.ink,
                               fontSize: 26,
@@ -85,7 +86,7 @@ class MyTournamentsScreen extends ConsumerWidget {
                               Icon(Icons.mail_outline_rounded,
                                   size: 16, color: p.orangeInk),
                               const SizedBox(width: 5),
-                              Text('Invites · $invites',
+                              Text(context.l10n.tournament_invites2(invites),
                                   style: TextStyle(
                                       color: p.orangeInk,
                                       fontSize: 12.5,
@@ -101,7 +102,7 @@ class MyTournamentsScreen extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     teams.isEmpty
-                        ? 'Your teams\' fixtures, invites and results.'
+                        ? context.l10n.tournament_yourTeamsFixturesInvitesAnd
                         : [
                             '${teams.length} team${teams.length == 1 ? '' : 's'}',
                             if (live > 0) '$live live',
@@ -121,14 +122,14 @@ class MyTournamentsScreen extends ConsumerWidget {
                             size: 60,
                             iconSize: 28),
                         const SizedBox(height: 14),
-                        Text('No teams yet',
+                        Text(context.l10n.tournament_noTeamsYet2,
                             style: TextStyle(
                                 color: p.ink,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700)),
                         const SizedBox(height: 4),
                         Text(
-                          'Join a team in one of your groups — or build one from the group\'s Teams tab. Its tournaments show up here.',
+                          context.l10n.tournament_joinATeamInOne,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                               color: p.muted, fontSize: 13, height: 1.45),
@@ -136,7 +137,7 @@ class MyTournamentsScreen extends ConsumerWidget {
                       ]),
                     )
                   else ...[
-                    SpSectionTitle('Your teams', count: teams.length),
+                    SpSectionTitle(context.l10n.tournament_yourTeams, count: teams.length),
                     const SizedBox(height: 10),
                     for (final t in teams)
                       Padding(
@@ -312,7 +313,7 @@ class TeamSummaryCard extends StatelessWidget {
                     color: const Color(0xEBFFFFFF),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: Text(t.isAdmin ? 'You manage' : 'You play',
+                  child: Text(t.isAdmin ? context.l10n.tournament_youManage : context.l10n.tournament_youPlay,
                       style: const TextStyle(
                           color: Color(0xFF0E1411),
                           fontSize: 10.5,
@@ -362,7 +363,7 @@ class TeamSummaryCard extends StatelessWidget {
                           color: p.ink,
                           fontSize: 16,
                           fontWeight: FontWeight.w800)),
-                  Text('W-D-L',
+                  Text(context.l10n.tournament_wDL2,
                       style: TextStyle(color: p.muted, fontSize: 10.5)),
                 ]),
             ]),
@@ -380,11 +381,11 @@ class TeamSummaryCard extends StatelessWidget {
                     p.orangeTint,
                     p.orangeInk),
               if (t.callUps > 0)
-                tournamentPill('Call-up waiting', p.orangeTint, p.orangeInk),
+                tournamentPill(context.l10n.tournament_callUpWaiting, p.orangeTint, p.orangeInk),
               if (t.past > 0)
                 tournamentPill('${t.past} past', p.surface2, p.muted),
               if (t.total == 0)
-                tournamentPill('No tournaments yet', p.surface2, p.muted),
+                tournamentPill(context.l10n.tournament_noTournamentsYet, p.surface2, p.muted),
             ]),
             if (n != null) ...[
               const SizedBox(height: 12),
@@ -402,7 +403,7 @@ class TeamSummaryCard extends StatelessWidget {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(n.isLive ? 'Live now' : 'Next up',
+                          Text(n.isLive ? context.l10n.tournament_liveNow : context.l10n.tournament_nextUp,
                               style: TextStyle(
                                   color: n.isLive ? p.danger : p.muted,
                                   fontSize: 11,
@@ -458,7 +459,7 @@ class _SquadCallUpsState extends ConsumerState<SquadCallUps> {
           .respondCall(eventId, c.squadId, accept: accept);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(accept ? "You're in the squad" : 'Response sent')));
+            content: Text(accept ? l10n.tournament_youreInTheSquad : l10n.tournament_responseSent)));
       }
       ref.invalidate(myCallsProvider);
       ref.invalidate(myTournamentsProvider);
@@ -504,7 +505,7 @@ class _SquadCallUpsState extends ConsumerState<SquadCallUps> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        SpSectionTitle('Call-ups for you', count: calls.length),
+        SpSectionTitle(context.l10n.tournament_callUpsForYou, count: calls.length),
         const SizedBox(height: 10),
         for (final c in calls)
           Padding(
@@ -536,7 +537,7 @@ class _SquadCallUpsState extends ConsumerState<SquadCallUps> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(c.eventTitle ?? 'Tournament',
+                                      Text(c.eventTitle ?? context.l10n.tournament_tournament2,
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
@@ -546,8 +547,8 @@ class _SquadCallUpsState extends ConsumerState<SquadCallUps> {
                                       Text(
                                           [
                                             if (widget.teamId == null)
-                                              c.teamName ?? 'Your team',
-                                            'called ${timeAgo(c.calledAt)}',
+                                              c.teamName ?? context.l10n.tournament_yourTeam2,
+                                            context.l10n.tournament_calledAgo(timeAgo(c.calledAt)),
                                           ].join(' · '),
                                           style: TextStyle(
                                               color: p.heroMuted,
@@ -592,8 +593,8 @@ class _SquadCallUpsState extends ConsumerState<SquadCallUps> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      const Text("Coach's remark",
-                                          style: TextStyle(
+                                      Text(context.l10n.tournament_coachsRemark,
+                                          style: const TextStyle(
                                               color: Color(0xFFFFB57D),
                                               fontSize: 11.5,
                                               fontWeight: FontWeight.w700)),
@@ -608,7 +609,7 @@ class _SquadCallUpsState extends ConsumerState<SquadCallUps> {
                             ],
                             const SizedBox(height: 8),
                             Text(
-                                'Accepting locks you to this team for this tournament.',
+                                context.l10n.tournament_acceptingLocksYouToThis2,
                                 style: TextStyle(
                                     color: p.heroMuted, fontSize: 12)),
                           ]),
@@ -631,8 +632,8 @@ class _SquadCallUpsState extends ConsumerState<SquadCallUps> {
                               child: Center(
                                 child: Text(
                                     _busyId == c.squadId
-                                        ? 'Sending…'
-                                        : "I'm in",
+                                        ? context.l10n.tournament_sending
+                                        : context.l10n.tournament_imIn,
                                     style: TextStyle(
                                         color: _busyId != null
                                             ? p.heroMuted
@@ -657,7 +658,7 @@ class _SquadCallUpsState extends ConsumerState<SquadCallUps> {
                             child: SizedBox(
                               height: 48,
                               child: Center(
-                                child: Text("Can't make it",
+                                child: Text(context.l10n.tournament_cantMakeIt,
                                     style: TextStyle(
                                         color: p.onHero,
                                         fontSize: 14,

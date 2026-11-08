@@ -1,4 +1,5 @@
 import '../../shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Money formatting: minor units + exponent + ISO code → "NGN 1,500.00".
 String formatMoney(int minor, String currency, int exponent) {
@@ -217,7 +218,7 @@ class MyTicket {
       currencyExponent: parseInt(tm['currencyExponent']) ??
           parseInt(j['currencyExponent']) ??
           2,
-      title: parseStr(tm['title']) ?? 'Ticket',
+      title: parseStr(tm['title']) ?? l10n.common_ticket,
       groupName: grp is Map ? parseStr(grp['name']) : null,
       eventTitle: ev is Map ? parseStr(ev['title']) : null,
       eventDate: ev is Map ? parseDate(ev['eventDate']) : null,

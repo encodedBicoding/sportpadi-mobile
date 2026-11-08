@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/data/auth/auth_models.dart';
 import 'package:sportpadi_mobile/data/auth/auth_repository.dart';
 import 'package:sportpadi_mobile/data/auth/social_sign_in.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Settings → Sign-in methods: email + password (set one on an SSO-only
 /// account) and Google / Apple links. The last remaining way in can't be
@@ -56,14 +57,14 @@ class _SignInMethodsCardState extends ConsumerState<SignInMethodsCard> {
             accessToken: cred.accessToken,
           );
       if (!mounted) return;
-      _toast('${_label(provider)} linked.');
+      _toast(l10n.profile_linked(_label(provider)));
       await _load();
     } on SocialSignInCancelled {
       // dismissed
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast('Something went wrong. Please try again.');
+      if (mounted) _toast(l10n.profile_somethingWentWrongPleaseTry);
     } finally {
       if (mounted) setState(() => _busy = null);
     }
@@ -73,16 +74,16 @@ class _SignInMethodsCardState extends ConsumerState<SignInMethodsCard> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Remove ${_label(provider)}?'),
+        title: Text(l10n.profile_remove2(_label(provider))),
         content: Text(
-            "You won't be able to sign in with ${_label(provider)} until you link it again."),
+            l10n.profile_youWontBeAbleTo(_label(provider))),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Keep it')),
+              child: Text(l10n.profile_keepIt)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Remove')),
+              child: Text(l10n.profile_remove)),
         ],
       ),
     );
@@ -91,7 +92,7 @@ class _SignInMethodsCardState extends ConsumerState<SignInMethodsCard> {
     try {
       await ref.read(authRepositoryProvider).unlinkProvider(provider);
       if (!mounted) return;
-      _toast('${_label(provider)} unlinked.');
+      _toast(l10n.profile_unlinked2(_label(provider)));
       await _load();
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
@@ -105,35 +106,35 @@ class _SignInMethodsCardState extends ConsumerState<SignInMethodsCard> {
     final pw = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Set a password'),
+        title: Text(l10n.profile_setAPassword),
         content: TextField(
           controller: ctrl,
           obscureText: true,
           autofocus: true,
           autofillHints: const [AutofillHints.newPassword],
           decoration:
-              const InputDecoration(hintText: 'New password (8+ characters)'),
+              InputDecoration(hintText: l10n.profile_newPassword8Characters),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+              child: Text(l10n.profile_cancel)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, ctrl.text),
-              child: const Text('Save')),
+              child: Text(l10n.profile_save)),
         ],
       ),
     );
     if (pw == null || !mounted) return;
     if (pw.length < 8) {
-      _toast('At least 8 characters.');
+      _toast(l10n.profile_atLeast8Characters);
       return;
     }
     setState(() => _busy = 'password');
     try {
       await ref.read(authRepositoryProvider).setPassword(pw);
       if (!mounted) return;
-      _toast('Password set — you can now sign in with your email too.');
+      _toast(l10n.profile_passwordSetYouCanNow);
       await _load();
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
@@ -156,7 +157,7 @@ class _SignInMethodsCardState extends ConsumerState<SignInMethodsCard> {
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2, color: p.muted)),
           const SizedBox(width: 10),
-          Text(_loading ? 'Loading…' : "Couldn't load sign-in methods.",
+          Text(_loading ? context.l10n.profile_loading : context.l10n.profile_couldntLoadSignInMethods,
               style: TextStyle(color: p.muted, fontSize: 13)),
         ]),
       );
@@ -235,10 +236,10 @@ class _SignInMethodsCardState extends ConsumerState<SignInMethodsCard> {
               m.hasPassword ? Icons.mail_outline_rounded : Icons.key_rounded,
               size: 36,
               iconSize: 18),
-          title: 'Email & password',
+          title: context.l10n.profile_emailPassword,
           sub: m.hasPassword
               ? m.email
-              : 'No password yet — you sign in with ${linkedNames.isEmpty ? 'a linked account' : linkedNames}.',
+              : context.l10n.profile_noPasswordYetYouSign(linkedNames.isEmpty ? 'a linked account' : linkedNames),
           trail: m.hasPassword
               ? Container(
                   padding:
@@ -249,14 +250,14 @@ class _SignInMethodsCardState extends ConsumerState<SignInMethodsCard> {
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(Icons.lock_rounded, size: 12, color: p.greenText),
                     const SizedBox(width: 4),
-                    Text('On',
+                    Text(context.l10n.profile_onLabel,
                         style: TextStyle(
                             color: p.greenText,
                             fontSize: 11,
                             fontWeight: FontWeight.w800)),
                   ]),
                 )
-              : small('Set a password', _busy == null ? _setPassword : null,
+              : small(context.l10n.profile_setAPassword, _busy == null ? _setPassword : null,
                   busy: _busy == 'password'),
         ),
         for (final prov in providers) ...[
@@ -279,16 +280,16 @@ class _SignInMethodsCardState extends ConsumerState<SignInMethodsCard> {
             ),
             title: _label(prov),
             sub: m.linked.contains(prov)
-                ? 'Linked — sign in with one tap.'
-                : 'Link to sign in with your ${_label(prov)} account.',
+                ? context.l10n.profile_linkedSignInWithOne
+                : context.l10n.profile_linkToSignInWith(_label(prov)),
             trail: m.linked.contains(prov)
                 ? small(
-                    'Unlink',
+                    context.l10n.profile_unlink,
                     m.lastOne || _busy != null ? null : () => _unlink(prov),
                     busy: _busy == prov,
                   )
                 : canLinkHere.contains(prov)
-                    ? small('Link', _busy == null ? () => _link(prov) : null,
+                    ? small(context.l10n.profile_link, _busy == null ? () => _link(prov) : null,
                         busy: _busy == prov)
                     : const SizedBox.shrink(),
           ),
@@ -296,8 +297,8 @@ class _SignInMethodsCardState extends ConsumerState<SignInMethodsCard> {
         const SizedBox(height: 6),
         Text(
           m.lastOne
-              ? "This is your only way to sign in — set a password or link another method before removing it."
-              : 'Linking uses the email on that account; it has to match this one. You always keep at least one way to sign in.',
+              ? context.l10n.profile_thisIsYourOnlyWay
+              : context.l10n.profile_linkingUsesTheEmailOn2,
           style: TextStyle(color: p.muted, fontSize: 11.5),
         ),
       ]),

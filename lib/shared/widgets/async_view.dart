@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Renders an [AsyncValue] with consistent loading / error / data states.
 class AsyncView<T> extends StatelessWidget {
@@ -27,7 +28,7 @@ class AsyncView<T> extends StatelessWidget {
         ),
       ),
       error: (e, _) => _ErrorState(
-        message: e is ApiException ? e.message : 'Something went wrong.',
+        message: e is ApiException ? e.message : context.l10n.common_somethingWentWrong,
         detail: e is ApiException ? e.detail : '${e.runtimeType}',
         onRetry: onRetry,
       ),
@@ -71,7 +72,7 @@ class _ErrorState extends StatelessWidget {
             ],
             if (onRetry != null) ...[
               const SizedBox(height: 16),
-              OutlinedButton(onPressed: onRetry, child: const Text('Retry')),
+              OutlinedButton(onPressed: onRetry, child: Text(context.l10n.common_retry)),
             ],
           ],
         ),

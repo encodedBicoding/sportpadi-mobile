@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/core/update/app_update.dart';
 import 'package:sportpadi_mobile/data/ads/ads_repository.dart';
 import 'package:sportpadi_mobile/features/ads/promo_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Pop-up messages (docs/design/2026-redesign.md row 71): when the app opens
 /// — a cold start, a sign-in, or coming back after a long while — ask the
@@ -136,7 +137,7 @@ class _NotNow extends StatelessWidget {
         minimumSize: const Size.fromHeight(44),
       ),
       child:
-          const Text('Not now', style: TextStyle(fontWeight: FontWeight.w600)),
+          Text(context.l10n.common_notNow, style: const TextStyle(fontWeight: FontWeight.w600)),
     );
   }
 }
@@ -334,8 +335,8 @@ class _StoryState extends State<_Story> {
                     children: [
                       Text(
                         ads.length > 1
-                            ? "WHAT'S NEW · ${_i + 1} OF ${ads.length}"
-                            : "WHAT'S NEW",
+                            ? context.l10n.common_whatsNewOf(_i + 1, ads.length)
+                            : context.l10n.common_whatsNew2,
                         style: TextStyle(
                             color: p.greenText,
                             fontSize: 11,
@@ -361,7 +362,7 @@ class _StoryState extends State<_Story> {
               IconButton.filledTonal(
                 onPressed: _i == 0 ? null : () => _go(_i - 1),
                 icon: const Icon(Icons.chevron_left_rounded),
-                tooltip: 'Back',
+                tooltip: context.l10n.common_back,
               ),
             const Spacer(),
             TextButton(
@@ -369,7 +370,7 @@ class _StoryState extends State<_Story> {
                   last ? () => Navigator.of(context).pop() : () => _go(_i + 1),
               style: TextButton.styleFrom(foregroundColor: p.ink),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text(last ? 'Done' : 'Next',
+                Text(last ? context.l10n.common_done : context.l10n.common_next,
                     style: const TextStyle(fontWeight: FontWeight.w700)),
                 if (!last) const Icon(Icons.chevron_right_rounded, size: 20),
               ]),

@@ -12,6 +12,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_feed_card.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Currently-selected category filter (null = All). Client-side; the chips are
 /// derived from whatever the discover feed returns.
@@ -100,7 +101,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
               children: [
                 Text(
-                  'Sports events near you',
+                  context.l10n.browse_sportsEventsNearYou,
                   style: TextStyle(
                     color: p.ink,
                     fontSize: 22,
@@ -110,7 +111,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Browse upcoming games, show interest, and join teams.',
+                  context.l10n.browse_browseUpcomingGamesShowInterest,
                   style: TextStyle(color: p.muted, fontSize: 13),
                 ),
                 const SizedBox(height: 12),
@@ -123,7 +124,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                       scrollDirection: Axis.horizontal,
                       children: [
                         _FilterChip(
-                          label: 'All',
+                          label: context.l10n.browse_all,
                           selected: filter == null,
                           onTap: () => ref
                               .read(_discoverFilterProvider.notifier)
@@ -148,8 +149,8 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                     child: Center(
                       child: Text(
                         usingNearby
-                            ? 'No events within ${loc.radiusMiles} miles yet — widen the radius.'
-                            : 'Nothing coming up yet.',
+                            ? context.l10n.browse_noEventsWithinMilesYet(loc.radiusMiles)
+                            : context.l10n.browse_nothingComingUpYet,
                         style: TextStyle(color: p.muted),
                         textAlign: TextAlign.center,
                       ),
@@ -257,8 +258,8 @@ class _NearMeCard extends ConsumerWidget {
             Expanded(
               child: Text(
                 active
-                    ? 'Near ${state.location!.label}'
-                    : 'Find events near you',
+                    ? context.l10n.browse_near2(state.location!.label)
+                    : context.l10n.browse_findEventsNearYou,
                 style: TextStyle(
                     color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w700),
               ),
@@ -268,7 +269,7 @@ class _NearMeCard extends ConsumerWidget {
                 onTap: () => ref.read(locationProvider.notifier).clear(),
                 child: Padding(
                   padding: const EdgeInsets.all(4),
-                  child: Text('Clear',
+                  child: Text(context.l10n.browse_clear,
                       style: TextStyle(color: p.muted, fontSize: 12)),
                 ),
               ),
@@ -293,14 +294,14 @@ class _NearMeCard extends ConsumerWidget {
                           height: 18,
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: Colors.white))
-                      : const Row(
+                      : Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.navigation_rounded,
+                            const Icon(Icons.navigation_rounded,
                                 size: 16, color: Colors.white),
-                            SizedBox(width: 6),
-                            Text('Use my location',
-                                style: TextStyle(
+                            const SizedBox(width: 6),
+                            Text(context.l10n.browse_useMyLocation,
+                                style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.w700)),
@@ -318,7 +319,7 @@ class _NearMeCard extends ConsumerWidget {
                   onTap: Geolocator.openAppSettings,
                   child: Padding(
                     padding: const EdgeInsets.only(top: 4),
-                    child: Text('Open settings to enable location',
+                    child: Text(context.l10n.browse_openSettingsToEnableLocation,
                         style: TextStyle(
                             color: p.accent,
                             fontSize: 11.5,
@@ -329,7 +330,7 @@ class _NearMeCard extends ConsumerWidget {
           ] else ...[
             const SizedBox(height: 6),
             Row(children: [
-              Text('Radius', style: TextStyle(color: p.muted, fontSize: 11.5)),
+              Text(context.l10n.browse_radius, style: TextStyle(color: p.muted, fontSize: 11.5)),
               Expanded(
                 child: Slider(
                   value: state.radiusMiles.toDouble(),
@@ -340,7 +341,7 @@ class _NearMeCard extends ConsumerWidget {
                       ref.read(locationProvider.notifier).setRadius(v.round()),
                 ),
               ),
-              Text('${state.radiusMiles} mi',
+              Text(context.l10n.browse_mi(state.radiusMiles),
                   style: TextStyle(
                       color: p.ink,
                       fontSize: 11.5,

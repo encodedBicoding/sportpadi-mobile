@@ -35,6 +35,7 @@ import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Tournament page — a card-by-card port of the web page:
 /// header (badges + title + date/time/location + description), then for a
@@ -62,7 +63,7 @@ class TournamentDetailScreen extends ConsumerWidget {
       Clipboard.setData(
           ClipboardData(text: '$base/groups/$groupId/tournaments/$eventId'));
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Link copied')));
+          .showSnackBar(SnackBar(content: Text(context.l10n.tournament_linkCopied)));
     }
 
     // A pull refetches everything on the page: the tournament plus the cards
@@ -351,7 +352,7 @@ class TournamentDetailScreen extends ConsumerWidget {
               child: SpRoundButton(
                 icon: Icons.arrow_back_ios_new_rounded,
                 iconSize: 18,
-                tooltip: 'Back',
+                tooltip: context.l10n.tournament_back,
                 onTap: () =>
                     context.canPop() ? context.pop() : context.go('/home'),
               ),
@@ -429,17 +430,16 @@ class _InviteBannerState extends ConsumerState<_InviteBanner> {
       final sure = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Decline this invitation?'),
-          content: const Text(
-              "The host will be told your team isn't playing. They'd have to "
-              'invite you again to reverse it.'),
+          title: Text(l10n.tournament_declineThisInvitation),
+          content: Text(
+              l10n.tournament_theHostWillBeTold),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Keep it')),
+                child: Text(l10n.tournament_keepIt)),
             TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Decline')),
+                child: Text(l10n.tournament_decline)),
           ],
         ),
       );
@@ -459,8 +459,8 @@ class _InviteBannerState extends ConsumerState<_InviteBanner> {
         if (!paid) return;
       } else if (mounted) {
         _snack(status == 'approved'
-            ? 'Invitation accepted'
-            : 'Invitation declined');
+            ? l10n.tournament_invitationAccepted
+            : l10n.tournament_invitationDeclined);
       }
       ref.invalidate(tournamentDetailProvider(widget.eventId));
       ref.invalidate(myTournamentInvitesProvider);
@@ -484,7 +484,7 @@ class _InviteBannerState extends ConsumerState<_InviteBanner> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final teamName = parseStr(widget.invite['teamName']) ?? 'Your team';
+    final teamName = parseStr(widget.invite['teamName']) ?? context.l10n.tournament_yourTeam2;
     final fee = _fmtMoney(widget.invite['feeMinor'],
         widget.invite['feeCurrency'], widget.invite['feeCurrencyExponent']);
     final owes = fee != null && parseStr(widget.invite['feeStatus']) != 'paid';
@@ -503,7 +503,7 @@ class _InviteBannerState extends ConsumerState<_InviteBanner> {
               iconSize: 20),
           const SizedBox(width: 12),
           Expanded(
-            child: Text('$teamName is invited',
+            child: Text(context.l10n.tournament_isInvited(teamName),
                 style: TextStyle(
                     color: p.onHero,
                     fontSize: 16,
@@ -513,8 +513,8 @@ class _InviteBannerState extends ConsumerState<_InviteBanner> {
         const SizedBox(height: 8),
         Text(
           owes
-              ? "It won't appear on anyone's schedule until you accept. Accepting takes you to checkout for the $fee entry fee."
-              : "It won't appear on anyone's schedule until you accept.",
+              ? context.l10n.tournament_itWontAppearOnAnyones2(fee)
+              : context.l10n.tournament_itWontAppearOnAnyones,
           style: TextStyle(color: p.heroMuted, fontSize: 12.5, height: 1.4),
         ),
         const SizedBox(height: 14),
@@ -531,10 +531,10 @@ class _InviteBannerState extends ConsumerState<_InviteBanner> {
                   child: Center(
                     child: Text(
                         _busy
-                            ? 'Sending…'
+                            ? context.l10n.tournament_sending
                             : owes
-                                ? 'Pay $fee & accept'
-                                : 'Accept',
+                                ? context.l10n.tournament_payAccept(fee)
+                                : context.l10n.tournament_accept,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -558,7 +558,7 @@ class _InviteBannerState extends ConsumerState<_InviteBanner> {
                 child: SizedBox(
                   height: 48,
                   child: Center(
-                    child: Text('Decline',
+                    child: Text(context.l10n.tournament_decline,
                         style: TextStyle(
                             color: p.onHero,
                             fontSize: 14,
@@ -611,14 +611,14 @@ class _MySquads extends StatelessWidget {
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(parseStr(t['name']) ?? 'Your team',
+                            Text(parseStr(t['name']) ?? context.l10n.tournament_yourTeam2,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                     color: p.ink,
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700)),
-                            Text('Your squad in this tournament',
+                            Text(context.l10n.tournament_yourSquadInThisTournament,
                                 style: TextStyle(
                                     color: p.greenText, fontSize: 12)),
                           ]),
@@ -628,7 +628,7 @@ class _MySquads extends StatelessWidget {
                   Row(children: [
                     Expanded(
                       child: SpButton(
-                        label: 'Call players',
+                        label: context.l10n.tournament_callPlayersButton,
                         icon: Icons.campaign_rounded,
                         expand: true,
                         onTap: () => context.push(
@@ -638,7 +638,7 @@ class _MySquads extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: _OutlineBtn(
-                        label: 'Formation',
+                        label: context.l10n.tournament_formation,
                         icon: Icons.grid_view_rounded,
                         expand: true,
                         onTap: () => context.push(
@@ -740,10 +740,10 @@ class _HeaderCard extends StatelessWidget {
         ? Map<String, dynamic>.from(event['category'] as Map)
         : null;
     final modeLabel = mode == 'league'
-        ? 'League'
+        ? context.l10n.tournament_league
         : mode == 'multi_team'
-            ? 'Multi-team'
-            : 'Friendly';
+            ? context.l10n.tournament_multiTeam
+            : context.l10n.tournament_friendly;
     // Same as the event page: the long date, the venue clock with its zone,
     // and the viewer's own time when they're elsewhere ("9:30 AM your time").
     final when = formatEventTimeJson(event);
@@ -774,12 +774,12 @@ class _HeaderCard extends StatelessWidget {
         );
 
     final statusPill = switch (status) {
-      'live' || 'kicked_off' => pill('Live', p.liveTint, p.danger, dot: true),
-      'completed' => pill('Finished', p.surface2, p.muted),
-      'cancelled' => pill('Cancelled', p.liveTint, p.danger),
+      'live' || 'kicked_off' => pill(context.l10n.tournament_live, p.liveTint, p.danger, dot: true),
+      'completed' => pill(context.l10n.tournament_finished, p.surface2, p.muted),
+      'cancelled' => pill(context.l10n.tournament_cancelled, p.liveTint, p.danger),
       _ => pill(
           status.isEmpty
-              ? 'Upcoming'
+              ? context.l10n.tournament_upcoming
               : '${status[0].toUpperCase()}${status.substring(1)}',
           p.accentTint,
           p.greenText,
@@ -800,7 +800,7 @@ class _HeaderCard extends StatelessWidget {
           statusPill,
         ]),
         const SizedBox(height: 12),
-        Text(parseStr(event['title']) ?? 'Tournament',
+        Text(parseStr(event['title']) ?? context.l10n.tournament_tournament2,
             style: TextStyle(
                 color: p.ink,
                 fontSize: 22,
@@ -856,7 +856,7 @@ class _HeaderCard extends StatelessWidget {
         child: SpRoundButton(
           icon: canPop ? Icons.arrow_back_ios_new_rounded : Icons.home_outlined,
           iconSize: canPop ? 18 : 21,
-          tooltip: canPop ? 'Back' : 'Home',
+          tooltip: canPop ? context.l10n.tournament_back : context.l10n.tournament_home,
           onTap: () => context.canPop() ? context.pop() : context.go('/home'),
         ),
       ),
@@ -866,11 +866,11 @@ class _HeaderCard extends StatelessWidget {
         child: Row(children: [
           if (onEdit != null) ...[
             SpRoundButton(
-                icon: Icons.edit_outlined, tooltip: 'Edit', onTap: onEdit!),
+                icon: Icons.edit_outlined, tooltip: context.l10n.tournament_edit2, onTap: onEdit!),
             const SizedBox(width: 8),
           ],
           SpRoundButton(
-              icon: Icons.ios_share_rounded, tooltip: 'Share', onTap: onShare),
+              icon: Icons.ios_share_rounded, tooltip: context.l10n.tournament_share, onTap: onShare),
         ]),
       ),
       Padding(
@@ -926,7 +926,7 @@ class _MatchupCard extends ConsumerWidget {
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
               child: _TeamCol(
-                  label: neutral ? 'Home' : 'Host',
+                  label: neutral ? context.l10n.tournament_home : context.l10n.tournament_host,
                   row: hostRow,
                   eventId: eventId)),
           Padding(
@@ -949,7 +949,7 @@ class _MatchupCard extends ConsumerWidget {
           ),
           Expanded(
               child: _TeamCol(
-                  label: neutral ? 'Away' : 'Guest',
+                  label: neutral ? context.l10n.tournament_away : context.l10n.tournament_guest,
                   row: guestRow,
                   eventId: eventId)),
         ]),
@@ -968,7 +968,7 @@ class _MatchupCard extends ConsumerWidget {
             children: [
               if (homeStatus != null)
                 SpBadge(
-                  'Home: $homeStatus',
+                  context.l10n.tournament_home3(homeStatus),
                   tone: homeStatus == 'approved'
                       ? p.accent
                       : homeStatus == 'rejected'
@@ -985,11 +985,11 @@ class _MatchupCard extends ConsumerWidget {
                           : p.amber,
                 ),
               if (feeLabel != null)
-                SpBadge('Entry fee $feeLabel$feeSuffix',
+                SpBadge(context.l10n.tournament_entryFee2(feeLabel ?? '', feeSuffix),
                     icon: Icons.confirmation_num_outlined),
               if (canManage && guestFeeStatus == 'paid' && guestRowId != null)
                 _OutlineBtn(
-                  label: 'Refund fee',
+                  label: context.l10n.tournament_refundFee,
                   icon: Icons.replay_rounded,
                   tone: p.danger,
                   small: true,
@@ -998,19 +998,16 @@ class _MatchupCard extends ConsumerWidget {
                     final ok = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
-                        title: const Text('Refund this entry fee?'),
-                        content: const Text(
-                            'The team gets its entry fee back to its original '
-                            'payment method, and your group returns it in full.\n\n'
-                            "SportPadi's processing fee is non-refundable — it "
-                            "isn't returned to either side."),
+                        title: Text(l10n.tournament_refundThisEntryFee),
+                        content: Text(
+                            l10n.tournament_theTeamGetsItsEntry2),
                         actions: [
                           TextButton(
                               onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Keep it')),
+                              child: Text(l10n.tournament_keepIt)),
                           TextButton(
                               onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Refund')),
+                              child: Text(l10n.tournament_refund)),
                         ],
                       ),
                     );
@@ -1020,9 +1017,9 @@ class _MatchupCard extends ConsumerWidget {
                           .read(tournamentsRepositoryProvider)
                           .refundFee(eventId, guestRowId);
                       ref.invalidate(tournamentDetailProvider(eventId));
-                      messenger.showSnackBar(const SnackBar(
+                      messenger.showSnackBar(SnackBar(
                           content: Text(
-                              "Entry fee refunded — SportPadi's processing fee is non-refundable.")));
+                              l10n.tournament_entryFeeRefundedSportPadisProcessing)));
                     } catch (e) {
                       messenger.showSnackBar(SnackBar(content: Text('$e')));
                     }
@@ -1078,7 +1075,7 @@ class _TeamCol extends StatelessWidget {
       ),
       const SizedBox(height: 6),
       Text(
-        team != null ? (parseStr(team['name']) ?? 'TBD') : 'TBD',
+        team != null ? (parseStr(team['name']) ?? context.l10n.tournament_tbd) : context.l10n.tournament_tbd,
         textAlign: TextAlign.center,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
@@ -1104,11 +1101,7 @@ class _TeamCol extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(top: 2),
           child: Text(
-            '${played}P · ${parseInt(record?['won']) ?? 0}W '
-            '${parseInt(record?['drawn']) ?? 0}D '
-            '${parseInt(record?['lost']) ?? 0}L · '
-            '${parseInt(record?['goalsFor']) ?? 0}-'
-            '${parseInt(record?['goalsAgainst']) ?? 0}',
+            context.l10n.tournament_pWDL2(played, parseInt(record?['won']) ?? 0, parseInt(record?['drawn']) ?? 0, parseInt(record?['lost']) ?? 0, parseInt(record?['goalsFor']) ?? 0, parseInt(record?['goalsAgainst']) ?? 0),
             style: TextStyle(
                 color: p.muted, fontSize: 10, fontWeight: FontWeight.w600),
           ),
@@ -1159,7 +1152,7 @@ class _MatchSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SpSectionTitle('Match'),
+        SpSectionTitle(context.l10n.tournament_match),
         const SizedBox(height: 10),
         if (matchAsync.isLoading && match == null)
           const Padding(
@@ -1176,18 +1169,18 @@ class _MatchSection extends ConsumerWidget {
               Text(
                 guestApproved
                     ? canCreate
-                        ? 'No match game yet — create one to set the officiant and kickoff time.'
-                        : "The match game hasn't been set up yet."
+                        ? context.l10n.tournament_noMatchGameYetCreate
+                        : context.l10n.tournament_theMatchGameHasntBeen
                     : neutral
-                        ? 'The match game unlocks once both teams have accepted.'
-                        : 'The match game unlocks once the invited team accepts.',
+                        ? context.l10n.tournament_theMatchGameUnlocksOnce
+                        : context.l10n.tournament_theMatchGameUnlocksOnce2,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 13, height: 1.4),
               ),
               if (canCreate && guestApproved) ...[
                 const SizedBox(height: 14),
                 SpButton(
-                  label: 'Create match game',
+                  label: context.l10n.tournament_createMatchGame,
                   icon: Icons.flag_outlined,
                   onTap: () => _CreateMatchSheet.show(context,
                       eventId: eventId, category: category),
@@ -1272,7 +1265,7 @@ class _MatchSection extends ConsumerWidget {
                 size: 34, iconSize: 16, fg: p.greenText),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(schedule.isEmpty ? 'Time to be set' : schedule,
+              child: Text(schedule.isEmpty ? context.l10n.tournament_timeToBeSet : schedule,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -1290,7 +1283,7 @@ class _MatchSection extends ConsumerWidget {
                     initialTime: parseStr(m['scheduledTime'])),
                 child: Padding(
                   padding: const EdgeInsets.all(4),
-                  child: Text('Edit time',
+                  child: Text(context.l10n.tournament_editTime,
                       style: TextStyle(
                           color: p.greenText,
                           fontSize: 12.5,
@@ -1315,8 +1308,8 @@ class _MatchSection extends ConsumerWidget {
             Expanded(
               child: Text(
                 officiants.isEmpty
-                    ? 'Officiants'
-                    : 'Officiants · $confirmed/${officiants.length} confirmed',
+                    ? context.l10n.tournament_officiants
+                    : context.l10n.tournament_officiantsConfirmed(confirmed, officiants.length),
                 style: TextStyle(
                     color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700),
               ),
@@ -1341,7 +1334,7 @@ class _MatchSection extends ConsumerWidget {
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(Icons.add_rounded, size: 16, color: p.greenText),
                     const SizedBox(width: 2),
-                    Text('Add',
+                    Text(context.l10n.tournament_add,
                         style: TextStyle(
                             color: p.greenText,
                             fontSize: 13,
@@ -1356,8 +1349,8 @@ class _MatchSection extends ConsumerWidget {
               officiant != null
                   ? parseStr(officiant['label']) ?? '—'
                   : canAddOfficiants
-                      ? 'No one asked yet — anyone on SportPadi can officiate.'
-                      : 'No officiant assigned',
+                      ? context.l10n.tournament_noOneAskedYetAnyone
+                      : context.l10n.tournament_noOfficiantAssigned,
               style: TextStyle(color: p.muted, fontSize: 12.5),
             )
           else
@@ -1375,7 +1368,7 @@ class _MatchSection extends ConsumerWidget {
                     Icon(Icons.sports_rounded, size: 16, color: p.muted),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(parseStr(o['label']) ?? 'Officiant',
+                      child: Text(parseStr(o['label']) ?? context.l10n.tournament_officiant,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -1386,10 +1379,10 @@ class _MatchSection extends ConsumerWidget {
                     const SizedBox(width: 6),
                     SpBadge(
                       parseStr(o['status']) == 'approved'
-                          ? 'confirmed'
+                          ? context.l10n.tournament_confirmed
                           : parseStr(o['status']) == 'rejected'
-                              ? 'declined'
-                              : 'pending',
+                              ? context.l10n.tournament_declined2
+                              : context.l10n.tournament_pending,
                       tone: parseStr(o['status']) == 'approved'
                           ? p.accent
                           : parseStr(o['status']) == 'rejected'
@@ -1404,7 +1397,7 @@ class _MatchSection extends ConsumerWidget {
             Row(children: [
               Expanded(
                 child: SpButton(
-                  label: 'Accept officiating',
+                  label: context.l10n.tournament_acceptOfficiating,
                   icon: Icons.check_rounded,
                   expand: true,
                   onTap: () => act(() => ref
@@ -1415,7 +1408,7 @@ class _MatchSection extends ConsumerWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: _OutlineBtn(
-                  label: 'Decline',
+                  label: context.l10n.tournament_decline,
                   expand: true,
                   onTap: () => act(() => ref
                       .read(tournamentsRepositoryProvider)
@@ -1427,7 +1420,7 @@ class _MatchSection extends ConsumerWidget {
           if (gameId != null) ...[
             const SizedBox(height: 12),
             SpButton(
-              label: canOfficiate ? 'Open & manage match' : 'View match',
+              label: canOfficiate ? context.l10n.tournament_openManageMatch : context.l10n.tournament_viewMatch,
               icon: Icons.north_east_rounded,
               expand: true,
               onTap: () => context.push('/games/$gameId'),
@@ -1440,7 +1433,7 @@ class _MatchSection extends ConsumerWidget {
                 onTap: () => _confirmReset(context, ref),
                 child: Padding(
                   padding: const EdgeInsets.all(6),
-                  child: Text('Reset match',
+                  child: Text(context.l10n.tournament_resetMatch,
                       style: TextStyle(
                           color: p.muted,
                           fontSize: 12,
@@ -1458,17 +1451,16 @@ class _MatchSection extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Reset this match?'),
-        content: const Text(
-            'This deletes the current match game (and any recorded stats) so '
-            "you can recreate it with each team's current squad."),
+        title: Text(l10n.tournament_resetThisMatch),
+        content: Text(
+            l10n.tournament_thisDeletesTheCurrentMatch2),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Keep it')),
+              child: Text(l10n.tournament_keepIt)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Reset match')),
+              child: Text(l10n.tournament_resetMatch)),
         ],
       ),
     );
@@ -1477,9 +1469,9 @@ class _MatchSection extends ConsumerWidget {
     try {
       await ref.read(tournamentsRepositoryProvider).resetMatch(eventId);
       ref.invalidate(tournamentMatchProvider(eventId));
-      messenger.showSnackBar(const SnackBar(
+      messenger.showSnackBar(SnackBar(
           content: Text(
-              'Match reset — create it again to pull in the current squads.')));
+              l10n.tournament_matchResetCreateItAgain)));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
     }
@@ -1580,7 +1572,7 @@ class _Scoreboard extends StatelessWidget {
               Row(mainAxisSize: MainAxisSize.min, children: [
                 const LivePip(color: Color(0xFFFF8A84)),
                 const SizedBox(width: 4),
-                Text(matchClockText(clock) ?? 'LIVE',
+                Text(matchClockText(clock) ?? context.l10n.tournament_live4,
                     style: const TextStyle(
                         color: Color(0xFFFF8A84),
                         fontSize: 11,
@@ -1588,7 +1580,7 @@ class _Scoreboard extends StatelessWidget {
               ])
             else if (status == 'completed' || status == 'abandoned')
               Text(
-                status == 'completed' ? 'FULL TIME' : 'ABANDONED',
+                status == 'completed' ? context.l10n.tournament_fullTime2 : context.l10n.tournament_abandoned2,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                     color: Color(0xFF6EDC9E),
@@ -1654,7 +1646,7 @@ class _ConflictsBlock extends ConsumerWidget {
             swapInPlayerId: swapInPlayerId);
         ref.invalidate(tournamentMatchProvider(eventId));
         messenger
-            .showSnackBar(const SnackBar(content: Text('Line-up updated')));
+            .showSnackBar(SnackBar(content: Text(l10n.tournament_lineUpUpdated)));
       } catch (e) {
         messenger.showSnackBar(SnackBar(content: Text('$e')));
       }
@@ -1668,14 +1660,14 @@ class _ConflictsBlock extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Sub on…',
+            Text(l10n.tournament_subOn,
                 style: TextStyle(
                     color: p.ink, fontSize: 15, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             for (final b in bench)
               ListTile(
                 dense: true,
-                title: Text(parseStr(b['name']) ?? 'Player',
+                title: Text(parseStr(b['name']) ?? l10n.tournament_player2,
                     style: TextStyle(color: p.ink, fontSize: 14)),
                 onTap: () => Navigator.pop(ctx, parseStr(b['playerId'])),
               ),
@@ -1700,7 +1692,7 @@ class _ConflictsBlock extends ConsumerWidget {
           Icon(Icons.warning_amber_rounded, size: 16, color: p.danger),
           const SizedBox(width: 6),
           Expanded(
-            child: Text("Line-up clash — can't start",
+            child: Text(context.l10n.tournament_lineUpClashCantStart,
                 style: TextStyle(
                     color: p.danger,
                     fontSize: 13.5,
@@ -1709,8 +1701,7 @@ class _ConflictsBlock extends ConsumerWidget {
         ]),
         const SizedBox(height: 4),
         Text(
-          "A player can't start for both teams. Sub them off one team (they "
-          'stay a starter for the other) so the match can kick off.',
+          context.l10n.tournament_aPlayerCantStartFor2,
           style: TextStyle(color: p.muted, fontSize: 12),
         ),
         for (final c in conflicts) ...[
@@ -1724,7 +1715,7 @@ class _ConflictsBlock extends ConsumerWidget {
             ),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(parseStr(c['name']) ?? 'Player',
+              Text(parseStr(c['name']) ?? context.l10n.tournament_player2,
                   style: TextStyle(
                       color: p.ink,
                       fontSize: 12.5,
@@ -1732,8 +1723,7 @@ class _ConflictsBlock extends ConsumerWidget {
               if (canResolve) ...[
                 const SizedBox(height: 4),
                 Text(
-                  'Pick the team they should not play for — bench them, '
-                  'or bring a substitute on in their place.',
+                  context.l10n.tournament_pickTheTeamTheyShould2,
                   style: TextStyle(color: p.muted, fontSize: 11),
                 ),
                 for (final t in (c['teams'] is List
@@ -1760,7 +1750,7 @@ class _ConflictsBlock extends ConsumerWidget {
                       ),
                       child: Row(children: [
                         Expanded(
-                          child: Text(parseStr(t['name']) ?? 'Team',
+                          child: Text(parseStr(t['name']) ?? context.l10n.tournament_team,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -1769,7 +1759,7 @@ class _ConflictsBlock extends ConsumerWidget {
                                   fontWeight: FontWeight.w600)),
                         ),
                         _OutlineBtn(
-                          label: 'Bench',
+                          label: context.l10n.tournament_bench,
                           icon: Icons.person_remove_outlined,
                           small: true,
                           onTap: () => subOff(teamId, playerId),
@@ -1777,7 +1767,7 @@ class _ConflictsBlock extends ConsumerWidget {
                         if (bench.isNotEmpty) ...[
                           const SizedBox(width: 6),
                           _OutlineBtn(
-                            label: 'Sub on…',
+                            label: context.l10n.tournament_subOn,
                             small: true,
                             onTap: () => pickSub(teamId, playerId, bench),
                           ),
@@ -1789,12 +1779,10 @@ class _ConflictsBlock extends ConsumerWidget {
               ] else ...[
                 const SizedBox(height: 4),
                 Text(
-                  'Starting for '
-                  '${(c['teams'] is List ? [
+                  context.l10n.tournament_startingForAnAdminOr((c['teams'] is List ? [
                       for (final x in c['teams'] as List)
                         if (x is Map) parseStr((x)['name']) ?? ''
-                    ] : const <String>[]).join(' & ')}'
-                  ' — an admin or the officiant must bench them on one team.',
+                    ] : const <String>[]).join(' & ')),
                   style: TextStyle(color: p.muted, fontSize: 11),
                 ),
               ],
@@ -1835,7 +1823,7 @@ class _TeamsCard extends ConsumerWidget {
     final p = context.palette;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
-        Text('Teams',
+        Text(context.l10n.tournament_teams,
             style: TextStyle(
                 color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
         const SizedBox(width: 8),
@@ -1850,7 +1838,7 @@ class _TeamsCard extends ConsumerWidget {
         const Spacer(),
         if (canManage && !ended && rows.length < maxTeams)
           _OutlineBtn(
-            label: 'Invite team',
+            label: context.l10n.tournament_inviteTeam,
             icon: Icons.add,
             small: true,
             onTap: () => _InviteTeamSheet.show(context,
@@ -1869,7 +1857,7 @@ class _TeamsCard extends ConsumerWidget {
         GlassCard(
           padding: const EdgeInsets.all(20),
           child: Center(
-            child: Text('No teams yet.',
+            child: Text(context.l10n.tournament_noTeamsYet,
                 style: TextStyle(color: p.muted, fontSize: 13)),
           ),
         )
@@ -1905,7 +1893,7 @@ class _TeamsCard extends ConsumerWidget {
               kitPrimary: team != null ? parseStr(team['kitPrimary']) : null,
               kitSecondary:
                   team != null ? parseStr(team['kitSecondary']) : null,
-              label: team != null ? (parseStr(team['name']) ?? 'Team') : 'Team',
+              label: team != null ? (parseStr(team['name']) ?? context.l10n.tournament_team) : context.l10n.tournament_team,
               size: 44,
             ),
             const SizedBox(width: 12),
@@ -1915,8 +1903,8 @@ class _TeamsCard extends ConsumerWidget {
                   children: [
                     Text(
                       team != null
-                          ? (parseStr(team['name']) ?? 'Team')
-                          : 'Team',
+                          ? (parseStr(team['name']) ?? context.l10n.tournament_team)
+                          : context.l10n.tournament_team,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -1940,7 +1928,7 @@ class _TeamsCard extends ConsumerWidget {
             ),
             const SizedBox(width: 6),
             role == 'host'
-                ? SpBadge('Host', tone: p.orange)
+                ? SpBadge(context.l10n.tournament_host, tone: p.orange)
                 : SpBadge(
                     status == 'pending' && r['source'] == 'registration' ? 'awaiting approval' : status,
                     tone: status == 'approved'
@@ -1953,11 +1941,11 @@ class _TeamsCard extends ConsumerWidget {
               const SizedBox(width: 6),
               Text(
                 feeStatus == 'paid'
-                    ? 'paid'
+                    ? context.l10n.tournament_paid2
                     : feeStatus == 'refunded'
-                        ? 'refunded'
+                        ? context.l10n.tournament_refunded2
                         : feeStatus == 'pending'
-                            ? 'unpaid'
+                            ? context.l10n.tournament_unpaid2
                             : '',
                 style: TextStyle(color: p.muted, fontSize: 10.5),
               ),
@@ -1999,13 +1987,13 @@ class _MatchesCard extends ConsumerWidget {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
-        Text('Matches',
+        Text(context.l10n.tournament_matches,
             style: TextStyle(
                 color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
         const Spacer(),
         if (canManage && !ended && approvedPick.length >= 2)
           _OutlineBtn(
-            label: 'Create match',
+            label: context.l10n.tournament_createMatch,
             icon: Icons.add,
             small: true,
             onTap: () => _CreateMatchSheet.show(context,
@@ -2024,8 +2012,8 @@ class _MatchesCard extends ConsumerWidget {
           child: Center(
             child: Text(
               approvedPick.length >= 2
-                  ? 'No matches yet. Create one to get started.'
-                  : 'Once at least two teams have accepted, you can create matches.',
+                  ? context.l10n.tournament_noMatchesYetCreateOne
+                  : context.l10n.tournament_onceAtLeastTwoTeams,
               textAlign: TextAlign.center,
               style: TextStyle(color: p.muted, fontSize: 13, height: 1.4),
             ),
@@ -2079,7 +2067,7 @@ class _MatchesCard extends ConsumerWidget {
           logoUrl: t != null ? parseStr(t['logoUrl']) : null,
           kitPrimary: t != null ? parseStr(t['kitPrimary']) : null,
           kitSecondary: t != null ? parseStr(t['kitSecondary']) : null,
-          label: t != null ? (parseStr(t['name']) ?? 'TBD') : 'TBD',
+          label: t != null ? (parseStr(t['name']) ?? context.l10n.tournament_tbd) : context.l10n.tournament_tbd,
           size: 32,
         );
 
@@ -2105,7 +2093,7 @@ class _MatchesCard extends ConsumerWidget {
               child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                 Flexible(
                   child: Text(
-                    ht != null ? (parseStr(ht['name']) ?? 'TBD') : 'TBD',
+                    ht != null ? (parseStr(ht['name']) ?? context.l10n.tournament_tbd) : context.l10n.tournament_tbd,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -2138,14 +2126,14 @@ class _MatchesCard extends ConsumerWidget {
                   Row(mainAxisSize: MainAxisSize.min, children: [
                     LivePip(color: p.danger),
                     const SizedBox(width: 3),
-                    Text(matchClockText(g['clock']) ?? 'LIVE',
+                    Text(matchClockText(g['clock']) ?? context.l10n.tournament_live4,
                         style: TextStyle(
                             color: p.danger,
                             fontSize: 9,
                             fontWeight: FontWeight.w800)),
                   ])
                 else if (status == 'completed')
-                  Text('FT', style: TextStyle(color: p.muted, fontSize: 9)),
+                  Text(context.l10n.tournament_ft, style: TextStyle(color: p.muted, fontSize: 9)),
               ]),
             ),
             Expanded(
@@ -2154,7 +2142,7 @@ class _MatchesCard extends ConsumerWidget {
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(
-                    at != null ? (parseStr(at['name']) ?? 'TBD') : 'TBD',
+                    at != null ? (parseStr(at['name']) ?? context.l10n.tournament_tbd) : context.l10n.tournament_tbd,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -2168,7 +2156,7 @@ class _MatchesCard extends ConsumerWidget {
             if (canManage && !ended && status == 'scheduled' && gameId != null)
               IconButton(
                 visualDensity: VisualDensity.compact,
-                tooltip: 'Kick-off & venue',
+                tooltip: context.l10n.tournament_kickOffVenue,
                 icon: Icon(Icons.edit_outlined, size: 17, color: p.muted),
                 onPressed: () => _ScheduleSheet.show(context,
                     eventId: eventId,
@@ -2186,7 +2174,7 @@ class _MatchesCard extends ConsumerWidget {
                 Icon(Icons.schedule_rounded, size: 12, color: p.muted),
                 const SizedBox(width: 3),
                 Flexible(
-                  child: Text(schedule.isEmpty ? 'Kickoff TBD' : schedule,
+                  child: Text(schedule.isEmpty ? context.l10n.tournament_kickoffTbd : schedule,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: p.muted, fontSize: 11, fontWeight: FontWeight.w600)),
@@ -2200,7 +2188,7 @@ class _MatchesCard extends ConsumerWidget {
                 Icon(Icons.place_outlined, size: 12, color: p.muted),
                 const SizedBox(width: 3),
                 Flexible(
-                  child: Text(parseStr(venue['name']) ?? 'Venue',
+                  child: Text(parseStr(venue['name']) ?? context.l10n.tournament_venue,
                       maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.muted, fontSize: 11)),
                 ),
               ]),
@@ -2238,20 +2226,20 @@ class _TournamentVenuesCard extends ConsumerWidget {
       actions: VenueActions(
         add: (b) => run({'action': 'addVenue', ...b}, (r) {
           final c = n(r, 'placed');
-          return c > 0 ? 'Venue added — $c ${pluralNoun('match', c)} placed there' : 'Venue added';
+          return c > 0 ? l10n.tournament_venueAddedMatchesPlaced(c) : l10n.tournament_venueAdded;
         }),
         update: (id, b) => run({'action': 'updateVenue', 'venueId': id, ...b}, (r) {
           final c = n(r, 'updated');
-          return c > 0 ? 'Saved — $c ${pluralNoun('match', c)} updated; everyone in them was told' : 'Saved';
+          return c > 0 ? l10n.tournament_savedMatchesUpdated(c) : l10n.tournament_saved;
         }),
         archive: (id, to) => run({'action': 'archiveVenue', 'venueId': id, 'moveToVenueId': to}, (r) {
           final c = n(r, 'moved');
-          return c > 0 ? 'Moved $c ${pluralNoun('match', c)} and archived the venue' : 'Venue archived';
+          return c > 0 ? l10n.tournament_movedMatchesAndArchived(c) : l10n.tournament_venueArchived;
         }),
-        restore: (id) => run({'action': 'restoreVenue', 'venueId': id}, (_) => 'Venue restored'),
+        restore: (id) => run({'action': 'restoreVenue', 'venueId': id}, (_) => l10n.tournament_venueRestored),
         placeUnplaced: (venueId) => run({'action': 'placeMatches', 'gameIds': data.unplacedIds, 'venueId': venueId}, (r) {
           final c = n(r, 'placed');
-          return '$c ${pluralNoun('match', c)} placed';
+          return l10n.tournament_matchesPlaced(c);
         }),
       ),
     );
@@ -2282,11 +2270,11 @@ class _AwardsCard extends ConsumerWidget {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
-        Text('Awards',
+        Text(context.l10n.tournament_awards,
             style: TextStyle(
                 color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
         const Spacer(),
-        SpBadge(isFinal ? 'Final' : 'Provisional',
+        SpBadge(isFinal ? context.l10n.tournament_finalLabel : context.l10n.tournament_provisional,
             tone: isFinal ? p.accent : p.orange),
       ]),
       if (gamesCounted == 0) ...[
@@ -2297,7 +2285,7 @@ class _AwardsCard extends ConsumerWidget {
             SpIconTile(Icons.emoji_events_outlined,
                 bg: p.orangeTint, fg: p.orangeInk, size: 50, iconSize: 24),
             const SizedBox(height: 10),
-            Text('Awards appear here as match games are completed.',
+            Text(context.l10n.tournament_awardsAppearHereAsMatch,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 13)),
           ]),
@@ -2318,8 +2306,7 @@ class _AwardsCard extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
-              'These update as matches finish and are locked in when the '
-              'tournament ends.',
+              context.l10n.tournament_theseUpdateAsMatchesFinish2,
               style: TextStyle(color: p.muted, fontSize: 12, height: 1.4),
             ),
           ),
@@ -2355,7 +2342,7 @@ class _AwardsCard extends ConsumerWidget {
               style: const TextStyle(fontSize: 18)),
         ),
         const SizedBox(height: 8),
-        Text(parseStr(a['label']) ?? 'Award',
+        Text(parseStr(a['label']) ?? context.l10n.tournament_award,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -2378,7 +2365,7 @@ class _AwardsCard extends ConsumerWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: p.muted, fontSize: 11)),
         ] else
-          Text('Not enough data yet.',
+          Text(context.l10n.tournament_notEnoughDataYet,
               style: TextStyle(color: p.muted, fontSize: 12)),
       ]),
     );
@@ -2403,7 +2390,7 @@ class _ManageRow extends ConsumerWidget {
       if (!ended) ...[
         Expanded(
           child: _OutlineBtn(
-            label: 'Sell tickets',
+            label: context.l10n.tournament_sellTickets,
             icon: Icons.confirmation_number_outlined,
             expand: true,
             onTap: hostGroupId == null
@@ -2415,7 +2402,7 @@ class _ManageRow extends ConsumerWidget {
       ],
       Expanded(
         child: _OutlineBtn(
-          label: 'Cancel',
+          label: context.l10n.tournament_cancel,
           icon: Icons.delete_outline,
           tone: p.danger,
           expand: true,
@@ -2429,21 +2416,16 @@ class _ManageRow extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Cancel this tournament?'),
-        content: const Text(
-            'This cancels the tournament and its invitations. Paid ticket '
-            'holders and paid entry fees are automatically refunded to their '
-            'original payment method. This cannot be undone.\n\n'
-            "SportPadi's processing fee is non-refundable: payers get the ticket "
-            'price or entry fee back, and if your group covers the fees, the '
-            "processing fee on each payment isn't returned to your group either."),
+        title: Text(l10n.tournament_cancelThisTournament),
+        content: Text(
+            l10n.tournament_thisCancelsTheTournamentAnd2),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Keep it')),
+              child: Text(l10n.tournament_keepIt)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Cancel & refund')),
+              child: Text(l10n.tournament_cancelRefund)),
         ],
       ),
     );
@@ -2453,7 +2435,7 @@ class _ManageRow extends ConsumerWidget {
     try {
       await ref.read(tournamentsRepositoryProvider).cancelTournament(eventId);
       messenger
-          .showSnackBar(const SnackBar(content: Text('Tournament cancelled')));
+          .showSnackBar(SnackBar(content: Text(l10n.tournament_tournamentCancelled)));
       router.pop();
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
@@ -2497,18 +2479,18 @@ class _EndTournamentCard extends ConsumerWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(
           allDone
-              ? 'All ${games.length} game${games.length == 1 ? '' : 's'} are done — end the $kind'
-              : 'This $kind is still open',
+              ? context.l10n.tournament_countPluralOneAllGame2(games.length, kind)
+              : context.l10n.tournament_thisIsStillOpen2(kind),
           style: TextStyle(
               color: p.ink, fontSize: 15, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 4),
         Text(
           allDone
-              ? "Until you do, it stays on everyone's calendar as live."
+              ? context.l10n.tournament_untilYouDoItStays
               : open.isNotEmpty
-                  ? '${open.length} game${open.length == 1 ? '' : 's'} still to play. Ending now finalises live games and abandons unplayed ones.'
-                  : "Ending it marks it finished and takes it off everyone's calendar.",
+                  ? context.l10n.tournament_gamesStillToPlayEnding(open.length)
+                  : context.l10n.tournament_endingItMarksItFinished,
           style: TextStyle(
               color: allDone ? p.orangeInk : p.muted,
               fontSize: 12.5,
@@ -2516,7 +2498,7 @@ class _EndTournamentCard extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         SpButton(
-          label: 'End $kind',
+          label: context.l10n.tournament_end2(kind),
           icon: Icons.flag_outlined,
           expand: true,
           onTap: () => _confirmEnd(context, ref),
@@ -2529,21 +2511,16 @@ class _EndTournamentCard extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('End this tournament?'),
-        content: const Text(
-            "It will be marked as finished and come off everyone's calendar and active list. "
-            'Results and stats stand as they are — nothing is refunded.\n\n'
-            '• A game that is live right now is finalised at its current score.\n'
-            '• A game that never kicked off is abandoned, so it can\'t become a '
-            'phantom 0–0 on the leaderboard.\n\n'
-            "This can't be undone."),
+        title: Text(l10n.tournament_endThisTournament),
+        content: Text(
+            l10n.tournament_itWillBeMarkedAs2),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Keep it open')),
+              child: Text(l10n.tournament_keepItOpen)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('End it')),
+              child: Text(l10n.tournament_endIt)),
         ],
       ),
     );
@@ -2551,7 +2528,7 @@ class _EndTournamentCard extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(tournamentsRepositoryProvider).completeTournament(eventId);
-      messenger.showSnackBar(const SnackBar(content: Text('Tournament ended')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.tournament_tournamentEnded2)));
       ref.invalidate(tournamentDetailProvider(eventId));
       ref.invalidate(tournamentMatchProvider(eventId));
       ref.invalidate(tournamentGamesProvider(eventId));
@@ -2676,12 +2653,12 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
     if (isMulti) {
       if (_homeId == null || _awayId == null) {
         messenger
-            .showSnackBar(const SnackBar(content: Text('Pick both teams')));
+            .showSnackBar(SnackBar(content: Text(l10n.tournament_pickBothTeams)));
         return;
       }
       if (_homeId == _awayId) {
         messenger.showSnackBar(
-            const SnackBar(content: Text("A team can't play itself")));
+            SnackBar(content: Text(l10n.tournament_aTeamCantPlayItself)));
         return;
       }
     }
@@ -2718,7 +2695,7 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
       ref.invalidate(tournamentAwardsProvider(widget.eventId));
       if (mounted) Navigator.pop(context);
       messenger
-          .showSnackBar(const SnackBar(content: Text('Match game created')));
+          .showSnackBar(SnackBar(content: Text(l10n.tournament_matchGameCreated)));
     } catch (e) {
       if (mounted) setState(() => _saving = false);
       messenger.showSnackBar(SnackBar(content: Text('$e')));
@@ -2797,7 +2774,7 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
           child: DropdownButton<String>(
             value: value,
             isExpanded: true,
-            hint: Text('Choose team',
+            hint: Text(context.l10n.tournament_chooseTeam,
                 style: TextStyle(color: p.muted, fontSize: 13)),
             items: [
               for (final t in opts)
@@ -2821,22 +2798,22 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
     final p = context.palette;
     final isMulti = widget.teams != null;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const SpSheetHeader(
+      SpSheetHeader(
         icon: Icons.sports_soccer_rounded,
-        title: 'Create match game',
+        title: context.l10n.tournament_createMatchGame,
       ),
       if (isMulti) ...[
         _teamPicker(
-            'Home team', _homeId, (v) => setState(() => _homeId = v), _awayId),
+            context.l10n.tournament_homeTeam, _homeId, (v) => setState(() => _homeId = v), _awayId),
         const SizedBox(height: 10),
         _teamPicker(
-            'Away team', _awayId, (v) => setState(() => _awayId = v), _homeId),
+            context.l10n.tournament_awayTeam, _awayId, (v) => setState(() => _awayId = v), _homeId),
         const SizedBox(height: 12),
       ],
       Row(children: [
         Expanded(
           child: _OutlineBtn(
-            label: _date ?? 'Date (optional)',
+            label: _date ?? context.l10n.tournament_dateOptional,
             icon: Icons.calendar_today_outlined,
             expand: true,
             onTap: _pickDate,
@@ -2845,7 +2822,7 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
         const SizedBox(width: 8),
         Expanded(
           child: _OutlineBtn(
-            label: _time ?? 'Time (optional)',
+            label: _time ?? context.l10n.tournament_timeOptional,
             icon: Icons.schedule,
             expand: true,
             onTap: _pickTime,
@@ -2853,15 +2830,15 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
         ),
       ]),
       const SizedBox(height: 6),
-      Text('Leave blank to show "TBD". You can set it anytime before kickoff.',
+      Text(context.l10n.tournament_leaveBlankToShowTbd2,
           style: TextStyle(color: p.muted, fontSize: 11)),
       if (isMulti && widget.venues.any((v) => v.active)) ...[
         const SizedBox(height: 12),
-        Text('Venue', style: TextStyle(color: p.muted, fontSize: 12, fontWeight: FontWeight.w600)),
+        Text(context.l10n.tournament_venue, style: TextStyle(color: p.muted, fontSize: 12, fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
         VenueDropdown(venues: widget.venues, value: _venueId, onChanged: (v) => setState(() => _venueId = v)),
         const SizedBox(height: 4),
-        Text('Kick-off is local time at the venue. Move it any time before it starts.', style: TextStyle(color: p.muted, fontSize: 11)),
+        Text(context.l10n.tournament_kickOffIsLocalTime2, style: TextStyle(color: p.muted, fontSize: 11)),
       ],
       if (_isBb) ...[
         const SizedBox(height: 12),
@@ -2888,13 +2865,13 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
           ),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Match format',
+            Text(context.l10n.tournament_matchFormat,
                 style: TextStyle(
                     color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
-            _check('Play in halves', _usesHalves,
+            _check(context.l10n.tournament_playInHalves, _usesHalves,
                 (v) => setState(() => _usesHalves = v)),
-            if (_usesHalves) _numField('Minutes per half', _halfMinutes),
+            if (_usesHalves) _numField(context.l10n.tournament_minutesPerHalf, _halfMinutes),
             Container(
               margin: const EdgeInsets.only(top: 6),
               padding: const EdgeInsets.only(top: 8),
@@ -2904,20 +2881,19 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('If the match is level at full time',
+                    Text(context.l10n.tournament_ifTheMatchIsLevel,
                         style: TextStyle(
                             color: p.muted,
                             fontSize: 11.5,
                             fontWeight: FontWeight.w600)),
-                    _check('Allow extra time', _allowExtraTime,
+                    _check(context.l10n.tournament_allowExtraTime, _allowExtraTime,
                         (v) => setState(() => _allowExtraTime = v)),
                     if (_allowExtraTime)
-                      _numField('Minutes per extra-time half', _extraHalf),
-                    _check('Allow penalties', _allowPenalties,
+                      _numField(context.l10n.tournament_minutesPerExtraTimeHalf, _extraHalf),
+                    _check(context.l10n.tournament_allowPenalties, _allowPenalties,
                         (v) => setState(() => _allowPenalties = v)),
                     Text(
-                      'The officiant chooses at the draw — only the '
-                      'options you enable here are offered.',
+                      context.l10n.tournament_theOfficiantChoosesAtThe2,
                       style: TextStyle(color: p.muted, fontSize: 11),
                     ),
                   ]),
@@ -2926,7 +2902,7 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
         ),
       ],
       const SizedBox(height: 12),
-      Text('Officiants (optional, as many as you like)',
+      Text(context.l10n.tournament_officiantsOptionalAsManyAs,
           style: TextStyle(
               color: p.muted, fontSize: 12, fontWeight: FontWeight.w600)),
       const SizedBox(height: 4),
@@ -2937,12 +2913,11 @@ class _CreateMatchSheetState extends ConsumerState<_CreateMatchSheet> {
       ),
       const SizedBox(height: 4),
       Text(
-          'Anyone on SportPadi. Each person gets a request to approve '
-          'before they can run the game — you can add more later too.',
+          context.l10n.tournament_anyoneOnSportPadiEachPerson2,
           style: TextStyle(color: p.muted, fontSize: 11)),
       const SizedBox(height: 16),
       SpButton(
-        label: _saving ? 'Creating…' : 'Create',
+        label: _saving ? context.l10n.tournament_creating : context.l10n.tournament_create,
         expand: true,
         onTap: _saving ? null : _submit,
       ),
@@ -3023,8 +2998,8 @@ class _ScheduleSheetState extends ConsumerState<_ScheduleSheet> {
       if (mounted) Navigator.pop(context);
       messenger.showSnackBar(SnackBar(
           content: Text(_venueId != null && _venueId != widget.initialVenueId
-              ? 'Match moved — everyone in it was told'
-              : 'Kickoff updated')));
+              ? l10n.tournament_matchMovedEveryoneInIt
+              : l10n.tournament_kickoffUpdated)));
     } catch (e) {
       if (mounted) setState(() => _saving = false);
       messenger.showSnackBar(SnackBar(content: Text('$e')));
@@ -3039,12 +3014,12 @@ class _ScheduleSheetState extends ConsumerState<_ScheduleSheet> {
         children: [
           SpSheetHeader(
             icon: Icons.schedule_rounded,
-            title: widget.venues.any((v) => v.active) ? 'Kick-off & venue' : 'Kickoff time',
+            title: widget.venues.any((v) => v.active) ? context.l10n.tournament_kickOffVenue : context.l10n.tournament_kickoffTime,
           ),
           Row(children: [
             Expanded(
               child: _OutlineBtn(
-                label: _date ?? 'Date',
+                label: _date ?? context.l10n.tournament_date,
                 icon: Icons.calendar_today_outlined,
                 expand: true,
                 onTap: () async {
@@ -3065,7 +3040,7 @@ class _ScheduleSheetState extends ConsumerState<_ScheduleSheet> {
             const SizedBox(width: 8),
             Expanded(
               child: _OutlineBtn(
-                label: _time ?? 'Time',
+                label: _time ?? context.l10n.tournament_time,
                 icon: Icons.schedule,
                 expand: true,
                 onTap: () async {
@@ -3085,12 +3060,12 @@ class _ScheduleSheetState extends ConsumerState<_ScheduleSheet> {
             VenueDropdown(
                 venues: widget.venues,
                 value: _venueId,
-                none: widget.initialVenueId == null ? 'No venue yet' : null,
+                none: widget.initialVenueId == null ? context.l10n.tournament_noVenueYet : null,
                 onChanged: (v) => setState(() => _venueId = v)),
           ],
           const SizedBox(height: 16),
           SpButton(
-            label: _saving ? 'Saving…' : 'Save',
+            label: _saving ? context.l10n.tournament_saving : context.l10n.tournament_save,
             expand: true,
             onTap: _saving ? null : _save,
           ),
@@ -3181,7 +3156,7 @@ class _InviteTeamSheetState extends ConsumerState<_InviteTeamSheet> {
           .inviteTeam(widget.eventId, t.id);
       ref.invalidate(tournamentDetailProvider(widget.eventId));
       if (mounted) Navigator.pop(context);
-      messenger.showSnackBar(const SnackBar(content: Text('Invite sent')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.tournament_inviteSent)));
     } catch (e) {
       if (mounted) setState(() => _inviting = false);
       messenger.showSnackBar(SnackBar(content: Text('$e')));
@@ -3195,9 +3170,9 @@ class _InviteTeamSheetState extends ConsumerState<_InviteTeamSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SpSheetHeader(
+          SpSheetHeader(
             icon: Icons.group_add_outlined,
-            title: 'Invite a team',
+            title: context.l10n.tournament_inviteATeam,
           ),
           TextField(
             controller: _search,
@@ -3205,7 +3180,7 @@ class _InviteTeamSheetState extends ConsumerState<_InviteTeamSheet> {
             style: TextStyle(color: p.ink, fontSize: 13.5),
             decoration: InputDecoration(
               isDense: true,
-              hintText: 'Search team @handle or name',
+              hintText: context.l10n.tournament_searchTeamHandleOrName,
               hintStyle: TextStyle(color: p.muted, fontSize: 13),
               prefixIcon: Icon(Icons.search, size: 18, color: p.muted),
               suffixIcon: _searching
@@ -3235,7 +3210,7 @@ class _InviteTeamSheetState extends ConsumerState<_InviteTeamSheet> {
               child: _results.isEmpty
                   ? Padding(
                       padding: const EdgeInsets.all(10),
-                      child: Text('No teams found.',
+                      child: Text(context.l10n.tournament_noTeamsFound,
                           style: TextStyle(color: p.muted, fontSize: 12)),
                     )
                   : ListView(
@@ -3366,8 +3341,8 @@ class _EditTournamentSheetState extends ConsumerState<_EditTournamentSheet> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(notified > 0
-              ? 'Details saved — $notified ${notified == 1 ? 'person' : 'people'} told'
-              : 'Details saved')));
+              ? l10n.tournament_detailsSavedPeopleTold(notified)
+              : l10n.tournament_detailsSaved2)));
       Navigator.pop(context, true);
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -3412,29 +3387,29 @@ class _EditTournamentSheetState extends ConsumerState<_EditTournamentSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SpSheetHeader(
-            title: 'Edit $kind',
+            title: context.l10n.tournament_edit3(kind),
             subtitle:
-                'Title, when and where. Teams, fees and format have their own flows.',
+                context.l10n.tournament_titleWhenAndWhereTeams,
             icon: Icons.edit_outlined,
           ),
           TextField(
               controller: _title,
               maxLength: 120,
               onChanged: (_) => setState(() {}),
-              decoration: _deco(p, 'Title', 'Sunday friendly')),
+              decoration: _deco(p, context.l10n.tournament_title, context.l10n.tournament_sundayFriendly)),
           const SizedBox(height: 4),
           TextField(
               controller: _description,
               maxLength: 1000,
               maxLines: 3,
               decoration:
-                  _deco(p, 'Description', 'Format, rules, what to bring…')),
+                  _deco(p, context.l10n.tournament_description, context.l10n.tournament_formatRulesWhatToBring)),
           const SizedBox(height: 8),
           Row(children: [
             pick(
-                'Date',
+                context.l10n.tournament_date,
                 _date == null
-                    ? 'Pick a day'
+                    ? context.l10n.tournament_pickADay
                     : formatDay(DateTime.utc(_date!.year, _date!.month, _date!.day)),
                 () async {
               final picked = await showDatePicker(
@@ -3446,7 +3421,7 @@ class _EditTournamentSheetState extends ConsumerState<_EditTournamentSheet> {
               if (picked != null) setState(() => _date = picked);
             }),
             const SizedBox(width: 8),
-            pick('Starts', _start == null ? '—' : _start!.format(context),
+            pick(context.l10n.tournament_starts, _start == null ? '—' : _start!.format(context),
                 () async {
               final t = await showTimePicker(
                   context: context,
@@ -3454,7 +3429,7 @@ class _EditTournamentSheetState extends ConsumerState<_EditTournamentSheet> {
               if (t != null) setState(() => _start = t);
             }),
             const SizedBox(width: 8),
-            pick('Ends', _end == null ? '—' : _end!.format(context), () async {
+            pick(context.l10n.tournament_ends, _end == null ? '—' : _end!.format(context), () async {
               final t = await showTimePicker(
                   context: context,
                   initialTime: _end ?? const TimeOfDay(hour: 12, minute: 0));
@@ -3465,13 +3440,13 @@ class _EditTournamentSheetState extends ConsumerState<_EditTournamentSheet> {
           TextField(
               controller: _location,
               maxLength: 200,
-              decoration: _deco(p, 'Location', 'Ikeja GRA pitch')),
+              decoration: _deco(p, context.l10n.tournament_location, context.l10n.tournament_ikejaGraPitch)),
           Text(
-              'We pin it on the map; matches without a venue play here. Times are in the venue\'s zone.',
+              context.l10n.tournament_wePinItOnThe,
               style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.35)),
           const SizedBox(height: 12),
           SpButton(
-            label: _busy ? 'Saving…' : 'Save',
+            label: _busy ? context.l10n.tournament_saving : context.l10n.tournament_save,
             icon: Icons.check_rounded,
             expand: true,
             onTap: _busy || _title.text.trim().isEmpty || _date == null

@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/features/home/guest_home_screen.dart';
 import 'package:sportpadi_mobile/features/shell/home_shell.dart'
     show homeTabIndexProvider;
 import 'package:sportpadi_mobile/shared/widgets/sp_dock.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The app before an account.
 ///
@@ -113,21 +114,21 @@ class _GuestShellState extends ConsumerState<GuestShell> {
                 }
                 ref.read(homeTabIndexProvider.notifier).state = i;
               },
-              items: const [
+              items: [
                 SpDockItem(
                   icon: Icons.home_outlined,
                   selectedIcon: Icons.home_rounded,
-                  label: 'Home',
+                  label: context.l10n.common_home,
                 ),
                 SpDockItem(
                   icon: Icons.explore_outlined,
                   selectedIcon: Icons.explore_rounded,
-                  label: 'Browse',
+                  label: context.l10n.common_browse,
                 ),
                 SpDockItem(
                   icon: Icons.login_rounded,
                   selectedIcon: Icons.login_rounded,
-                  label: 'Sign in',
+                  label: context.l10n.common_signIn,
                 ),
               ],
             ),

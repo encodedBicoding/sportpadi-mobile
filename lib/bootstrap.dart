@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:sportpadi_mobile/app.dart';
 import 'package:sportpadi_mobile/core/env/app_config.dart';
+import 'package:sportpadi_mobile/core/i18n/date_locale.dart';
 import 'package:sportpadi_mobile/firebase_options.dart';
 import 'package:sportpadi_mobile/shared/format/event_time.dart';
 
@@ -28,6 +29,7 @@ Future<void> onBackgroundMessage(RemoteMessage message) async {
 /// Shared entrypoint for every flavor.
 Future<void> bootstrap(Flavor flavor) async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initDateLocales();
 
   // Firebase comes up BEFORE the first frame. It used to be initialised lazily
   // from PushService once the home shell mounted, which meant a push that

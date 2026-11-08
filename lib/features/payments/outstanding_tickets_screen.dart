@@ -12,6 +12,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Tickets the viewer still owes one group — pay one or all (web
 /// /groups/[id]/tickets/outstanding). A guardian can switch to one of their
@@ -56,9 +57,9 @@ class _OutstandingTicketsScreenState
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(status == 'paid'
                 ? (wardName == null
-                    ? 'Payment confirmed ✅'
-                    : 'Payment confirmed ✅ — $wardName holds the tickets.')
-                : 'Payment $status — pull to refresh in a moment.')));
+                    ? l10n.wallet_paymentConfirmed
+                    : l10n.wallet_paymentConfirmedHoldsTheTickets(wardName))
+                : l10n.wallet_paymentPullToRefreshIn(status))));
         ref.invalidate(outstandingTicketsProvider(key));
         ref.invalidate(myTicketsProvider);
       }
@@ -80,10 +81,10 @@ class _OutstandingTicketsScreenState
   ({String text, bool next})? _cycleLine(OutstandingTicket t) {
     final from = t.validFrom;
     if (from != null && isFutureInstant(from)) {
-      return (text: 'Next cycle · starts ${shortDay(from)}', next: true);
+      return (text: l10n.wallet_nextCycleStartsOn(shortDay(from)), next: true);
     }
     final range = validityRange(t.validFrom, t.validUntil);
-    return range == null ? null : (text: 'Valid $range', next: false);
+    return range == null ? null : (text: l10n.wallet_validRange(range), next: false);
   }
 
   @override
@@ -103,15 +104,15 @@ class _OutstandingTicketsScreenState
         leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
-        title: const Text('Outstanding tickets',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        title: Text(context.l10n.wallet_outstandingTickets,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
       ),
       body: Column(children: [
         if (wards.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Row(children: [
-              Text('For',
+              Text(context.l10n.wallet_forLabel,
                   style: TextStyle(
                       color: p.muted,
                       fontSize: 13,
@@ -161,8 +162,8 @@ class _OutstandingTicketsScreenState
                     Center(
                       child: Text(
                           wardName == null
-                              ? 'All settled 🎉'
-                              : '$wardName is all settled 🎉',
+                              ? context.l10n.wallet_allSettled
+                              : context.l10n.wallet_isAllSettled(wardName),
                           style: TextStyle(color: p.muted)),
                     ),
                   ]);
@@ -175,8 +176,7 @@ class _OutstandingTicketsScreenState
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Text(
-                          "You pay, $wardName holds the tickets — their QR "
-                          'shows under your purchases.',
+                          context.l10n.wallet_youPayHoldsTheTickets(wardName),
                           style: TextStyle(color: p.muted, fontSize: 12.5),
                         ),
                       ),
@@ -225,7 +225,7 @@ class _OutstandingTicketsScreenState
                             ),
                             const SizedBox(width: 8),
                             SpButton(
-                              label: 'Pay',
+                              label: context.l10n.wallet_pay2,
                               onTap: _busy
                                   ? null
                                   : () => _pay([t.id], wardName: wardName),
@@ -236,7 +236,7 @@ class _OutstandingTicketsScreenState
                     if (s.outstanding.length > 1)
                       SpButton(
                         label:
-                            'Pay all (${formatMoney(s.outstanding.fold<int>(0, (a, t) => a + t.priceMinor), s.currency, s.currencyExponent)} + fees)',
+                            context.l10n.wallet_payAllFees(formatMoney(s.outstanding.fold<int>(0, (a, t) => a + t.priceMinor), s.currency, s.currencyExponent)),
                         expand: true,
                         onTap: _busy
                             ? null

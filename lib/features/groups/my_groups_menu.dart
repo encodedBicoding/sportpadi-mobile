@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/groups/groups_repository.dart'
     show groupInvitationCountProvider;
@@ -25,6 +26,7 @@ class MyGroupsMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
+    final l = context.l10n;
     final groups = ref.watch(myGroupsProvider);
     final invites = ref.watch(groupInvitationCountProvider).valueOrNull ?? 0;
     final all = groups.valueOrNull ?? const [];
@@ -87,15 +89,15 @@ class MyGroupsMenu extends ConsumerWidget {
       if (groups.isLoading && all.isEmpty)
         Padding(
           padding: const EdgeInsets.all(12),
-          child: Text('Loading your groups…',
+          child: Text(l.groups_loading,
               style: TextStyle(color: p.muted, fontSize: 13)),
         )
       else if (all.isEmpty)
         row(
           leading: SpIconTile(Icons.groups_outlined,
               size: 38, iconSize: 19, bg: p.accentTint, fg: p.greenText),
-          title: "You're not in a group yet",
-          sub: 'Find one on Browse',
+          title: l.groups_notInAGroup,
+          sub: l.groups_findOneOnBrowse,
           dest: 'tab:1',
         ),
       for (final g in head)
@@ -106,9 +108,8 @@ class MyGroupsMenu extends ConsumerWidget {
           ),
           title: g.name,
           sub: [
-            if (g.role == 'admin') 'Admin',
-            if (g.memberCount != null)
-              '${g.memberCount} member${g.memberCount == 1 ? '' : 's'}',
+            if (g.role == 'admin') l.groups_admin,
+            if (g.memberCount != null) l.groups_members(g.memberCount!),
           ].join(' · '),
           dest: '/groups/${g.id}',
         ),
@@ -116,15 +117,15 @@ class MyGroupsMenu extends ConsumerWidget {
         row(
           leading: SpIconTile(Icons.groups_outlined,
               size: 38, iconSize: 19, bg: p.surface2, fg: p.muted),
-          title: 'See all ${all.length} groups',
+          title: l.groups_seeAll(all.length),
           dest: '/groups',
         ),
       // New group: the menu closes and /groups opens with the create sheet up.
       row(
         leading: SpIconTile(Icons.add_rounded,
             size: 38, iconSize: 20, bg: p.hero, fg: p.onHero),
-        title: 'New group',
-        sub: 'Start a club, league or community',
+        title: l.groups_newGroup,
+        sub: l.groups_newGroupSub,
         dest: '/groups?create=1',
       ),
       row(
@@ -133,10 +134,8 @@ class MyGroupsMenu extends ConsumerWidget {
             iconSize: 19,
             bg: invites > 0 ? p.orangeTint : p.surface2,
             fg: invites > 0 ? p.orangeInk : p.muted),
-        title: 'Group invites',
-        sub: invites > 0
-            ? '$invites group${invites == 1 ? '' : 's'} invited you'
-            : 'Groups that have invited you',
+        title: l.groups_invites,
+        sub: invites > 0 ? l.groups_invitedYou(invites) : l.groups_invitesSub,
         badge: invites,
         dest: '/groups?tab=invites',
       ),

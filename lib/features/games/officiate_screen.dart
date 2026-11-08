@@ -17,6 +17,7 @@ import 'package:sportpadi_mobile/features/games/basketball_widgets.dart';
 import 'package:sportpadi_mobile/features/games/timeout_widgets.dart';
 import 'package:sportpadi_mobile/features/games/volleyball_widgets.dart';
 import 'package:sportpadi_mobile/features/games/stoppage_pad.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Officiant mode — one job, one screen.
 ///
@@ -209,7 +210,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) {
-          _snack('Officiant mode is on — press and hold Exit to leave.');
+          _snack(context.l10n.game_officiantModeIsOnPress);
         }
       },
       child: Scaffold(
@@ -220,16 +221,16 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
             loading: () =>
                 const Center(child: CircularProgressIndicator(color: _white)),
             error: (e, _) => _message(
-              'Couldn\'t load the game',
+              context.l10n.game_couldntLoadTheGame,
               '$e',
             ),
             data: (g) {
               if (!g.canTime) {
                 return _message(
-                  'Officiant mode is for the timekeeper',
+                  context.l10n.game_officiantModeIsForThe,
                   g.officiating.role == 'scorer'
-                      ? 'You\'re the scorer on this game — record the stats from the game page.'
-                      : 'Only group admins and this game\'s timekeeper can run the clock.',
+                      ? context.l10n.game_youreTheScorerOnThis
+                      : context.l10n.game_onlyGroupAdminsAndThis,
                 );
               }
               WidgetsBinding.instance.addPostFrameCallback((_) => _autoEnd(g));
@@ -258,7 +259,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                 style: const TextStyle(color: _dim, fontSize: 13.5)),
             const SizedBox(height: 20),
             _BigButton(
-              label: 'Back to the game',
+              label: context.l10n.game_backToTheGame,
               color: _white,
               textColor: _bg,
               height: 52,
@@ -365,7 +366,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  '⏱️ OFFICIANT MODE${g.categoryName != null ? ' · ${g.categoryName!.toUpperCase()}' : ''}',
+                  context.l10n.game_officiantMode2((g.categoryName != null ? ' · ${g.categoryName!.toUpperCase()}' : '')),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -378,22 +379,22 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
             ),
             const SizedBox(width: 10),
             _HoldButton(
-              label: 'Hold to exit',
-              holdingLabel: 'Keep holding…',
+              label: context.l10n.game_holdToExit,
+              holdingLabel: context.l10n.game_keepHolding,
               onConfirmed: _exit,
             ),
           ]),
           if (Platform.isIOS && !over) ...[
             const SizedBox(height: 6),
-            const Text(
-              'Tip: triple-click the side button for Guided Access to keep SportPadi locked on screen.',
-              style: TextStyle(color: _dim, fontSize: 11),
+            Text(
+              context.l10n.game_tipTripleClickTheSide,
+              style: const TextStyle(color: _dim, fontSize: 11),
             ),
           ] else if (Platform.isAndroid && _pinned && !over) ...[
             const SizedBox(height: 6),
-            const Text(
-              'SportPadi is pinned — Home and Recents are off until you exit.',
-              style: TextStyle(color: _dim, fontSize: 11),
+            Text(
+              context.l10n.game_sportPadiIsPinnedHomeAnd,
+              style: const TextStyle(color: _dim, fontSize: 11),
             ),
           ],
           const SizedBox(height: 12),
@@ -425,7 +426,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                           fontWeight: FontWeight.w900,
                           fontFeatures: [FontFeature.tabularFigures()])),
                   if (vbPts != null && vb != null)
-                    Text('SET ${vb.currentSet} · SETS ${a.score}–${b.score}',
+                    Text(context.l10n.game_setSets2(vb.currentSet, a.score, b.score),
                         style: const TextStyle(
                             color: _dim,
                             fontSize: 9.5,
@@ -453,18 +454,18 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
               children: [
                 Text(
                   (g.isScheduled
-                          ? 'Ready'
+                          ? context.l10n.game_ready
                           : over
-                              ? (bb != null ? 'Final' : 'Full time')
+                              ? (bb != null ? context.l10n.game_finalLabel2 : context.l10n.game_fullTime2)
                               : bb != null && bb.rules.isTarget
-                                  ? 'First to ${bb.rules.targetScore}'
+                                  ? context.l10n.game_firstTo(bb.rules.targetScore)
                                   : vb != null
-                                      ? 'Set ${vb.currentSet} · ${paused ? 'break' : 'elapsed'}'
+                                      ? context.l10n.game_set(vb.currentSet, paused ? context.l10n.game_break : context.l10n.game_elapsed2)
                                       : label.isNotEmpty
                                           ? label
                                           : prof.clock == 'elapsed'
-                                              ? 'Elapsed'
-                                              : 'Match time')
+                                              ? context.l10n.game_elapsed
+                                              : context.l10n.game_matchTime)
                       .toUpperCase(),
                   style: const TextStyle(
                       color: _dim,
@@ -498,7 +499,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                 const SizedBox(height: 8),
                 Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   if (targetMs != null && !g.isScheduled)
-                    Text('of ${_fmt(targetMs)}',
+                    Text(context.l10n.game_of(_fmt(targetMs)),
                         style: const TextStyle(color: _dim, fontSize: 14)),
                   if (stoppage > 0) ...[
                     const SizedBox(width: 8),
@@ -514,8 +515,8 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                               ref.watch(authControllerProvider
                                   .select((s) => s.valueOrNull?.user?.id)),
                               base: prof.pauseLabel == 'Stop clock'
-                                  ? 'Clock stopped'
-                                  : 'Paused'),
+                                  ? context.l10n.game_clockStopped
+                                  : context.l10n.game_paused),
                           color: _white),
                     ),
                   ],
@@ -533,8 +534,8 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                 ],
                 if (pensAdded && g.isLive) ...[
                   const SizedBox(height: 10),
-                  const Text('Penalty shootout — the scorer records each kick.',
-                      style: TextStyle(color: _dim, fontSize: 13)),
+                  Text(context.l10n.game_penaltyShootoutTheScorerRecords,
+                      style: const TextStyle(color: _dim, fontSize: 13)),
                 ],
               ],
             ),
@@ -544,10 +545,10 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
           if (g.isScheduled)
             _BigButton(
               label: bb != null
-                  ? 'Tip off'
+                  ? context.l10n.game_tipOff
                   : vb != null
-                      ? 'First serve'
-                      : 'Kick off',
+                      ? context.l10n.game_firstServe
+                      : context.l10n.game_kickOff2,
               icon: Icons.play_arrow_rounded,
               color: _green,
               textColor: _bg,
@@ -572,7 +573,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
               vb.currentSetDecided &&
               vb.currentSet < vb.rules.bestOf) ...[
             _BigButton(
-              label: 'Start set ${vb.currentSet + 1}',
+              label: context.l10n.game_startSet2(vb.currentSet + 1),
               icon: Icons.play_arrow_rounded,
               color: _green,
               textColor: _bg,
@@ -586,7 +587,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
           ],
           if (vb != null && g.isLive && vb.switchSidesDue) ...[
             _BigButton(
-              label: 'Change ends — tap when done',
+              label: context.l10n.game_changeEndsTapWhenDone,
               icon: Icons.swap_horiz_rounded,
               color: _amber,
               textColor: _bg,
@@ -630,7 +631,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
           if (lc != null && g.isLive) ...[
             if (inTimed && prof.has('periods')) ...[
               _BigButton(
-                label: 'End ${ph.label}',
+                label: context.l10n.game_end2(ph.label),
                 icon: Icons.flag_rounded,
                 color: _faint,
                 textColor: _white,
@@ -643,7 +644,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
             ],
             if (!inTimed && next != null) ...[
               _BigButton(
-                label: 'Start ${next.label}',
+                label: context.l10n.game_start5(next.label),
                 icon: Icons.play_arrow_rounded,
                 color: _green,
                 textColor: _bg,
@@ -658,7 +659,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
             if (awaitingDraw) ...[
               if (draws.contains('overtime')) ...[
                 _BigButton(
-                  label: 'Tied — play overtime',
+                  label: context.l10n.game_tiedPlayOvertime,
                   icon: Icons.timer_outlined,
                   color: _green,
                   textColor: _bg,
@@ -675,7 +676,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                 if (draws.contains('extra_time') && !etAdded)
                   Expanded(
                     child: _BigButton(
-                      label: 'Extra time',
+                      label: context.l10n.game_extraTime,
                       icon: Icons.timer_outlined,
                       color: _white,
                       textColor: _bg,
@@ -693,7 +694,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
                 if (draws.contains('penalties'))
                   Expanded(
                     child: _BigButton(
-                      label: 'Penalties',
+                      label: context.l10n.game_penalties2,
                       icon: Icons.sports_soccer_rounded,
                       color: _faint,
                       textColor: _white,
@@ -707,8 +708,8 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
               ]),
               const SizedBox(height: 8),
               _HoldButton(
-                label: 'Hold to end as a draw',
-                holdingLabel: 'Keep holding…',
+                label: context.l10n.game_holdToEndAsA,
+                holdingLabel: context.l10n.game_keepHolding,
                 expand: true,
                 onConfirmed: () => _run(() => _repo.complete(widget.gameId)),
               ),
@@ -718,11 +719,11 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
           if (showFullTime && prof.has('complete'))
             _HoldButton(
               label: bb != null
-                  ? 'Hold to end the game'
+                  ? context.l10n.game_holdToEndTheGame
                   : vb != null
-                      ? 'Hold to end the match'
-                      : 'Hold for full time',
-              holdingLabel: 'Keep holding…',
+                      ? context.l10n.game_holdToEndTheMatch
+                      : context.l10n.game_holdForFullTime,
+              holdingLabel: context.l10n.game_keepHolding,
               expand: true,
               color: _red,
               onConfirmed: () => _run(() => _repo.complete(widget.gameId)),
@@ -730,7 +731,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
           if (vbWinner != null && g.isLive) ...[
             const SizedBox(height: 8),
             Text(
-              '🏁 ${vbWinner.name} won the match — hold to end it.',
+              context.l10n.game_wonTheMatchHoldTo(vbWinner.name),
               textAlign: TextAlign.center,
               style: const TextStyle(
                   color: _green, fontSize: 13, fontWeight: FontWeight.w700),
@@ -739,7 +740,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
           if (targetWinner != null && g.isLive) ...[
             const SizedBox(height: 8),
             Text(
-              '🏁 ${targetWinner.name} reached ${bb!.rules.targetScore} — hold to end the game.',
+              context.l10n.game_reachedHoldToEndThe2(targetWinner.name, bb!.rules.targetScore),
               textAlign: TextAlign.center,
               style: const TextStyle(
                   color: _green, fontSize: 13, fontWeight: FontWeight.w700),
@@ -747,7 +748,7 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
           ],
           if (over)
             _BigButton(
-              label: 'Done — back to the game',
+              label: context.l10n.game_doneBackToTheGame,
               color: _white,
               textColor: _bg,
               height: 56,
@@ -757,8 +758,8 @@ class _OfficiateScreenState extends ConsumerState<OfficiateScreen>
             const SizedBox(height: 8),
             Text(
               g.canScore
-                  ? 'Stats are recorded from the game page — or hand them to a scorer.'
-                  : 'The scorer records the stats — you just keep time.',
+                  ? context.l10n.game_statsAreRecordedFromThe
+                  : context.l10n.game_theScorerRecordsTheStats,
               textAlign: TextAlign.center,
               style: const TextStyle(color: Color(0x66FFFFFF), fontSize: 11),
             ),

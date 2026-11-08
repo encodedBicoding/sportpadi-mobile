@@ -1,4 +1,5 @@
 import '../../shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Kids teams' age groups ("Under N") — a guide shown on the team and in the
 /// add-player list, not a gate (docs/design/2026-redesign.md row 77).
@@ -11,8 +12,8 @@ int? _ageLimit(dynamic v) {
 
 /// "Kids · U12", "Kids", "Adults".
 String teamGradeLabel(String? grade, int? ageLimit) {
-  if (grade == 'kids') return ageLimit != null ? 'Kids · U$ageLimit' : 'Kids';
-  return 'Adults';
+  if (grade == 'kids') return ageLimit != null ? l10n.common_kidsU(ageLimit) : l10n.common_kids;
+  return l10n.common_adults;
 }
 
 class TeamSummary {
@@ -543,10 +544,10 @@ class AddMemberResult {
   /// The snackbar line for a ward invitation (null for a direct add).
   String? get wardMessage {
     if (!pendingWardInvite) return null;
-    if (alreadyInvited) return 'Already invited — waiting for a guardian.';
+    if (alreadyInvited) return l10n.common_alreadyInvitedWaitingForA;
     final who = wardName ?? 'their';
     final owner = wardName == null ? who : "$who's";
-    return 'Invitation sent to $owner guardian${guardians == 1 ? '' : 's'}.';
+    return l10n.common_countPluralOneInvitationSent(guardians, owner);
   }
 
   factory AddMemberResult.fromJson(Map<String, dynamic> j) => AddMemberResult(

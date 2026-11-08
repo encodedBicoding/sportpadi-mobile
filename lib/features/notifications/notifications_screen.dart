@@ -14,6 +14,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// `notifications.type = 'announcement'` is SportPadi's own platform news
 /// (owner broadcasts). Group announcements live in the Inbox; these must
@@ -22,7 +23,7 @@ bool isSportPadiNews(AppNotification n) => n.type == 'announcement';
 
 /// The small kind label shown beside the time, when a kind has one.
 String? notificationKindLabel(AppNotification n) =>
-    isSportPadiNews(n) ? 'SportPadi news' : null;
+    isSportPadiNews(n) ? l10n.inbox_sportPadiNews : null;
 
 /// How a notification looks in the list: an icon and its tile colours,
 /// picked from its type and title. Unknown kinds get a quiet bell.
@@ -166,16 +167,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   /// Today / Yesterday / This week / Earlier, on the viewer's own clock.
   static String _bucket(DateTime? at, DateTime now) {
-    if (at == null) return 'Earlier';
+    if (at == null) return l10n.inbox_earlier;
     // Whole calendar days between the two, on the viewer's calendar (UTC
     // midnights, so a DST change can't shave an hour off a day).
     final diff = DateTime.parse('${dayKey(now)}T00:00:00Z')
         .difference(DateTime.parse('${dayKey(at)}T00:00:00Z'))
         .inDays;
-    if (diff <= 0) return 'Today';
-    if (diff == 1) return 'Yesterday';
-    if (diff < 7) return 'This week';
-    return 'Earlier';
+    if (diff <= 0) return l10n.inbox_today;
+    if (diff == 1) return l10n.inbox_yesterday;
+    if (diff < 7) return l10n.inbox_thisWeek;
+    return l10n.inbox_earlier;
   }
 
   @override
@@ -194,8 +195,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: SpHeader(
-              title: 'Notifications',
-              subtitle: unread > 0 ? '$unread unread' : null,
+              title: context.l10n.inbox_notifications,
+              subtitle: unread > 0 ? context.l10n.inbox_unread6(unread) : null,
               actions: [
                 if (unread > 0)
                   TextButton(
@@ -204,7 +205,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                         foregroundColor: p.greenText,
                         textStyle: const TextStyle(
                             fontSize: 13, fontWeight: FontWeight.w700)),
-                    child: const Text('Mark all read'),
+                    child: Text(context.l10n.inbox_markAllRead),
                   ),
               ],
             ),
@@ -213,7 +214,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
             child: SpSegmented(
-              options: ['All', unread > 0 ? 'Unread · $unread' : 'Unread'],
+              options: [
+                context.l10n.inbox_all,
+                unread > 0
+                    ? context.l10n.inbox_unread4(unread)
+                    : context.l10n.inbox_unread2,
+              ],
               index: _unreadOnly ? 1 : 0,
               onChanged: (i) => setState(() => _unreadOnly = i == 1),
             ),
@@ -254,8 +260,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                         const SizedBox(height: 14),
                         Text(
                             _unreadOnly
-                                ? 'You\'re all caught up'
-                                : 'No notifications yet',
+                                ? context.l10n.inbox_youreAllCaughtUp
+                                : context.l10n.inbox_noNotificationsYet,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                                 color: p.ink,
@@ -264,8 +270,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                         const SizedBox(height: 4),
                         Text(
                             _unreadOnly
-                                ? 'Nothing new since you last looked.'
-                                : 'Game reminders, invites and results will show up here.',
+                                ? context.l10n.inbox_nothingNewSinceYouLast
+                                : context.l10n.inbox_gameRemindersInvitesAndResults,
                             textAlign: TextAlign.center,
                             style: TextStyle(color: p.muted, fontSize: 13)),
                       ],
@@ -398,7 +404,7 @@ class NotificationDetailScreen extends ConsumerWidget {
               children: [
                 SpHeader(
                     title:
-                        isSportPadiNews(n) ? 'SportPadi news' : 'Notification'),
+                        isSportPadiNews(n) ? context.l10n.inbox_sportPadiNews : context.l10n.inbox_notification),
                 const SizedBox(height: 18),
                 GlassCard(
                   padding: const EdgeInsets.all(20),
@@ -431,7 +437,7 @@ class NotificationDetailScreen extends ConsumerWidget {
                             style: TextStyle(
                                 color: p.ink, fontSize: 15, height: 1.6))
                       else
-                        Text('No further details.',
+                        Text(context.l10n.inbox_noFurtherDetails,
                             style: TextStyle(color: p.muted, fontSize: 13)),
                     ],
                   ),
@@ -446,7 +452,7 @@ class NotificationDetailScreen extends ConsumerWidget {
               // or the browser for a web-only / external page. SpButton, not
               // FilledButton.icon (semantics assertion — see SpButton).
               child: SpButton(
-                label: 'Open',
+                label: context.l10n.inbox_open,
                 icon: Icons.north_east_rounded,
                 expand: true,
                 onTap: () => openNotificationTarget(ref, n.url),

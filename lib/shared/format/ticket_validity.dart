@@ -1,6 +1,8 @@
 import 'package:intl/intl.dart';
+import 'package:sportpadi_mobile/core/i18n/date_locale.dart';
 
 import 'package:sportpadi_mobile/shared/format/instant.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Recurring-ticket VALIDITY helpers — the Dart half of the web's
 /// `apps/web/src/lib/ticketValidity.ts`.
@@ -25,15 +27,15 @@ String cycleUnit(String recurrence) => switch (recurrence) {
 
 /// "Monthly pass" — a recurring ticket covers every occurrence in its cycle.
 String? passLabel(String recurrence) => switch (recurrence) {
-      'weekly' => 'Weekly pass',
-      'monthly' => 'Monthly pass',
-      'quarterly' => 'Quarterly pass',
-      'yearly' => 'Yearly pass',
+      'weekly' => l10n.common_weeklyPass,
+      'monthly' => l10n.common_monthlyPass,
+      'quarterly' => l10n.common_quarterlyPass,
+      'yearly' => l10n.common_yearlyPass,
       _ => null,
     };
 
-final _monthDay = DateFormat('MMM d', 'en_US');
-final _monthDayYear = DateFormat('MMM d, y', 'en_US');
+DateFormat get _monthDay => DateFormat('MMM d', spDateLocale);
+DateFormat get _monthDayYear => DateFormat('MMM d, y', spDateLocale);
 
 String _wallDay(DateTime wall) => wall.year == inViewerZone(DateTime.now()).year
     ? _monthDay.format(wall)

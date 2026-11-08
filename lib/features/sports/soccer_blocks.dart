@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/sports/sport_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Soccer ⚽ — a league-table row, then attack / discipline / starts.
 
@@ -18,11 +19,11 @@ class SoccerRecord extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final cells = <(String, String, Color, Color)>[
-      ('P', '${nums.games}', p.surface2, p.ink),
-      ('W', '${nums.wins}', p.accentTint, p.greenText),
-      ('D', '${nums.draws}', p.surface2, p.muted),
-      ('L', '${nums.losses}', p.liveTint, p.danger),
-      ('Pts', '${nums.points}', p.hero, p.onHero),
+      (context.l10n.profile_p5StatP, '${nums.games}', p.surface2, p.ink),
+      (context.l10n.profile_w, '${nums.wins}', p.accentTint, p.greenText),
+      (context.l10n.profile_d, '${nums.draws}', p.surface2, p.muted),
+      (context.l10n.profile_l, '${nums.losses}', p.liveTint, p.danger),
+      (context.l10n.league_pts, '${nums.points}', p.hero, p.onHero),
     ];
     return Row(children: [
       Expanded(
@@ -188,43 +189,43 @@ class SoccerStats extends StatelessWidget {
     final starts = nums.starts;
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const BlockHeading('Attack'),
+      BlockHeading(context.l10n.profile_attack),
       const SizedBox(height: 12),
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(
           child: StatFigure(
               value: '$goals',
-              label: 'Goals',
-              sub: '${nums.rate('goals')} / game',
+              label: context.l10n.profile_goals,
+              sub: context.l10n.profile_game(nums.rate('goals')),
               color: p.greenText),
         ),
         Expanded(
           child: StatFigure(
               value: '$assists',
-              label: 'Assists',
-              sub: '${nums.rate('assists')} / game'),
+              label: context.l10n.profile_assists,
+              sub: context.l10n.profile_game(nums.rate('assists'))),
         ),
         Expanded(
           child: StatFigure(
               value: '${goals + assists}',
-              label: 'G+A',
-              sub: '${perGame(goals + assists, g, decimals: 2)} / game'),
+              label: context.l10n.profile_gA,
+              sub: context.l10n.profile_game(perGame(goals + assists, g, decimals: 2))),
         ),
       ]),
       const BlockDivider(),
-      const BlockHeading('Discipline'),
+      BlockHeading(context.l10n.profile_discipline),
       const SizedBox(height: 12),
       Row(children: [
         _BookingCard(
             count: yellows,
-            label: 'Yellow',
+            label: context.l10n.profile_yellow,
             color: const Color(0xFFFACC15),
             ink: const Color(0xFF3B2F00),
             tilt: -0.14),
         const SizedBox(width: 12),
         _BookingCard(
             count: reds,
-            label: 'Red',
+            label: context.l10n.profile_red,
             color: const Color(0xFFEF4444),
             ink: Colors.white,
             tilt: 0.1),
@@ -236,8 +237,8 @@ class SoccerStats extends StatelessWidget {
               children: [
                 Text(
                     cards == 0
-                        ? 'No cards — spotless.'
-                        : 'A card every ${(g / cards).toStringAsFixed(1)} games',
+                        ? context.l10n.profile_noCardsSpotless
+                        : context.l10n.profile_aCardEveryGames((g / cards).toStringAsFixed(1)),
                     style: TextStyle(
                         color: p.ink,
                         fontSize: 13.5,
@@ -245,14 +246,14 @@ class SoccerStats extends StatelessWidget {
                         fontWeight: FontWeight.w600)),
                 if (ownGoals > 0) ...[
                   const SizedBox(height: 4),
-                  Text(plural(ownGoals, 'own goal'),
+                  Text(context.l10n.profile_p5OwnGoalsCount(ownGoals),
                       style: TextStyle(color: p.muted, fontSize: 12)),
                 ],
               ]),
         ),
       ]),
       const BlockDivider(),
-      BlockHeading('Starts',
+      BlockHeading(context.l10n.profile_starts,
           trailing: Text(g > 0 ? '${(starts * 100 / g).round()}%' : '—',
               style: TextStyle(
                   color: p.muted,
@@ -262,11 +263,11 @@ class SoccerStats extends StatelessWidget {
       const SizedBox(height: 8),
       Text.rich(
         TextSpan(children: [
-          const TextSpan(text: 'Started '),
+          TextSpan(text: context.l10n.profile_started),
           TextSpan(
               text: '$starts',
               style: const TextStyle(fontWeight: FontWeight.w800)),
-          const TextSpan(text: ' of '),
+          TextSpan(text: context.l10n.profile_of),
           TextSpan(
               text: '$g', style: const TextStyle(fontWeight: FontWeight.w800)),
         ]),

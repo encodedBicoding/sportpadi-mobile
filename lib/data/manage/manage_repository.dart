@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/data/manage/manage_models.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 class ManageRepository {
   ManageRepository(this._dio);
@@ -297,7 +298,7 @@ class ManageRepository {
       final d = res.data;
       final url = d is Map ? parseStr(d['url']) : null;
       if (url == null || url.isEmpty) {
-        throw ApiException('Could not start the payment.');
+        throw ApiException(l10n.common_couldNotStartThePayment);
       }
       return url;
     } catch (e) {

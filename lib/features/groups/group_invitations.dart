@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Group invitations I've received (an admin asked me to join):
 ///  - [InvitationsTab]: Groups → Invites — what they are, then every pending
@@ -31,8 +32,8 @@ Future<bool> respondToInvitation(
         .respondInvitation(inv.id, accept);
     messenger.showSnackBar(SnackBar(
         content: Text(accept
-            ? "You've joined ${inv.groupName}!"
-            : 'Invitation declined')));
+            ? l10n.group_youveJoined(inv.groupName)
+            : l10n.group_invitationDeclined)));
     return true;
   } catch (e) {
     messenger.showSnackBar(SnackBar(content: Text('$e')));
@@ -159,11 +160,7 @@ class InvitationsTabState extends ConsumerState<InvitationsTab> {
         const SizedBox(width: 10),
         Expanded(
           child: Text(
-            "Invitations come from group admins who'd like you in their group. "
-            "Accept to become a member — you'll see their events, can RSVP and "
-            "check in, and get their announcements. Decline and it goes away; "
-            "they can always invite you again. Not sure? Tap a group to look "
-            "around first.",
+            context.l10n.group_invitationsComeFromGroupAdmins,
             style: TextStyle(color: p.ink, fontSize: 12.5, height: 1.45),
           ),
         ),
@@ -178,9 +175,9 @@ class InvitationsTabState extends ConsumerState<InvitationsTab> {
       );
     } else if (_error != null && _items.isEmpty) {
       body = Column(children: [
-        Text('Could not load your invitations.',
+        Text(context.l10n.group_couldNotLoadYourInvitations,
             style: TextStyle(color: p.muted)),
-        TextButton(onPressed: reload, child: const Text('Try again')),
+        TextButton(onPressed: reload, child: Text(context.l10n.group_tryAgain)),
       ]);
     } else if (_items.isEmpty) {
       body = Padding(
@@ -188,11 +185,11 @@ class InvitationsTabState extends ConsumerState<InvitationsTab> {
         child: Column(children: [
           Icon(Icons.drafts_outlined, size: 34, color: p.muted),
           const SizedBox(height: 8),
-          Text('No invitations',
+          Text(context.l10n.group_noInvitations,
               style: TextStyle(
                   color: p.ink, fontSize: 15, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
-          Text('When a group admin invites you, it shows up here.',
+          Text(context.l10n.group_whenAGroupAdminInvites,
               textAlign: TextAlign.center,
               style: TextStyle(color: p.muted, fontSize: 13)),
         ]),
@@ -201,7 +198,7 @@ class InvitationsTabState extends ConsumerState<InvitationsTab> {
       body = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text('$_total waiting',
+          child: Text(context.l10n.group_waiting2(_total),
               style: TextStyle(
                   color: p.muted, fontSize: 12, fontWeight: FontWeight.w600)),
         ),
@@ -250,10 +247,12 @@ class _InvitationRow extends StatelessWidget {
     final p = context.palette;
     final when = inv.invitedAt != null ? timeAgo(inv.invitedAt) : '';
     final sub = [
-      inv.inviterName != null ? 'Invited by ${inv.inviterName}' : 'Invited you to join',
+      inv.inviterName != null
+          ? context.l10n.group_invitedByName(inv.inviterName!)
+          : context.l10n.group_invitedYouToJoinShort,
       if (when.isNotEmpty) when,
       if (inv.memberCount != null)
-        '${inv.memberCount} member${inv.memberCount == 1 ? '' : 's'}',
+        context.l10n.group_memberCount(inv.memberCount!),
     ].join(' · ');
     return GlassCard(
       padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
@@ -297,7 +296,7 @@ class _InvitationRow extends StatelessWidget {
         else ...[
           _RoundAction(
             icon: Icons.check_rounded,
-            tooltip: 'Accept',
+            tooltip: context.l10n.group_accept,
             bg: p.accentDeep,
             fg: Colors.white,
             onTap: locked ? null : () => onAnswer(true),
@@ -305,7 +304,7 @@ class _InvitationRow extends StatelessWidget {
           const SizedBox(width: 6),
           _RoundAction(
             icon: Icons.close_rounded,
-            tooltip: 'Decline',
+            tooltip: context.l10n.group_decline2,
             bg: p.liveTint,
             fg: p.danger,
             onTap: locked ? null : () => onAnswer(false),
@@ -387,8 +386,8 @@ class _GroupInviteBannerState extends ConsumerState<GroupInviteBanner> {
             Expanded(
               child: Text(
                   inv.inviterName != null
-                      ? '${inv.inviterName} invited you to join ${inv.groupName}'
-                      : "You've been invited to join ${inv.groupName}",
+                      ? context.l10n.group_invitedYouToJoin2(inv.inviterName ?? '', inv.groupName)
+                      : context.l10n.group_youveBeenInvitedToJoin2(inv.groupName),
                   style: TextStyle(
                       color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
             ),
@@ -397,7 +396,7 @@ class _GroupInviteBannerState extends ConsumerState<GroupInviteBanner> {
           Row(children: [
             Expanded(
               child: SpButton(
-                label: _sending == true ? 'Joining…' : 'Accept',
+                label: _sending == true ? context.l10n.group_joining : context.l10n.group_accept,
                 icon: Icons.check_rounded,
                 tone: SpButtonTone.brand,
                 expand: true,
@@ -407,7 +406,7 @@ class _GroupInviteBannerState extends ConsumerState<GroupInviteBanner> {
             const SizedBox(width: 8),
             TextButton(
               onPressed: _busy ? null : () => _go(inv, false),
-              child: Text('Decline',
+              child: Text(context.l10n.group_decline2,
                   style: TextStyle(color: p.danger, fontWeight: FontWeight.w700)),
             ),
           ]),

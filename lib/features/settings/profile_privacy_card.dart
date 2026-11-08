@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/data/wards/ward_models.dart'
     show wardVisibilities;
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Settings → Profile privacy. For a player who took over their account
 /// under 18 (Wards 3): who can see their profile and whether search finds
@@ -23,7 +24,7 @@ class ProfilePrivacySection extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const Eyebrow('Profile privacy'),
+        Eyebrow(context.l10n.profile_profilePrivacy),
         const SizedBox(height: 8),
         privacy.applies
             ? _PrivacyCard(privacy: privacy)
@@ -69,7 +70,7 @@ class _PrivateProfileCardState extends ConsumerState<_PrivateProfileCard> {
       if (mounted) ref.invalidate(myPrivacyProvider);
       messenger.showSnackBar(SnackBar(
           content:
-              Text(v ? 'Your profile is private' : 'Your profile is public')));
+              Text(v ? l10n.profile_yourProfileIsPrivate : l10n.profile_yourProfileIsPublic)));
     } catch (e) {
       if (mounted) setState(() => _private = was);
       messenger.showSnackBar(SnackBar(content: Text('$e')));
@@ -86,14 +87,14 @@ class _PrivateProfileCardState extends ConsumerState<_PrivateProfileCard> {
         Expanded(
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Private profile',
+            Text(context.l10n.profile_privateProfile,
                 style: TextStyle(
                     color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
             const SizedBox(height: 3),
             Text(
                 _private
-                    ? 'Others see your name, @username and photo, and that your profile is private — not your records, groups or posts.'
-                    : 'Anyone who taps your name sees your records, groups and posts. Turn on to keep them to yourself.',
+                    ? context.l10n.profile_othersSeeYourNameUsername
+                    : context.l10n.profile_anyoneWhoTapsYourName,
                 style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.35)),
           ]),
         ),
@@ -156,10 +157,10 @@ class _PrivacyCardState extends ConsumerState<_PrivacyCard> {
 
   static String _hint(String v) => switch (v) {
         'groups' =>
-          'Group members — people in the groups you play in can see your profile.',
-        'public' => 'Everyone — anyone on SportPadi can see your profile.',
+          l10n.profile_groupMembersPeopleInThe,
+        'public' => l10n.profile_everyoneAnyoneOnSportPadiCan,
         _ =>
-          'Only guardians & organisers — organisers of events you join see your name and check-in.',
+          l10n.profile_onlyGuardiansOrganisersOrganisersOf,
       };
 
   /// "Ada", "Ada and Sam", "Ada, Sam and Kemi".
@@ -177,7 +178,7 @@ class _PrivacyCardState extends ConsumerState<_PrivacyCard> {
     final until = formatYmd(pr.supervisedUntil);
     return GlassCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Text('Who can see your profile',
+        Text(context.l10n.profile_whoCanSeeYourProfile,
             style: TextStyle(
                 color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
         const SizedBox(height: 10),
@@ -197,10 +198,10 @@ class _PrivacyCardState extends ConsumerState<_PrivacyCard> {
           Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Show me in search',
+              Text(context.l10n.profile_showMeInSearch,
                   style: TextStyle(
                       color: p.ink, fontSize: 14, fontWeight: FontWeight.w600)),
-              Text('Let people find you by name.',
+              Text(context.l10n.profile_letPeopleFindYouBy2,
                   style: TextStyle(color: p.muted, fontSize: 12)),
             ]),
           ),
@@ -221,9 +222,7 @@ class _PrivacyCardState extends ConsumerState<_PrivacyCard> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                "You're supervised by ${_names(pr.guardians)}"
-                '${until.isEmpty ? ' until you turn 18' : ' until $until'}. '
-                'After that your profile follows the normal settings.',
+                context.l10n.profile_youreSupervisedByAfterThat(_names(pr.guardians), until.isEmpty ? ' until you turn 18' : ' until $until'),
                 style: TextStyle(
                     color: p.wardInk,
                     fontSize: 12.5,

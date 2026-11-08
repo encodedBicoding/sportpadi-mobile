@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/features/shell/home_shell.dart'
     show homeTabIndexProvider;
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// "Suggested for you" — the discovery shelf on Home (2026 design).
 ///
@@ -87,28 +88,26 @@ class SuggestedEventsSection extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Games near you show up here',
+            context.l10n.home_gamesNearYouShowUp,
             style: TextStyle(
                 color: p.ink, fontSize: 15, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
             denied
-                ? 'Location is off for SportPadi. Turn it on in Settings and '
-                    "we'll list the upcoming games closest to you first."
+                ? context.l10n.home_locationIsOffForSportPadi2
                 : locState.error ??
-                    "Allow SportPadi to read your location and we'll list the "
-                        'upcoming games closest to you first.',
+                    context.l10n.home_allowSportPadiToReadYour2,
             textAlign: TextAlign.center,
             style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.45),
           ),
           const SizedBox(height: 14),
           SpButton(
             label: locState.loading
-                ? 'Finding you…'
+                ? context.l10n.home_findingYou
                 : denied
-                    ? 'Open Settings'
-                    : 'Allow location',
+                    ? context.l10n.home_openSettings
+                    : context.l10n.home_allowLocation,
             icon: denied ? Icons.settings_outlined : Icons.my_location_rounded,
             tone: SpButtonTone.brand,
             onTap: locState.loading
@@ -123,7 +122,7 @@ class SuggestedEventsSection extends ConsumerWidget {
       shelf = async.hasError
           ? GlassCard(
               child: Center(
-                child: Text('Couldn\'t load suggestions right now.',
+                child: Text(context.l10n.home_couldntLoadSuggestionsRightNow,
                     style: TextStyle(color: p.muted, fontSize: 12.5)),
               ),
             )
@@ -157,7 +156,7 @@ class SuggestedEventsSection extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'No upcoming games within ${locState.radiusMiles} miles yet',
+            context.l10n.home_noUpcomingGamesWithinMiles(locState.radiusMiles),
             textAlign: TextAlign.center,
             style: TextStyle(
                 color: p.ink, fontSize: 15, fontWeight: FontWeight.w700),
@@ -165,11 +164,8 @@ class SuggestedEventsSection extends ConsumerWidget {
           const SizedBox(height: 4),
           Text(
             guest
-                ? 'Be the first — sign up (or sign in) and create an event; '
-                    'players nearby will see it here. Or browse further afield.'
-                : 'Nothing public from groups you\'re not in yet. Widen the '
-                    'radius on Browse, or create an event and players nearby '
-                    'will see it here.',
+                ? context.l10n.home_beTheFirstSignUp
+                : context.l10n.home_nothingPublicFromGroupsYoure,
             textAlign: TextAlign.center,
             style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.45),
           ),
@@ -181,13 +177,13 @@ class SuggestedEventsSection extends ConsumerWidget {
             children: [
               if (guest)
                 SpButton(
-                  label: 'Sign up to create one',
+                  label: context.l10n.home_signUpToCreateOne,
                   icon: Icons.add_circle_outline_rounded,
                   tone: SpButtonTone.brand,
                   onTap: signUp,
                 ),
               SpButton(
-                label: guest ? 'Browse' : 'Browse all events',
+                label: guest ? context.l10n.home_browse : context.l10n.home_browseAllEvents,
                 icon: Icons.explore_outlined,
                 tone: guest ? SpButtonTone.ink : SpButtonTone.brand,
                 onTap: browse,
@@ -222,7 +218,7 @@ class SuggestedEventsSection extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Suggested for you',
+                Text(context.l10n.home_suggestedForYou,
                     style: TextStyle(
                         color: p.ink,
                         fontSize: 17,
@@ -231,10 +227,10 @@ class SuggestedEventsSection extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                     loc == null
-                        ? 'Upcoming games closest to you.'
+                        ? context.l10n.home_upcomingGamesClosestToYou
                         : guest
-                            ? 'Within ${locState.radiusMiles} miles, nearest first.'
-                            : 'Within ${locState.radiusMiles} miles, outside your groups.',
+                            ? context.l10n.home_withinMilesNearestFirst(locState.radiusMiles)
+                            : context.l10n.home_withinMilesOutsideYourGroups(locState.radiusMiles),
                     style: TextStyle(color: p.muted, fontSize: 12)),
               ]),
         ),
@@ -245,7 +241,7 @@ class SuggestedEventsSection extends ConsumerWidget {
           borderRadius: BorderRadius.circular(999),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            child: Text('See all',
+            child: Text(context.l10n.home_seeAll,
                 style: TextStyle(
                     color: p.greenText,
                     fontSize: 13,
@@ -298,7 +294,7 @@ class _SuggestionCard extends StatelessWidget {
     final pillBg = e.isTournament ? p.orangeTint : p.accentTint;
     final pillFg = e.isTournament ? p.orangeInk : p.greenText;
     final pillLabel =
-        e.isTournament ? 'Tournament' : (e.categoryName ?? 'Event');
+        e.isTournament ? context.l10n.home_tournament : (e.categoryName ?? context.l10n.home_event);
 
     final going = e.interestCount ?? 0;
 
@@ -386,7 +382,7 @@ class _SuggestionCard extends StatelessWidget {
                       fontWeight: FontWeight.w700),
                 )
               else if (going > 0)
-                Text('$going going',
+                Text(context.l10n.home_going(going),
                     style: TextStyle(
                         color: p.muted,
                         fontSize: 12,
@@ -430,14 +426,14 @@ class _BrowseAllCard extends StatelessWidget {
                     size: 20, color: p.onHero),
               ),
               const Spacer(),
-              Text('Browse\neverything',
+              Text(context.l10n.home_browseEverything,
                   style: TextStyle(
                       color: p.onHero,
                       fontSize: 15,
                       height: 1.25,
                       fontWeight: FontWeight.w700)),
               const SizedBox(height: 4),
-              Text('Public games on SportPadi',
+              Text(context.l10n.home_publicGamesOnSportPadi,
                   style: TextStyle(color: p.heroMuted, fontSize: 11.5)),
             ]),
           ),

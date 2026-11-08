@@ -40,6 +40,7 @@ import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/features/documents/team_documents.dart';
 import 'package:sportpadi_mobile/features/teams/edit_team_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Team page — mirrors the web team page: header + record, then scrollable
 /// tabs: Players (starters/subs, invite, add), Formation, Coaches, Games.
@@ -307,7 +308,7 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen>
               child: SpRoundButton(
                 icon: Icons.arrow_back_ios_new_rounded,
                 iconSize: 18,
-                tooltip: 'Back',
+                tooltip: context.l10n.team_back,
                 onTap: () =>
                     context.canPop() ? context.pop() : context.go('/home'),
               ),
@@ -350,7 +351,7 @@ class _TeamEventButton extends ConsumerWidget {
               Icon(Icons.event_available_outlined, size: 17, color: primary ? p.bg : p.ink),
               const SizedBox(width: 6),
               Flexible(
-                child: Text('Create team event',
+                child: Text(context.l10n.team_createTeamEvent,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -390,8 +391,8 @@ class _Header extends ConsumerWidget {
     void copyJoin() {
       final base = ref.read(appConfigProvider).apiBaseUrl;
       Clipboard.setData(ClipboardData(text: '$base/join-team/${t.id}'));
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Join link copied — share it to invite players')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(context.l10n.team_joinLinkCopiedShareIt)));
     }
 
     Widget stat(String value, String label, [Color? tone]) => Expanded(
@@ -497,12 +498,12 @@ class _Header extends ConsumerWidget {
         if (stats != null && stats.played > 0) ...[
           const SizedBox(height: 14),
           Row(children: [
-            stat('${stats.played}', 'Played'),
+            stat('${stats.played}', context.l10n.team_played),
             const SizedBox(width: 8),
-            stat('${stats.won}-${stats.drawn}-${stats.lost}', 'W-D-L',
+            stat('${stats.won}-${stats.drawn}-${stats.lost}', context.l10n.team_wDL,
                 p.greenText),
             const SizedBox(width: 8),
-            stat('${gd > 0 ? '+' : ''}$gd', 'Goal diff',
+            stat('${gd > 0 ? '+' : ''}$gd', context.l10n.team_goalDiff,
                 gd < 0 ? p.danger : null),
           ]),
         ],
@@ -511,7 +512,7 @@ class _Header extends ConsumerWidget {
           Row(children: [
             Expanded(
               child: SpButton(
-                label: 'Add player',
+                label: context.l10n.team_addPlayer,
                 icon: Icons.person_add_alt_rounded,
                 expand: true,
                 onTap: () => _PlayersTab.addPlayer(context, ref, t, () {
@@ -536,7 +537,7 @@ class _Header extends ConsumerWidget {
                           Icon(Icons.link_rounded, size: 17, color: p.ink),
                           const SizedBox(width: 6),
                           Flexible(
-                            child: Text('Invite link',
+                            child: Text(context.l10n.team_inviteLink,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -583,7 +584,7 @@ class _Header extends ConsumerWidget {
         child: SpRoundButton(
           icon: canPop ? Icons.arrow_back_ios_new_rounded : Icons.home_outlined,
           iconSize: canPop ? 18 : 21,
-          tooltip: canPop ? 'Back' : 'Home',
+          tooltip: canPop ? context.l10n.team_back : context.l10n.team_home,
           onTap: () => context.canPop() ? context.pop() : context.go('/home'),
         ),
       ),
@@ -597,20 +598,20 @@ class _Header extends ConsumerWidget {
             if (t.canManage) ...[
               SpRoundButton(
                 icon: Icons.edit_outlined,
-                tooltip: 'Edit team',
+                tooltip: context.l10n.team_editTeam,
                 onTap: () => showEditTeamSheet(context, t),
               ),
               const SizedBox(width: 8),
               SpRoundButton(
                 icon: Icons.delete_outline_rounded,
-                tooltip: 'Delete team',
+                tooltip: context.l10n.team_deleteTeam,
                 onTap: () => _deleteTeam(context, ref, t),
               ),
               const SizedBox(width: 8),
             ],
             SpRoundButton(
               icon: Icons.groups_outlined,
-              tooltip: 'Open group',
+              tooltip: context.l10n.team_openGroup,
               onTap: () => context.push('/groups/${t.groupId}'),
             ),
           ]),
@@ -655,19 +656,17 @@ Future<void> _deleteTeam(
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text('Delete ${t.name}?'),
-      content: const Text(
-          'This removes the team, its roster and coaches, and its team '
-          'discussions. Finished tournaments it played in will no longer '
-          'list it. This cannot be undone.'),
+      title: Text(l10n.team_delete(t.name)),
+      content: Text(
+          l10n.team_thisRemovesTheTeamIts2),
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel')),
+            child: Text(l10n.team_cancel)),
         TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: p.danger),
-            child: const Text('Delete team')),
+            child: Text(l10n.team_deleteTeam)),
       ],
     ),
   );
@@ -678,7 +677,7 @@ Future<void> _deleteTeam(
   final groupId = t.groupId;
   try {
     await ref.read(manageRepositoryProvider).deleteTeam(t.id);
-    messenger.showSnackBar(SnackBar(content: Text('${t.name} deleted')));
+    messenger.showSnackBar(SnackBar(content: Text(l10n.team_deleted(t.name))));
     if (groupId != null) {
       // The Teams tab, and the sport is free again on one-per-sport plans.
       container.invalidate(groupTeamsProvider(groupId));
@@ -742,9 +741,9 @@ class _PlayersTab extends ConsumerWidget {
         ? const <Widget>[]
         : <Widget>[
             const SizedBox(height: 22),
-            SpSectionTitle('Waiting for a guardian', count: waiting.length),
+            SpSectionTitle(context.l10n.team_waitingForAGuardian, count: waiting.length),
             const SizedBox(height: 4),
-            Text('Wards join once one of their guardians accepts.',
+            Text(context.l10n.team_wardsJoinOnceOneOf,
                 style: TextStyle(color: p.muted, fontSize: 12)),
             const SizedBox(height: 10),
             SpListCard(children: [
@@ -758,7 +757,7 @@ class _PlayersTab extends ConsumerWidget {
           const SpIconTile(Icons.groups_outlined, size: 52, iconSize: 24),
           const SizedBox(height: 10),
           Text(
-            'No players yet${team.canManage ? ' — add them from your group members.' : '.'}',
+            context.l10n.team_noPlayersYet(team.canManage ? ' — add them from your group members.' : '.'),
             textAlign: TextAlign.center,
             style: TextStyle(color: p.muted, fontSize: 13),
           ),
@@ -777,7 +776,7 @@ class _PlayersTab extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SpSectionTitle('Roster', count: roster.length),
+        SpSectionTitle(context.l10n.team_roster, count: roster.length),
         const SizedBox(height: 10),
         SpListCard(children: [
           for (final (i, m) in roster.indexed) ...[
@@ -830,7 +829,7 @@ class _PlayersTab extends ConsumerWidget {
         ),
         TextButton(
           onPressed: () => _cancelWardInvite(context, ref, i),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.team_cancel),
         ),
       ]),
     );
@@ -845,7 +844,7 @@ class _PlayersTab extends ConsumerWidget {
           .cancelWardInvite(team.id, i.inviteId);
       ref.invalidate(teamWardInvitesProvider(team.id));
       messenger
-          .showSnackBar(const SnackBar(content: Text('Invitation cancelled.')));
+          .showSnackBar(SnackBar(content: Text(l10n.team_invitationCancelled2)));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
     }
@@ -1065,7 +1064,7 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
               openPlayerProfile(context, ref, m.playerId);
             },
             icon: const Icon(Icons.person_outline_rounded, size: 18),
-            label: const Text('View profile'),
+            label: Text(context.l10n.team_viewProfile),
           ),
           const SizedBox(height: 14),
           if (card == null)
@@ -1079,12 +1078,12 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
               ),
             )
           else if (card.restricted)
-            const WardPrivateNote(
-                text: "Their guardians keep this player's stats private.")
+            WardPrivateNote(
+                text: context.l10n.team_theirGuardiansKeepThisPlayers)
           else ...[
             if (card.setup.isNotEmpty) ...[
               Eyebrow(
-                  '${card.categoryEmoji ?? ''} ${card.categoryName ?? 'Sport'} setup'
+                  context.l10n.team_setup(card.categoryEmoji ?? '', card.categoryName ?? context.l10n.team_sport)
                       .trim()),
               const SizedBox(height: 6),
               GlassCard(
@@ -1115,10 +1114,10 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
               ),
               const SizedBox(height: 12),
             ],
-            const Eyebrow('Tournament stats'),
+            Eyebrow(context.l10n.team_tournamentStats),
             const SizedBox(height: 6),
             if (card.appearances == 0 && card.tallies.isEmpty)
-              Text('No games played with this team yet.',
+              Text(context.l10n.team_noGamesPlayedWithThis,
                   style: TextStyle(color: p.muted, fontSize: 12.5))
             else
               Wrap(spacing: 8, runSpacing: 8, children: [
@@ -1130,7 +1129,7 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    '${card.appearances} appearance${card.appearances == 1 ? '' : 's'}',
+                    context.l10n.team_appearances(card.appearances),
                     style: TextStyle(
                         color: p.ink,
                         fontSize: 12,
@@ -1158,16 +1157,16 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
           ],
           if (widget.team.canManage) ...[
             const SizedBox(height: 16),
-            const Eyebrow('Manage'),
+            Eyebrow(context.l10n.team_manage),
             const SizedBox(height: 8),
             TextField(
               controller: _jersey,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Jersey number'),
+              decoration: InputDecoration(labelText: context.l10n.team_jerseyNumber),
             ),
             if (widget.team.positionOptions.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text('Positions (up to 3)',
+              Text(context.l10n.team_positionsUpTo3,
                   style: TextStyle(
                       color: p.muted,
                       fontSize: 11.5,
@@ -1212,7 +1211,7 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
             // the squad's formation, not on the general roster.)
             const SizedBox(height: 12),
             SpButton(
-              label: _busy ? 'Saving…' : 'Save changes',
+              label: _busy ? context.l10n.team_saving : context.l10n.team_saveChanges,
               expand: true,
               onTap: _busy
                   ? null
@@ -1237,7 +1236,7 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
                           }, close: true),
                   child: Center(
                     child: Text(
-                      m.isCaptain ? 'Remove captaincy' : 'Make captain',
+                      m.isCaptain ? context.l10n.team_removeCaptaincy : context.l10n.team_makeCaptain,
                       style: TextStyle(
                           color: p.accent,
                           fontSize: 13,
@@ -1250,7 +1249,7 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
                 child: InkWell(
                   onTap: _busy ? null : () => _confirmRemove(m),
                   child: Center(
-                    child: Text('Remove from team',
+                    child: Text(context.l10n.team_removeFromTeam,
                         style: TextStyle(
                             color: p.danger,
                             fontSize: 13,
@@ -1269,15 +1268,15 @@ class _PlayerSheetState extends ConsumerState<_PlayerSheet> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Remove ${m.displayName}?'),
-        content: const Text('They come off the team roster.'),
+        title: Text(l10n.team_remove(m.displayName)),
+        content: Text(l10n.team_theyComeOffTheTeam),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Keep')),
+              child: Text(l10n.team_keep)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Remove')),
+              child: Text(l10n.team_remove2)),
         ],
       ),
     );
@@ -1305,7 +1304,7 @@ class _TournamentsTab extends ConsumerWidget {
       loading: () => Padding(
         padding: const EdgeInsets.all(24),
         child: Center(
-            child: Text('Loading…',
+            child: Text(context.l10n.team_loading,
                 style: TextStyle(color: p.muted, fontSize: 13))),
       ),
       error: (e, _) => Center(
@@ -1317,12 +1316,12 @@ class _TournamentsTab extends ConsumerWidget {
             child: Column(children: [
               Icon(Icons.emoji_events_outlined, size: 32, color: p.muted),
               const SizedBox(height: 8),
-              Text('No tournaments yet',
+              Text(context.l10n.team_noTournamentsYet,
                   style: TextStyle(
                       color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
               const SizedBox(height: 4),
               Text(
-                'When this team is invited to a friendly, league or tournament, its squad and formation for that event live here.',
+                context.l10n.team_whenThisTeamIsInvited,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.4),
               ),
@@ -1336,10 +1335,10 @@ class _TournamentsTab extends ConsumerWidget {
         return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SpSectionTitle('Tournaments', count: list.length),
+              SpSectionTitle(context.l10n.team_tournaments, count: list.length),
               const SizedBox(height: 4),
               Text(
-                'Squads and formations are set per tournament — open one to call players and set the line-up.',
+                context.l10n.team_squadsAndFormationsAreSet2,
                 style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.4),
               ),
               const SizedBox(height: 10),
@@ -1381,9 +1380,7 @@ class _TournamentsTab extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 3),
                                 Text(
-                                  '${r.accepted} in squad'
-                                  '${r.pending > 0 ? ' · ${r.pending} awaiting' : ''}'
-                                  '${r.formationName != null ? ' · ${r.formationName}' : ''}',
+                                  context.l10n.team_inSquad2(r.accepted, (r.pending > 0 ? ' · ${r.pending} awaiting' : ''), (r.formationName != null ? ' · ${r.formationName}' : '')),
                                   style: TextStyle(
                                       color: p.greenText,
                                       fontSize: 12,
@@ -1445,14 +1442,14 @@ class _CoachesTab extends ConsumerWidget {
               const SpIconTile(Icons.sports_rounded, size: 52, iconSize: 24),
               const SizedBox(height: 10),
               Text(
-                'No coaches yet${team.canManage ? ' — add from your group members.' : '.'}',
+                context.l10n.team_noCoachesYet(team.canManage ? ' — add from your group members.' : '.'),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 13),
               ),
             ]),
           )
         else ...[
-          SpSectionTitle('Coaches', count: coaches.length),
+          SpSectionTitle(context.l10n.team_coaches, count: coaches.length),
           const SizedBox(height: 10),
           SpListCard(children: [
             for (final c in coaches)
@@ -1489,7 +1486,7 @@ class _CoachesTab extends ConsumerWidget {
                     ),
                     if (team.canManage)
                       IconButton(
-                        tooltip: 'Remove',
+                        tooltip: context.l10n.team_remove2,
                         onPressed: () async {
                           try {
                             await ref
@@ -1514,7 +1511,7 @@ class _CoachesTab extends ConsumerWidget {
         if (team.canManage && team.groupId != null) ...[
           const SizedBox(height: 14),
           SpButton(
-            label: 'Add coach',
+            label: context.l10n.team_addCoach,
             icon: Icons.sports_rounded,
             expand: true,
             onTap: () => _addCoach(context, ref, roleOptions, coaches),
@@ -1540,8 +1537,8 @@ class _CoachesTab extends ConsumerWidget {
         .where((m) => !existingIds.contains(m.userId) && !m.isWard)
         .toList();
     if (candidates.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Every group member already coaches this team.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(l10n.team_everyGroupMemberAlreadyCoaches)));
       return;
     }
     String role = roleOptions.isNotEmpty ? roleOptions.first : 'Coach';
@@ -1559,7 +1556,7 @@ class _CoachesTab extends ConsumerWidget {
           ),
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           child: ListView(shrinkWrap: true, children: [
-            Text('Add a coach',
+            Text(l10n.team_addACoach,
                 style: TextStyle(
                     color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
             const SizedBox(height: 10),
@@ -1607,7 +1604,7 @@ class _CoachesTab extends ConsumerWidget {
               ),
             const SizedBox(height: 8),
             SpButton(
-              label: 'Add coach',
+              label: l10n.team_addCoach,
               expand: true,
               onTap: userId != null ? () => Navigator.pop(ctx, true) : null,
             ),
@@ -1649,9 +1646,9 @@ class _GamesTab extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SpSectionTitle('Games',
+        SpSectionTitle(context.l10n.team_games,
             count: list.isEmpty ? null : list.length,
-            trailing: Text('Last 6 months',
+            trailing: Text(context.l10n.team_last6Months,
                 style: TextStyle(color: p.muted, fontSize: 12))),
         const SizedBox(height: 10),
         if (games.isLoading)
@@ -1666,7 +1663,7 @@ class _GamesTab extends ConsumerWidget {
               const SpIconTile(Icons.sports_soccer_rounded,
                   size: 52, iconSize: 24),
               const SizedBox(height: 10),
-              Text('No games in the last 6 months.',
+              Text(context.l10n.team_noGamesInTheLast,
                   style: TextStyle(color: p.muted, fontSize: 13)),
             ]),
           )

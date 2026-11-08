@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/shared/widgets/sheet_scroll.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// My sports (`/profile/sports`) — the sports you play and how you play them
 /// (positions, strong foot…), which smart team balancing reads. Moved off the
@@ -26,9 +27,9 @@ class MySportsScreen extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: Column(children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: SpHeader(title: 'My sports'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: SpHeader(title: context.l10n.profile_mySports),
           ),
           Expanded(
             child: RefreshIndicator(
@@ -42,8 +43,7 @@ class MySportsScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
                 children: [
                   Text(
-                    'The sports you play and how — positions, strong foot and '
-                    'more. Smart team balancing uses these.',
+                    context.l10n.profile_theSportsYouPlayAnd,
                     style:
                         TextStyle(color: p.muted, fontSize: 13.5, height: 1.45),
                   ),
@@ -78,7 +78,7 @@ class _AddPill extends StatelessWidget {
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             Icon(Icons.add_rounded, size: 15, color: p.ink),
             const SizedBox(width: 6),
-            Text('Add',
+            Text(context.l10n.profile_add,
                 style: TextStyle(
                     color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
           ]),
@@ -103,11 +103,11 @@ class _SportsSection extends ConsumerWidget {
     final data = setup.valueOrNull;
     if (data == null) {
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const SpSectionTitle('Your sports'),
+        SpSectionTitle(context.l10n.profile_yourSports),
         const SizedBox(height: 10),
         GlassCard(
           child: Text(
-            setup.hasError ? 'Could not load your sports.' : 'Loading…',
+            setup.hasError ? context.l10n.profile_couldNotLoadYourSports : context.l10n.profile_loading,
             style: TextStyle(color: p.muted, fontSize: 13),
           ),
         ),
@@ -144,7 +144,7 @@ class _SportsSection extends ConsumerWidget {
                   const SizedBox(height: 16),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text('Add a sport',
+                    child: Text(l10n.profile_addASport,
                         style: TextStyle(
                             color: p.ink,
                             fontSize: 20,
@@ -152,7 +152,7 @@ class _SportsSection extends ConsumerWidget {
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(4, 2, 4, 14),
-                    child: Text('Pick one you play — you can set it up next.',
+                    child: Text(l10n.profile_pickOneYouPlayYou,
                         style: TextStyle(color: p.muted, fontSize: 13)),
                   ),
                   SpListCard(children: [
@@ -212,7 +212,7 @@ class _SportsSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SpSectionTitle(
-          'Your sports',
+          context.l10n.profile_yourSports,
           count: mine.isEmpty ? null : mine.length,
           trailing: others.isEmpty ? null : _AddPill(onTap: addSport),
         ),
@@ -224,12 +224,12 @@ class _SportsSection extends ConsumerWidget {
               SpIconTile(Icons.sports_soccer_rounded,
                   bg: p.accentTint, fg: p.greenText, size: 52, iconSize: 24),
               const SizedBox(height: 12),
-              Text("You haven't added any sports yet.",
+              Text(context.l10n.profile_youHaventAddedAnySports,
                   textAlign: TextAlign.center,
                   style: TextStyle(color: p.muted, fontSize: 13)),
               const SizedBox(height: 14),
               SpButton(
-                label: 'Add a sport',
+                label: context.l10n.profile_addASport,
                 icon: Icons.add_rounded,
                 onTap: addSport,
               ),
@@ -302,7 +302,7 @@ class _SportRow extends ConsumerWidget {
               ),
               const SizedBox(height: 6),
               if (category.fields.isEmpty)
-                Text('Nothing to set up for this sport.',
+                Text(context.l10n.profile_nothingToSetUpFor,
                     style: TextStyle(color: p.muted, fontSize: 12))
               else
                 Wrap(spacing: 6, runSpacing: 6, children: [
@@ -452,7 +452,7 @@ class _SportEditSheetState extends ConsumerState<_SportEditSheet> {
               onTap: _busy ? null : _remove,
               child: Padding(
                 padding: const EdgeInsets.all(4),
-                child: Text('Remove',
+                child: Text(context.l10n.profile_remove,
                     style: TextStyle(
                         color: p.danger,
                         fontSize: 12.5,
@@ -462,7 +462,7 @@ class _SportEditSheetState extends ConsumerState<_SportEditSheet> {
           ]),
           const SizedBox(height: 16),
           if (c.fields.isEmpty)
-            Text('Nothing to set up for this sport.',
+            Text(context.l10n.profile_nothingToSetUpFor,
                 style: TextStyle(color: p.muted, fontSize: 13))
           else
             for (final f in c.fields) ...[
@@ -505,7 +505,7 @@ class _SportEditSheetState extends ConsumerState<_SportEditSheet> {
               const SizedBox(height: 14),
             ],
           SpButton(
-            label: _busy ? 'Saving…' : 'Save',
+            label: _busy ? context.l10n.profile_saving : context.l10n.profile_save,
             expand: true,
             onTap: _busy ? null : _save,
           ),

@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 class JoinGroupScreen extends ConsumerStatefulWidget {
   const JoinGroupScreen({super.key, required this.groupId});
@@ -47,7 +48,7 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
     final p = context.palette;
     return Scaffold(
       appBar:
-          AppBar(leading: const SpLeading(), title: const Text('Join group')),
+          AppBar(leading: const SpLeading(), title: Text(context.l10n.join_joinGroup)),
       body: AsyncView(
         value: info,
         onRetry: () => ref.invalidate(groupJoinInfoProvider(widget.groupId)),
@@ -57,7 +58,7 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Crest(logoUrl: g.imageUrl, label: g.name, size: 80),
               const SizedBox(height: 16),
-              Text("You're invited to join",
+              Text(context.l10n.join_youreInvitedToJoin,
                   style: TextStyle(color: p.muted, fontSize: 12)),
               const SizedBox(height: 4),
               Text(g.name,
@@ -66,7 +67,7 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
               if (g.memberCount != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: Text('${g.memberCount} members',
+                  child: Text(context.l10n.join_members(g.memberCount ?? ''),
                       style: TextStyle(color: p.muted, fontSize: 12)),
                 ),
               const SizedBox(height: 28),
@@ -77,7 +78,7 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
               if (g.alreadyMember)
                 FilledButton(
                   onPressed: () => goWithHome(context, '/groups/${g.id}'),
-                  child: const Text('Go to group'),
+                  child: Text(context.l10n.join_goToGroup),
                 )
               else if (signedIn)
                 FilledButton(
@@ -88,12 +89,12 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
                           width: 20,
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: Colors.white))
-                      : Text('Join ${g.name}'),
+                      : Text(context.l10n.join_join(g.name)),
                 )
               else
                 FilledButton(
                   onPressed: () => context.go('/sign-in'),
-                  child: const Text('Sign in to join'),
+                  child: Text(context.l10n.join_signInToJoin),
                 ),
             ]),
           ),

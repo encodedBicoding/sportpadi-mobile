@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The user's location for event recommendations (web useLocation twin).
 class UserLocation {
@@ -85,7 +86,7 @@ class LocationController extends Notifier<LocationState> {
       if (!enabled) {
         state = state.copyWith(
             loading: false,
-            error: 'Turn on location services to see events near you.');
+            error: l10n.common_turnOnLocationServicesTo);
         return;
       }
       var perm = await Geolocator.checkPermission();
@@ -97,7 +98,7 @@ class LocationController extends Notifier<LocationState> {
         state = state.copyWith(
           loading: false,
           denied: perm == LocationPermission.deniedForever,
-          error: 'Location permission is needed to recommend events near you.',
+          error: l10n.common_locationPermissionIsNeededTo,
         );
         return;
       }
@@ -107,14 +108,14 @@ class LocationController extends Notifier<LocationState> {
       );
       state = state.copyWith(
         location: UserLocation(
-            lat: pos.latitude, lng: pos.longitude, label: 'your location'),
+            lat: pos.latitude, lng: pos.longitude, label: l10n.common_yourLocation),
         loading: false,
         denied: false,
         clearError: true,
       );
     } catch (e) {
       state = state.copyWith(
-          loading: false, error: 'Could not read your location.');
+          loading: false, error: l10n.common_couldNotReadYourLocation);
     }
   }
 }

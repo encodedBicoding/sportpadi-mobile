@@ -14,6 +14,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// "Add player" (group admins) — the web team page's Add player dialog as one
 /// sheet: pick a group member, then their positions (at least one when the
@@ -87,21 +88,21 @@ class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
     if (u == null || _busy) return;
     // Same checks as the server, so the admin hears about them here.
     if (_options.isNotEmpty && _positions.isEmpty) {
-      setState(() => _error = 'Pick at least one position (up to 3).');
+      setState(() => _error = l10n.manage_pickAtLeastOnePosition);
       return;
     }
     final jerseyText = _jersey.text.trim();
     final jersey = jerseyText.isEmpty ? null : int.tryParse(jerseyText);
     if (jerseyText.isNotEmpty && (jersey == null || jersey < 0 || jersey > 999)) {
-      setState(() => _error = 'Jersey numbers go from 0 to 999.');
+      setState(() => _error = l10n.manage_jerseyNumbersGoFrom0);
       return;
     }
     if (_needsJersey && jersey == null) {
-      setState(() => _error = 'Give this player a jersey number.');
+      setState(() => _error = l10n.manage_giveThisPlayerAJersey);
       return;
     }
     if (jersey != null && team.members.any((m) => m.jerseyNumber == jersey)) {
-      setState(() => _error = 'Jersey #$jersey is taken.');
+      setState(() => _error = l10n.manage_jerseyIsTaken(jersey));
       return;
     }
     setState(() {
@@ -118,7 +119,7 @@ class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
             jerseyNumber: jersey,
           );
       if (!mounted) return;
-      Navigator.of(context).pop(r.wardMessage ?? '${u.displayName} added');
+      Navigator.of(context).pop(r.wardMessage ?? l10n.manage_playerAdded(u.displayName));
     } catch (e) {
       // e.g. "Jersey #10 is taken." — stay open so it can be fixed.
       if (mounted) {
@@ -144,15 +145,16 @@ class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
       children: [
         SpSheetHeader(
           icon: Icons.person_add_alt_1_outlined,
-          title: 'Add player',
+          title: context.l10n.manage_addPlayer,
           subtitle: u == null
-              ? 'Pick a member of the group.'
+              ? context.l10n.manage_pickAMemberOfThe
               : _options.isNotEmpty || _needsJersey
-                  ? 'Set their ${[
-                      if (_options.isNotEmpty) 'positions',
-                      if (_needsJersey) 'jersey number',
-                    ].join(' and ')}.'
-                  : 'Add them to ${team.name}.',
+                  ? (_options.isNotEmpty && _needsJersey
+                      ? context.l10n.manage_setTheirPositionsAndJersey
+                      : _options.isNotEmpty
+                          ? context.l10n.manage_setTheirPositions
+                          : context.l10n.manage_setTheirJerseyNumber)
+                  : context.l10n.manage_addThemToTeam(team.name),
         ),
         if (u == null) _memberList(context) else ..._details(context, u),
       ],
@@ -171,7 +173,7 @@ class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
         if (all.isEmpty) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Text('Every group member is already on this team.',
+            child: Text(context.l10n.manage_everyGroupMemberIsAlready,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 13.5)),
           );
@@ -191,7 +193,7 @@ class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
             if (all.length > 6) ...[
               SpSearchCard(
                 controller: _search,
-                hint: 'Search members',
+                hint: context.l10n.manage_searchMembers,
                 onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 10),
@@ -199,7 +201,7 @@ class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
             if (list.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Text('No members match “${_search.text.trim()}”.',
+                child: Text(context.l10n.manage_noMembersMatch2(_search.text.trim()),
                     textAlign: TextAlign.center,
                     style: TextStyle(color: p.muted, fontSize: 13)),
               )
@@ -254,7 +256,7 @@ class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
             ),
             const SizedBox(width: 8),
             if (m.invitePending)
-              const SpBadge('Invited', icon: Icons.hourglass_top_rounded)
+              SpBadge(context.l10n.manage_invited, icon: Icons.hourglass_top_rounded)
             else
               Icon(Icons.chevron_right_rounded, size: 20, color: p.muted),
           ]),
@@ -298,7 +300,7 @@ class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
           ),
           TextButton(
             onPressed: _busy ? null : () => _pick(null),
-            child: const Text('Change'),
+            child: Text(context.l10n.manage_change),
           ),
         ]),
       ),
@@ -312,18 +314,18 @@ class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
       if (u.isWard) ...[
         const SizedBox(height: 10),
         _note(p,
-            "Wards join through a guardian: we'll send their guardians an invitation, and they're on the team once one accepts.",
+            context.l10n.manage_wardsJoinThroughAGuardian,
             bg: p.accentTint,
             fg: p.ink),
       ],
       if (_options.isNotEmpty) ...[
         const SizedBox(height: 16),
         Row(children: [
-          Text('Positions',
+          Text(context.l10n.manage_positions,
               style: TextStyle(
                   color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w700)),
           const SizedBox(width: 6),
-          Text('pick up to 3',
+          Text(context.l10n.manage_pickUpTo3,
               style: TextStyle(color: p.muted, fontSize: 12)),
         ]),
         const SizedBox(height: 8),
@@ -362,8 +364,8 @@ class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
         },
         decoration: InputDecoration(
           labelText:
-              _needsJersey ? 'Jersey number' : 'Jersey number (optional)',
-          hintText: 'e.g. 10',
+              _needsJersey ? context.l10n.manage_jerseyNumber : context.l10n.manage_jerseyNumberOptional,
+          hintText: context.l10n.manage_eG10,
         ),
       ),
       if (_error != null) ...[
@@ -373,8 +375,8 @@ class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
       const SizedBox(height: 18),
       SpButton(
         label: _busy
-            ? (u.isWard ? 'Inviting…' : 'Adding…')
-            : (u.isWard ? 'Invite guardians' : 'Add player'),
+            ? (u.isWard ? context.l10n.manage_inviting : context.l10n.manage_adding)
+            : (u.isWard ? context.l10n.manage_inviteGuardians : context.l10n.manage_addPlayer),
         icon: u.isWard ? Icons.mail_outline_rounded : Icons.person_add_alt_1_rounded,
         expand: true,
         tone: SpButtonTone.brand,

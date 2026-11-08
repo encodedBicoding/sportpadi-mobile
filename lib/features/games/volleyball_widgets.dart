@@ -4,6 +4,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
 import 'package:sportpadi_mobile/features/games/basketball_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Volleyball on the game screen — web twin: components/games/volleyball.tsx.
 /// A player-first pad where every rally is credited to someone (kill, ace,
@@ -26,7 +27,7 @@ bool isVolleyballSport(String? name, String? emoji) =>
 /// "Set 2" from a stamped phase ("S2").
 String setStamp(String? phase) {
   final m = RegExp(r'^S(\d)$').firstMatch(phase ?? '');
-  return m != null ? 'Set ${m[1]}' : '';
+  return m != null ? l10n.game_set3(m[1]!) : '';
 }
 
 /// The current set's points while the match is live (the big numbers).
@@ -38,17 +39,18 @@ Map<String, int>? currentSetPoints(GameDetail g) {
 
 // ── Score pad ────────────────────────────────────────────────────────────────
 
-const _vbActs = [
-  PadAct('kill', 'Kill', PadTone.score, assist: true),
-  PadAct('ace', 'Ace', PadTone.score),
-  PadAct('block', 'Block', PadTone.score),
-  PadAct('dig', 'Dig', PadTone.stat),
-  PadAct('point', 'Point (other)', PadTone.stat),
-  PadAct('attack_error', 'Attack error', PadTone.foul),
-  PadAct('service_error', 'Serve error', PadTone.foul),
-  PadAct('reception_error', 'Reception error', PadTone.foul),
-  PadAct('fault', 'Fault', PadTone.foul),
-];
+// A getter (not const) so the labels follow the language on screen.
+List<PadAct> get _vbActs => [
+      PadAct('kill', l10n.game_actKill, PadTone.score, assist: true),
+      PadAct('ace', l10n.game_actAce, PadTone.score),
+      PadAct('block', l10n.game_actBlock, PadTone.score),
+      PadAct('dig', l10n.game_actDig, PadTone.stat),
+      PadAct('point', l10n.game_actPointOther, PadTone.stat),
+      PadAct('attack_error', l10n.game_actAttackError, PadTone.foul),
+      PadAct('service_error', l10n.game_actServeError, PadTone.foul),
+      PadAct('reception_error', l10n.game_actReceptionError, PadTone.foul),
+      PadAct('fault', l10n.game_actFault, PadTone.foul),
+    ];
 
 class VolleyballScorePad extends StatelessWidget {
   const VolleyballScorePad({
@@ -80,7 +82,7 @@ class VolleyballScorePad extends StatelessWidget {
         busy: busy,
         amend: amend,
         onSub: onSub,
-        assistWord: 'Set by?',
+        assistWord: context.l10n.game_setBy,
         icon: Icons.sports_volleyball_rounded,
         statLine: (pl) {
           final l = box[pl.playerId];
@@ -88,7 +90,7 @@ class VolleyballScorePad extends StatelessWidget {
         },
       ),
       Text(
-        'Red actions are errors: they’re logged on the player who made them and the point goes to the other team.',
+        context.l10n.game_redActionsAreErrorsTheyre2,
         style: TextStyle(color: p.muted, fontSize: 11),
       ),
     ]);
@@ -159,7 +161,7 @@ class SetScoresStrip extends StatelessWidget {
                   ),
                   child: Text.rich(TextSpan(children: [
                     TextSpan(
-                        text: 'S${s.n} ',
+                        text: context.l10n.game_s3(s.n),
                         style: TextStyle(
                             color: muted,
                             fontSize: 10,
@@ -200,7 +202,7 @@ class VolleyballSetCard extends StatelessWidget {
     final vb = game.volleyball;
     if (vb == null || !game.isLive) return const SizedBox.shrink();
     String name(String? id) =>
-        game.teams.where((t) => t.teamId == id).firstOrNull?.name ?? 'A team';
+        game.teams.where((t) => t.teamId == id).firstOrNull?.name ?? context.l10n.game_aTeam;
 
     Widget card(IconData icon, Color bg, Color fg, String title, String body,
             String? cta, VoidCallback? onTap) =>
@@ -239,8 +241,8 @@ class VolleyballSetCard extends StatelessWidget {
           p.accentTint,
           p.accentDeep,
           '${name(wid)} won the match $won–$lost',
-          'End the match to lock in the result. You can still correct stats afterwards.',
-          'End match',
+          context.l10n.game_endTheMatchToLock,
+          context.l10n.game_endMatch,
           onEnd);
     }
     final cur = vb.current;
@@ -251,9 +253,9 @@ class VolleyballSetCard extends StatelessWidget {
           Icons.flag_rounded,
           p.orangeTint,
           p.orangeInk,
-          'Set ${cur.n} to ${name(w)}, ${cur.points[w] ?? 0}–${cur.points[l] ?? 0}',
-          'Sets ${vb.setsWon.values.join('–')}. Switch ends, then start set ${cur.n + 1}.',
-          'Start set ${cur.n + 1}',
+          context.l10n.game_setTo3(cur.n, name(w), cur.points[w] ?? 0, cur.points[l] ?? 0),
+          context.l10n.game_setsSwitchEndsThenStart(vb.setsWon.values.join('–'), cur.n + 1),
+          context.l10n.game_startSet2(cur.n + 1),
           onStartNext);
     }
     if (vb.switchSidesDue) {
@@ -261,9 +263,9 @@ class VolleyballSetCard extends StatelessWidget {
           Icons.swap_horiz_rounded,
           p.orangeTint,
           p.orangeInk,
-          'Change ends',
-          'A team has reached ${vb.rules.switchAt} in the deciding set — the teams switch sides.',
-          'Done',
+          context.l10n.game_changeEnds,
+          context.l10n.game_aTeamHasReachedIn(vb.rules.switchAt),
+          context.l10n.game_done,
           onSwitched);
     }
     return const SizedBox.shrink();
@@ -336,12 +338,12 @@ class VolleyballSummary extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                        'Final${vb.rules.bestOf > 1 ? ' · best of ${vb.rules.bestOf}' : ''}',
+                        context.l10n.game_finalLabel3((vb.rules.bestOf > 1 ? ' · best of ${vb.rules.bestOf}' : '')),
                         style: TextStyle(color: p.muted, fontSize: 12)),
                     Text(
                         winner != null
-                            ? '${winner.name} won ${scores.join('–')}'
-                            : 'Match summary',
+                            ? context.l10n.game_won3(winner.name, scores.join('–'))
+                            : context.l10n.game_matchSummary,
                         style: TextStyle(
                             color: p.ink,
                             fontSize: 16,
@@ -359,9 +361,9 @@ class VolleyballSummary extends StatelessWidget {
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                c('TEAM', w: 120, color: p.muted, align: TextAlign.left),
+                c(context.l10n.game_team3, w: 120, color: p.muted, align: TextAlign.left),
                 for (final s in played) c('S${s.n}', color: p.muted),
-                c('SETS', w: 48, color: p.muted),
+                c(context.l10n.game_sets2, w: 48, color: p.muted),
               ]),
               for (final t in game.teams) ...[
                 const Divider(height: 12),
@@ -408,7 +410,7 @@ class VolleyballSummary extends StatelessWidget {
                       Text(
                         names[x.$2!.playerId] != null
                             ? '${_jn(names[x.$2!.playerId]!.jersey)}${names[x.$2!.playerId]!.displayName}'
-                            : 'Player',
+                            : context.l10n.game_player,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: p.muted, fontSize: 11.5),
@@ -474,7 +476,7 @@ class VolleyballSummary extends StatelessWidget {
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800)),
                       ),
-                      Text('Stat sheet',
+                      Text(context.l10n.game_statSheet,
                           style: TextStyle(color: p.muted, fontSize: 11)),
                     ]),
                     const SizedBox(height: 8),
@@ -484,7 +486,7 @@ class VolleyballSummary extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(children: [
-                              c('PLAYER',
+                              c(context.l10n.game_player2,
                                   w: 130,
                                   color: p.muted,
                                   align: TextAlign.left),
@@ -498,7 +500,7 @@ class VolleyballSummary extends StatelessWidget {
                                   child: Text(
                                     names[l.playerId] != null
                                         ? '${_jn(names[l.playerId]!.jersey)}${names[l.playerId]!.displayName}'
-                                        : 'Player',
+                                        : context.l10n.game_player,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: cell(bold: true),
@@ -516,7 +518,7 @@ class VolleyballSummary extends StatelessWidget {
                             if (tot != null) ...[
                               const Divider(height: 12, thickness: 1.5),
                               Row(children: [
-                                c('Team',
+                                c(context.l10n.game_team,
                                     w: 130, bold: true, align: TextAlign.left),
                                 for (var i = 0; i < heads.length; i++)
                                   c('${vals(tot)[i]}', bold: true),
@@ -527,8 +529,7 @@ class VolleyballSummary extends StatelessWidget {
                     if (tot != null) ...[
                       const SizedBox(height: 8),
                       Text(
-                        'Points won ${tot.kills + tot.aces + tot.blocks} (kills, aces, blocks) · '
-                        'errors given away ${tot.errors}',
+                        context.l10n.game_pointsWonKillsAcesBlocks(tot.kills + tot.aces + tot.blocks, tot.errors),
                         style: TextStyle(color: p.muted, fontSize: 11),
                       ),
                     ],
@@ -591,47 +592,49 @@ class VolleyballFormatFields extends StatelessWidget {
       decoration: BoxDecoration(
           color: p.surface2, borderRadius: BorderRadius.circular(16)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Text('🏐 Match format',
+        Text(context.l10n.game_matchFormat,
             style: TextStyle(
                 color: p.ink, fontSize: 13, fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
         SpSegmented(
-          options: const ['1 set', 'Best of 3', 'Best of 5'],
+          options: [
+            context.l10n.game_oneSet,
+            context.l10n.game_bestOfN(3),
+            context.l10n.game_bestOfN(5),
+          ],
           index: bests.contains(value.bestOf) ? bests.indexOf(value.bestOf) : 2,
           onChanged: (i) => onChanged(value.copyWith(bestOf: bests[i])),
         ),
         const SizedBox(height: 12),
         Row(children: [
-          field('Points per set', value.setPoints, 5, 50,
+          field(context.l10n.game_pointsPerSet, value.setPoints, 5, 50,
               (n) => onChanged(value.copyWith(setPoints: n)),
-              hint: 'Indoor 25 · beach 21'),
+              hint: context.l10n.game_indoor25Beach21),
           const SizedBox(width: 12),
           if (multi)
-            field('Deciding set to', value.decidingSetPoints, 5, 50,
+            field(context.l10n.game_decidingSetTo, value.decidingSetPoints, 5, 50,
                 (n) => onChanged(value.copyWith(decidingSetPoints: n)),
-                hint: 'Set ${value.bestOf}')
+                hint: context.l10n.game_set4(value.bestOf))
           else
-            field('Win by', value.winBy, 1, 5,
+            field(context.l10n.game_winBy2, value.winBy, 1, 5,
                 (n) => onChanged(value.copyWith(winBy: n))),
         ]),
         const SizedBox(height: 10),
         Row(children: [
           if (multi) ...[
-            field('Win by', value.winBy, 1, 5,
+            field(context.l10n.game_winBy2, value.winBy, 1, 5,
                 (n) => onChanged(value.copyWith(winBy: n))),
             const SizedBox(width: 12),
           ],
-          field('Timeouts per set', value.timeoutsPerSet, 0, 5,
+          field(context.l10n.game_timeoutsPerSet, value.timeoutsPerSet, 0, 5,
               (n) => onChanged(value.copyWith(timeoutsPerSet: n)),
-              hint: 'Per team · 30 s each'),
+              hint: context.l10n.game_perTeam30SEach),
         ]),
         const SizedBox(height: 8),
         Text(
           multi
-              ? 'Rally scoring: first to win ${value.setsToWin} sets. Sets go to ${value.setPoints} '
-                  '(the deciding set to ${value.decidingSetPoints}), win by ${value.winBy}. '
-                  'Teams change ends at ${value.switchAt} in the decider.'
-              : 'Rally scoring: one set to ${value.setPoints}, win by ${value.winBy}.',
+              ? context.l10n.game_rallyScoringFirstToWin2(value.setsToWin, value.setPoints, value.decidingSetPoints, value.winBy, value.switchAt)
+              : context.l10n.game_rallyScoringOneSetTo(value.setPoints, value.winBy),
           style: TextStyle(color: p.muted, fontSize: 11, height: 1.35),
         ),
       ]),

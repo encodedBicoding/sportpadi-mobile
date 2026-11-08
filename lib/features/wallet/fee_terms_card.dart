@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/data/wallet/fee_terms.dart';
 import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/info_tip.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// "Your fee" — what this group pays SportPadi on every payment it collects,
 /// where the rate comes from (its plan, or the platform rate), card
@@ -26,15 +27,28 @@ class FeeTermsCard extends ConsumerWidget {
     if (d == null) return const SizedBox.shrink();
     String money(int v) => formatMoney(v, d.currency ?? 'USD', d.exponent);
     final via = d.walletVia == 'promo' && d.tierName != null
-        ? ' — your wallet comes from a promo code, and the fee follows your ${d.tierName} plan, not the code'
+        ? ' ${context.l10n.wallet_yourWalletComesFromA(d.tierName!)}'
         : '';
-    final who = d.bearer == 'group' ? 'your group pays it' : 'buyers pay it on top';
+    final who = d.bearer == 'group'
+        ? context.l10n.wallet_yourGroupPaysIt
+        : context.l10n.wallet_buyersPayItOnTop;
     final example = d.processorProvider != null
-        ? 'On a ${money(d.examplePrice)} payment the buyer pays ${money(d.exampleBuyerPays)} and you receive ${money(d.exampleGroupReceives)}. '
-            'Of the ${money(d.exampleFee)} fee, card processing (${d.processorProvider}, ${fmtBps(d.processorBps)}'
-            '${d.processorFixedMinor > 0 ? ' + ${money(d.processorFixedMinor)}' : ''}) takes about ${money(d.exampleProcessor)} and SportPadi keeps ${money(d.exampleNet)}.'
-            '${d.maxFeeBps > 0 && d.bearer == 'buyer' ? " The buyer's fee is capped at ${fmtBps(d.maxFeeBps)} of the price." : ''}'
-        : 'Card processing is added once your bank is connected — the exact rate depends on the provider that settles your sales.';
+        ? context.l10n.wallet_feeWorkedExample(
+                money(d.examplePrice),
+                money(d.exampleBuyerPays),
+                money(d.exampleGroupReceives),
+                money(d.exampleFee),
+                d.processorProvider!,
+                fmtBps(d.processorBps),
+                d.processorFixedMinor > 0
+                    ? ' + ${money(d.processorFixedMinor)}'
+                    : '',
+                money(d.exampleProcessor),
+                money(d.exampleNet)) +
+            (d.maxFeeBps > 0 && d.bearer == 'buyer'
+                ? ' ${context.l10n.wallet_theBuyersFeeIsCappedAt(fmtBps(d.maxFeeBps))}'
+                : '')
+        : context.l10n.wallet_cardProcessingIsAddedOnce;
 
     return GlassCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -44,7 +58,7 @@ class FeeTermsCard extends ConsumerWidget {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(mainAxisSize: MainAxisSize.min, children: [
-                Text('YOUR FEE',
+                Text(context.l10n.wallet_yourFee,
                     style: TextStyle(color: p.muted, fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
                 const SizedBox(width: 4),
                 // The worked example, as a tooltip.
@@ -69,7 +83,7 @@ class FeeTermsCard extends ConsumerWidget {
               Icon(Icons.event_rounded, size: 14, color: p.orangeInk),
               const SizedBox(width: 6),
               Expanded(
-                child: Text('Your fee ${d.pending!.phrase}. Nothing changes before then.',
+                child: Text(context.l10n.wallet_yourFeeNothingChangesBefore(d.pending!.phrase),
                     style: TextStyle(color: p.orangeInk, fontSize: 12.5, fontWeight: FontWeight.w600)),
               ),
             ]),
@@ -79,7 +93,7 @@ class FeeTermsCard extends ConsumerWidget {
         TextButton.icon(
           onPressed: () => context.push('/groups/$groupId/wallet/statement'),
           icon: const Icon(Icons.receipt_long_rounded, size: 16),
-          label: const Text('Monthly statement — every payment and its fee'),
+          label: Text(context.l10n.wallet_monthlyStatementEveryPaymentAnd),
           style: TextButton.styleFrom(padding: EdgeInsets.zero, foregroundColor: p.greenText),
         ),
       ]),

@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/shared/widgets/category_dropdown.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Kit colours a team can pick from. The web form takes any hex through a
 /// colour input; on a phone a palette is quicker and every one of these reads
@@ -71,7 +72,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
     if (_categoryId == null) {
-      setState(() => _error = 'Pick a sport');
+      setState(() => _error = l10n.manage_pickASport);
       return;
     }
     // Same rule as the server (plan OR promo code): no second team in a
@@ -79,8 +80,8 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
     final allow = ref.read(teamAllowanceProvider(widget.groupId)).valueOrNull;
     if (allow != null && !allow.canAddTo(_categoryId!)) {
       setState(() => _error = allow.canBuild
-          ? 'Your plan allows one team per sport. Upgrade, or redeem a promo code with Build Multiple Teams, to add more.'
-          : "Your group's plan doesn't include building teams. Upgrade to unlock it.");
+          ? l10n.manage_yourPlanAllowsOneTeam
+          : l10n.manage_yourGroupsPlanDoesntInclude);
       return;
     }
     setState(() {
@@ -120,7 +121,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
   Widget build(BuildContext context) {
     final p = context.palette;
     return Scaffold(
-      appBar: AppBar(leading: const SpLeading(), title: const Text('New team')),
+      appBar: AppBar(leading: const SpLeading(), title: Text(context.l10n.manage_newTeam)),
       body: Form(
         key: _form,
         child: ListView(
@@ -129,9 +130,9 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
             TextFormField(
               controller: _name,
               onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(labelText: 'Team name'),
+              decoration: InputDecoration(labelText: context.l10n.manage_teamName),
               validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Add a name' : null,
+                  (v == null || v.trim().isEmpty) ? context.l10n.manage_addAName : null,
             ),
             const SizedBox(height: 14),
             Builder(builder: (context) {
@@ -152,7 +153,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
                   if (taken.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(
-                      'Your plan allows one team per sport, so sports that already have a team are greyed out. Upgrade, or redeem a promo code with Build Multiple Teams, to add more.',
+                      context.l10n.manage_yourPlanAllowsOneTeam2,
                       style:
                           TextStyle(color: p.muted, fontSize: 12, height: 1.4),
                     ),
@@ -161,7 +162,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
               );
             }),
             const SizedBox(height: 18),
-            const _Label('Grade'),
+            _Label(context.l10n.manage_grade),
             const SizedBox(height: 6),
             SpSegmented(
               options: const ['Adults', 'Kids'],
@@ -173,12 +174,12 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
             ),
             if (_grade == 'kids') ...[
               const SizedBox(height: 14),
-              const _Label('Age group'),
+              _Label(context.l10n.manage_ageGroup),
               const SizedBox(height: 6),
               SpSegmented(
                 options: [
-                  'Any age',
-                  for (final n in teamAgeLimits) 'Under $n',
+                  context.l10n.manage_anyAge,
+                  for (final n in teamAgeLimits) context.l10n.manage_underN(n),
                 ],
                 index: _ageLimit == null
                     ? 0
@@ -188,7 +189,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                  "A guide, not a rule: when you add players you'll see each child's age, and anyone over the limit is flagged — you can still add them.",
+                  context.l10n.manage_aGuideNotARule,
                   style: TextStyle(color: p.muted, fontSize: 12, height: 1.4)),
             ],
             const SizedBox(height: 18),
@@ -205,27 +206,27 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Kit colours',
+                      Text(context.l10n.manage_kitColours,
                           style: TextStyle(
                               color: p.ink,
                               fontSize: 13.5,
                               fontWeight: FontWeight.w700)),
                       const SizedBox(height: 2),
                       Text(
-                          'Shirt and trim — this is the crest on every team sheet.',
+                          context.l10n.manage_shirtAndTrimThisIs,
                           style: TextStyle(color: p.muted, fontSize: 11.5)),
                     ]),
               ),
             ]),
             const SizedBox(height: 10),
             KitPicker(
-              label: 'Primary',
+              label: context.l10n.manage_primary,
               value: _kitPrimary,
               onChanged: (v) => setState(() => _kitPrimary = v),
             ),
             const SizedBox(height: 8),
             KitPicker(
-              label: 'Secondary',
+              label: context.l10n.manage_secondary,
               value: _kitSecondary,
               onChanged: (v) => setState(() => _kitSecondary = v),
             ),
@@ -233,14 +234,14 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
             TextFormField(
               controller: _venue,
               decoration:
-                  const InputDecoration(labelText: 'Home venue (optional)'),
+                  InputDecoration(labelText: context.l10n.manage_homeVenueOptional),
             ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _description,
               maxLines: 3,
               decoration:
-                  const InputDecoration(labelText: 'Description (optional)'),
+                  InputDecoration(labelText: context.l10n.manage_descriptionOptional),
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
@@ -255,7 +256,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
                       width: 20,
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white))
-                  : const Text('Create team'),
+                  : Text(context.l10n.manage_createTeam),
             ),
           ],
         ),

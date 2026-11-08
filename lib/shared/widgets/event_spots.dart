@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/event_models.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The "Spots" block of the create / edit event forms: a cap on players and
 /// the RSVP rule. Web twin: components/events/SpotsSettings.tsx.
@@ -27,10 +28,10 @@ class EventSpotsPicker extends StatelessWidget {
     final cap = int.tryParse(maxPlayers.text.trim());
     final required = rsvpPolicy == 'required';
     final hint = cap == null
-        ? 'No cap — anyone can check in.'
+        ? context.l10n.common_noCapAnyoneCanCheck
         : required
             ? '$cap spots. RSVPs hold them; the page shows what\'s left.'
-            : 'Check-ins stop at $cap.';
+            : context.l10n.common_checkInsStopAt(cap);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -44,7 +45,7 @@ class EventSpotsPicker extends StatelessWidget {
               Row(children: [
                 Icon(Icons.group_outlined, size: 16, color: p.ink),
                 const SizedBox(width: 6),
-                Text('Max players',
+                Text(context.l10n.common_maxPlayers,
                     style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: p.ink)),
               ]),
               const SizedBox(height: 2),
@@ -67,14 +68,14 @@ class EventSpotsPicker extends StatelessWidget {
           ),
         ]),
         const SizedBox(height: 12),
-        Text('RSVP', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: p.ink)),
+        Text(context.l10n.common_rsvp, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: p.ink)),
         const SizedBox(height: 6),
         Row(children: [
           Expanded(
             child: _PolicyTile(
               on: !required,
-              label: 'Just interest',
-              hint: 'Anyone can show up and check in. RSVPs are a head-count.',
+              label: context.l10n.common_justInterest,
+              hint: context.l10n.common_anyoneCanShowUpAnd,
               onTap: enabled ? () => onRsvpPolicy('open') : null,
             ),
           ),
@@ -83,8 +84,8 @@ class EventSpotsPicker extends StatelessWidget {
             child: _PolicyTile(
               on: required,
               icon: Icons.lock_outline,
-              label: 'Required to check in',
-              hint: 'An RSVP holds a spot; no RSVP, no check-in. You can release no-shows.',
+              label: context.l10n.common_requiredToCheckIn,
+              hint: context.l10n.common_anRsvpHoldsASpot,
               onTap: enabled ? () => onRsvpPolicy('required') : null,
             ),
           ),
@@ -171,16 +172,16 @@ class SpotsBanner extends StatelessWidget {
     }
     final headline = required
         ? full
-            ? (myInterested ? 'Full — your spot is held' : 'Full — every spot is taken')
+            ? (myInterested ? context.l10n.common_fullYourSpotIsHeld : context.l10n.common_fullEverySpotIsTaken)
             : c.capped
-                ? 'RSVP to hold a spot · ${c.line}'
-                : 'RSVP required to check in'
+                ? context.l10n.common_rsvpToHoldASpot(c.line ?? '')
+                : context.l10n.common_rsvpRequiredToCheckIn
         : full
-            ? 'Full — ${c.maxPlayers} players checked in'
+            ? context.l10n.common_fullPlayersCheckedIn(c.maxPlayers ?? '')
             : '${c.line} · ${c.checkedInCount} checked in';
     final detail = required
-        ? "No RSVP, no check-in. If you can't make it, withdraw so someone else can have the spot."
-        : 'Check-ins close when the event is full.';
+        ? context.l10n.common_noRsvpNoCheckIn
+        : context.l10n.common_checkInsCloseWhenThe;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16)),

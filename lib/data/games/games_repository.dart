@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/core/analytics/device_id.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Live games over the REST bridge (`/api/mobile/games…`), which reuses the
 /// backend tRPC games router. Realtime updates arrive over the SSE stream at
@@ -34,7 +35,7 @@ class GamesRepository {
     try {
       final res = await _dio.get('/api/mobile/games/$gameId');
       if (res.data is! Map) {
-        throw ApiException('Game not found.', statusCode: 404);
+        throw ApiException(l10n.common_gameNotFound, statusCode: 404);
       }
       return GameDetail.fromJson(Map<String, dynamic>.from(res.data as Map));
     } catch (e) {

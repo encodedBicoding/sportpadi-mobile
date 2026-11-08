@@ -14,6 +14,7 @@ import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 class _Pos {
   _Pos(this.x, this.y, this.starter);
@@ -228,7 +229,7 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
     final cfg = d.o('formation')?.o('config')?.raw;
     return TeamDetail(
       id: widget.teamId,
-      name: d.o('team')?.str('name', 'Team') ?? 'Team',
+      name: d.o('team')?.str('name', context.l10n.manage_team2) ?? 'Team',
       logoUrl: d.o('team')?.s('logoUrl'),
       kitPrimary: d.s('kitPrimary'),
       kitSecondary: d.s('kitSecondary'),
@@ -241,7 +242,7 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
             TeamMember(
               memberId: m.str('playerId'),
               playerId: m.str('playerId'),
-              displayName: m.str('displayName', 'Player'),
+              displayName: m.str('displayName', context.l10n.manage_player),
               avatarUrl: m.s('avatarUrl'),
               jerseyNumber: m.iOrNull('shirtNumber'),
               positions: [if (m.s('position') != null) m.str('position')],
@@ -417,22 +418,22 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
           ListTile(
             dense: true,
             leading: Icon(Icons.group_outlined, size: 20, color: p.muted),
-            title: Text('Bench', style: TextStyle(color: p.ink, fontSize: 14)),
+            title: Text(l10n.manage_bench, style: TextStyle(color: p.ink, fontSize: 14)),
             onTap: () => Navigator.pop(ctx, 'bench'),
           ),
           ListTile(
             dense: true,
             leading: Icon(Icons.login_rounded, size: 20, color: p.muted),
-            title: Text('Sub', style: TextStyle(color: p.ink, fontSize: 14)),
-            subtitle: Text('Bring a bench player on in this spot',
+            title: Text(l10n.manage_sub, style: TextStyle(color: p.ink, fontSize: 14)),
+            subtitle: Text(l10n.manage_bringABenchPlayerOn,
                 style: TextStyle(color: p.muted, fontSize: 11)),
             onTap: () => Navigator.pop(ctx, 'sub'),
           ),
           ListTile(
             dense: true,
             leading: Icon(Icons.swap_horiz_rounded, size: 20, color: p.muted),
-            title: Text('Swap', style: TextStyle(color: p.ink, fontSize: 14)),
-            subtitle: Text('Switch positions with a pitch player',
+            title: Text(l10n.manage_swap, style: TextStyle(color: p.ink, fontSize: 14)),
+            subtitle: Text(l10n.manage_switchPositionsWithAPitch,
                 style: TextStyle(color: p.muted, fontSize: 11)),
             onTap: () => Navigator.pop(ctx, 'swap'),
           ),
@@ -500,15 +501,15 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
               style: TextStyle(
                   color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
           header(fromBench
-              ? 'From the bench — takes their spot'
-              : 'On the pitch — switch positions'),
+              ? l10n.manage_fromTheBenchTakesTheir
+              : l10n.manage_onThePitchSwitchPositions),
           if (candidates.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
                   fromBench
-                      ? 'The bench is empty.'
-                      : 'No other players on the pitch.',
+                      ? l10n.manage_theBenchIsEmpty
+                      : l10n.manage_noOtherPlayersOnThe,
                   style: TextStyle(color: p.muted, fontSize: 12)),
             )
           else
@@ -544,7 +545,7 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
     final max = _team?.formation.maxStarters ?? 11;
     if (_starterCount >= max) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('At most $max on the field.')));
+          .showSnackBar(SnackBar(content: Text(context.l10n.manage_atMostOnTheField(max))));
       return;
     }
     // Position-aware placement (web): first open lattice slot, never on top
@@ -629,15 +630,15 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
     if (team == null) {
       return Scaffold(
         appBar:
-            AppBar(leading: const SpLeading(), title: const Text('Formation')),
-        body: Center(child: Text(_error ?? 'Could not load the team.')),
+            AppBar(leading: const SpLeading(), title: Text(context.l10n.manage_formation)),
+        body: Center(child: Text(_error ?? context.l10n.manage_couldNotLoadTheTeam)),
       );
     }
     if (!team.formation.needsFormation) {
       return Scaffold(
         appBar:
-            AppBar(leading: const SpLeading(), title: const Text('Formation')),
-        body: const Center(child: Text('This sport has no formation board.')),
+            AppBar(leading: const SpLeading(), title: Text(context.l10n.manage_formation)),
+        body: Center(child: Text(context.l10n.manage_thisSportHasNoFormation)),
       );
     }
     final surface = team.formation.surface;
@@ -654,7 +655,7 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
           children: [
-            SpHeader(title: 'Formation', subtitle: team.name),
+            SpHeader(title: context.l10n.manage_formation, subtitle: team.name),
             const SizedBox(height: 16),
             // Header row — how full the pitch is, the shape switcher, saved.
             Row(children: [
@@ -668,7 +669,7 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
                               fontSize: 22,
                               height: 1.1,
                               fontWeight: FontWeight.w800)),
-                      Text('on the pitch',
+                      Text(context.l10n.manage_onThePitch,
                           style: TextStyle(color: p.muted, fontSize: 12)),
                     ]),
               ),
@@ -683,7 +684,7 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _formationName,
-                      hint: Text('Formation…',
+                      hint: Text(context.l10n.manage_formation2,
                           style: TextStyle(color: p.muted, fontSize: 12)),
                       style: TextStyle(
                           color: p.ink,
@@ -752,7 +753,7 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
             Row(children: [
               Icon(Icons.group_outlined, size: 14, color: p.muted),
               const SizedBox(width: 5),
-              Text('BENCH (${bench.length})',
+              Text(context.l10n.manage_bench2(bench.length),
                   style: TextStyle(
                       color: p.muted,
                       fontSize: 11,
@@ -761,7 +762,7 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
             ]),
             const SizedBox(height: 8),
             if (bench.isEmpty)
-              Text("Everyone's on the field.",
+              Text(context.l10n.manage_everyonesOnTheField,
                   style: TextStyle(color: p.muted, fontSize: 12))
             else
               Wrap(spacing: 6, runSpacing: 6, children: [
@@ -772,8 +773,8 @@ class _FormationBoardScreenState extends ConsumerState<FormationBoardScreen> {
               const SizedBox(height: 8),
               Text(
                 surface == 'pitch' || surface == null
-                    ? 'Tap a bench player to field them, drag tokens to position, tap × to bench or substitute.'
-                    : 'Tap to field, drag to position, × to bench or substitute.',
+                    ? context.l10n.manage_tapABenchPlayerTo
+                    : context.l10n.manage_tapToFieldDragTo,
                 style: TextStyle(color: p.muted, fontSize: 11),
               ),
             ],

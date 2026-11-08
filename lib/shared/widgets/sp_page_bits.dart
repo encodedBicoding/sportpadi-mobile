@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The 2026 sub-page frame (web `GroupSubPage`): the round-back [SpHeader]
 /// with a title, a "Group · N things" subtitle and pill actions, the body
@@ -165,7 +166,7 @@ class SpSearchCard extends StatelessWidget {
         ),
         if (controller.text.isNotEmpty)
           IconButton(
-            tooltip: 'Clear search',
+            tooltip: context.l10n.common_clearSearch,
             visualDensity: VisualDensity.compact,
             icon: Icon(Icons.close_rounded, size: 18, color: p.muted),
             onPressed: () {

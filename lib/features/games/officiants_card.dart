@@ -12,26 +12,27 @@ import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
-/// Officiant jobs. Missing = both.
-const kOfficiantRoles = <String, ({String label, String icon, String blurb})>{
-  'timekeeper': (
-    label: 'Timekeeper',
-    icon: '⏱️',
-    blurb:
-        'Runs the clock in officiant mode — kick-off, pauses, stoppage, full time.',
-  ),
-  'scorer': (
-    label: 'Scorer',
-    icon: '📋',
-    blurb: 'Records what happens — the stats this sport tracks.',
-  ),
-  'both': (
-    label: 'Clock + stats',
-    icon: '🫡',
-    blurb: 'Does both. Fine for small games with one officiant.',
-  ),
-};
+/// Officiant jobs. Missing = both. (A getter so the labels follow the language.)
+Map<String, ({String label, String icon, String blurb})> get kOfficiantRoles =>
+    <String, ({String label, String icon, String blurb})>{
+      'timekeeper': (
+        label: l10n.game_timekeeper,
+        icon: '⏱️',
+        blurb: l10n.game_runsTheClockInOfficiantMode,
+      ),
+      'scorer': (
+        label: l10n.game_scorer,
+        icon: '📋',
+        blurb: l10n.game_recordsWhatHappensTheStats,
+      ),
+      'both': (
+        label: l10n.game_clockStats,
+        icon: '🫡',
+        blurb: l10n.game_doesBothFineForSmall,
+      ),
+    };
 
 /// Officiants on a game — flexible, any time (web: OfficiantsPanel).
 ///
@@ -92,7 +93,7 @@ class _OfficiantsCardState extends ConsumerState<OfficiantsCard> {
             Icon(Icons.verified_user_outlined, size: 15, color: p.accent),
             const SizedBox(width: 6),
             Expanded(
-              child: Text('Officiants',
+              child: Text(context.l10n.game_officiants,
                   style: TextStyle(
                       color: p.ink, fontSize: 13, fontWeight: FontWeight.w700)),
             ),
@@ -108,22 +109,19 @@ class _OfficiantsCardState extends ConsumerState<OfficiantsCard> {
                     padding: const EdgeInsets.symmetric(horizontal: 8)),
                 onPressed: _callIn,
                 icon: const Icon(Icons.person_add_alt_1_rounded, size: 16),
-                label: const Text('Call in', style: TextStyle(fontSize: 12.5)),
+                label: Text(context.l10n.game_callIn2, style: const TextStyle(fontSize: 12.5)),
               ),
           ]),
           if (people.isEmpty)
             Text(
-              'Group admins officiate by default. Call someone in to keep time '
-              'or record stats — you can change this at any point in the game.',
+              context.l10n.game_groupAdminsOfficiateByDefault,
               style: TextStyle(color: p.muted, fontSize: 11.5),
             )
           else
             for (final o in people) _row(o, myId),
           const SizedBox(height: 6),
           Text(
-            '⏱️ Timekeepers run the clock in officiant mode · 📋 scorers record '
-            '${records.isEmpty ? 'the stats' : records.take(4).join(', ').toLowerCase()}. '
-            'Group admins can always do both.',
+            context.l10n.game_timekeepersRunTheClockIn2(records.isEmpty ? context.l10n.game_theStats2 : records.take(4).join(', ').toLowerCase()),
             style: TextStyle(color: p.muted, fontSize: 11),
           ),
         ],
@@ -188,7 +186,7 @@ class _OfficiantsCardState extends ConsumerState<OfficiantsCard> {
                   ),
                   if (o.pending) ...[
                     const SizedBox(width: 6),
-                    SpBadge('Invited', tone: p.muted),
+                    SpBadge(context.l10n.game_invited, tone: p.muted),
                   ],
                 ]),
                 Text('${meta.icon} ${meta.label}',
@@ -211,7 +209,7 @@ class _OfficiantsCardState extends ConsumerState<OfficiantsCard> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(self ? 'Your job on this game' : '${o.displayName}\'s job',
+          Text(self ? l10n.game_yourJobOnThisGame : l10n.game_sJob(o.displayName),
               style: TextStyle(
                   color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
@@ -236,12 +234,12 @@ class _OfficiantsCardState extends ConsumerState<OfficiantsCard> {
             leading: Icon(
                 self ? Icons.logout_rounded : Icons.person_remove_outlined,
                 color: p.danger),
-            title: Text(self ? 'Step down' : 'Take off officiating',
+            title: Text(self ? l10n.game_stepDown : l10n.game_takeOffOfficiating,
                 style: TextStyle(color: p.danger, fontWeight: FontWeight.w600)),
             subtitle: Text(
                 self
-                    ? 'The group admins get a heads-up to call someone else in.'
-                    : 'They can be called back in any time.',
+                    ? l10n.game_theGroupAdminsGetA
+                    : l10n.game_theyCanBeCalledBack,
                 style: TextStyle(color: p.muted, fontSize: 11.5)),
             onTap: () => Navigator.pop(ctx, '__remove'),
           ),
@@ -251,10 +249,10 @@ class _OfficiantsCardState extends ConsumerState<OfficiantsCard> {
     if (choice == null || !mounted) return;
     if (choice == '__remove') {
       await _run(() => repo.removeOfficiant(widget.gameId, o.userId),
-          done: self ? 'You\'ve stepped down' : 'Officiant removed');
+          done: self ? l10n.game_youveSteppedDown : l10n.game_officiantRemoved);
     } else if (choice != o.role) {
       await _run(() => repo.setOfficiantRole(widget.gameId, o.userId, choice),
-          done: 'Now ${kOfficiantRoles[choice]!.label.toLowerCase()}');
+          done: l10n.game_nowRole(kOfficiantRoles[choice]!.label.toLowerCase()));
     }
   }
 
@@ -274,8 +272,8 @@ class _OfficiantsCardState extends ConsumerState<OfficiantsCard> {
     final r = out;
     if (r != null) {
       _snack(r.requested > 0
-          ? 'Request sent to ${r.requested} ${r.requested == 1 ? 'person' : 'people'}'
-          : '${r.added} called in');
+          ? l10n.game_requestSentToPeople(r.requested)
+          : l10n.game_calledIn(r.added));
     }
   }
 }
@@ -349,14 +347,14 @@ class _CallInSheetState extends ConsumerState<_CallInSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Call someone in',
+            Text(context.l10n.game_callSomeoneIn,
                 style: TextStyle(
                     color: p.ink, fontSize: 17, fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
             Text(
               widget.isTournament
-                  ? 'Anyone on SportPadi can officiate a tournament match — they\'ll get a request to accept.'
-                  : 'Anyone in the group can step in. They\'re added straight away and get a notification.',
+                  ? context.l10n.game_anyoneOnSportPadiCanOfficiate
+                  : context.l10n.game_anyoneInTheGroupCan,
               style: TextStyle(color: p.muted, fontSize: 12),
             ),
             const SizedBox(height: 12),
@@ -377,8 +375,8 @@ class _CallInSheetState extends ConsumerState<_CallInSheet> {
                 isDense: true,
                 prefixIcon: const Icon(Icons.search_rounded, size: 18),
                 hintText: widget.isTournament
-                    ? 'Search anyone on SportPadi'
-                    : 'Search the group',
+                    ? context.l10n.game_searchAnyoneOnSportPadi
+                    : context.l10n.game_searchTheGroup,
               ),
               onChanged: (_) {
                 _debounce?.cancel();
@@ -404,8 +402,8 @@ class _CallInSheetState extends ConsumerState<_CallInSheet> {
                               padding: const EdgeInsets.all(16),
                               child: Text(
                                 widget.isTournament && _q.text.trim().length < 2
-                                    ? 'Type a name to search the whole platform.'
-                                    : 'No one matches.',
+                                    ? context.l10n.game_typeANameToSearch
+                                    : context.l10n.game_noOneMatches,
                                 style: TextStyle(color: p.muted),
                               ),
                             )
@@ -419,10 +417,10 @@ class _CallInSheetState extends ConsumerState<_CallInSheet> {
             const SizedBox(height: 10),
             SpButton(
               label: _picked.isEmpty
-                  ? 'Pick someone'
+                  ? context.l10n.game_pickSomeone
                   : widget.isTournament
-                      ? 'Send ${_picked.length} request${_picked.length == 1 ? '' : 's'}'
-                      : 'Call in ${_picked.length}',
+                      ? context.l10n.game_sendRequests(_picked.length)
+                      : context.l10n.game_callIn3(_picked.length),
               icon: Icons.sports_rounded,
               expand: true,
               onTap: _picked.isEmpty
@@ -459,11 +457,11 @@ class _CallInSheetState extends ConsumerState<_CallInSheet> {
           style: TextStyle(color: p.ink, fontWeight: FontWeight.w600)),
       subtitle: Text(
         c.status == 'officiating'
-            ? 'Already officiating'
+            ? context.l10n.game_alreadyOfficiating
             : c.status == 'pending'
-                ? 'Already invited'
+                ? context.l10n.game_alreadyInvited
                 : c.groupAdmin
-                    ? 'Group admin${c.username != null ? ' · @${c.username}' : ''}'
+                    ? context.l10n.game_groupAdmin((c.username != null ? ' · @${c.username}' : ''))
                     : (c.username != null ? '@${c.username}' : ''),
         style: TextStyle(color: p.muted, fontSize: 11.5),
       ),

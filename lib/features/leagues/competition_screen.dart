@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_tab_track.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// A competition across its seasons (web `/competitions/[slug]`): seasons and
 /// divisions with how they finished, honours, the all-time table, records and
@@ -17,14 +18,19 @@ class CompetitionScreen extends ConsumerWidget {
   const CompetitionScreen({super.key, required this.slug});
   final String slug;
 
-  static const _status = {'draft': 'Draft', 'published': 'Starting', 'in_progress': 'In play', 'completed': 'Finished'};
+  static Map<String, String> get _status => {
+        'draft': l10n.league_draft,
+        'published': l10n.league_starting,
+        'in_progress': l10n.league_inPlay,
+        'completed': l10n.league_finished,
+      };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final q = ref.watch(competitionProvider(slug));
     final d = q.valueOrNull;
     return SpSubPage(
-      title: d?.o('competition')?.str('name', 'Competition') ?? 'Competition',
+      title: d?.o('competition')?.str('name', context.l10n.league_competition) ?? context.l10n.league_competition,
       subtitle: d?.o('group')?.s('name'),
       body: AsyncView(
         value: q,
@@ -36,10 +42,15 @@ class CompetitionScreen extends ConsumerWidget {
             return NestedScrollView(
               headerSliverBuilder: (_, __) => [
                 SliverToBoxAdapter(child: _hero(d, p)),
-                const SliverToBoxAdapter(
+                SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
-                    child: SpTabTrack(labels: ['Seasons', 'Honours', 'All-time table', 'Records']),
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                    child: SpTabTrack(labels: [
+                      context.l10n.league_p5SeasonsTab,
+                      context.l10n.league_p5HonoursTab,
+                      context.l10n.league_p5AllTimeTableTab,
+                      context.l10n.league_p5RecordsTab,
+                    ]),
                   ),
                 ),
               ],
@@ -87,15 +98,15 @@ class CompetitionScreen extends ConsumerWidget {
             ),
           const SizedBox(height: 14),
           Row(children: [
-            stat(seasons.length, 'Seasons'),
+            stat(seasons.length, l10n.league_seasons),
             const SizedBox(width: 8),
-            stat(d.list('allTime').length, 'Teams'),
+            stat(d.list('allTime').length, l10n.league_teams),
             const SizedBox(width: 8),
-            stat(finished, 'Finished'),
+            stat(finished, l10n.league_finished),
           ]),
           if (top?.o('team') != null) ...[
             const SizedBox(height: 12),
-            Text('Most titles: ${top!.o('team')!.str('name')} (${top.i('titles')})',
+            Text(l10n.league_mostTitles(top!.o('team')!.str('name'), top.i('titles')),
                 style: TextStyle(color: p.heroMuted, fontSize: 12.5)),
           ],
         ]),
@@ -106,7 +117,7 @@ class CompetitionScreen extends ConsumerWidget {
   Widget _seasons(BuildContext context, J d, AppPalette p) {
     final seasons = d.list('seasons');
     final moves = d.list('movements');
-    if (seasons.isEmpty) return const SpEmpty(icon: Icons.emoji_events_rounded, text: 'No seasons yet.');
+    if (seasons.isEmpty) return SpEmpty(icon: Icons.emoji_events_rounded, text: context.l10n.league_noSeasonsYet);
     return ListView(padding: const EdgeInsets.fromLTRB(20, 4, 20, 32), children: [
       for (final s in seasons) ...[
         Padding(padding: const EdgeInsets.fromLTRB(2, 8, 2, 8), child: SpSectionTitle(s.str('season'))),
@@ -125,7 +136,7 @@ class CompetitionScreen extends ConsumerWidget {
                 SpBadge(_status[dv.s('status')] ?? dv.str('status'),
                     tone: dv.s('status') == 'completed' ? null : dv.s('status') == 'draft' ? p.orangeInk : p.greenText),
               ]),
-              Text('${dv.i('teams')} teams · ${dv.str('format')}',
+              Text(context.l10n.league_teams3(dv.i('teams'), dv.str('format')),
                   maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.muted, fontSize: 12)),
               if (dv.o('champion') != null) ...[
                 const SizedBox(height: 10),
@@ -141,14 +152,14 @@ class CompetitionScreen extends ConsumerWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('CHAMPIONS',
+                        Text(context.l10n.league_champions2,
                             style: TextStyle(color: p.greenText, fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 1.1)),
                         Text(dv.o('champion')!.str('name'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(color: p.ink, fontWeight: FontWeight.w800)),
                         if (dv.o('runnerUp') != null)
-                          Text('Runners-up: ${dv.o('runnerUp')!.str('name')}',
+                          Text(context.l10n.league_runnersUp(dv.o('runnerUp')!.str('name')),
                               maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.muted, fontSize: 11.5)),
                       ]),
                     ),
@@ -170,7 +181,7 @@ class CompetitionScreen extends ConsumerWidget {
         ],
       ],
       if (moves.isNotEmpty) ...[
-        const Padding(padding: EdgeInsets.fromLTRB(2, 8, 2, 8), child: SpSectionTitle('Promotion & relegation')),
+        Padding(padding: const EdgeInsets.fromLTRB(2, 8, 2, 8), child: SpSectionTitle(context.l10n.league_promotionRelegation)),
         for (final m in moves) ...[
           GlassCard(
             padding: const EdgeInsets.all(14),
@@ -186,7 +197,7 @@ class CompetitionScreen extends ConsumerWidget {
                       Icon(up ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, size: 15, color: up ? p.greenText : p.danger),
                       const SizedBox(width: 6),
                       Expanded(
-                        child: Text('${u.o('team')?.str('name') ?? 'Team'}  ${u.s('from') ?? '?'} → ${u.s('to') ?? '?'}',
+                        child: Text('${u.o('team')?.str('name') ?? context.l10n.league_team}  ${u.s('from') ?? '?'} → ${u.s('to') ?? '?'}',
                             maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.ink, fontSize: 13)),
                       ),
                     ]),
@@ -202,15 +213,15 @@ class CompetitionScreen extends ConsumerWidget {
   Widget _honours(J d, AppPalette p) {
     final titles = d.list('titles');
     if (titles.isEmpty) {
-      return const SpEmpty(icon: Icons.emoji_events_rounded, text: 'No champions yet — honours appear once a season is closed.');
+      return SpEmpty(icon: Icons.emoji_events_rounded, text: l10n.league_noChampionsYetHonoursAppear);
     }
     return ListView(padding: const EdgeInsets.fromLTRB(20, 4, 20, 32), children: [
-      const Padding(padding: EdgeInsets.fromLTRB(2, 8, 2, 8), child: SpSectionTitle('Titles')),
+      Padding(padding: const EdgeInsets.fromLTRB(2, 8, 2, 8), child: SpSectionTitle(l10n.league_titles)),
       SpListCard(children: [
         for (final t in titles)
           ListTile(
             leading: Crest(logoUrl: t.o('team')?.s('logoUrl'), label: t.o('team')?.s('name'), kitPrimary: t.o('team')?.s('kitPrimary'), size: 32),
-            title: Text(t.o('team')?.str('name') ?? 'Team', style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
+            title: Text(t.o('team')?.str('name') ?? l10n.league_team, style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
             subtitle: Text(t.strs('seasons').join(', ')),
             trailing: Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(Icons.emoji_events_rounded, size: 17, color: p.greenText),
@@ -219,7 +230,7 @@ class CompetitionScreen extends ConsumerWidget {
             ]),
           ),
       ]),
-      const Padding(padding: EdgeInsets.fromLTRB(2, 16, 2, 8), child: SpSectionTitle('Roll of honour')),
+      Padding(padding: const EdgeInsets.fromLTRB(2, 16, 2, 8), child: SpSectionTitle(l10n.league_rollOfHonour)),
       SpListCard(children: [
         for (final s in d.list('seasons'))
           for (final dv in s.list('divisions').where((x) => x.o('champion') != null))
@@ -229,7 +240,7 @@ class CompetitionScreen extends ConsumerWidget {
                 child: Text(s.str('season'), maxLines: 2, style: TextStyle(color: p.muted, fontSize: 12, fontWeight: FontWeight.w700)),
               ),
               title: Text(dv.o('champion')!.str('name'), style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
-              subtitle: Text([dv.s('division'), if (dv.o('runnerUp') != null) 'runners-up ${dv.o('runnerUp')!.str('name')}']
+              subtitle: Text([dv.s('division'), if (dv.o('runnerUp') != null) l10n.league_p5RunnersUpLower(dv.o('runnerUp')!.str('name'))]
                   .whereType<String>()
                   .join(' · ')),
             ),
@@ -239,7 +250,7 @@ class CompetitionScreen extends ConsumerWidget {
 
   Widget _allTime(J d, AppPalette p) {
     final rows = d.list('allTime');
-    if (rows.isEmpty) return const SpEmpty(icon: Icons.leaderboard_rounded, text: 'No matches played yet.');
+    if (rows.isEmpty) return SpEmpty(icon: Icons.leaderboard_rounded, text: l10n.league_noMatchesPlayedYet);
     TextStyle head() => TextStyle(color: p.muted, fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 0.8);
     Widget n(String v, {bool bold = false, double w = 28}) => SizedBox(
         width: w,
@@ -249,7 +260,7 @@ class CompetitionScreen extends ConsumerWidget {
     return ListView(padding: const EdgeInsets.fromLTRB(20, 4, 20, 32), children: [
       Padding(
         padding: const EdgeInsets.fromLTRB(2, 4, 2, 10),
-        child: Text('Every match in every season and division: 3 points a win, 1 a draw (shoot-outs count as draws).',
+        child: Text(l10n.league_everyMatchInEverySeason,
             style: TextStyle(color: p.muted, fontSize: 12)),
       ),
       GlassCard(
@@ -259,9 +270,9 @@ class CompetitionScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(14, 4, 12, 6),
             child: Row(children: [
               SizedBox(width: 24, child: Text('#', style: head())),
-              Expanded(child: Text('TEAM', style: head())),
-              for (final h in ['P', 'W', 'D', 'L', 'GD']) SizedBox(width: 28, child: Text(h, textAlign: TextAlign.center, style: head())),
-              SizedBox(width: 34, child: Text('PTS', textAlign: TextAlign.center, style: head())),
+              Expanded(child: Text(l10n.league_team4, style: head())),
+              for (final h in [l10n.league_p, l10n.league_w, l10n.league_d, l10n.league_l, l10n.league_gd]) SizedBox(width: 28, child: Text(h, textAlign: TextAlign.center, style: head())),
+              SizedBox(width: 34, child: Text(l10n.league_pts2, textAlign: TextAlign.center, style: head())),
             ]),
           ),
           for (final r in rows)
@@ -274,7 +285,7 @@ class CompetitionScreen extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                      '${r.o('team')?.str('name') ?? 'Team'}${r.i('titles') > 0 ? '  🏆${r.i('titles')}' : ''}',
+                      '${r.o('team')?.str('name') ?? l10n.league_team}${r.i('titles') > 0 ? '  🏆${r.i('titles')}' : ''}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
@@ -310,22 +321,22 @@ class CompetitionScreen extends ConsumerWidget {
           ]),
         );
     return ListView(padding: const EdgeInsets.fromLTRB(20, 4, 20, 32), children: [
-      const Padding(padding: EdgeInsets.fromLTRB(2, 8, 2, 8), child: SpSectionTitle('Match records')),
+      Padding(padding: const EdgeInsets.fromLTRB(2, 8, 2, 8), child: SpSectionTitle(context.l10n.league_matchRecords)),
       if (rec?.o('biggestWin') == null && rec?.o('mostGoals') == null)
-        Text('No matches played yet.', style: TextStyle(color: p.muted, fontSize: 12.5)),
-      if (rec?.o('biggestWin') != null) ...[card('Biggest win', Icons.gps_fixed_rounded, rec!.o('biggestWin')!), const SizedBox(height: 10)],
-      if (rec?.o('mostGoals') != null) card('Most goals in a match', Icons.local_fire_department_rounded, rec!.o('mostGoals')!),
+        Text(context.l10n.league_noMatchesPlayedYet, style: TextStyle(color: p.muted, fontSize: 12.5)),
+      if (rec?.o('biggestWin') != null) ...[card(context.l10n.league_biggestWin, Icons.gps_fixed_rounded, rec!.o('biggestWin')!), const SizedBox(height: 10)],
+      if (rec?.o('mostGoals') != null) card(context.l10n.league_mostGoalsInAMatch, Icons.local_fire_department_rounded, rec!.o('mostGoals')!),
       for (final l in d.list('leaders')) ...[
-        Padding(padding: const EdgeInsets.fromLTRB(2, 16, 2, 8), child: SpSectionTitle('All-time ${l.str('label').toLowerCase()}')),
+        Padding(padding: const EdgeInsets.fromLTRB(2, 16, 2, 8), child: SpSectionTitle(context.l10n.league_allTime(l.str('label').toLowerCase()))),
         if (l.list('entries').isEmpty)
-          Text('Nobody yet.', style: TextStyle(color: p.muted, fontSize: 12.5))
+          Text(context.l10n.league_nobodyYet, style: TextStyle(color: p.muted, fontSize: 12.5))
         else
           SpListCard(children: [
             for (final (i, e) in l.list('entries').indexed)
               ListTile(
                 onTap: () => context.push('/players/${e.str('playerId')}'),
                 leading: SizedBox(width: 22, child: Text('${i + 1}', style: TextStyle(color: p.muted, fontWeight: FontWeight.w700))),
-                title: Text(e.str('name', 'Player'), style: TextStyle(color: p.ink, fontWeight: FontWeight.w600)),
+                title: Text(e.str('name', context.l10n.league_player), style: TextStyle(color: p.ink, fontWeight: FontWeight.w600)),
                 subtitle: Text(e.o('team')?.str('name') ?? ''),
                 trailing: Text('${e.d('value')?.round() ?? 0}', style: TextStyle(color: p.ink, fontWeight: FontWeight.w800)),
               ),

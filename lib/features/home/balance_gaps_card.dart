@@ -5,6 +5,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/features/teams/balance_setup_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// "Set your position for ⚽ Soccer" — one card per sport the viewer plays
 /// in whose team balancing is missing their role (web twin:
@@ -42,9 +43,9 @@ class BalanceGapsCard extends ConsumerWidget {
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Set your $label for $name',
+            Text(context.l10n.home_setYourFor2(label, name),
                 style: TextStyle(color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w700)),
-            Text('Teams are balanced by $label — without yours, you can land anywhere.',
+            Text(context.l10n.home_teamsAreBalancedByWithout2(label),
                 style: TextStyle(color: p.muted, fontSize: 12, height: 1.35)),
           ]),
         ),
@@ -59,7 +60,7 @@ class BalanceGapsCard extends ConsumerWidget {
                 : () => showBalanceSetupIfNeeded(context, ref, categoryId: categoryId, dismissible: true),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              child: Text('Set it',
+              child: Text(context.l10n.home_setIt,
                   style: TextStyle(color: p.onHero, fontSize: 12.5, fontWeight: FontWeight.w700)),
             ),
           ),

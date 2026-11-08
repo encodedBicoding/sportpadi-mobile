@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/attention/attention_repository.dart';
 import 'package:sportpadi_mobile/data/notifications/notifications_repository.dart';
@@ -36,17 +37,17 @@ class SpAppBar extends ConsumerWidget implements PreferredSizeWidget {
       title: const AppLogo(height: 34),
       actions: [
         IconButton(
-          tooltip: 'Inbox',
+          tooltip: context.l10n.menu_inbox,
           onPressed: () => context.push('/inbox'),
           icon: const InboxIcon(),
         ),
         IconButton(
-          tooltip: 'Notifications',
+          tooltip: context.l10n.menu_notifications,
           onPressed: () => context.push('/notifications'),
           icon: NotificationBell(count: unread, color: p.danger),
         ),
         IconButton(
-          tooltip: 'Menu',
+          tooltip: context.l10n.common_menu,
           onPressed: () => showSideMenu(context),
           // What's waiting inside the menu, on the button that opens it.
           icon: const Stack(clipBehavior: Clip.none, children: [
@@ -70,7 +71,7 @@ Future<void> showSideMenu(BuildContext context) {
   return showGeneralDialog(
     context: context,
     barrierDismissible: true,
-    barrierLabel: 'Menu',
+    barrierLabel: context.l10n.common_menu,
     barrierColor: Colors.black45,
     transitionDuration: const Duration(milliseconds: 240),
     pageBuilder: (_, __, ___) => const Align(
@@ -93,6 +94,7 @@ class _SideMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
+    final l = context.l10n;
     final me = ref.watch(meProvider).valueOrNull;
     final tab = ref.watch(homeTabIndexProvider);
     // What's waiting where, in one call: Inbox (unread announcements +
@@ -226,7 +228,7 @@ class _SideMenu extends ConsumerWidget {
                     const Spacer(),
                     SpRoundButton(
                       icon: Icons.close_rounded,
-                      tooltip: 'Close',
+                      tooltip: l.nav_close,
                       onTap: () => Navigator.pop(context),
                     ),
                   ]),
@@ -265,7 +267,7 @@ class _SideMenu extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(me?.displayName ?? 'Welcome to SportPadi',
+                                Text(me?.displayName ?? context.l10n.common_welcomeToSportPadi,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
@@ -274,8 +276,8 @@ class _SideMenu extends ConsumerWidget {
                                         fontWeight: FontWeight.w700)),
                                 Text(
                                     me != null
-                                        ? '@${me.username} · View profile'
-                                        : 'View profile',
+                                        ? '@${me.username} · ${l.menu_viewProfile}'
+                                        : l.menu_viewProfile,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
@@ -291,23 +293,23 @@ class _SideMenu extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   Row(children: [
-                    quick(Icons.qr_code_scanner_rounded, 'Scan QR', '/scan',
+                    quick(Icons.qr_code_scanner_rounded, l.menu_scanQr, '/scan',
                         dark: true),
                     const SizedBox(width: 10),
-                    quick(Icons.qr_code_2_rounded, 'My QR', '/my-qr'),
+                    quick(Icons.qr_code_2_rounded, l.menu_myQr, '/my-qr'),
                   ]),
 
                   const SizedBox(height: 20),
-                  const Padding(
-                    padding: EdgeInsets.only(left: 4, bottom: 8),
-                    child: Eyebrow('Explore'),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 8),
+                    child: Eyebrow(l.menu_explore),
                   ),
                   SpListCard(children: [
-                    item(Icons.space_dashboard_outlined, 'Home', 'tab:0',
+                    item(Icons.space_dashboard_outlined, l.nav_home, 'tab:0',
                         active: tab == 0),
-                    item(Icons.explore_outlined, 'Browse', 'tab:1',
+                    item(Icons.explore_outlined, l.nav_browse, 'tab:1',
                         active: tab == 1),
-                    item(Icons.emoji_events_outlined, 'Tournaments',
+                    item(Icons.emoji_events_outlined, l.nav_tournaments,
                         'tab:${HomeTab.tournaments}',
                         badge: waiting?.tournaments.total,
                         active: tab == HomeTab.tournaments),
@@ -315,37 +317,37 @@ class _SideMenu extends ConsumerWidget {
 
                   // Groups left the dock: yours are listed here, invites too.
                   const SizedBox(height: 18),
-                  const Padding(
-                    padding: EdgeInsets.only(left: 4, bottom: 8),
-                    child: Eyebrow('My groups'),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 8),
+                    child: Eyebrow(l.menu_myGroups),
                   ),
                   MyGroupsMenu(onGo: go),
 
                   const SizedBox(height: 18),
-                  const Padding(
-                    padding: EdgeInsets.only(left: 4, bottom: 8),
-                    child: Eyebrow('You'),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 8),
+                    child: Eyebrow(l.menu_you),
                   ),
                   SpListCard(children: [
-                    item(Icons.campaign_outlined, 'Inbox', '/inbox',
+                    item(Icons.campaign_outlined, l.menu_inbox, '/inbox',
                         badge: waiting?.inbox.total),
-                    item(Icons.notifications_none_rounded, 'Notifications',
+                    item(Icons.notifications_none_rounded, l.menu_notifications,
                         '/notifications',
                         badge: waiting?.notifications),
-                    item(Icons.forum_outlined, 'Discussions', '/discussions',
+                    item(Icons.forum_outlined, l.menu_discussions, '/discussions',
                         badge: waiting?.discussions),
-                    item(Icons.supervisor_account_rounded, 'My wards',
+                    item(Icons.supervisor_account_rounded, l.menu_myWards,
                         '/profile/wards',
                         badge: wardBadge),
-                    item(Icons.sports_soccer_outlined, 'My sports',
+                    item(Icons.sports_soccer_outlined, l.menu_mySports,
                         '/profile/sports'),
-                    item(Icons.insights_rounded, 'My records',
+                    item(Icons.insights_rounded, l.menu_myRecords,
                         '/profile/records'),
-                    item(Icons.confirmation_num_outlined, 'My purchases',
+                    item(Icons.confirmation_num_outlined, l.menu_myPurchases,
                         '/tickets'),
-                    item(Icons.receipt_long_outlined, 'My fines', '/fines',
+                    item(Icons.receipt_long_outlined, l.menu_myFines, '/fines',
                         badge: waiting?.fines),
-                    item(Icons.settings_outlined, 'Settings', '/settings'),
+                    item(Icons.settings_outlined, l.menu_settings, '/settings'),
                   ]),
                 ],
               ),
@@ -370,7 +372,7 @@ class _SideMenu extends ConsumerWidget {
                         children: [
                           Icon(Icons.logout_rounded, size: 18, color: p.danger),
                           const SizedBox(width: 8),
-                          Text('Sign out',
+                          Text(l.nav_signOut,
                               style: TextStyle(
                                   color: p.danger,
                                   fontSize: 14,
@@ -382,7 +384,7 @@ class _SideMenu extends ConsumerWidget {
             ),
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Text('SPORTPADI BY CLAIMTANK TECHNOLOGY LTD',
+              child: Text(l.menu_madeBy.toUpperCase(),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       color: p.muted.withAlpha(150),
@@ -407,7 +409,7 @@ class SideMenuButton extends StatelessWidget {
     return Stack(clipBehavior: Clip.none, children: [
       SpRoundButton(
         icon: Icons.menu_rounded,
-        tooltip: 'Menu',
+        tooltip: context.l10n.common_menu,
         onTap: () => showSideMenu(context),
       ),
       // Inside the button, where the bell's dot sits.
@@ -446,7 +448,7 @@ class SideMenuAttentionCount extends ConsumerWidget {
     final urgent = a?.urgent ?? false;
     return Semantics(
       label:
-          urgent ? 'Something urgent in the menu' : 'Something new in the menu',
+          urgent ? context.l10n.common_somethingUrgentInTheMenu : context.l10n.common_somethingNewInTheMenu,
       excludeSemantics: true,
       child: Container(
         width: 10,

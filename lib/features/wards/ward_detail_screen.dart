@@ -25,6 +25,7 @@ import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// One ward (A5, A6, A7, A13): team invitations waiting on a guardian, who
 /// they are, their check-in QR, their groups, profile and privacy, their
@@ -46,8 +47,8 @@ class WardDetailScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: SpHeader(
-              title: data.valueOrNull?.ward.firstName ?? 'Ward',
-              subtitle: 'Ward profile',
+              title: data.valueOrNull?.ward.firstName ?? context.l10n.ward_ward,
+              subtitle: context.l10n.ward_wardProfile,
             ),
           ),
           Expanded(
@@ -206,8 +207,8 @@ class _WardBodyState extends ConsumerState<_WardBody> {
           .read(wardsRepositoryProvider)
           .joinGroup(_wardId, picked.groupId);
       _toast(already
-          ? '$first is already in ${picked.name}.'
-          : '$first is now in ${picked.name}.');
+          ? l10n.ward_isAlreadyIn2(first, picked.name)
+          : l10n.ward_isNowIn(first, picked.name));
       if (mounted) ref.invalidate(wardGroupsProvider(_wardId));
     } catch (e) {
       _toast('$e');
@@ -222,20 +223,18 @@ class _WardBodyState extends ConsumerState<_WardBody> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Remove $first from ${g.name}?'),
+        title: Text(l10n.ward_removeFrom(first, g.name)),
         content: Text(g.teams.isEmpty
-            ? 'You can add them again later.'
-            : "They'll also come off the group's teams "
-                '(${g.teams.map((t) => t.name).join(', ')}). You can add '
-                'them again later.'),
+            ? l10n.ward_youCanAddThemAgain
+            : l10n.ward_theyllAlsoComeOffThe(g.teams.map((t) => t.name).join(', '))),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Keep')),
+              child: Text(l10n.ward_keep)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
               child:
-                  Text('Remove', style: TextStyle(color: ctx.palette.danger))),
+                  Text(l10n.ward_remove, style: TextStyle(color: ctx.palette.danger))),
         ],
       ),
     );
@@ -243,7 +242,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
     setState(() => _groupBusy = true);
     try {
       await ref.read(wardsRepositoryProvider).leaveGroup(_wardId, g.groupId);
-      _toast('$first has left ${g.name}.');
+      _toast(l10n.ward_hasLeft(first, g.name));
       if (mounted) ref.invalidate(wardGroupsProvider(_wardId));
     } catch (e) {
       _toast('$e');
@@ -257,19 +256,19 @@ class _WardBodyState extends ConsumerState<_WardBody> {
     final g = groups.valueOrNull;
     return [
       const SizedBox(height: 22),
-      SpSectionTitle('Groups',
+      SpSectionTitle(context.l10n.ward_groups,
           count: g == null || g.member.isEmpty ? null : g.member.length),
       const SizedBox(height: 10),
       if (g == null && groups.hasError)
         GlassCard(
           child: Row(children: [
             Expanded(
-              child: Text("Couldn't load $first's groups.",
+              child: Text(context.l10n.ward_couldntLoadSGroups(first),
                   style: TextStyle(color: p.muted, fontSize: 13)),
             ),
             TextButton(
               onPressed: () => ref.invalidate(wardGroupsProvider(_wardId)),
-              child: const Text('Retry'),
+              child: Text(context.l10n.ward_retry),
             ),
           ]),
         )
@@ -287,8 +286,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
         if (g.member.isEmpty)
           GlassCard(
             child: Text(
-              "$first isn't in any groups yet. Add them to one of yours so "
-              'they can join its events and teams.',
+              context.l10n.ward_isntInAnyGroupsYet2(first),
               style: TextStyle(color: p.muted, fontSize: 13, height: 1.4),
             ),
           )
@@ -298,7 +296,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
           ]),
         const SizedBox(height: 12),
         SpButton(
-          label: _groupBusy ? 'Working…' : 'Add to a group',
+          label: _groupBusy ? context.l10n.ward_working : context.l10n.ward_addToAGroup,
           icon: Icons.group_add_rounded,
           expand: true,
           onTap: _groupBusy ? null : () => _addToGroup(g.canAdd),
@@ -335,7 +333,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
                 ],
               ]),
               if (g.addedByName != null)
-                Text('Added by ${g.addedByName}',
+                Text(context.l10n.ward_addedBy(g.addedByName ?? ''),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: p.muted, fontSize: 12)),
@@ -360,7 +358,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
             ]),
           ),
           IconButton(
-            tooltip: 'Remove from group',
+            tooltip: context.l10n.ward_removeFromGroup,
             onPressed: _groupBusy ? null : () => _removeFromGroup(g),
             icon: Icon(Icons.remove_circle_outline_rounded,
                 size: 20, color: p.muted),
@@ -381,7 +379,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
     final w = _ward;
     final name = _name.text.trim();
     if (name.isEmpty) {
-      _toast('Add their name first.');
+      _toast(l10n.ward_addTheirNameFirst);
       return;
     }
     final dob = _dob;
@@ -397,7 +395,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
     setState(() => _saving = true);
     try {
       await ref.read(wardsRepositoryProvider).update(_wardId, patch);
-      _toast('Saved.');
+      _toast(l10n.ward_saved);
       if (mounted) _refresh();
     } catch (e) {
       _toast('$e');
@@ -477,15 +475,15 @@ class _WardBodyState extends ConsumerState<_WardBody> {
     );
     if (!mounted || sent == null) return;
     _toast(sent == 'already'
-        ? "They've already been invited — waiting for them to accept."
-        : "Invitation sent. They'll get a notification to accept.");
+        ? l10n.ward_theyveAlreadyBeenInvitedWaiting
+        : l10n.ward_invitationSentTheyllGetA);
     _refresh();
   }
 
   Future<void> _cancelInvite(WardGuardian g) async {
     try {
       await ref.read(wardsRepositoryProvider).cancelInvite(_wardId, g.userId);
-      _toast('Invitation cancelled.');
+      _toast(l10n.ward_invitationCancelled2);
       if (mounted) _refresh();
     } catch (e) {
       _toast('$e');
@@ -506,17 +504,16 @@ class _WardBodyState extends ConsumerState<_WardBody> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text("Stop being $first's guardian?"),
+        title: Text(l10n.ward_stopBeingSGuardian(first)),
         content: Text(
-            "You won't be able to check $first in, sign them up or see their "
-            'profile any more. Their other guardians keep managing them.'),
+            l10n.ward_youWontBeAbleTo(first)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Stay')),
+              child: Text(l10n.ward_stay)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text('Stop being guardian',
+              child: Text(l10n.ward_stopBeingGuardian,
                   style: TextStyle(color: ctx.palette.danger))),
         ],
       ),
@@ -528,7 +525,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
       if (!mounted) return;
       ref.invalidate(myWardsProvider);
       ref.invalidate(myFeedProvider);
-      _toast("You're no longer $first's guardian.");
+      _toast(l10n.ward_youreNoLongerSGuardian(first));
       _close();
     } catch (e) {
       if (!mounted) return;
@@ -537,7 +534,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text("Can't leave yet"),
+          title: Text(l10n.ward_cantLeaveYet),
           content: Text('$e'),
           actions: [
             TextButton(
@@ -562,7 +559,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
       if (!mounted) return;
       ref.invalidate(myWardsProvider);
       ref.invalidate(myFeedProvider);
-      _toast('${w.displayName} has been deleted.');
+      _toast(l10n.ward_hasBeenDeleted(w.displayName));
       _close();
     } catch (e) {
       if (mounted) setState(() => _busy = false);
@@ -574,10 +571,10 @@ class _WardBodyState extends ConsumerState<_WardBody> {
 
   static String _visibilityHint(String v) => switch (v) {
         'groups' =>
-          'Group members — people in the groups they play in can see their profile.',
-        'public' => 'Everyone — anyone on SportPadi can see their profile.',
+          l10n.ward_groupMembersPeopleInThe,
+        'public' => l10n.ward_everyoneAnyoneOnSportPadiCan,
         _ =>
-          'Only guardians & organisers — organisers of events they join see their name and check-in.',
+          l10n.ward_onlyGuardiansOrganisersOrganisersOf,
       };
 
   @override
@@ -591,7 +588,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
             const <WardTeamInvite>[];
     final groups = ref.watch(wardGroupsProvider(_wardId));
     final meta = [
-      if (w.age != null) 'Age ${w.age}',
+      if (w.age != null) context.l10n.ward_age(w.age!),
       if (w.username != null) '@${w.username}',
     ].join(' · ');
 
@@ -601,7 +598,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
       children: [
         // Team invitations waiting on a guardian's yes.
         if (teamInvites.isNotEmpty) ...[
-          SpSectionTitle('Team invitations', count: teamInvites.length),
+          SpSectionTitle(context.l10n.ward_teamInvitations, count: teamInvites.length),
           const SizedBox(height: 10),
           for (final i in teamInvites) ...[
             WardTeamInviteCard(key: ValueKey(i.id), invite: i),
@@ -662,13 +659,13 @@ class _WardBodyState extends ConsumerState<_WardBody> {
                     ],
                     const SizedBox(height: 8),
                     Wrap(spacing: 6, runSpacing: 6, children: [
-                      SpBadge('Ward',
+                      SpBadge(context.l10n.ward_ward,
                           icon: Icons.shield_outlined, tone: p.greenText),
                       SpBadge(
                         switch (_visibility) {
-                          'groups' => 'Groups',
-                          'public' => 'Public',
-                          _ => 'Private',
+                          'groups' => context.l10n.ward_groups,
+                          'public' => context.l10n.ward_public,
+                          _ => context.l10n.ward_private,
                         },
                         icon: _visibility == 'public'
                             ? Icons.public_rounded
@@ -692,14 +689,13 @@ class _WardBodyState extends ConsumerState<_WardBody> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Check-in QR',
+                      Text(context.l10n.ward_checkInQr,
                           style: TextStyle(
                               color: p.ink,
                               fontSize: 15,
                               fontWeight: FontWeight.w700)),
                       Text(
-                          'Organisers scan this to check $first in. Show it '
-                          'from your phone or print it for their kit bag.',
+                          context.l10n.ward_organisersScanThisToCheck(first),
                           style: TextStyle(
                               color: p.muted, fontSize: 12, height: 1.35)),
                     ]),
@@ -717,7 +713,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
                     data: w.qrCode!, size: 190, backgroundColor: Colors.white),
               )
             else
-              Text('No QR code yet.',
+              Text(context.l10n.ward_noQrCodeYet,
                   style: TextStyle(color: p.muted, fontSize: 12.5)),
           ]),
         ),
@@ -727,7 +723,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
 
         // Profile.
         const SizedBox(height: 22),
-        const SpSectionTitle('Profile'),
+        SpSectionTitle(context.l10n.ward_profile),
         const SizedBox(height: 10),
         GlassCard(
           child:
@@ -735,7 +731,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
             TextField(
               controller: _name,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Name'),
+              decoration: InputDecoration(labelText: context.l10n.ward_name),
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 10),
@@ -744,7 +740,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
               onPicked: _saving ? null : (v) => setState(() => _dob = v),
             ),
             const SizedBox(height: 16),
-            const WardFieldLabel('Gender'),
+            WardFieldLabel(context.l10n.ward_gender),
             WardPills<String?>(
               options: wardGenders,
               value: _gender,
@@ -752,7 +748,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
               onChanged: _saving ? null : (g) => setState(() => _gender = g),
             ),
             const SizedBox(height: 16),
-            const WardFieldLabel("You're their…"),
+            WardFieldLabel(context.l10n.ward_youreTheir2),
             SpSegmented(
               options: [
                 for (final r in wardRelationships) relationshipLabel(r)
@@ -765,7 +761,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
             ),
             const SizedBox(height: 16),
             SpButton(
-              label: _saving ? 'Saving…' : 'Save changes',
+              label: _saving ? context.l10n.ward_saving : context.l10n.ward_saveChanges,
               icon: Icons.check_rounded,
               expand: true,
               onTap: _dirty && !_saving ? _save : null,
@@ -775,12 +771,12 @@ class _WardBodyState extends ConsumerState<_WardBody> {
 
         // Privacy.
         const SizedBox(height: 22),
-        const SpSectionTitle('Privacy'),
+        SpSectionTitle(context.l10n.ward_privacy),
         const SizedBox(height: 10),
         GlassCard(
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text("Who can see $first's profile",
+            Text(context.l10n.ward_whoCanSeeSProfile(first),
                 style: TextStyle(
                     color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
             const SizedBox(height: 10),
@@ -801,12 +797,12 @@ class _WardBodyState extends ConsumerState<_WardBody> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Show in player search',
+                      Text(context.l10n.ward_showInPlayerSearch,
                           style: TextStyle(
                               color: p.ink,
                               fontSize: 14,
                               fontWeight: FontWeight.w600)),
-                      Text('Let people find $first by name.',
+                      Text(context.l10n.ward_letPeopleFindByName(first),
                           style: TextStyle(color: p.muted, fontSize: 12)),
                     ]),
               ),
@@ -821,7 +817,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
 
         // Guardians.
         const SizedBox(height: 22),
-        SpSectionTitle('Guardians', count: d.active.length),
+        SpSectionTitle(context.l10n.ward_guardians, count: d.active.length),
         const SizedBox(height: 10),
         SpListCard(children: [
           for (final g in d.guardians)
@@ -829,44 +825,44 @@ class _WardBodyState extends ConsumerState<_WardBody> {
         ]),
         const SizedBox(height: 12),
         SpButton(
-          label: 'Invite a co-guardian',
+          label: context.l10n.ward_inviteACoGuardian,
           icon: Icons.person_add_alt_rounded,
           expand: true,
           onTap: _invite,
         ),
         const SizedBox(height: 8),
         Text(
-          'Co-guardians can do everything you can once they accept.',
+          context.l10n.ward_coGuardiansCanDoEverything,
           textAlign: TextAlign.center,
           style: TextStyle(color: p.muted, fontSize: 12),
         ),
 
         // Hand the account over to them (Wards 3).
         const SizedBox(height: 22),
-        const SpSectionTitle('Their own account'),
+        SpSectionTitle(context.l10n.ward_theirOwnAccount),
         const SizedBox(height: 10),
         WardHandoverCard(detail: d),
 
         // Leave / delete.
         const SizedBox(height: 26),
-        const Padding(
-          padding: EdgeInsets.only(left: 4, bottom: 8),
-          child: Eyebrow('Manage'),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Eyebrow(context.l10n.ward_manage),
         ),
         SpListCard(children: [
           _actionRow(
             p,
             icon: Icons.logout_rounded,
-            title: 'Stop being a guardian',
-            sub: "You'll no longer manage $first.",
+            title: context.l10n.ward_stopBeingAGuardian,
+            sub: context.l10n.ward_youllNoLongerManage2(first),
             color: p.ink,
             onTap: _busy ? null : _leave,
           ),
           _actionRow(
             p,
             icon: Icons.delete_outline_rounded,
-            title: 'Delete $first',
-            sub: 'Removes their account and personal data for good.',
+            title: context.l10n.ward_delete2(first),
+            sub: context.l10n.ward_removesTheirAccountAndPersonal,
             color: p.danger,
             onTap: _busy ? null : _delete,
           ),
@@ -878,7 +874,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
   Widget _guardianRow(AppPalette p, WardGuardian g, {required bool isMe}) {
     final sub = [
       relationshipLabel(g.relationship),
-      if (g.isPending) 'Invited — waiting for them to accept',
+      if (g.isPending) context.l10n.ward_invitedWaitingForThemToAccept,
     ].join(' · ');
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
@@ -905,7 +901,7 @@ class _WardBodyState extends ConsumerState<_WardBody> {
         if (g.isPending)
           TextButton(
             onPressed: () => _cancelInvite(g),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.ward_cancel),
           ),
       ]),
     );
@@ -979,20 +975,18 @@ class _DeleteWardDialogState extends State<_DeleteWardDialog> {
   Widget build(BuildContext context) {
     final p = context.palette;
     return AlertDialog(
-      title: Text('Delete ${widget.name}?'),
+      title: Text(context.l10n.ward_delete(widget.name)),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "This deletes ${widget.name}'s account and personal data for "
-              'good. Attendance and payment records stay, shown as '
-              '"Deleted user". This can\'t be undone.',
+              context.l10n.ward_thisDeletesSAccountAnd(widget.name),
               style: TextStyle(color: p.muted, fontSize: 13.5, height: 1.45),
             ),
             const SizedBox(height: 14),
-            Text('Type their name to confirm',
+            Text(context.l10n.ward_typeTheirNameToConfirm,
                 style: TextStyle(
                     color: p.ink, fontSize: 13, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
@@ -1009,13 +1003,13 @@ class _DeleteWardDialogState extends State<_DeleteWardDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Keep'),
+          child: Text(context.l10n.ward_keep),
         ),
         TextButton(
           onPressed: _matches
               ? () => Navigator.pop(context, _typed.text.trim())
               : null,
-          child: Text('Delete',
+          child: Text(context.l10n.ward_delete3,
               style: TextStyle(color: _matches ? p.danger : p.muted)),
         ),
       ],
@@ -1120,17 +1114,16 @@ class _InviteGuardianSheetState extends ConsumerState<_InviteGuardianSheet> {
       children: [
         SpSheetHeader(
           icon: Icons.person_add_alt_rounded,
-          title: 'Invite a co-guardian',
+          title: context.l10n.ward_inviteACoGuardian,
           subtitle:
-              "Someone else who looks after $first, like their other parent. "
-              "They'll get a notification to accept.",
+              context.l10n.ward_someoneElseWhoLooksAfter(first),
         ),
         if (picked == null) ...[
           TextField(
             controller: _search,
             autofocus: true,
             decoration: InputDecoration(
-              labelText: 'Search by name or @username',
+              labelText: context.l10n.ward_searchByNameOrUsername,
               suffixIcon: _searching
                   ? const Padding(
                       padding: EdgeInsets.all(12),
@@ -1181,8 +1174,7 @@ class _InviteGuardianSheetState extends ConsumerState<_InviteGuardianSheet> {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                "No one found — try their @username. They need a SportPadi "
-                'account of their own.',
+                context.l10n.ward_noOneFoundTryTheir,
                 style: TextStyle(color: p.muted, fontSize: 12),
               ),
             ),
@@ -1215,14 +1207,14 @@ class _InviteGuardianSheetState extends ConsumerState<_InviteGuardianSheet> {
                     ]),
               ),
               IconButton(
-                tooltip: 'Pick someone else',
+                tooltip: context.l10n.ward_pickSomeoneElse,
                 icon: Icon(Icons.close_rounded, size: 18, color: p.muted),
                 onPressed: _busy ? null : () => setState(() => _picked = null),
               ),
             ]),
           ),
           const SizedBox(height: 16),
-          WardFieldLabel("They're $first's…"),
+          WardFieldLabel(context.l10n.ward_theyreS(first)),
           SpSegmented(
             options: [for (final r in wardRelationships) relationshipLabel(r)],
             index: wardRelationships.indexOf(_relationship),
@@ -1237,7 +1229,7 @@ class _InviteGuardianSheetState extends ConsumerState<_InviteGuardianSheet> {
           ],
           const SizedBox(height: 16),
           SpButton(
-            label: _busy ? 'Sending…' : 'Send invitation',
+            label: _busy ? context.l10n.ward_sending : context.l10n.ward_sendInvitation,
             icon: Icons.send_rounded,
             tone: SpButtonTone.brand,
             expand: true,
@@ -1267,9 +1259,8 @@ class _AddToGroupSheet extends StatelessWidget {
       children: [
         SpSheetHeader(
           icon: Icons.group_add_rounded,
-          title: 'Add $firstName to a group',
-          subtitle: "Groups you're in. $firstName can then join its events "
-              'and be picked for its teams.',
+          title: context.l10n.ward_addToAGroup3(firstName),
+          subtitle: context.l10n.ward_groupsYoureInCanThen(firstName),
         ),
         if (options.isEmpty)
           Padding(
@@ -1279,8 +1270,7 @@ class _AddToGroupSheet extends StatelessWidget {
                   bg: p.accentTint, fg: p.greenText, size: 52, iconSize: 24),
               const SizedBox(height: 10),
               Text(
-                'Join a group yourself first — then you can add $firstName '
-                'to it.',
+                context.l10n.ward_joinAGroupYourselfFirst2(firstName),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 13, height: 1.4),
               ),

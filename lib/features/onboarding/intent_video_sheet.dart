@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/features/onboarding/intent_cards.dart'
     show intentTint;
 import 'package:sportpadi_mobile/features/onboarding/intents.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The walkthrough that plays when someone taps a door on the welcome
 /// screen: a silent 9:16 clip of the journey they're about to start, with
@@ -151,7 +152,7 @@ class _IntentVideoSheetState extends ConsumerState<_IntentVideoSheet> {
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.2)),
-                  Text("Here's how it works · about a minute, no sound",
+                  Text(context.l10n.auth_heresHowItWorksAbout,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: p.muted, fontSize: 12)),
@@ -190,7 +191,7 @@ class _IntentVideoSheetState extends ConsumerState<_IntentVideoSheet> {
                           child: Padding(
                             padding: const EdgeInsets.all(24),
                             child: Text(
-                                "Couldn't load the video — carry on below.",
+                                context.l10n.auth_couldntLoadTheVideoCarry,
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                     color: p.muted, fontSize: 13)),
@@ -252,7 +253,7 @@ class _IntentVideoSheetState extends ConsumerState<_IntentVideoSheet> {
         Row(children: [
           TextButton(
               onPressed: widget.onProceed,
-              child: Text('Skip',
+              child: Text(context.l10n.auth_skip,
                   style: TextStyle(
                       color: p.muted, fontWeight: FontWeight.w700))),
           const Spacer(),

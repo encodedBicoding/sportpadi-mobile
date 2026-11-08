@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/features/ads/popup_messages.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_dock.dart';
 import 'package:sportpadi_mobile/core/analytics/analytics_service.dart';
@@ -286,6 +287,7 @@ class ShellBottomBar extends ConsumerWidget {
     final tournamentDot =
         ref.watch(myTournamentsActiveProvider).valueOrNull ?? false;
     final p = context.palette;
+    final l = context.l10n;
     return ColoredBox(
       color: p.bg,
       child: Column(
@@ -295,26 +297,26 @@ class ShellBottomBar extends ConsumerWidget {
             index: index,
             onSelect: onSelect,
             items: [
-              const SpDockItem(
+              SpDockItem(
                 icon: Icons.home_outlined,
                 selectedIcon: Icons.home_rounded,
-                label: 'Home',
+                label: l.nav_home,
               ),
-              const SpDockItem(
+              SpDockItem(
                 icon: Icons.explore_outlined,
                 selectedIcon: Icons.explore_rounded,
-                label: 'Browse',
+                label: l.nav_browse,
               ),
               SpDockItem(
                 icon: Icons.emoji_events_outlined,
                 selectedIcon: Icons.emoji_events_rounded,
-                label: 'Tournaments',
+                label: l.nav_tournaments,
                 dot: tournamentDot,
               ),
-              const SpDockItem(
+              SpDockItem(
                 icon: Icons.person_outline_rounded,
                 selectedIcon: Icons.person_rounded,
-                label: 'Profile',
+                label: l.nav_profile,
               ),
             ],
           ),

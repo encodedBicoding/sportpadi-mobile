@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/data/wallet/wallet_models.dart';
 import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// "Who pays the fees?" — a one-time group choice covering tickets, fines and
 /// tournament entry fees (web twin: components/groups/FeeBearerCard.tsx).
@@ -27,16 +28,18 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
   String? _pick;
   bool _saving = false;
 
-  static const _titles = {
-    'buyer': 'Buyers pay the fees',
-    'group': 'The group pays the fees',
-  };
-  static const _blurbs = {
-    'buyer':
-        'Fees are added on top of your price at checkout. You receive the full price.',
-    'group':
-        'Buyers see and pay exactly your price. Fees come out of what you receive.',
-  };
+  static Map<String, String> get _titles => {
+        'buyer': l10n.wallet_buyersPayTheFees,
+        'group': l10n.wallet_theGroupPaysTheFees,
+      };
+  static Map<String, String> get _confirmTitles => {
+        'buyer': l10n.wallet_buyersPayTheFeesQ,
+        'group': l10n.wallet_theGroupPaysTheFeesQ,
+      };
+  static Map<String, String> get _blurbs => {
+        'buyer': l10n.wallet_feesAreAddedOnTopOfYourPrice,
+        'group': l10n.wallet_buyersSeeAndPayExactly,
+      };
 
   Future<void> _confirm(FeeSetting s, String bearer) async {
     final p = context.palette;
@@ -49,19 +52,19 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
           SpSheetHeader(
             icon:
                 bearer == 'group' ? Icons.groups_rounded : Icons.person_rounded,
-            title: '${_titles[bearer]}?',
-            subtitle: 'A one-time choice',
+            title: _confirmTitles[bearer] ?? '',
+            subtitle: l10n.wallet_aOneTimeChoice,
           ),
           Text(_blurbs[bearer]!,
               style: TextStyle(color: p.muted, fontSize: 13, height: 1.45)),
           const SizedBox(height: 8),
           Text(
-            'This applies to every new ticket, fine and tournament payment. Payments already made keep the setting they were made under.',
+            l10n.wallet_thisAppliesToEveryNew,
             style: TextStyle(color: p.muted, fontSize: 13, height: 1.45),
           ),
           const SizedBox(height: 8),
           Text(
-            "You can only choose once. To change it later you'll need to contact ${s.supportEmail}.",
+            l10n.wallet_youCanOnlyChooseOnce(s.supportEmail),
             style: TextStyle(
                 color: p.ink,
                 fontSize: 13,
@@ -70,7 +73,7 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
           ),
           const SizedBox(height: 16),
           SpButton(
-            label: 'Confirm',
+            label: l10n.wallet_confirm,
             icon: Icons.check_rounded,
             expand: true,
             onTap: () => Navigator.of(ctx).pop(true),
@@ -78,7 +81,7 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
           const SizedBox(height: 6),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.wallet_cancel),
           ),
         ],
       ),
@@ -90,9 +93,9 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
       await ref
           .read(walletRepositoryProvider)
           .setFeeBearer(widget.groupId, bearer);
-      messenger.showSnackBar(const SnackBar(
+      messenger.showSnackBar(SnackBar(
           content: Text(
-              'Saved — this now applies to tickets, fines and tournament fees.')));
+              l10n.wallet_savedThisNowAppliesTo)));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
     } finally {
@@ -117,7 +120,7 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
                 height: 16,
                 child: CircularProgressIndicator(strokeWidth: 2)),
             const SizedBox(width: 10),
-            Text('Loading fee setting…',
+            Text(context.l10n.wallet_loadingFeeSetting,
                 style: TextStyle(color: p.muted, fontSize: 13)),
           ]),
         );
@@ -196,12 +199,12 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
                                 text: money(s.examplePrice),
                                 style: const TextStyle(
                                     fontWeight: FontWeight.w800)),
-                            const TextSpan(text: ' ticket: buyer pays '),
+                            TextSpan(text: context.l10n.wallet_ticketBuyerPays),
                             TextSpan(
                                 text: money(pays),
                                 style: const TextStyle(
                                     fontWeight: FontWeight.w800)),
-                            const TextSpan(text: ' · you receive '),
+                            TextSpan(text: context.l10n.wallet_youReceive2),
                             TextSpan(
                                 text: money(gets),
                                 style: const TextStyle(
@@ -223,20 +226,20 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
           Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Who pays the fees?',
+              Text(context.l10n.wallet_whoPaysTheFees,
                   style: TextStyle(
                       color: p.ink, fontSize: 15, fontWeight: FontWeight.w800)),
               const SizedBox(height: 2),
               Text(
-                "Applies to tickets, fines and tournament entry fees. SportPadi's fee is the same either way — this only decides who covers it.",
+                context.l10n.wallet_appliesToTicketsFinesAnd,
                 style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.35),
               ),
             ]),
           ),
           const SizedBox(width: 10),
           locked
-              ? SpBadge('Locked', icon: Icons.lock_rounded, tone: p.muted)
-              : SpBadge('One-time', tone: p.orange),
+              ? SpBadge(context.l10n.wallet_locked, icon: Icons.lock_rounded, tone: p.muted)
+              : SpBadge(context.l10n.wallet_oneTime, tone: p.orange),
         ]),
         const SizedBox(height: 14),
         option('buyer'),
@@ -252,7 +255,7 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
-                      '${s.setAt != null ? 'Set on ${_date(s.setAt!)}. ' : ''}To change it, contact ',
+                      context.l10n.wallet_toChangeItContact((s.setAt != null ? 'Set on ${_date(s.setAt!)}. ' : '')),
                       style: TextStyle(color: p.muted, fontSize: 12),
                     ),
                     GestureDetector(
@@ -269,11 +272,11 @@ class _FeeBearerCardState extends ConsumerState<FeeBearerCard> {
           ])
         else ...[
           Text(
-              'Until you choose, buyers pay the fees. You can only set this once.',
+              context.l10n.wallet_untilYouChooseBuyersPay,
               style: TextStyle(color: p.muted, fontSize: 12)),
           const SizedBox(height: 10),
           SpButton(
-            label: _saving ? 'Saving…' : 'Save choice',
+            label: _saving ? context.l10n.wallet_saving : context.l10n.wallet_saveChoice,
             expand: true,
             onTap:
                 widget.disabled || _saving ? null : () => _confirm(s, selected),

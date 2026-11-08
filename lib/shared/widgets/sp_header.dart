@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The 2026 pushed-screen header: a round back button, a bold title with an
 /// optional subtitle, and optional round actions on the right. Replaces the
@@ -28,7 +29,7 @@ class SpHeader extends StatelessWidget {
     return Row(children: [
       SpRoundButton(
         icon: canPop ? Icons.arrow_back_ios_new_rounded : Icons.home_outlined,
-        tooltip: canPop ? 'Back' : 'Home',
+        tooltip: canPop ? context.l10n.common_back : context.l10n.common_home,
         iconSize: canPop ? 18 : 21,
         onTap: () {
           if (context.canPop()) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The leading slot for every pushed screen's AppBar.
 ///
@@ -28,7 +29,7 @@ class SpLeading extends StatelessWidget {
       );
     }
     return IconButton(
-      tooltip: 'Home',
+      tooltip: context.l10n.common_home,
       color: color,
       icon: const Icon(Icons.home_outlined),
       onPressed: () => context.go('/home'),

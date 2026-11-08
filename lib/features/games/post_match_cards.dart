@@ -20,6 +20,7 @@ import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart' show PersonAvatar;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 const _mint = Color(0xFF6EDC9E);
 
@@ -38,12 +39,12 @@ class YourMatchCard extends ConsumerWidget {
     final p = context.palette;
     final mine = d.teams.where((t) => t.mine).toList();
     final result = mine.isEmpty
-        ? 'Full time'
+        ? context.l10n.game_fullTime2
         : switch (mine.first.result) {
-            'win' => 'You won',
-            'loss' => 'You lost',
-            'draw' => 'Draw',
-            _ => 'Full time',
+            'win' => context.l10n.game_youWon,
+            'loss' => context.l10n.game_youLost,
+            'draw' => context.l10n.game_draw,
+            _ => context.l10n.game_fullTime2,
           };
     return Container(
       margin: const EdgeInsets.only(top: 12),
@@ -56,8 +57,8 @@ class YourMatchCard extends ConsumerWidget {
         Row(children: [
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('YOUR MATCH',
-                  style: TextStyle(
+              Text(context.l10n.game_yourMatch,
+                  style: const TextStyle(
                       color: _mint,
                       fontSize: 11,
                       letterSpacing: 1.5,
@@ -73,7 +74,7 @@ class YourMatchCard extends ConsumerWidget {
           ),
           if (d.rating != null) ...[
             Tooltip(
-              message: 'Match rating — 6.0 is par',
+              message: context.l10n.game_matchRating60Is,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -187,7 +188,7 @@ class YourMatchCard extends ConsumerWidget {
                     Icon(Icons.auto_awesome_rounded, size: 16, color: p.amber),
                     const SizedBox(width: 6),
                     Expanded(
-                      child: Text('Achievement unlocked: $u',
+                      child: Text(context.l10n.game_achievementUnlocked(u),
                           style: TextStyle(
                               color: p.onHero,
                               fontSize: 13.5,
@@ -202,14 +203,14 @@ class YourMatchCard extends ConsumerWidget {
           const SizedBox(height: 14),
           Row(children: [
             Expanded(
-              child: Text('Level ${d.identity!.level} · ${d.identity!.title}',
+              child: Text(context.l10n.game_level(d.identity!.level, d.identity!.title),
                   style: TextStyle(color: p.heroMuted, fontSize: 12)),
             ),
             if (d.identity!.weeklyStreak > 0)
               Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.local_fire_department_rounded, size: 15, color: p.amber),
                 const SizedBox(width: 3),
-                Text('${d.identity!.weeklyStreak}-week streak',
+                Text(context.l10n.game_weekStreak(d.identity!.weeklyStreak),
                     style: TextStyle(
                         color: p.amber,
                         fontSize: 12,
@@ -226,10 +227,10 @@ class YourMatchCard extends ConsumerWidget {
             child: InkWell(
               customBorder: const StadiumBorder(),
               onTap: () => context.push('/progress'),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                child: Text('See your progress →',
-                    style: TextStyle(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                child: Text(context.l10n.game_seeYourProgress,
+                    style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
                         fontWeight: FontWeight.w800)),
@@ -422,7 +423,7 @@ class _TeamCard extends StatelessWidget {
         // Scorers, with minutes.
         if (scorers.isNotEmpty) ...[
           const SizedBox(height: 12),
-          _label(p, 'Scorers'),
+          _label(p, context.l10n.game_scorers),
           for (final x in scorers)
             PlayerTap(
               userId: x.id,
@@ -446,7 +447,7 @@ class _TeamCard extends StatelessWidget {
         // Every player's contributions.
         if (contributors.isNotEmpty) ...[
           const SizedBox(height: 12),
-          _label(p, 'Contributions'),
+          _label(p, context.l10n.game_contributions),
           for (final c in contributors)
             PlayerTap(
               userId: c.player.playerId,
@@ -489,7 +490,7 @@ class _TeamCard extends StatelessWidget {
         ],
         if (scorers.isEmpty && contributors.isEmpty) ...[
           const SizedBox(height: 8),
-          Text('No recorded stats.', style: TextStyle(color: p.muted, fontSize: 12)),
+          Text(context.l10n.game_noRecordedStats, style: TextStyle(color: p.muted, fontSize: 12)),
         ],
       ]),
     );
@@ -510,7 +511,7 @@ class RatingBadge extends StatelessWidget {
             ? (p.surface2, p.ink)
             : (p.amber.withAlpha(40), p.amber);
     return Tooltip(
-      message: 'Match rating',
+      message: context.l10n.game_matchRating,
       child: Container(
         constraints: const BoxConstraints(minWidth: 38),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -571,9 +572,9 @@ class _KudosCardState extends ConsumerState<KudosCard> {
       padding: const EdgeInsets.only(top: 12),
       child: GlassCard(
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text('Kudos', style: TextStyle(color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
+          Text(context.l10n.game_kudos, style: TextStyle(color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: 2),
-          Text('For the work no stat records. One tag each, to a teammate.',
+          Text(context.l10n.game_forTheWorkNoStat,
               style: TextStyle(color: p.muted, fontSize: 12)),
           for (final r in received) ...[
             const SizedBox(height: 10),
@@ -583,7 +584,7 @@ class _KudosCardState extends ConsumerState<KudosCard> {
                 PersonAvatar(url: people[r.key]?.avatarUrl, name: people[r.key]?.displayName ?? 'Player', size: 24),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(people[r.key]?.displayName ?? 'Player',
+                  child: Text(people[r.key]?.displayName ?? context.l10n.game_player,
                       maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.ink, fontSize: 13)),
                 ),
                 Flexible(
@@ -609,14 +610,14 @@ class _KudosCardState extends ConsumerState<KudosCard> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 Text(
                     mineTo != null
-                        ? 'You tagged ${mineTo.displayName} — change it?'
-                        : 'Who carried the team today?',
+                        ? context.l10n.game_youTaggedChangeIt(mineTo.displayName)
+                        : context.l10n.game_whoCarriedTheTeamToday,
                     style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),
                 Wrap(spacing: 6, runSpacing: 6, children: [
                   for (final id in d.teammates)
                     ChoiceChip(
-                      label: Text(people[id]?.displayName ?? 'Player'),
+                      label: Text(people[id]?.displayName ?? context.l10n.game_player),
                       avatar: PersonAvatar(url: people[id]?.avatarUrl, name: people[id]?.displayName ?? '?', size: 18),
                       selected: target == id,
                       onSelected: _busy ? null : (_) => setState(() => _to = id),
@@ -641,7 +642,7 @@ class _KudosCardState extends ConsumerState<KudosCard> {
                     alignment: Alignment.centerLeft,
                     child: TextButton(
                       onPressed: _busy ? null : () => _run(() => repo.removeKudos(widget.gameId)),
-                      child: const Text('Take it back'),
+                      child: Text(context.l10n.game_takeItBack),
                     ),
                   ),
               ]),

@@ -1,6 +1,8 @@
 import 'dart:io' show Platform;
 
 import 'package:dio/dio.dart';
+
+import 'package:sportpadi_mobile/core/i18n/locale_controller.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -53,6 +55,8 @@ final dioProvider = Provider<Dio>((ref) {
     // earlier visits (core/analytics/usage_tracker.dart).
     final did = DeviceId.value;
     if (did != null) options.headers['x-sp-device'] = did;
+    // The language to phrase errors, notifications and emails in.
+    options.headers['x-sp-locale'] = currentLocaleCode(ref);
     handler.next(options);
   }));
   if (!config.isProd && kDebugMode) {

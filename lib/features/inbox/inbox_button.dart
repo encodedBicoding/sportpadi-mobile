@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/announcements/announcements_repository.dart';
 import 'package:sportpadi_mobile/data/messages/messages_repository.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// "Inbox, 2 unread announcements, 1 unread conversation".
 String _inboxLabel(int announcements, int messages) {
@@ -14,7 +15,7 @@ String _inboxLabel(int announcements, int messages) {
     if (messages > 0)
       '$messages unread conversation${messages == 1 ? '' : 's'}',
   ];
-  return parts.isEmpty ? 'Inbox' : 'Inbox, ${parts.join(', ')}';
+  return parts.isEmpty ? l10n.inbox_inbox : l10n.inbox_inbox3(parts.join(', '));
 }
 
 /// The Inbox entry next to the notifications bell: a megaphone with its own

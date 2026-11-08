@@ -17,6 +17,7 @@ import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 class GroupsListScreen extends ConsumerStatefulWidget {
   const GroupsListScreen({super.key, this.initialTab, this.openCreate = false});
@@ -139,13 +140,13 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
                       SpRoundButton(
                         icon: Icons.arrow_back_ios_new_rounded,
                         iconSize: 18,
-                        tooltip: 'Back',
+                        tooltip: context.l10n.group_back,
                         onTap: () => context.pop(),
                       ),
                       const SizedBox(width: 10),
                     ],
                     Expanded(
-                      child: Text('Groups',
+                      child: Text(context.l10n.group_groups,
                           style: TextStyle(
                               color: p.ink,
                               fontSize: 26,
@@ -164,7 +165,7 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
                             Icon(Icons.add_rounded, size: 18, color: p.onHero),
                             const SizedBox(width: 5),
-                            Text('New',
+                            Text(context.l10n.group_newLabel,
                                 style: TextStyle(
                                     color: p.onHero,
                                     fontSize: 13.5,
@@ -177,7 +178,7 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
                     const SideMenuButton(),
                   ]),
                   const SizedBox(height: 2),
-                  Text('Your crews, and new ones to find.',
+                  Text(context.l10n.group_yourCrewsAndNewOnes,
                       style: TextStyle(color: p.muted, fontSize: 13)),
                   const SizedBox(height: 14),
                   // Search.
@@ -194,7 +195,7 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
                       onChanged: (v) => setState(() => _query = v),
                       style: TextStyle(color: p.ink, fontSize: 14.5),
                       decoration: InputDecoration(
-                        hintText: 'Search groups',
+                        hintText: context.l10n.group_searchGroups,
                         hintStyle: TextStyle(color: p.muted, fontSize: 14.5),
                         prefixIcon: Icon(Icons.search_rounded,
                             size: 21, color: p.muted),
@@ -210,11 +211,11 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
                   const SizedBox(height: 12),
                   SpSegmented(
                     options: [
-                      'Mine · ${myFiltered.length}',
+                      context.l10n.group_mine(myFiltered.length),
                       discover.hasValue
-                          ? 'Discover · ${discoverList.length}'
-                          : 'Discover',
-                      'Invites',
+                          ? context.l10n.group_discover(discoverList.length)
+                          : context.l10n.group_discover2,
+                      context.l10n.group_invites,
                     ],
                     // Invitations waiting, on the Invites tab.
                     badges: [null, null, inviteCount],
@@ -231,11 +232,11 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
                       _EmptyBox(
                         icon: Icons.groups_outlined,
                         text: _query.isEmpty
-                            ? "You're not in any groups yet. Create one, or find one in Discover."
-                            : 'No groups of yours match that search.',
+                            ? context.l10n.group_youreNotInAnyGroups
+                            : context.l10n.group_noGroupsOfYoursMatch,
                         action: _query.isEmpty
                             ? SpButton(
-                                label: 'Discover groups',
+                                label: context.l10n.group_discoverGroups,
                                 icon: Icons.explore_outlined,
                                 onTap: () => setState(() => _tab = 1),
                               )
@@ -252,9 +253,9 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
                         ),
                   ] else ...[
                     if (discover.hasError)
-                      const _EmptyBox(
+                      _EmptyBox(
                           icon: Icons.error_outline_rounded,
-                          text: 'Could not load groups.')
+                          text: context.l10n.group_couldNotLoadGroups)
                     else if (discover.isLoading && !discover.hasValue)
                       const Padding(
                         padding: EdgeInsets.all(32),
@@ -264,8 +265,8 @@ class _GroupsListScreenState extends ConsumerState<GroupsListScreen> {
                       _EmptyBox(
                         icon: Icons.search_rounded,
                         text: _query.isEmpty
-                            ? 'No other groups to discover yet.'
-                            : 'No groups match that search.',
+                            ? context.l10n.group_noOtherGroupsToDiscover
+                            : context.l10n.group_noGroupsMatchThatSearch,
                       )
                     else
                       GridView.builder(
@@ -391,7 +392,7 @@ class _GroupCard extends StatelessWidget {
                     color: p.accentTint,
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: Text('ADMIN',
+                  child: Text(context.l10n.group_admin,
                       style: TextStyle(
                           color: p.greenText,
                           fontSize: 10,
@@ -450,8 +451,8 @@ class _GroupTile extends StatelessWidget {
                     color: const Color(0xEBFFFFFF),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: const Text('Member',
-                      style: TextStyle(
+                  child: Text(context.l10n.group_member,
+                      style: const TextStyle(
                           color: Color(0xFF0F7A45),
                           fontSize: 10,
                           fontWeight: FontWeight.w700)),
@@ -498,7 +499,7 @@ class _GroupTile extends StatelessWidget {
                         color: p.muted, fontSize: 11.5, height: 1.35)),
               const Spacer(),
               if (g.memberCount != null)
-                Text('${g.memberCount} member${g.memberCount == 1 ? '' : 's'}',
+                Text(context.l10n.group_members2(g.memberCount ?? 0),
                     style: TextStyle(
                         color: p.greenText,
                         fontSize: 11.5,
@@ -573,7 +574,7 @@ class _CreateGroupSheetState extends ConsumerState<_CreateGroupSheet> {
   Future<void> _submit() async {
     final name = _name.text.trim();
     if (name.isEmpty) {
-      setState(() => _error = 'Name is required.');
+      setState(() => _error = l10n.group_nameIsRequired2);
       return;
     }
     setState(() {
@@ -592,7 +593,7 @@ class _CreateGroupSheetState extends ConsumerState<_CreateGroupSheet> {
     } catch (e) {
       setState(() {
         _busy = false;
-        _error = 'Could not create the group.';
+        _error = l10n.group_couldNotCreateTheGroup;
       });
     }
   }
@@ -604,23 +605,23 @@ class _CreateGroupSheetState extends ConsumerState<_CreateGroupSheet> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SpSheetHeader(
+        SpSheetHeader(
           icon: Icons.groups_rounded,
-          title: 'Create a group',
-          subtitle: 'Start a new group to organise events and members.',
+          title: context.l10n.group_createAGroup,
+          subtitle: context.l10n.group_startANewGroupTo,
         ),
         TextField(
           controller: _name,
           textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(labelText: 'Name'),
+          decoration: InputDecoration(labelText: context.l10n.group_name),
         ),
         const SizedBox(height: 12),
         TextField(
           controller: _desc,
           maxLines: 3,
           minLines: 2,
-          decoration: const InputDecoration(
-            labelText: 'Description (optional)',
+          decoration: InputDecoration(
+            labelText: context.l10n.group_descriptionOptional,
             alignLabelWithHint: true,
           ),
         ),
@@ -630,7 +631,7 @@ class _CreateGroupSheetState extends ConsumerState<_CreateGroupSheet> {
         ],
         const SizedBox(height: 18),
         SpButton(
-          label: _busy ? 'Creating…' : 'Create group',
+          label: _busy ? context.l10n.group_creating : context.l10n.group_createGroup,
           expand: true,
           onTap: _busy ? null : _submit,
         ),

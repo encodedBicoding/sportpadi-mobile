@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/data/tournaments/tournament_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/my_team_models.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/squad_models.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 class TournamentsRepository {
   TournamentsRepository(this._dio);
@@ -287,7 +288,7 @@ class TournamentsRepository {
       final res = await _dio.get('/api/mobile/tournaments/$eventId/squad',
           queryParameters: {'teamId': teamId});
       if (res.data is! Map) {
-        throw ApiException('Squad not found.', statusCode: 404);
+        throw ApiException(l10n.common_squadNotFound, statusCode: 404);
       }
       return TournamentSquad.fromJson(
           Map<String, dynamic>.from(res.data as Map));
@@ -414,7 +415,7 @@ class TournamentsRepository {
     try {
       final res = await _dio.get('/api/mobile/register/$token');
       if (res.data is! Map) {
-        throw ApiException("This registration link isn't valid.", statusCode: 404);
+        throw ApiException(l10n.common_thisRegistrationLinkIsntValid, statusCode: 404);
       }
       return Map<String, dynamic>.from(res.data as Map);
     } catch (e) {
@@ -441,7 +442,7 @@ class TournamentsRepository {
           data: {'action': 'pay', 'tournamentTeamId': tournamentTeamId});
       final url = res.data is Map ? res.data['url'] : null;
       if (url is! String || url.isEmpty) {
-        throw ApiException('Could not start the payment.');
+        throw ApiException(l10n.common_couldNotStartThePayment);
       }
       return url;
     } catch (e) {
@@ -481,7 +482,7 @@ class TournamentsRepository {
     try {
       final res = await _dio.get('/api/mobile/tournaments/$eventId');
       if (res.data == null || res.data is! Map) {
-        throw ApiException('Tournament not found.', statusCode: 404);
+        throw ApiException(l10n.common_tournamentNotFound, statusCode: 404);
       }
       return Map<String, dynamic>.from(res.data as Map);
     } catch (e) {

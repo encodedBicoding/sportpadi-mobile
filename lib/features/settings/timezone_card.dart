@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/features/settings/timezone_provider.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// What the picker returns for "Use device time zone".
 const _automatic = '\u0000automatic';
@@ -73,7 +74,7 @@ class _TimezoneCardState extends ConsumerState<TimezoneCard> {
         device != null ? timezoneDisplayName(device) : "your phone's zone";
     final title = picked != null
         ? timezoneDisplayName(picked)
-        : 'Automatic · $deviceName';
+        : context.l10n.profile_automatic(deviceName);
     final offset = zoneOffsetLabel(picked ?? device);
     return GlassCard(
       onTap: _busy ? null : _open,
@@ -109,8 +110,7 @@ class _TimezoneCardState extends ConsumerState<TimezoneCard> {
         ]),
         const SizedBox(height: 10),
         Text(
-          'Messages, discussions, announcements and notifications show in '
-          "this zone. Events show in the venue's time, with yours alongside.",
+          context.l10n.profile_messagesDiscussionsAnnouncementsAndNotif2,
           style: TextStyle(color: p.muted, fontSize: 12, height: 1.4),
         ),
       ]),
@@ -150,13 +150,12 @@ class _TimezonePickerSheetState extends State<_TimezonePickerSheet> {
     final list =
         _q.isEmpty ? _all : _all.where((z) => _norm(z).contains(_q)).toList();
     return Column(children: [
-      const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: SpSheetHeader(
           icon: Icons.public_rounded,
-          title: 'Time zone',
-          subtitle: 'For messages, discussions, announcements and '
-              'notifications. No location needed.',
+          title: context.l10n.profile_timeZone,
+          subtitle: context.l10n.profile_forMessagesDiscussionsAnnouncementsAnd,
         ),
       ),
       Padding(
@@ -166,13 +165,13 @@ class _TimezonePickerSheetState extends State<_TimezonePickerSheet> {
               color: auto ? p.greenText : p.muted),
           title: Text(
             device != null
-                ? 'Use device time zone (${timezoneDisplayName(device)})'
-                : 'Use device time zone',
+                ? context.l10n.profile_useDeviceTimeZone(timezoneDisplayName(device))
+                : context.l10n.profile_useDeviceTimeZone2,
             style: TextStyle(
                 color: p.ink,
                 fontWeight: auto ? FontWeight.w700 : FontWeight.w500),
           ),
-          subtitle: Text('Follows your phone, including when you travel.',
+          subtitle: Text(context.l10n.profile_followsYourPhoneIncludingWhen,
               style: TextStyle(color: p.muted, fontSize: 12)),
           trailing: auto ? Icon(Icons.check_rounded, color: p.greenText) : null,
           onTap: () => Navigator.of(context).pop(_automatic),
@@ -184,9 +183,9 @@ class _TimezonePickerSheetState extends State<_TimezonePickerSheet> {
           controller: _search,
           onChanged: (v) => setState(() => _q = _norm(v.trim())),
           textInputAction: TextInputAction.search,
-          decoration: const InputDecoration(
-            hintText: 'Search time zones (e.g. London)',
-            prefixIcon: Icon(Icons.search_rounded),
+          decoration: InputDecoration(
+            hintText: context.l10n.profile_searchTimeZonesEG,
+            prefixIcon: const Icon(Icons.search_rounded),
           ),
         ),
       ),
@@ -197,8 +196,8 @@ class _TimezonePickerSheetState extends State<_TimezonePickerSheet> {
                   padding: const EdgeInsets.all(24),
                   child: Text(
                       _all.isEmpty
-                          ? "Time zones couldn't be loaded on this phone."
-                          : 'No time zone matches.',
+                          ? context.l10n.profile_timeZonesCouldntBeLoaded
+                          : context.l10n.profile_noTimeZoneMatches2,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: p.muted)),
                 ),

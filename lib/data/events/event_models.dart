@@ -1,4 +1,5 @@
 import '../../shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 class EventSummary {
   const EventSummary({
@@ -154,7 +155,7 @@ List<AudienceTeam> parseAudienceTeams(dynamic v) => [
 
 /// "For U12 Lions" / "For U12 Lions, U14 Hawks" — null for whole-group events.
 String? audienceLabel(List<AudienceTeam> teams) =>
-    teams.isEmpty ? null : 'For ${teams.map((t) => t.name).join(', ')}';
+    teams.isEmpty ? null : l10n.common_forLabel(teams.map((t) => t.name).join(', '));
 
 /// A ward a feed event is for: `{ userId, name }` (name is the first name).
 class WardTag {

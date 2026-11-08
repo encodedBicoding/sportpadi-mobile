@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/auth/auth_repository.dart';
 import 'package:sportpadi_mobile/features/auth/auth_scaffold.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Forgot password — the app's twin of web /auth/forgot, in the 2026 auth
 /// frame. Step one asks for the email; step two says the link is on its way
@@ -71,13 +72,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       _startCooldown();
       if (resend) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('A new link is on the way.')));
+            SnackBar(content: Text(l10n.auth_aNewLinkIsOn)));
       }
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
       if (mounted) {
-        setState(() => _error = "Couldn't send the link. Try again.");
+        setState(() => _error = l10n.auth_couldntSendTheLinkTry);
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -102,21 +103,20 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     final p = context.palette;
     final sent = _sentTo != null;
     return AuthScaffold(
-      eyebrow: sent ? 'Check your inbox' : 'Forgot password',
-      title: sent ? 'Your link is on its way' : 'Reset your password',
+      eyebrow: sent ? context.l10n.auth_checkYourInbox : context.l10n.auth_forgotPassword,
+      title: sent ? context.l10n.auth_yourLinkIsOnIts : context.l10n.auth_resetYourPassword,
       subtitle: sent
           ? Text.rich(TextSpan(children: [
-              const TextSpan(text: 'If an account exists for '),
+              TextSpan(text: context.l10n.auth_ifAnAccountExistsFor),
               TextSpan(
                   text: _sentTo,
                   style:
                       TextStyle(color: p.onHero, fontWeight: FontWeight.w700)),
-              const TextSpan(
-                  text: ", we've emailed it a link to set a new password."),
+              TextSpan(
+                  text: context.l10n.auth_weveEmailedItALink),
             ]))
-          : const Text(
-              "Enter the email you signed up with and we'll send you a link "
-              'to choose a new password.'),
+          : Text(
+              context.l10n.auth_enterTheEmailYouSigned),
       onClose: _back,
       card: Container(
         padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
@@ -138,7 +138,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.arrow_back_rounded, size: 16, color: p.greenText),
                 const SizedBox(width: 6),
-                Text('Back to sign in',
+                Text(context.l10n.auth_backToSignIn,
                     style: TextStyle(
                         color: p.greenText,
                         fontSize: 13.5,
@@ -160,7 +160,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 bg: p.accentTint, fg: p.greenText, size: 40, iconSize: 20),
             const SizedBox(width: 12),
             Expanded(
-              child: Text('Where should we send it?',
+              child: Text(context.l10n.auth_whereShouldWeSendIt,
                   style: TextStyle(
                       color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
             ),
@@ -175,9 +175,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             autofillHints: const [AutofillHints.email],
             onFieldSubmitted: (_) => _send(),
             decoration: authInput(context,
-                label: 'Email', icon: Icons.mail_outline_rounded),
+                label: context.l10n.auth_email, icon: Icons.mail_outline_rounded),
             validator: (v) =>
-                (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
+                (v == null || !v.contains('@')) ? context.l10n.auth_enterAValidEmail : null,
           ),
           if (_error != null) ...[
             const SizedBox(height: 14),
@@ -185,7 +185,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           ],
           const SizedBox(height: 18),
           AuthPrimaryButton(
-            label: 'Send reset link',
+            label: context.l10n.auth_sendResetLink,
             busy: _busy,
             onTap: _send,
           ),
@@ -226,28 +226,27 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             bg: p.accentTint, fg: p.greenText, size: 40, iconSize: 20),
         const SizedBox(width: 12),
         Expanded(
-          child: Text('What to do next',
+          child: Text(context.l10n.auth_whatToDoNext,
               style: TextStyle(
                   color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
         ),
       ]),
       const SizedBox(height: 16),
-      step(1, 'Open the email from SportPadi.'),
+      step(1, context.l10n.auth_openTheEmailFromSportPadi),
       step(2,
-          'Tap "Set a new password" and choose one — at least 8 characters.'),
-      step(3, 'Come back here and sign in with it.'),
+          context.l10n.auth_tapSetANewPassword),
+      step(3, context.l10n.auth_comeBackHereAndSign),
       Padding(
         padding: const EdgeInsets.only(bottom: 16),
         child: Text(
-            "The link works for an hour. Can't find it? Check spam, or send "
-            'a new one.',
+            context.l10n.auth_theLinkWorksForAn,
             style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.4)),
       ),
       if (_error != null) ...[
         AuthError(_error!),
         const SizedBox(height: 14),
       ],
-      AuthPrimaryButton(label: 'Back to sign in', onTap: _back),
+      AuthPrimaryButton(label: context.l10n.auth_backToSignIn, onTap: _back),
       const SizedBox(height: 12),
       Row(children: [
         Expanded(
@@ -255,10 +254,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             p,
             icon: Icons.refresh_rounded,
             label: _busy
-                ? 'Sending…'
+                ? context.l10n.auth_sending
                 : _cooldown > 0
-                    ? 'Resend in ${_cooldown}s'
-                    : 'Resend link',
+                    ? context.l10n.auth_resendInS(_cooldown)
+                    : context.l10n.auth_resendLink,
             onTap: canResend ? () => _send(resend: true) : null,
           ),
         ),
@@ -267,7 +266,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           child: _softPill(
             p,
             icon: Icons.alternate_email_rounded,
-            label: 'Other email',
+            label: context.l10n.auth_otherEmail,
             onTap: _busy
                 ? null
                 : () => setState(() {

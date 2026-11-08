@@ -14,6 +14,7 @@ class Profile {
     this.intent,
     this.intentSeenAt,
     this.links = const [],
+    this.locale,
   });
 
   final String? userId;
@@ -34,6 +35,9 @@ class Profile {
   /// Social links (`[{ platform, url, label }]`, docs/design/scouting-profile.md).
   final List<Map<String, dynamic>> links;
 
+  /// The language they chose (docs/design/i18n.md); null = follow the device.
+  final String? locale;
+
   factory Profile.fromJson(Map<String, dynamic> j) => Profile(
         userId: parseStr(j['userId']),
         displayName: (j['displayName'] ?? j['username'] ?? 'You') as String,
@@ -51,6 +55,7 @@ class Profile {
             for (final l in j['links'] as List)
               if (l is Map) Map<String, dynamic>.from(l),
         ],
+        locale: parseStr(j['locale']),
       );
 }
 

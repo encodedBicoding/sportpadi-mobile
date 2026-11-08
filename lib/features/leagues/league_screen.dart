@@ -14,6 +14,7 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Public league page (web `/leagues/[slug]`): season awards, table or
 /// groups, the knockout bracket, fixtures & results, player rankings.
@@ -36,20 +37,20 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
     final d = q.valueOrNull;
     final l = d?.o('league');
     return SpSubPage(
-      title: l?.str('competitionName', 'League') ?? 'League',
+      title: l?.str('competitionName', context.l10n.league_league) ?? context.l10n.league_league,
       subtitle: l == null ? null : [l.s('season'), l.s('division')].whereType<String>().join(' · '),
       actions: [
         if (l != null && l.s('status') != 'draft')
           SpRoundButton(
             icon: Icons.ios_share_rounded,
-            tooltip: 'Share & embed',
+            tooltip: context.l10n.league_shareEmbed,
             onTap: () => showShareLeagueSheet(context,
                 base: ref.read(appConfigProvider).apiBaseUrl, slug: l.str('slug'), title: l.str('title')),
           ),
         if (d?.b('isOrganiser') == true && l != null)
           SpRoundButton(
             icon: Icons.tune_rounded,
-            tooltip: 'Manage',
+            tooltip: context.l10n.league_manage,
             onTap: () => context.push('/groups/${l.str('groupId')}/leagues/${l.str('id')}'),
           ),
       ],
@@ -81,13 +82,13 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
     final tabs = <(String, String, IconData)>[
       if (standings.isNotEmpty)
         ('table', stages.any((s) => s.s('kind') == 'groups')
-                ? 'Groups'
+                ? context.l10n.league_groups
                 : stages.any((s) => s.s('kind') == 'split')
-                    ? 'Tables'
-                    : 'Table', Icons.leaderboard_rounded),
-      if (ko.isNotEmpty) ('bracket', 'Bracket', Icons.account_tree_rounded),
-      ('fixtures', 'Fixtures', Icons.calendar_month_rounded),
-      ('players', 'Players', Icons.people_alt_rounded),
+                    ? context.l10n.league_tables
+                    : context.l10n.league_table, Icons.leaderboard_rounded),
+      if (ko.isNotEmpty) ('bracket', context.l10n.league_bracket, Icons.account_tree_rounded),
+      ('fixtures', context.l10n.league_fixtures, Icons.calendar_month_rounded),
+      ('players', context.l10n.league_players2, Icons.people_alt_rounded),
     ];
     final tab = tabs.any((t) => t.$1 == _tab) ? _tab : tabs.first.$1;
     final divisions = d.list('divisions');
@@ -110,10 +111,10 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
                 decoration: BoxDecoration(color: Colors.white.withAlpha(26), borderRadius: BorderRadius.circular(99)),
                 child: Text(
                     l.s('status') == 'completed'
-                        ? 'FINAL TABLE'
+                        ? context.l10n.league_finalTable2
                         : l.s('status') == 'draft'
-                            ? 'DRAFT — ONLY YOU SEE THIS'
-                            : 'SEASON LIVE',
+                            ? context.l10n.league_draftOnlyYouSeeThis
+                            : context.l10n.league_seasonLive2,
                     style: TextStyle(color: p.accent, fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 1)),
               ),
             ]),
@@ -122,7 +123,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
                 style: TextStyle(color: p.onHero, fontSize: 22, fontWeight: FontWeight.w800, height: 1.15)),
             const SizedBox(height: 4),
             Text(
-                [if (d.o('group')?.s('name') != null) 'Run by ${d.o('group')!.str('name')}', l.str('format')].join(' · '),
+                [if (d.o('group')?.s('name') != null) context.l10n.league_runByGroup(d.o('group')!.str('name')), l.str('format')].join(' · '),
                 style: TextStyle(color: p.heroMuted, fontSize: 12.5)),
             if (titleSponsor != null) ...[
               const SizedBox(height: 10),
@@ -146,7 +147,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
                       ),
                       const SizedBox(width: 8),
                     ],
-                    Text('Presented by ', style: TextStyle(color: p.heroMuted, fontSize: 12)),
+                    Text(context.l10n.league_presentedBy, style: TextStyle(color: p.heroMuted, fontSize: 12)),
                     Text(titleSponsor.str('name'), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
                   ]),
                 ),
@@ -158,7 +159,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.military_tech_rounded, size: 15, color: p.accent),
                 const SizedBox(width: 4),
-                Text('All seasons, honours & records',
+                Text(context.l10n.league_allSeasonsHonoursRecords,
                     style: TextStyle(color: p.accent, fontSize: 12.5, fontWeight: FontWeight.w700)),
               ]),
             ),
@@ -174,7 +175,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
                         color: dv.b('current') ? Colors.white : Colors.white.withAlpha(26),
                         borderRadius: BorderRadius.circular(99),
                       ),
-                      child: Text(dv.str('division', 'Main'),
+                      child: Text(dv.str('division', context.l10n.league_main),
                           style: TextStyle(
                               color: dv.b('current') ? const Color(0xFF0E1411) : Colors.white,
                               fontSize: 12,
@@ -211,7 +212,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
           const SizedBox(height: 14),
           GlassCard(
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              const SpSectionTitle('Season awards'),
+              SpSectionTitle(context.l10n.league_seasonAwards),
               if (champTeam != null) ...[
                 const SizedBox(height: 10),
                 Container(
@@ -226,7 +227,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('CHAMPIONS',
+                        Text(context.l10n.league_champions2,
                             style: TextStyle(color: p.greenText, fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 1)),
                         Text(champTeam.str('name'),
                             style: TextStyle(color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
@@ -284,13 +285,13 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
 
         if (tab == 'table' && d.list('sanctions').isNotEmpty) ...[
           const SizedBox(height: 10),
-          const SpSectionTitle('Forfeits'),
+          SpSectionTitle(context.l10n.league_forfeits),
           const SizedBox(height: 8),
           SpListCard(children: [
             for (final s in d.list('sanctions'))
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                child: Text('${s.str('teamName', 'A team')} forfeited a match — ${s.str('publicReason')}',
+                child: Text(context.l10n.league_forfeitedAMatch2(s.str('teamName', context.l10n.common_aTeam), s.str('publicReason')),
                     style: TextStyle(color: p.ink, fontSize: 13)),
               ),
           ]),
@@ -306,19 +307,19 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
     return [
       Row(children: [
         SpPill(
-            label: 'Upcoming (${upcoming.length})',
+            label: context.l10n.league_upcoming(upcoming.length),
             tone: _results ? SpPillTone.soft : SpPillTone.ink,
             onTap: () => setState(() => _results = false)),
         const SizedBox(width: 8),
         SpPill(
-            label: 'Results (${played.length})',
+            label: context.l10n.league_results(played.length),
             tone: _results ? SpPillTone.ink : SpPillTone.soft,
             onTap: () => setState(() => _results = true)),
       ]),
       if (list.isEmpty)
         Padding(
           padding: const EdgeInsets.only(top: 12),
-          child: SpEmpty(icon: Icons.calendar_month_rounded, text: _results ? 'No results yet.' : 'No upcoming matches.'),
+          child: SpEmpty(icon: Icons.calendar_month_rounded, text: _results ? context.l10n.league_noResultsYet : context.l10n.league_noUpcomingMatches),
         )
       else
         RoundsView(fixtures: list),
@@ -329,7 +330,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
     final rankings = d.list('rankings').where((r) => r.list('entries').isNotEmpty).toList();
     final mvps = d.list('mvps');
     if (rankings.isEmpty && mvps.isEmpty) {
-      return [const SpEmpty(icon: Icons.people_alt_rounded, text: 'Player rankings appear after the first results.')];
+      return [SpEmpty(icon: Icons.people_alt_rounded, text: context.l10n.league_playerRankingsAppearAfterThe)];
     }
     return [
       for (final r in rankings) ...[
@@ -339,7 +340,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
               trailing: r.list('entries').length >= 5
                   ? GestureDetector(
                       onTap: () => _showFullRanking(r),
-                      child: Text('See all', style: TextStyle(color: p.greenText, fontSize: 13, fontWeight: FontWeight.w700)),
+                      child: Text(context.l10n.league_seeAll, style: TextStyle(color: p.greenText, fontSize: 13, fontWeight: FontWeight.w700)),
                     )
                   : null),
         ),
@@ -349,7 +350,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
         const SizedBox(height: 8),
       ],
       if (mvps.isNotEmpty) ...[
-        const Padding(padding: EdgeInsets.fromLTRB(2, 6, 2, 8), child: SpSectionTitle('Match MVPs')),
+        Padding(padding: const EdgeInsets.fromLTRB(2, 6, 2, 8), child: SpSectionTitle(context.l10n.league_matchMVPs)),
         SpListCard(children: [
           for (final m in mvps)
             ListTile(
@@ -376,7 +377,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(e.str('name'), maxLines: 1, overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w600)),
-                Text('${e.o('team')?.str('name') ?? ''} · ${e.i('appearances')} apps',
+                Text(context.l10n.league_apps(e.o('team')?.str('name') ?? '', e.i('appearances')),
                     style: TextStyle(color: p.muted, fontSize: 11.5)),
               ]),
             ),

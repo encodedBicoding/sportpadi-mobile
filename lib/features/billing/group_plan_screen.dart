@@ -19,6 +19,7 @@ import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// A group's plan, bought through the App Store.
 ///
@@ -100,7 +101,7 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen>
           await repo.complete(purchase);
           if (mounted) {
             setState(() => _busyProductId = null);
-            _say(purchase.error?.message ?? 'The purchase didn\'t go through.');
+            _say(purchase.error?.message ?? l10n.wallet_thePurchaseDidntGoThrough);
           }
           continue;
         case PurchaseStatus.canceled:
@@ -132,17 +133,17 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen>
           ref.invalidate(iapCatalogueProvider(r.otherGroupId!));
           ref.invalidate(groupOverviewProvider(r.otherGroupId!));
           if (purchase.status == PurchaseStatus.purchased && r.entitled) {
-            _say('Your plan for ${r.otherGroupName ?? 'your other group'} is active.');
+            _say(l10n.wallet_yourPlanForIsActive(r.otherGroupName ?? 'your other group'));
           }
           continue;
         }
         ref.invalidate(iapCatalogueProvider(widget.groupId));
         ref.invalidate(groupOverviewProvider(widget.groupId));
         _say(r.entitled
-            ? 'Your plan is active. The features are unlocked now.'
+            ? l10n.wallet_yourPlanIsActiveThe
             : purchase.status == PurchaseStatus.restored
-                ? 'Nothing to restore for this group.'
-                : 'Purchase received — it will activate shortly.');
+                ? l10n.wallet_nothingToRestoreForThis
+                : l10n.wallet_purchaseReceivedItWillActivate);
       } catch (e) {
         // Leave it uncompleted: StoreKit re-delivers on next launch, so a
         // failure here delays the unlock rather than losing the purchase.
@@ -165,7 +166,7 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen>
     // paywall itself stays visible so the flow can be seen and screenshotted.
     final cat = ref.read(iapCatalogueProvider(widget.groupId)).valueOrNull;
     if (cat != null && !cat.available) {
-      _say('Purchases aren\'t switched on yet. Please try again soon.');
+      _say(l10n.wallet_purchasesArentSwitchedOnYet);
       return;
     }
     setState(() => _busyProductId = productId);
@@ -209,7 +210,7 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen>
     final ok = await launchUrl(url, mode: LaunchMode.externalApplication);
     if (!ok) {
       _awayAtCheckout = false;
-      _say('Couldn\'t open the checkout. Please try again.');
+      _say(l10n.wallet_couldntOpenTheCheckoutPlease);
     }
   }
 
@@ -220,8 +221,8 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen>
       ref.invalidate(iapCatalogueProvider(widget.groupId));
       ref.invalidate(groupOverviewProvider(widget.groupId));
       _say(n > 0
-          ? 'Restored $n subscription${n == 1 ? '' : 's'}.'
-          : 'Nothing to restore.');
+          ? l10n.wallet_restoredSubscriptions(n)
+          : l10n.wallet_nothingToRestore);
     } catch (e) {
       _say('$e');
     } finally {
@@ -261,8 +262,8 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen>
         leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
-        title: const Text('Group plan',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        title: Text(context.l10n.wallet_groupPlan,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
@@ -278,8 +279,8 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen>
                 return _notice(
                   p,
                   icon: Icons.workspace_premium_outlined,
-                  title: 'Plans aren\'t available here',
-                  body: 'This group\'s plan can\'t be changed from this device.',
+                  title: context.l10n.wallet_plansArentAvailableHere,
+                  body: context.l10n.wallet_thisGroupsPlanCantBe,
                 );
               }
               // `available` (the server holding App Store credentials) gates the
@@ -292,9 +293,8 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen>
                 return _notice(
                   p,
                   icon: Icons.workspace_premium_outlined,
-                  title: 'No plans on the App Store yet',
-                  body: 'The plans haven\'t been set up for in-app purchase. '
-                      'Check back soon.',
+                  title: context.l10n.wallet_noPlansOnTheApp,
+                  body: context.l10n.wallet_thePlansHaventBeenSet,
                 );
               }
               if (c.managedElsewhere) {
@@ -303,9 +303,8 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen>
                 return _notice(
                   p,
                   icon: Icons.verified_outlined,
-                  title: 'This group already has a plan',
-                  body: 'Its billing is handled outside the App Store, so there\'s '
-                      'nothing to buy here. The features it includes are already on.',
+                  title: context.l10n.wallet_thisGroupAlreadyHasA,
+                  body: context.l10n.wallet_itsBillingIsHandledOutside,
                 );
               }
 
@@ -326,8 +325,8 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen>
                         Expanded(
                           child: Text(
                             c.cancelAtPeriodEnd
-                                ? 'Your plan ends on ${_date(c.renewsAt!)}.'
-                                : 'Renews on ${_date(c.renewsAt!)}.',
+                                ? context.l10n.wallet_yourPlanEndsOn(_date(c.renewsAt!))
+                                : context.l10n.wallet_renewsOn(_date(c.renewsAt!)),
                             style: TextStyle(color: p.ink, fontSize: 12.5),
                           ),
                         ),
@@ -355,7 +354,7 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen>
                           ref.read(iapRepositoryProvider).presentOfferCodeSheet(),
                       icon: Icon(Icons.confirmation_number_outlined,
                           size: 16, color: p.accent),
-                      label: Text('Redeem a code',
+                      label: Text(context.l10n.wallet_redeemACode,
                           style: TextStyle(
                               color: p.accent,
                               fontSize: 13,
@@ -365,7 +364,7 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen>
                   Center(
                     child: TextButton(
                       onPressed: _restoring ? null : _restore,
-                      child: Text(_restoring ? 'Restoring…' : 'Restore purchases',
+                      child: Text(_restoring ? context.l10n.wallet_restoring : context.l10n.wallet_restorePurchases,
                           style: TextStyle(
                               color: p.accent,
                               fontSize: 13,
@@ -378,18 +377,13 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen>
                         onPressed: () => ref
                             .read(iapRepositoryProvider)
                             .openAppleSubscriptionSettings(),
-                        child: Text('Manage subscription',
+                        child: Text(context.l10n.wallet_manageSubscription,
                             style: TextStyle(color: p.muted, fontSize: 12.5)),
                       ),
                     ),
                   const SizedBox(height: 8),
                   Text(
-                    '${cardAllowed ? 'With Apple, prices' : 'Prices'} are set and billed by Apple in your App Store '
-                    'country\'s currency — not the group\'s wallet currency. '
-                    'Plans renew automatically until cancelled. You can cancel any '
-                    'time in your Apple subscription settings; cancelling stops the '
-                    'next renewal and the plan runs to the end of the period you '
-                    'have paid for.',
+                    context.l10n.wallet_areSetAndBilledBy((cardAllowed ? context.l10n.wallet_withApplePrices : context.l10n.wallet_prices)),
                     textAlign: TextAlign.center,
                     style: TextStyle(color: p.muted, fontSize: 11, height: 1.4),
                   ),
@@ -398,9 +392,9 @@ class _GroupPlanScreenState extends ConsumerState<GroupPlanScreen>
                   // not only in the store listing.
                   const SizedBox(height: 6),
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    _legalLink(p, 'Terms of Use', '/terms'),
+                    _legalLink(p, context.l10n.wallet_termsOfUse, '/terms'),
                     Text(' · ', style: TextStyle(color: p.muted, fontSize: 11)),
-                    _legalLink(p, 'Privacy Policy', '/privacy'),
+                    _legalLink(p, context.l10n.wallet_privacyPolicy, '/privacy'),
                   ]),
                 ],
               );
@@ -510,7 +504,7 @@ class _PlanCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final apple = SpButton(
-      label: busy ? 'Working…' : 'Pay with Apple',
+      label: busy ? context.l10n.wallet_working : context.l10n.wallet_payWithApple,
       icon: Icons.apple,
       expand: true,
       onTap: busy || plan.products.isEmpty ? null : onApple,
@@ -528,7 +522,7 @@ class _PlanCard extends StatelessWidget {
                         fontSize: 16,
                         fontWeight: FontWeight.w800)),
               ),
-              if (plan.isCurrent) SpBadge('Current plan', tone: p.accent),
+              if (plan.isCurrent) SpBadge(context.l10n.wallet_currentPlan, tone: p.accent),
             ]),
             if (plan.description != null) ...[
               const SizedBox(height: 4),
@@ -579,7 +573,7 @@ class _PlanCard extends StatelessWidget {
                                     size: 18, color: p.ink),
                                 const SizedBox(width: 7),
                                 Flexible(
-                                  child: Text('Pay with card',
+                                  child: Text(context.l10n.wallet_payWithCard,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
@@ -661,8 +655,8 @@ class _ApplePricesSheetState extends ConsumerState<_ApplePricesSheet> {
       children: [
         SpSheetHeader(
           icon: Icons.apple,
-          title: '${plan.name} · Apple',
-          subtitle: 'Billed by Apple to your Apple ID.',
+          title: context.l10n.wallet_apple(plan.name),
+          subtitle: context.l10n.wallet_billedByAppleToYour,
         ),
         if (_loading)
           const Padding(
@@ -672,8 +666,8 @@ class _ApplePricesSheetState extends ConsumerState<_ApplePricesSheet> {
         else if (res != null && res.error != null)
           _PriceNotice(
             icon: Icons.wifi_off_rounded,
-            text: 'Couldn\'t reach the App Store for prices. ${res.error!}',
-            action: 'Try again',
+            text: context.l10n.wallet_couldntReachTheAppStore(res.error!),
+            action: context.l10n.wallet_tryAgain,
             onAction: _load,
           )
         else ...[
@@ -686,7 +680,7 @@ class _ApplePricesSheetState extends ConsumerState<_ApplePricesSheet> {
                   // Apple's own localized price string — never one of ours.
                   label: d != null
                       ? '${d.price} / $interval'
-                      : 'Not available yet · $interval',
+                      : context.l10n.wallet_notAvailableYet(interval),
                   expand: true,
                   onTap: d == null ? null : () => Navigator.pop(context, d),
                 ),
@@ -695,15 +689,12 @@ class _ApplePricesSheetState extends ConsumerState<_ApplePricesSheet> {
           if (res != null && res.notFound.isNotEmpty)
             _PriceNotice(
               icon: Icons.storefront_outlined,
-              text: 'Some options aren\'t on the App Store yet, so they can\'t '
-                  'be bought here for now.'
-                  '${kDebugMode ? '\n\nUnknown to StoreKit: ${res.notFound.join(', ')}' : ''}',
+              text: context.l10n.wallet_someOptionsArentOnThe((kDebugMode ? '\n\nUnknown to StoreKit: ${res.notFound.join(', ')}' : '')),
             ),
         ],
         const SizedBox(height: 4),
         Text(
-            'Renews automatically until cancelled in your Apple subscription '
-            'settings.',
+            context.l10n.wallet_renewsAutomaticallyUntilCancelledIn,
             textAlign: TextAlign.center,
             style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.4)),
       ],
@@ -735,8 +726,8 @@ class _CardPricesSheet extends StatelessWidget {
       children: [
         SpSheetHeader(
           icon: Icons.credit_card_rounded,
-          title: '${plan.name} · Card',
-          subtitle: 'Pay securely on sportpadi.com (processed by Stripe).',
+          title: context.l10n.wallet_card2(plan.name),
+          subtitle: context.l10n.wallet_paySecurelyOnSportpadiCom,
         ),
         for (final interval in intervals)
           Padding(
@@ -751,8 +742,7 @@ class _CardPricesSheet extends StatelessWidget {
           ),
         const SizedBox(height: 4),
         Text(
-            'Opens the checkout in your browser — sign in there if asked. '
-            'Your plan switches on here as soon as the payment goes through.',
+            context.l10n.wallet_opensTheCheckoutInYour,
             textAlign: TextAlign.center,
             style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.4)),
       ],

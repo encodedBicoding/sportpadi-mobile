@@ -14,6 +14,7 @@ import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Starting a conversation (docs B4/B5). Every conversation has staff on one
 /// side, so the choices are only ever:
@@ -46,9 +47,9 @@ class MessageTarget {
         kind: 'staff',
         groupId: groupId,
         memberId: memberId,
-        toLabel: isWard ? "$name's guardians" : name,
+        toLabel: isWard ? l10n.inbox_sGuardians(name) : name,
         aboutWardName: isWard ? name : null,
-        note: isWard ? "$name is a ward: this goes to their guardians." : null,
+        note: isWard ? l10n.inbox_isAWardThisGoes(name) : null,
       );
 
   /// Me (or a ward of mine) → the group's admins.
@@ -61,10 +62,10 @@ class MessageTarget {
       MessageTarget._(
         kind: 'admins',
         groupId: groupId,
-        toLabel: '$groupName admins',
+        toLabel: l10n.inbox_admins(groupName),
         aboutWardId: aboutWardId,
         aboutWardName: aboutWardName,
-        note: 'Every admin of the group sees this and can answer.',
+        note: l10n.inbox_everyAdminOfTheGroup,
       );
 
   /// Me (or a ward of mine) → a coach of our team.
@@ -190,7 +191,7 @@ class _GroupPickerSheet extends ConsumerWidget {
                       style: TextStyle(color: p.muted)),
                   TextButton(
                     onPressed: () => ref.invalidate(myGroupsProvider),
-                    child: const Text('Retry'),
+                    child: Text(context.l10n.inbox_retry),
                   ),
                 ]),
               )
@@ -201,8 +202,7 @@ class _GroupPickerSheet extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Text(
-              "You're not in any groups yet. Messages are with a group's "
-              'admins and coaches.',
+              context.l10n.inbox_youreNotInAnyGroups2,
               textAlign: TextAlign.center,
               style: TextStyle(color: p.muted, fontSize: 13)),
         ),
@@ -217,7 +217,7 @@ class _GroupPickerSheet extends ConsumerWidget {
             leading: Crest(logoUrl: g.logoUrl, label: g.name, size: 40),
             title: Text(g.name, maxLines: 1, overflow: TextOverflow.ellipsis),
             subtitle: g.role == 'admin'
-                ? Text('Admin', style: TextStyle(color: p.muted, fontSize: 12))
+                ? Text(context.l10n.inbox_admin, style: TextStyle(color: p.muted, fontSize: 12))
                 : null,
             trailing: Icon(Icons.chevron_right_rounded, color: p.muted),
             onTap: () => Navigator.of(context).pop(g.id),
@@ -226,12 +226,12 @@ class _GroupPickerSheet extends ConsumerWidget {
       );
     }
     return Column(children: [
-      const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: SpSheetHeader(
           icon: Icons.chat_bubble_outline_rounded,
-          title: 'New message',
-          subtitle: 'Which group is it about?',
+          title: context.l10n.inbox_newMessage,
+          subtitle: context.l10n.inbox_whichGroupIsItAbout,
         ),
       ),
       Expanded(child: body),
@@ -294,7 +294,7 @@ class _StartOptionsSheet extends ConsumerWidget {
                   TextButton(
                     onPressed: () =>
                         ref.invalidate(messageStartOptionsProvider(groupId)),
-                    child: const Text('Retry'),
+                    child: Text(context.l10n.inbox_retry),
                   ),
                 ])
               : const CircularProgressIndicator(),
@@ -357,7 +357,7 @@ class _StartOptionsSheet extends ConsumerWidget {
       children: [
         SpSheetHeader(
           icon: Icons.chat_bubble_outline_rounded,
-          title: 'Message',
+          title: context.l10n.inbox_message,
           subtitle: o.group.name,
         ),
         if (blocked != null) ...[
@@ -367,10 +367,8 @@ class _StartOptionsSheet extends ConsumerWidget {
           GlassCard(
             child: Text(
               teamId != null
-                  ? "This team has no coach you can message yet."
-                  : "There's no one you can message in this group yet. "
-                      "Messages are always with the group's admins or your "
-                      'coaches.',
+                  ? context.l10n.inbox_thisTeamHasNoCoach
+                  : context.l10n.inbox_theresNoOneYouCan,
               style: TextStyle(color: p.muted, fontSize: 13, height: 1.4),
             ),
           ),
@@ -379,8 +377,8 @@ class _StartOptionsSheet extends ConsumerWidget {
             for (final c in admins)
               option(
                 icon: Icons.admin_panel_settings_outlined,
-                title: 'Contact the admins',
-                subtitle: 'Every admin of ${o.group.name} can answer',
+                title: context.l10n.inbox_contactTheAdmins2,
+                subtitle: context.l10n.inbox_everyAdminOfCanAnswer(o.group.name),
                 about: c.isMe ? null : c.name,
                 onTap: () => pop(MessageTarget.admins(
                   groupId: groupId,
@@ -394,10 +392,10 @@ class _StartOptionsSheet extends ConsumerWidget {
                 icon: Icons.sports_rounded,
                 leading: WardAvatar(
                     name: e.coach.name, url: e.coach.avatarUrl, size: 40),
-                title: 'Message ${e.coach.name}',
+                title: context.l10n.inbox_message3(e.coach.name),
                 subtitle: e.coach.teams.isEmpty
-                    ? 'Coach'
-                    : 'Coach · ${e.coach.teams.join(', ')}',
+                    ? context.l10n.inbox_coach
+                    : context.l10n.inbox_coach4(e.coach.teams.join(', ')),
                 about: e.forWho.isMe ? null : e.forWho.name,
                 onTap: () => pop(MessageTarget.coach(
                   groupId: groupId,
@@ -414,10 +412,10 @@ class _StartOptionsSheet extends ConsumerWidget {
           SpListCard(children: [
             option(
               icon: Icons.person_search_outlined,
-              title: 'Message a member',
+              title: context.l10n.inbox_messageAMember,
               subtitle: staff.isAdmin
-                  ? 'Anyone in the group — wards through their guardians'
-                  : 'Players on the teams you coach, or their guardians',
+                  ? context.l10n.inbox_anyoneInTheGroupWards
+                  : context.l10n.inbox_playersOnTheTeamsYou,
               onTap: () => pop(MessageTarget._pick(groupId)),
             ),
           ]),
@@ -428,8 +426,7 @@ class _StartOptionsSheet extends ConsumerWidget {
           const SizedBox(width: 6),
           Expanded(
             child: Text(
-                "Visible to ${o.group.name}'s admins. Messages are for "
-                'club information — members never message each other.',
+                context.l10n.inbox_visibleToSAdminsMessages(o.group.name),
                 style: TextStyle(color: p.muted, fontSize: 12, height: 1.4)),
           ),
         ]),
@@ -496,12 +493,12 @@ class _ReachablePickerSheetState extends ConsumerState<_ReachablePickerSheet> {
     final p = context.palette;
     final results = _results;
     return Column(children: [
-      const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: SpSheetHeader(
           icon: Icons.person_search_outlined,
-          title: 'Message a member',
-          subtitle: "Wards' messages go to their guardians.",
+          title: context.l10n.inbox_messageAMember,
+          subtitle: context.l10n.inbox_wardsMessagesGoToTheir,
         ),
       ),
       Padding(
@@ -510,9 +507,9 @@ class _ReachablePickerSheetState extends ConsumerState<_ReachablePickerSheet> {
           controller: _search,
           onChanged: _onSearch,
           textInputAction: TextInputAction.search,
-          decoration: const InputDecoration(
-            hintText: 'Search by name',
-            prefixIcon: Icon(Icons.search_rounded),
+          decoration: InputDecoration(
+            hintText: context.l10n.inbox_searchByName,
+            prefixIcon: const Icon(Icons.search_rounded),
           ),
         ),
       ),
@@ -530,7 +527,7 @@ class _ReachablePickerSheetState extends ConsumerState<_ReachablePickerSheet> {
               )
             : results.isEmpty
                 ? Center(
-                    child: Text('Nobody matches.',
+                    child: Text(context.l10n.inbox_nobodyMatches,
                         style: TextStyle(color: p.muted)))
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
@@ -551,7 +548,7 @@ class _ReachablePickerSheetState extends ConsumerState<_ReachablePickerSheet> {
                           ],
                         ]),
                         subtitle: u.isWard
-                            ? Text('Goes to their guardians',
+                            ? Text(context.l10n.inbox_goesToTheirGuardians,
                                 style:
                                     TextStyle(color: p.wardInk, fontSize: 11.5))
                             : null,
@@ -663,8 +660,8 @@ class _FirstMessageSheetState extends ConsumerState<_FirstMessageSheet> {
       children: [
         SpSheetHeader(
           icon: Icons.edit_outlined,
-          title: 'New message',
-          subtitle: 'To ${t.toLabel}',
+          title: context.l10n.inbox_newMessage,
+          subtitle: context.l10n.inbox_to4(t.toLabel),
         ),
         if (t.aboutWardName != null || t.note != null) ...[
           Wrap(
@@ -687,7 +684,7 @@ class _FirstMessageSheetState extends ConsumerState<_FirstMessageSheet> {
           textCapitalization: TextCapitalization.sentences,
           keyboardType: TextInputType.multiline,
           onChanged: (_) => setState(() {}),
-          decoration: const InputDecoration(hintText: 'Write your message'),
+          decoration: InputDecoration(hintText: context.l10n.inbox_writeYourMessage2),
         ),
         if (_images.isNotEmpty) ...[
           const SizedBox(height: 6),
@@ -709,7 +706,7 @@ class _FirstMessageSheetState extends ConsumerState<_FirstMessageSheet> {
           const SizedBox(width: 10),
           Expanded(
             child: SpButton(
-              label: _sending ? 'Sending…' : 'Send',
+              label: _sending ? context.l10n.inbox_sending : context.l10n.inbox_send,
               icon: Icons.send_rounded,
               tone: SpButtonTone.brand,
               expand: true,
@@ -718,7 +715,7 @@ class _FirstMessageSheetState extends ConsumerState<_FirstMessageSheet> {
           ),
         ]),
         const SizedBox(height: 10),
-        Text("Visible to the group's admins.",
+        Text(context.l10n.inbox_visibleToTheGroupsAdmins,
             textAlign: TextAlign.center,
             style: TextStyle(color: p.muted, fontSize: 11.5)),
       ],

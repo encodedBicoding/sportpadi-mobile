@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/shell/home_shell.dart';
 import 'package:sportpadi_mobile/data/groups/group_models.dart';
@@ -12,6 +13,7 @@ import 'package:sportpadi_mobile/data/events/events_repository.dart'
 import 'package:sportpadi_mobile/data/profile/profile_models.dart';
 import 'package:sportpadi_mobile/features/profile/social_links.dart';
 import 'package:sportpadi_mobile/features/players/scout_header.dart';
+import 'package:sportpadi_mobile/features/sports/sport_record_card.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/features/groups/my_groups_menu.dart';
@@ -116,13 +118,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           if (profile == null) {
             return RefreshIndicator(
               onRefresh: _refresh,
-              child: const PullableState(child: Text('No profile found.')),
+              child: PullableState(child: Text(context.l10n.profile_noProfileFound)),
             );
           }
           final userId = profile.userId;
           final stats = userId == null
               ? null
               : ref.watch(playerStatsProvider(userId)).valueOrNull;
+          final categories = listOf(stats?['categories']);
           final tournaments = listOf(stats?['tournaments']);
           // Your top honours and latest matches — the same read a scout gets
           // (docs/design/scouting-profile.md); progress lives under the menu.
@@ -143,7 +146,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 slivers: [
               SliverList(
                   delegate: SliverChildListDelegate([
-                _Hero(profile: profile, onMenu: () => openMenu(profile)),
+                _Hero(
+                  profile: profile,
+                  onMenu: () => openMenu(profile),
+                  categories: categories,
+                  ratings: listOf(honours?['ratingsByCategory']),
+                  ratingsLoaded: stats != null && honours != null,
+                ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                   child: Column(
@@ -168,6 +177,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         loading: honours == null,
                         playerId: userId ?? '',
                       ),
+                      // Records — one card per sport, as on the public
+                      // profile; each opens your own record for that sport.
+                      PlayerRecordsSection(
+                        userId: userId ?? '',
+                        categories: categories,
+                        loaded: stats != null,
+                        mine: true,
+                        trailing: TextButton(
+                          onPressed: () => context.push('/profile/records'),
+                          child: Text(context.l10n.profile_allRecords),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       // Owner-console ad spot after the first few cards
                       // (anchor "profile.mid"); nothing unless set.
                       const AdAnchor(
@@ -209,13 +231,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     TournamentList(
                       rows: tournaments,
                       playerId: userId,
-                      title: 'My tournaments',
+                      title: context.l10n.profile_myTournaments,
                     )
                   else
-                    const _EmptyNote(
+                    _EmptyNote(
                       icon: Icons.image_outlined,
-                      title: 'Highlights are coming',
-                      text: 'Your best moments — photos and clips from your games — will live here. Coming soon.',
+                      title: context.l10n.profile_highlightsAreComing,
+                      text: context.l10n.profile_yourBestMomentsPhotosAnd,
                     ),
                 ])),
               ),
@@ -233,9 +255,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 // ---------------------------------------------------------------------------
 
 class _Hero extends ConsumerStatefulWidget {
-  const _Hero({required this.profile, required this.onMenu});
+  const _Hero({
+    required this.profile,
+    required this.onMenu,
+    required this.categories,
+    required this.ratings,
+    required this.ratingsLoaded,
+  });
   final Profile profile;
   final VoidCallback onMenu;
+
+  /// Header tiles: your average rating in each sport, each opening its record.
+  final List<dynamic> categories;
+  final List<dynamic> ratings;
+  final bool ratingsLoaded;
 
   @override
   ConsumerState<_Hero> createState() => _HeroState();
@@ -313,15 +346,15 @@ class _HeroState extends ConsumerState<_Hero> {
                 children: [
                   SpRoundButton(
                     icon: Icons.qr_code_2_rounded,
-                    tooltip: 'My QR code',
+                    tooltip: context.l10n.profile_myQrCode,
                     onTap: () => context.push('/my-qr'),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Padding(
-                      padding: EdgeInsets.only(top: 11),
-                      child: Text('Profile',
+                      padding: const EdgeInsets.only(top: 11),
+                      child: Text(context.l10n.profile_profile,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16,
                               fontWeight: FontWeight.w800)),
@@ -329,7 +362,7 @@ class _HeroState extends ConsumerState<_Hero> {
                   ),
                   SpRoundButton(
                     icon: Icons.more_horiz_rounded,
-                    tooltip: 'Menu',
+                    tooltip: context.l10n.profile_menu,
                     onTap: widget.onMenu,
                   ),
                 ],
@@ -368,9 +401,9 @@ class _HeroState extends ConsumerState<_Hero> {
                   await Clipboard.setData(
                       ClipboardData(text: profile.username));
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content: Text(
-                            'Username copied — share it so friends can buy tickets for you.')));
+                            l10n.profile_usernameCopiedShareItSo)));
                   }
                 },
                 child: Padding(
@@ -401,27 +434,22 @@ class _HeroState extends ConsumerState<_Hero> {
               ),
             ],
             SocialLinksRow(SocialLink.listFrom(profile.links)),
+            // Same identity block as the public profile: followers · following.
+            if (userId != null) FollowCounts(userId: userId),
             const SizedBox(height: 16),
-            Row(children: [
-              Expanded(
-                child: SpButton(
-                  label: 'Edit profile',
-                  icon: Icons.edit_outlined,
-                  expand: true,
-                  onTap: _editProfile,
-                ),
-              ),
-              if (userId != null) ...[
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _SoftPill(
-                    icon: Icons.visibility_outlined,
-                    label: 'Public view',
-                    onTap: () => context.push('/players/$userId'),
-                  ),
-                ),
-              ],
-            ]),
+            SportRatingTiles(
+              categories: widget.categories,
+              ratings: widget.ratings,
+              hrefFor: (categoryId) => '/profile/records/$categoryId',
+              loaded: widget.ratingsLoaded,
+            ),
+            const SizedBox(height: 16),
+            SpButton(
+              label: context.l10n.profile_editProfile,
+              icon: Icons.edit_outlined,
+              expand: true,
+              onTap: _editProfile,
+            ),
           ]),
         ),
       ),
@@ -535,45 +563,6 @@ class _ProfileCover extends CustomPainter {
 }
 
 /// Quiet secondary pill (surface2) — the partner of the ink [SpButton].
-class _SoftPill extends StatelessWidget {
-  const _SoftPill(
-      {required this.icon, required this.label, required this.onTap});
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    return Material(
-      color: p.surface2,
-      shape: const StadiumBorder(),
-      child: InkWell(
-        customBorder: const StadiumBorder(),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 17, color: p.ink),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: p.ink,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700)),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// Sheet handle.
 class _Grabber extends StatelessWidget {
@@ -633,6 +622,7 @@ class _ProfileMenuSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = context.l10n;
     Widget quick(String value, IconData icon, String label) => Expanded(
           child: Material(
             color: p.surface,
@@ -732,75 +722,70 @@ class _ProfileMenuSheet extends StatelessWidget {
                 ),
                 SpRoundButton(
                   icon: Icons.close_rounded,
-                  tooltip: 'Close',
+                  tooltip: l.nav_close,
                   onTap: () => Navigator.of(context).pop(),
                 ),
               ]),
               const SizedBox(height: 18),
               Row(children: [
-                quick('tab:0', Icons.space_dashboard_outlined, 'Dashboard'),
+                quick('tab:0', Icons.space_dashboard_outlined, l.menu_dashboard),
                 const SizedBox(width: 8),
-                quick('tab:1', Icons.explore_outlined, 'Discover'),
+                quick('tab:1', Icons.explore_outlined, l.menu_discover),
                 const SizedBox(width: 8),
                 quick('tab:${HomeTab.tournaments}',
-                    Icons.emoji_events_outlined, 'Tournaments'),
+                    Icons.emoji_events_outlined, l.nav_tournaments),
               ]),
               const SizedBox(height: 18),
-              const Padding(
-                padding: EdgeInsets.only(left: 4, bottom: 8),
-                child: Eyebrow('Check-in & payments'),
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 8),
+                child: Eyebrow(l.menu_checkInPayments),
               ),
               SpListCard(children: [
-                row('/scan', Icons.qr_code_scanner_rounded, 'Scan to check in',
-                    'Check in at an event', p.accentTint, p.greenText),
-                row('/my-qr', Icons.qr_code_2_rounded, 'My QR code',
-                    'Show it at the gate', p.surface2, p.ink),
-                row('/tickets', Icons.confirmation_num_outlined, 'My purchases',
-                    'Tickets and passes you bought', p.orangeTint, p.orangeInk),
+                row('/scan', Icons.qr_code_scanner_rounded, l.menu_scanToCheckIn,
+                    l.menu_scanToCheckInSub, p.accentTint, p.greenText),
+                row('/my-qr', Icons.qr_code_2_rounded, l.menu_myQrCode,
+                    l.menu_myQrCodeSub, p.surface2, p.ink),
+                row('/tickets', Icons.confirmation_num_outlined, l.menu_myPurchases,
+                    l.menu_myPurchasesSub, p.orangeTint, p.orangeInk),
                 row('/leagues/mine', Icons.format_list_numbered_rounded,
-                    'My leagues', 'League rosters and your league pass',
+                    l.menu_myLeagues, l.menu_myLeaguesSub,
                     p.accentTint, p.greenText),
-                row('/fines', Icons.receipt_long_outlined, 'My fines',
-                    'Fines from your groups', p.liveTint, p.danger),
+                row('/fines', Icons.receipt_long_outlined, l.menu_myFines,
+                    l.menu_myFinesSub, p.liveTint, p.danger),
               ]),
               const SizedBox(height: 16),
-              const Padding(
-                padding: EdgeInsets.only(left: 4, bottom: 8),
-                child: Eyebrow('My groups'),
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 8),
+                child: Eyebrow(l.menu_myGroups),
               ),
               MyGroupsMenu(onGo: onPick),
               const SizedBox(height: 16),
-              const Padding(
-                padding: EdgeInsets.only(left: 4, bottom: 8),
-                child: Eyebrow('Activity & stats'),
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 8),
+                child: Eyebrow(l.menu_activityStats),
               ),
               SpListCard(children: [
-                row(
-                    '/profile/sports',
-                    Icons.sports_soccer_outlined,
-                    'My sports',
-                    'The sports you play and how',
-                    p.accentTint,
-                    p.greenText),
-                row('/profile/records', Icons.insights_rounded, 'My records',
-                    'Your numbers, sport by sport', p.orangeTint, p.orangeInk),
+                row('/profile/sports', Icons.sports_soccer_outlined,
+                    l.menu_mySports, l.menu_mySportsSub, p.accentTint, p.greenText),
+                row('/profile/records', Icons.insights_rounded, l.menu_myRecords,
+                    l.menu_myRecordsSub, p.orangeTint, p.orangeInk),
                 row('/profile/progress', Icons.trending_up_rounded,
-                    'Progress & achievements', 'Level, XP, streak and badges',
+                    l.menu_progress, l.menu_progressSub,
                     p.accentTint, p.greenText),
               ]),
               const SizedBox(height: 16),
-              const Padding(
-                padding: EdgeInsets.only(left: 4, bottom: 8),
-                child: Eyebrow('You'),
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 8),
+                child: Eyebrow(l.menu_you),
               ),
               SpListCard(children: [
-                row('/profile/links', Icons.link_rounded, 'Social links',
-                    'Instagram, TikTok, X and more on your profile', p.surface2, p.ink),
+                row('/profile/links', Icons.link_rounded, l.menu_socialLinks,
+                    l.menu_socialLinksSub, p.surface2, p.ink),
                 WardsMenuRow(onTap: () => onPick('/profile/wards')),
                 row('/notifications', Icons.notifications_outlined,
-                    'Notifications', "What's new for you", p.surface2, p.ink),
-                row('/settings', Icons.settings_outlined, 'Settings',
-                    'Appearance, account and more', p.surface2, p.ink),
+                    l.menu_notifications, l.menu_notificationsSub, p.surface2, p.ink),
+                row('/settings', Icons.settings_outlined, l.menu_settings,
+                    l.menu_settingsSub, p.surface2, p.ink),
               ]),
             ],
           ),
@@ -837,7 +822,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
     final name = _name.text.trim();
     final username = _username.text.trim().toLowerCase();
     if (name.isEmpty) {
-      setState(() => _error = 'Display name is required.');
+      setState(() => _error = l10n.profile_displayNameIsRequired);
       return;
     }
     setState(() {
@@ -879,22 +864,22 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
           children: [
             const _Grabber(),
             const SizedBox(height: 16),
-            Text('Edit profile',
+            Text(context.l10n.profile_editProfile,
                 style: TextStyle(
                     color: p.ink, fontSize: 20, fontWeight: FontWeight.w800)),
             const SizedBox(height: 16),
             TextField(
               controller: _name,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Display name'),
+              decoration: InputDecoration(labelText: context.l10n.profile_displayName),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _username,
-              decoration: const InputDecoration(
-                labelText: 'Username',
+              decoration: InputDecoration(
+                labelText: context.l10n.profile_username,
                 prefixText: '@',
-                helperText: 'Letters, numbers, underscores',
+                helperText: context.l10n.profile_lettersNumbersUnderscores,
               ),
             ),
             if (_error != null) ...[
@@ -903,7 +888,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
             ],
             const SizedBox(height: 16),
             SpButton(
-              label: _busy ? 'Saving…' : 'Save',
+              label: _busy ? context.l10n.profile_saving : context.l10n.profile_save,
               expand: true,
               onTap: _busy ? null : _save,
             ),
@@ -929,15 +914,15 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Social links',
+                          Text(context.l10n.profile_socialLinks,
                               style: TextStyle(
                                   color: p.ink,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700)),
                           Text(
                               widget.profile.links.isEmpty
-                                  ? 'Instagram, TikTok, X, Facebook, Threads — any platform'
-                                  : '${widget.profile.links.length} on your profile',
+                                  ? context.l10n.profile_instagramTikTokXFacebookThreads
+                                  : context.l10n.profile_onYourProfile(widget.profile.links.length),
                               style:
                                   TextStyle(color: p.muted, fontSize: 12)),
                         ],
@@ -1022,9 +1007,9 @@ class _ProfileTabs extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(children: [
-        pill(0, Icons.groups_outlined, 'Groups'),
-        pill(1, Icons.emoji_events_outlined, 'Tournaments'),
-        pill(2, Icons.image_outlined, 'Highlights'),
+        pill(0, Icons.groups_outlined, context.l10n.profile_groups),
+        pill(1, Icons.emoji_events_outlined, context.l10n.profile_tournaments),
+        pill(2, Icons.image_outlined, context.l10n.profile_highlights),
       ]),
     );
   }
@@ -1052,9 +1037,9 @@ class _MyGroupsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     if (groups.isEmpty) {
-      return const _EmptyNote(
+      return _EmptyNote(
         icon: Icons.groups_outlined,
-        text: "You're not in any groups yet.",
+        text: context.l10n.profile_youreNotInAnyGroups,
       );
     }
     return SpListCard(children: [
@@ -1095,7 +1080,7 @@ class _MyGroupsList extends StatelessWidget {
                             color: p.accentTint,
                             borderRadius: BorderRadius.circular(999),
                           ),
-                          child: Text('Admin',
+                          child: Text(context.l10n.profile_admin,
                               style: TextStyle(
                                   color: p.greenText,
                                   fontSize: 10.5,
@@ -1106,8 +1091,8 @@ class _MyGroupsList extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                         akas[g.id] != null
-                            ? 'Known here as ${akas[g.id]}'
-                            : 'See your record here',
+                            ? context.l10n.profile_knownHereAs(akas[g.id] ?? '')
+                            : context.l10n.profile_seeYourRecordHere,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: p.muted, fontSize: 12)),
@@ -1126,7 +1111,7 @@ class _MyGroupsList extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Text('Group',
+                      Text(context.l10n.profile_group,
                           style: TextStyle(
                               color: p.ink,
                               fontSize: 11.5,

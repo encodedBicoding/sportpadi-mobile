@@ -29,14 +29,15 @@ import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
-const _recurrenceLabel = {
-  'one_time': 'One-time',
-  'weekly': 'Weekly',
-  'monthly': 'Monthly',
-  'quarterly': 'Quarterly',
-  'yearly': 'Yearly',
-};
+Map<String, String> get _recurrenceLabel => {
+      'one_time': l10n.manage_oneTime,
+      'weekly': l10n.manage_weekly,
+      'monthly': l10n.manage_monthly,
+      'quarterly': l10n.manage_quarterly,
+      'yearly': l10n.manage_yearly,
+    };
 
 /// Ticket setup for group admins — the web page (`/groups/:id/tickets`),
 /// screen for screen.
@@ -143,19 +144,18 @@ class _GroupTicketsScreenState extends ConsumerState<GroupTicketsScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (d) => AlertDialog(
-        title: const Text('Delete this ticket?'),
-        content: const Text(
-            'This can\'t be undone. Tickets that already have purchases can\'t be '
-            'deleted — deactivate them instead.'),
+        title: Text(l10n.manage_deleteThisTicket),
+        content: Text(
+            l10n.manage_thisCantBeUndoneTickets),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(d, false),
-              child: const Text('Cancel')),
+              child: Text(l10n.manage_cancel)),
           FilledButton(
             style:
                 FilledButton.styleFrom(backgroundColor: context.palette.danger),
             onPressed: () => Navigator.pop(d, true),
-            child: const Text('Delete'),
+            child: Text(l10n.manage_delete),
           ),
         ],
       ),
@@ -164,7 +164,7 @@ class _GroupTicketsScreenState extends ConsumerState<GroupTicketsScreen> {
       await _run(() async {
         await ref.read(ticketsRepositoryProvider).remove(widget.groupId, t.id);
         _refetch();
-        _snack('Ticket deleted');
+        _snack(l10n.manage_ticketDeleted);
       });
     }
   }
@@ -194,13 +194,13 @@ class _GroupTicketsScreenState extends ConsumerState<GroupTicketsScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
             child: SpHeader(
-              title: 'Tickets',
+              title: context.l10n.manage_tickets,
               subtitle: groupName,
               actions: [
                 // Gate validation: scan holders' ticket QRs.
                 SpRoundButton(
                   icon: Icons.qr_code_scanner_rounded,
-                  tooltip: 'Scan tickets',
+                  tooltip: context.l10n.manage_scanTickets,
                   onTap: () => context.push('/scan'),
                 ),
               ],
@@ -233,14 +233,14 @@ class _GroupTicketsScreenState extends ConsumerState<GroupTicketsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(children: [
-                              _heroStat(p, '${activeCount ?? 0}', 'Active'),
+                              _heroStat(p, '${activeCount ?? 0}', context.l10n.manage_active),
                               const SizedBox(width: 8),
                               _heroStat(
                                   p,
                                   '${current.length - (activeCount ?? 0)}',
-                                  'Hidden'),
+                                  context.l10n.manage_hidden),
                               const SizedBox(width: 8),
-                              _heroStat(p, '$soldTotal', 'Sold', mint: true),
+                              _heroStat(p, '$soldTotal', context.l10n.manage_sold, mint: true),
                             ]),
                             const SizedBox(height: 14),
                             Material(
@@ -265,7 +265,7 @@ class _GroupTicketsScreenState extends ConsumerState<GroupTicketsScreen> {
                                                 ? const Color(0xFF0E1411)
                                                 : p.heroMuted),
                                         const SizedBox(width: 6),
-                                        Text('New ticket',
+                                        Text(context.l10n.manage_newTicket,
                                             style: TextStyle(
                                                 color: walletOk
                                                     ? const Color(0xFF0E1411)
@@ -300,22 +300,21 @@ class _GroupTicketsScreenState extends ConsumerState<GroupTicketsScreen> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                            'Activate your wallet to sell tickets',
+                                            context.l10n.manage_activateYourWalletToSell,
                                             style: TextStyle(
                                                 color: p.ink,
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w700)),
                                         const SizedBox(height: 2),
                                         Text(
-                                            'Ticket prices use your wallet\'s settlement currency, so you '
-                                            'need a wallet before creating tickets.',
+                                            context.l10n.manage_ticketPricesUseYourWallets,
                                             style: TextStyle(
                                                 color: p.orangeInk,
                                                 fontSize: 12,
                                                 height: 1.4)),
                                         const SizedBox(height: 10),
                                         SpButton(
-                                          label: 'Go to wallet',
+                                          label: context.l10n.manage_goToWallet,
                                           icon: Icons
                                               .account_balance_wallet_outlined,
                                           onTap: () => context.push(
@@ -336,21 +335,21 @@ class _GroupTicketsScreenState extends ConsumerState<GroupTicketsScreen> {
                               size: 56,
                               iconSize: 26),
                           const SizedBox(height: 12),
-                          Text('No tickets yet',
+                          Text(context.l10n.manage_noTicketsYet,
                               style: TextStyle(
                                   color: p.ink,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700)),
                           const SizedBox(height: 4),
                           Text(
-                              'Create a paid ticket for an event, dues, or a one-off like a BBQ.',
+                              context.l10n.manage_createAPaidTicketFor,
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   color: p.muted, fontSize: 13, height: 1.4)),
                         ]),
                       )
                     else ...[
-                      SpSectionTitle('Your tickets', count: current.length),
+                      SpSectionTitle(context.l10n.manage_yourTickets, count: current.length),
                       if (current.isNotEmpty) ...[
                         const SizedBox(height: 10),
                         SpListCard(children: [
@@ -360,7 +359,7 @@ class _GroupTicketsScreenState extends ConsumerState<GroupTicketsScreen> {
                       ],
                       if (ended.isNotEmpty) ...[
                         const SizedBox(height: 18),
-                        SpSectionTitle('Ended cycles', count: ended.length),
+                        SpSectionTitle(context.l10n.manage_endedCycles, count: ended.length),
                         const SizedBox(height: 10),
                         SpListCard(children: [
                           for (final t in ended)
@@ -416,7 +415,7 @@ class _TicketRow extends StatelessWidget {
       t.soldLabel,
       if (t.recurrence != 'one_time')
         _recurrenceLabel[t.recurrence] ?? t.recurrence,
-      if (valid != null) 'Valid $valid',
+      if (valid != null) context.l10n.manage_validRange(valid),
     ].join(' · ');
 
     Widget kindPill(IconData icon, String label, Color bg, Color fg) =>
@@ -466,19 +465,19 @@ class _TicketRow extends StatelessWidget {
                       const SizedBox(height: 5),
                       Wrap(spacing: 5, runSpacing: 4, children: [
                         if (t.kind == 'event')
-                          kindPill(Icons.calendar_month_rounded, 'Event',
+                          kindPill(Icons.calendar_month_rounded, context.l10n.manage_event,
                               p.accentTint, p.greenText),
                         if (t.kind == 'tournament')
-                          kindPill(Icons.emoji_events_outlined, 'Tournament',
+                          kindPill(Icons.emoji_events_outlined, context.l10n.manage_tournament,
                               p.orangeTint, p.orangeInk),
                         if (t.isNextCycle)
-                          kindPill(Icons.repeat_rounded, 'Next cycle · on sale',
+                          kindPill(Icons.repeat_rounded, context.l10n.manage_nextCycleOnSale,
                               p.accentTint, p.greenText),
                         if (t.isEndedCycle)
-                          kindPill(Icons.repeat_rounded, 'Ended cycle',
+                          kindPill(Icons.repeat_rounded, context.l10n.manage_endedCycle,
                               p.surface2, p.muted)
                         else if (!t.isActive)
-                          kindPill(Icons.visibility_off_outlined, 'Hidden',
+                          kindPill(Icons.visibility_off_outlined, context.l10n.manage_hidden,
                               p.surface2, p.muted),
                       ]),
                     ],
@@ -652,12 +651,12 @@ class _TicketDetailSheet extends ConsumerWidget {
                     t.isActive
                         ? Icons.visibility_outlined
                         : Icons.visibility_off_outlined,
-                    t.isActive ? 'On sale' : 'Hidden',
+                    t.isActive ? context.l10n.manage_onSale : context.l10n.manage_hidden,
                     tone: t.isActive ? p.accent : null),
                 if (t.soldOut)
-                  badge(Icons.block_rounded, 'Sold out', tone: p.danger),
+                  badge(Icons.block_rounded, context.l10n.manage_soldOut, tone: p.danger),
                 if (t.capacity != null)
-                  badge(Icons.people_outline_rounded, 'Cap ${t.capacity}'),
+                  badge(Icons.people_outline_rounded, context.l10n.manage_cap(t.capacity ?? '')),
               ]),
             ]),
           ),
@@ -674,38 +673,38 @@ class _TicketDetailSheet extends ConsumerWidget {
           padding: const EdgeInsets.all(14),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text('Setup',
+            Text(context.l10n.manage_setup,
                 style: TextStyle(
                     color: p.ink, fontSize: 15, fontWeight: FontWeight.w700)),
             const SizedBox(height: 10),
             Wrap(spacing: 6, runSpacing: 6, children: [
               if (t.kind == 'event')
-                badge(Icons.calendar_month_rounded, t.eventTitle ?? 'Event',
+                badge(Icons.calendar_month_rounded, t.eventTitle ?? context.l10n.manage_event,
                     tone: p.accent),
               if (t.kind == 'tournament')
-                badge(Icons.emoji_events_outlined, t.eventTitle ?? 'Tournament',
+                badge(Icons.emoji_events_outlined, t.eventTitle ?? context.l10n.manage_tournament,
                     tone: p.orange),
               if (t.kind != 'event' && t.kind != 'tournament')
-                badge(Icons.groups_outlined, 'Any group activity'),
+                badge(Icons.groups_outlined, context.l10n.manage_anyGroupActivity),
               if (t.blocksCheckin)
-                badge(Icons.shield_outlined, 'Required for check-in'),
+                badge(Icons.shield_outlined, context.l10n.manage_requiredForCheckIn),
               if (t.requiresValidation)
-                badge(Icons.qr_code_2_rounded, 'Scanned at the gate'),
+                badge(Icons.qr_code_2_rounded, context.l10n.manage_scannedAtTheGate),
               badge(Icons.repeat_rounded,
                   _recurrenceLabel[t.recurrence] ?? t.recurrence),
               if (validity != null)
                 badge(Icons.event_available_outlined,
-                    'Valid $validity · cycle ${t.cycleNo}'),
+                    context.l10n.manage_validCycle(validity, t.cycleNo)),
               if (t.isNextCycle)
-                badge(Icons.repeat_rounded, 'Next cycle · on sale',
+                badge(Icons.repeat_rounded, context.l10n.manage_nextCycleOnSale,
                     tone: p.accent),
               if (t.salesStartAt != null)
                 badge(Icons.play_arrow_rounded,
-                    'Sales open ${fmtDay.format(t.salesStartAt!.toLocal())}'),
+                    context.l10n.manage_salesOpen(fmtDay.format(t.salesStartAt!.toLocal()))),
               if (t.salesEndAt != null)
                 badge(Icons.stop_rounded,
-                    'Sales close ${fmtDay.format(t.salesEndAt!.toLocal())}'),
-              if (t.isEndedCycle) badge(Icons.repeat_rounded, 'Ended cycle'),
+                    context.l10n.manage_salesClose(fmtDay.format(t.salesEndAt!.toLocal()))),
+              if (t.isEndedCycle) badge(Icons.repeat_rounded, context.l10n.manage_endedCycle),
             ]),
             Divider(height: 24, color: p.surface2),
             Row(children: [
@@ -722,15 +721,15 @@ class _TicketDetailSheet extends ConsumerWidget {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(t.isActive ? 'On sale' : 'Hidden from buyers',
+                      Text(t.isActive ? context.l10n.manage_onSale : context.l10n.manage_hiddenFromBuyers,
                           style: TextStyle(
                               color: p.ink,
                               fontSize: 14,
                               fontWeight: FontWeight.w700)),
                       Text(
                           t.isActive
-                              ? 'Members can buy it now.'
-                              : 'Switch on to start selling.',
+                              ? context.l10n.manage_membersCanBuyItNow
+                              : context.l10n.manage_switchOnToStartSelling,
                           style: TextStyle(color: p.muted, fontSize: 12)),
                     ]),
               ),
@@ -745,15 +744,15 @@ class _TicketDetailSheet extends ConsumerWidget {
         // View / Edit / Delete — the web's action row.
         const SizedBox(height: 14),
         Row(children: [
-          action(Icons.open_in_new_rounded, 'View', () {
+          action(Icons.open_in_new_rounded, context.l10n.manage_view, () {
             launchUrl(Uri.parse('$base/t/${t.id}'),
                 mode: LaunchMode.inAppBrowserView);
           }),
           const SizedBox(width: 8),
-          action(Icons.edit_outlined, 'Edit', () => onEdit(t), primary: true),
+          action(Icons.edit_outlined, context.l10n.manage_edit, () => onEdit(t), primary: true),
           if (canDelete) ...[
             const SizedBox(width: 8),
-            action(Icons.delete_outline_rounded, 'Delete', () => onDelete(t),
+            action(Icons.delete_outline_rounded, context.l10n.manage_delete, () => onDelete(t),
                 danger: true),
           ],
         ]),
@@ -761,7 +760,7 @@ class _TicketDetailSheet extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-                'It has sales, so it can\'t be deleted — switch it off to hide it.',
+                context.l10n.manage_itHasSalesSoIt,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 12)),
           ),
@@ -800,16 +799,16 @@ class _TicketDetailSheet extends ConsumerWidget {
             return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SpSectionTitle('Payments', count: rows.length),
+                  SpSectionTitle(context.l10n.manage_payments, count: rows.length),
                   const SizedBox(height: 10),
                   Row(children: [
-                    tile('${paid.length}', 'Paid'),
+                    tile('${paid.length}', context.l10n.manage_paid),
                     const SizedBox(width: 8),
                     tile(formatMoney(total, t.currency, s.currencyExponent),
-                        'Collected',
+                        context.l10n.manage_collected,
                         green: true),
                     const SizedBox(width: 8),
-                    tile('$used', 'Used'),
+                    tile('$used', context.l10n.manage_used),
                   ]),
                   const SizedBox(height: 12),
                   if (rows.isEmpty)
@@ -819,7 +818,7 @@ class _TicketDetailSheet extends ConsumerWidget {
                         const SpIconTile(Icons.receipt_long_outlined,
                             size: 48, iconSize: 22),
                         const SizedBox(height: 8),
-                        Text('No payments yet.',
+                        Text(context.l10n.manage_noPaymentsYet,
                             style: TextStyle(color: p.muted, fontSize: 13)),
                       ]),
                     )
@@ -947,7 +946,7 @@ class _TicketDetailSheet extends ConsumerWidget {
                     ]),
                   if (rows.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    Text('Tap a payment to check it with the payment provider.',
+                    Text(context.l10n.manage_tapAPaymentToCheck,
                         textAlign: TextAlign.center,
                         style: TextStyle(color: p.muted, fontSize: 12)),
                   ],
@@ -989,12 +988,12 @@ class _SaleRefundLine extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (partly) ...[
           Text(
-              '${money(r.refundedMinor)} of ${money(r.amount)} refunded so far · ticket still valid',
+              context.l10n.manage_ofRefundedSoFarTicket(money(r.refundedMinor), money(r.amount)),
               style: TextStyle(color: p.orangeInk, fontSize: 12, height: 1.35)),
           const SizedBox(height: 6),
         ],
         if (failed != null) ...[
-          Text('Last refund attempt failed: $failed',
+          Text(context.l10n.manage_lastRefundAttemptFailed(failed),
               style: TextStyle(color: p.danger, fontSize: 12, height: 1.35)),
           const SizedBox(height: 6),
         ],
@@ -1011,7 +1010,7 @@ class _SaleRefundLine extends StatelessWidget {
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.undo_rounded, size: 14, color: p.danger),
                   const SizedBox(width: 5),
-                  Text(partly ? 'Refund more' : 'Refund',
+                  Text(partly ? context.l10n.manage_refundMore : context.l10n.manage_refund,
                       style: TextStyle(
                           color: p.danger,
                           fontSize: 12.5,
@@ -1112,9 +1111,9 @@ class _RefundSheetState extends ConsumerState<_RefundSheet> {
 
   String? get _amountError {
     final m = _amountMinor;
-    if (m == null) return 'Enter an amount';
-    if (m <= 0) return 'Enter more than zero';
-    if (m > _refundable) return 'You can refund up to ${_money(_refundable)}';
+    if (m == null) return l10n.manage_enterAnAmount;
+    if (m <= 0) return l10n.manage_enterMoreThanZero;
+    if (m > _refundable) return l10n.manage_youCanRefundUpTo(_money(_refundable));
     return null;
   }
 
@@ -1154,7 +1153,7 @@ class _RefundSheetState extends ConsumerState<_RefundSheet> {
       nav.pop();
       messenger.showSnackBar(SnackBar(
           content:
-              Text('Refunded ${_money(refunded > 0 ? refunded : asked)}')));
+              Text(l10n.manage_refunded(_money(refunded > 0 ? refunded : asked)))));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
       if (mounted) setState(() => _busy = false);
@@ -1193,12 +1192,12 @@ class _RefundSheetState extends ConsumerState<_RefundSheet> {
           icon: Icons.undo_rounded,
           iconBg: p.liveTint,
           iconFg: p.danger,
-          title: "Refund ${sale.buyerName}'s ticket?",
+          title: context.l10n.manage_refundSTicket(sale.buyerName),
           subtitle: sale.refundedMinor > 0
-              ? '$price · ${sale.code} · ${_money(sale.refundedMinor)} already refunded'
+              ? context.l10n.manage_alreadyRefunded(price, sale.code, _money(sale.refundedMinor))
               : '$price · ${sale.code}',
         ),
-        Text('Amount to refund ($_currency)',
+        Text(context.l10n.manage_amountToRefund(_currency),
             style: TextStyle(
                 color: p.ink, fontSize: 13, fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
@@ -1212,7 +1211,7 @@ class _RefundSheetState extends ConsumerState<_RefundSheet> {
               decoration: InputDecoration(
                 errorText: error,
                 helperText: partial
-                    ? 'Partial refund — their ticket stays valid'
+                    ? context.l10n.manage_partialRefundTheirTicketStays
                     : null,
                 helperMaxLines: 2,
               ),
@@ -1225,7 +1224,7 @@ class _RefundSheetState extends ConsumerState<_RefundSheet> {
               onPressed: _busy || (!partial && error == null)
                   ? null
                   : () => _amount.text = _toMajor(_refundable),
-              child: Text('Full ${_money(_refundable)}'),
+              child: Text(context.l10n.manage_full(_money(_refundable))),
             ),
           ),
         ]),
@@ -1237,26 +1236,26 @@ class _RefundSheetState extends ConsumerState<_RefundSheet> {
             line(
                 Icons.credit_card_rounded,
                 via != null
-                    ? 'Refund ${error == null ? amountLabel : '—'} to their $via payment'
-                    : 'Refund ${error == null ? amountLabel : '—'} to their original payment'),
+                    ? context.l10n.manage_refundToTheirPayment((error == null ? amountLabel : '—'), via)
+                    : context.l10n.manage_refundToTheirOriginalPayment((error == null ? amountLabel : '—'))),
             line(
                 Icons.receipt_long_outlined,
                 fee != null && fee > 0
                     ? "SportPadi's processing fee (${_money(fee)}) isn't refunded"
                     : "SportPadi's processing fee isn't refunded"),
             line(Icons.layers_outlined,
-                'If they paid several tickets in one checkout, only this one is refunded'),
+                context.l10n.manage_ifTheyPaidSeveralTickets),
             if (!partial)
               line(Icons.info_outline_rounded,
-                  'A full refund cancels the ticket'),
+                  context.l10n.manage_aFullRefundCancelsThe),
             if (sale.redeemedAt != null)
               line(Icons.warning_amber_rounded,
-                  "They've already used this ticket at the gate",
+                  context.l10n.manage_theyveAlreadyUsedThisTicket,
                   tone: p.orangeInk),
           ]),
         ),
         const SizedBox(height: 14),
-        Text('Reason (optional)',
+        Text(context.l10n.manage_reasonOptional,
             style: TextStyle(
                 color: p.ink, fontSize: 13, fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
@@ -1267,9 +1266,9 @@ class _RefundSheetState extends ConsumerState<_RefundSheet> {
           maxLines: 2,
           minLines: 1,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            hintText: 'e.g. Event cancelled',
-            helperText: 'Shown to them',
+          decoration: InputDecoration(
+            hintText: context.l10n.manage_eGEventCancelled,
+            helperText: context.l10n.manage_shownToThem,
           ),
         ),
         const SizedBox(height: 12),
@@ -1277,7 +1276,7 @@ class _RefundSheetState extends ConsumerState<_RefundSheet> {
           Expanded(
             child: OutlinedButton(
               onPressed: _busy ? null : () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(context.l10n.manage_cancel),
             ),
           ),
           const SizedBox(width: 8),
@@ -1301,7 +1300,7 @@ class _RefundSheetState extends ConsumerState<_RefundSheet> {
                   : FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                          error == null ? 'Refund $amountLabel' : 'Refund',
+                          error == null ? context.l10n.manage_refund2(amountLabel) : context.l10n.manage_refund,
                           style: const TextStyle(fontWeight: FontWeight.w700)),
                     ),
             ),
@@ -1363,17 +1362,17 @@ class _PaymentCheckSheetState extends ConsumerState<_PaymentCheckSheet> {
       if (res.applied != null) {
         messenger.showSnackBar(SnackBar(
             content: Text(res.applied == 'mark_refunded'
-                ? 'Reconciled — marked refunded.'
+                ? l10n.manage_reconciledMarkedRefunded
                 : res.applied == 'mark_paid'
-                    ? 'Reconciled — marked paid.'
-                    : 'Reconciled — marked unpaid.')));
+                    ? l10n.manage_reconciledMarkedPaid
+                    : l10n.manage_reconciledMarkedUnpaid)));
         for (final w in res.warnings) {
           messenger.showSnackBar(SnackBar(content: Text(w)));
         }
       } else {
-        messenger.showSnackBar(const SnackBar(
+        messenger.showSnackBar(SnackBar(
             content: Text(
-                'Nothing applied — the payment changed. Showing the latest.')));
+                l10n.manage_nothingAppliedThePaymentChanged)));
       }
       ref.invalidate(ticketSalesProvider);
       ref.invalidate(managedTicketsProvider);
@@ -1422,7 +1421,7 @@ class _PaymentCheckSheetState extends ConsumerState<_PaymentCheckSheet> {
                       ? p.orangeInk
                       : p.muted),
         ),
-        Eyebrow('With $provider'),
+        Eyebrow(context.l10n.manage_withLabel(provider)),
         const SizedBox(height: 8),
         if (loading)
           GlassCard(
@@ -1434,7 +1433,7 @@ class _PaymentCheckSheetState extends ConsumerState<_PaymentCheckSheet> {
                   child: CircularProgressIndicator(strokeWidth: 2)),
               const SizedBox(width: 12),
               Expanded(
-                child: Text('Checking with $provider…',
+                child: Text(context.l10n.manage_checkingWith(provider),
                     style: TextStyle(color: p.muted, fontSize: 13)),
               ),
             ]),
@@ -1445,7 +1444,7 @@ class _PaymentCheckSheetState extends ConsumerState<_PaymentCheckSheet> {
             child: Text(
                 async.hasError
                     ? '${async.error}'
-                    : 'Couldn\'t check this payment.',
+                    : context.l10n.manage_couldntCheckThisPayment,
                 style: TextStyle(color: p.danger, fontSize: 13)),
           )
         else
@@ -1478,7 +1477,7 @@ class _PaymentCheckSheetState extends ConsumerState<_PaymentCheckSheet> {
                             ],
                             if (check.providerStatus != null) ...[
                               const SizedBox(height: 8),
-                              Text('$provider status: ${check.providerStatus}',
+                              Text(context.l10n.manage_status(provider, check.providerStatus ?? ''),
                                   style:
                                       TextStyle(color: p.muted, fontSize: 11)),
                             ],
@@ -1491,7 +1490,7 @@ class _PaymentCheckSheetState extends ConsumerState<_PaymentCheckSheet> {
                       SpButton(
                         expand: true,
                         icon: Icons.sync_rounded,
-                        label: check.actionLabel ?? 'Reconcile',
+                        label: check.actionLabel ?? context.l10n.manage_reconcile,
                         onTap: () => setState(() => _confirming = true),
                       )
                     else
@@ -1501,7 +1500,7 @@ class _PaymentCheckSheetState extends ConsumerState<_PaymentCheckSheet> {
                             onPressed: _busy
                                 ? null
                                 : () => setState(() => _confirming = false),
-                            child: const Text('Cancel'),
+                            child: Text(context.l10n.manage_cancel),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1511,7 +1510,7 @@ class _PaymentCheckSheetState extends ConsumerState<_PaymentCheckSheet> {
                             expand: true,
                             tone: SpButtonTone.brand,
                             icon: Icons.check_rounded,
-                            label: _busy ? 'Reconciling…' : 'Yes, reconcile',
+                            label: _busy ? context.l10n.manage_reconciling : context.l10n.manage_yesReconcile,
                             onTap: _busy ? null : () => _reconcile(check),
                           ),
                         ),
@@ -1535,7 +1534,7 @@ class _PaymentCheckSheetState extends ConsumerState<_PaymentCheckSheet> {
                     setState(() => _fresh = null);
                     ref.invalidate(_paymentCheckProvider(sale.id));
                   },
-            child: const Text('Check again'),
+            child: Text(context.l10n.manage_checkAgain),
           ),
         ),
       ],
@@ -1657,13 +1656,13 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
     if (!(_form.currentState?.validate() ?? false)) return;
     if ((_isEvent || _isTournament) && _eventId == null) {
       setState(() => _error =
-          'Pick the ${_isEvent ? 'event' : 'tournament'} this ticket is for.');
+          l10n.manage_pickTheThisTicketIs((_isEvent ? l10n.manage_event3 : l10n.manage_tournament2)));
       return;
     }
     if (_salesStart != null &&
         _salesEnd != null &&
         !_salesEnd!.isAfter(_salesStart!)) {
-      setState(() => _error = 'Sales end must be after sales start.');
+      setState(() => _error = l10n.manage_salesEndMustBeAfter);
       return;
     }
     final price = double.tryParse(_price.text.trim()) ?? 0;
@@ -1842,7 +1841,7 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
         leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
-        title: Text(editing ? 'Edit ticket' : 'New ticket'),
+        title: Text(editing ? context.l10n.manage_editTicket : context.l10n.manage_newTicket),
       ),
       body: Form(
         key: _form,
@@ -1858,34 +1857,34 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                  'Set the price and answer a few questions so we know how this ticket behaves.',
+                  context.l10n.manage_setThePriceAndAnswer,
                   style: TextStyle(color: p.muted, fontSize: 12.5)),
               const SizedBox(height: 18),
 
-              label('Title'),
+              label(context.l10n.manage_title),
               TextFormField(
                 controller: _title,
-                decoration: const InputDecoration(
-                    hintText: 'e.g. Saturday 5-a-side entry'),
+                decoration: InputDecoration(
+                    hintText: context.l10n.manage_eGSaturday5A),
                 maxLength: 120,
                 validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Give the ticket a title'
+                    ? context.l10n.manage_giveTheTicketATitle
                     : null,
               ),
               const SizedBox(height: 10),
 
-              label('Description (optional)'),
+              label(context.l10n.manage_descriptionOptional),
               TextFormField(
                 controller: _description,
                 decoration:
-                    const InputDecoration(hintText: 'What\'s this ticket for?'),
+                    InputDecoration(hintText: context.l10n.manage_whatsThisTicketFor),
                 maxLines: 2,
                 maxLength: 2000,
               ),
               const SizedBox(height: 10),
 
               // Flier — promo image players see on the ticket.
-              label('Flier (optional)'),
+              label(context.l10n.manage_flierOptional),
               _FlierField(
                 url: _flierUrl,
                 uploading: _uploadingFlier,
@@ -1894,7 +1893,7 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
               ),
               const SizedBox(height: 18),
 
-              label('Price'),
+              label(context.l10n.manage_price),
               TextFormField(
                 controller: _price,
                 keyboardType:
@@ -1906,12 +1905,12 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
                 validator: (v) {
                   final d = double.tryParse((v ?? '').trim());
                   return d == null || d <= 0
-                      ? 'Enter a price greater than zero'
+                      ? context.l10n.manage_enterAPriceGreaterThan
                       : null;
                 },
               ),
               hint(
-                  'Tickets are sold in your wallet\'s currency (${widget.currency}).'),
+                  context.l10n.manage_ticketsAreSoldInYour(widget.currency)),
               _FeePreview(
                 groupId: widget.groupId,
                 price: _price,
@@ -1921,18 +1920,18 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
               const Divider(height: 32),
 
               // Q2 — is this tied to an event or tournament?
-              label('Is this ticket for a specific event?'),
+              label(context.l10n.manage_isThisTicketForA),
               DropdownButtonFormField<String>(
                 isExpanded: true,
                 initialValue: _kind,
-                items: const [
+                items: [
                   DropdownMenuItem(
-                      value: 'general', child: Text('No — a general ticket')),
+                      value: 'general', child: Text(context.l10n.manage_noAGeneralTicket)),
                   DropdownMenuItem(
-                      value: 'event', child: Text('Yes — tie it to an event')),
+                      value: 'event', child: Text(context.l10n.manage_yesTieItToAn)),
                   DropdownMenuItem(
                       value: 'tournament',
-                      child: Text('Yes — tie it to a tournament')),
+                      child: Text(context.l10n.manage_yesTieItToA)),
                 ],
                 onChanged: (v) => setState(() {
                   // Switching kind clears a now-irrelevant event selection.
@@ -1947,7 +1946,7 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
                   key: ValueKey('event-${events.length}-$_eventId'),
                   initialValue:
                       events.any((e) => e.id == _eventId) ? _eventId : null,
-                  hint: const Text('Choose an event'),
+                  hint: Text(context.l10n.manage_chooseAnEvent),
                   items: [
                     for (final e in events)
                       DropdownMenuItem(
@@ -1961,8 +1960,8 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
                   onChanged: (v) => setState(() => _eventId = v),
                 ),
                 hint(events.isEmpty
-                    ? 'No upcoming events — create one first.'
-                    : 'Players must hold this ticket to check in to that event.'),
+                    ? context.l10n.manage_noUpcomingEventsCreateOne
+                    : context.l10n.manage_playersMustHoldThisTicket),
               ],
               if (_isTournament) ...[
                 const SizedBox(height: 10),
@@ -1972,7 +1971,7 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
                   initialValue: tournaments.any((t) => t.eventId == _eventId)
                       ? _eventId
                       : null,
-                  hint: const Text('Choose a tournament'),
+                  hint: Text(context.l10n.manage_chooseATournament),
                   items: [
                     for (final t in tournaments)
                       DropdownMenuItem(
@@ -1983,16 +1982,16 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
                   onChanged: (v) => setState(() => _eventId = v),
                 ),
                 hint(tournaments.isEmpty
-                    ? 'No tournaments yet — create one first.'
-                    : 'Buyers don\'t check in — an officiant scans the ticket\'s QR code to admit entry at the game.'),
+                    ? context.l10n.manage_noTournamentsYetCreateOne
+                    : context.l10n.manage_buyersDontCheckInAn),
               ],
               const SizedBox(height: 14),
 
               // Q1 — blocks check-in? (not for officiant-scanned tournament tickets)
               if (!_isTournament) ...[
                 switchRow(
-                  title: 'Required to check in',
-                  body: 'Unpaid players can\'t check into games/events.',
+                  title: context.l10n.manage_requiredToCheckIn,
+                  body: context.l10n.manage_unpaidPlayersCantCheckInto,
                   value: _isEvent ? true : _blocksCheckin,
                   onChanged: _isEvent
                       ? null
@@ -2004,11 +2003,11 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
               // Q3 — scannable? Tournament tickets are always officiant-scanned.
               switchRow(
                 title: _isTournament
-                    ? 'Scanned by an officiant'
-                    : 'Verify with a scan',
+                    ? context.l10n.manage_scannedByAnOfficiant
+                    : context.l10n.manage_verifyWithAScan,
                 body: _isTournament
-                    ? 'An officiant scans the ticket\'s QR code at the game to admit entry.'
-                    : 'Organizers can scan a code at the gate to validate entry. Every purchase already gets its own QR receipt.',
+                    ? context.l10n.manage_anOfficiantScansTheTickets
+                    : context.l10n.manage_organizersCanScanACode,
                 value: _isTournament ? true : _requiresValidation,
                 onChanged: _isTournament
                     ? null
@@ -2017,18 +2016,18 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
               const SizedBox(height: 14),
 
               // Q4 — recurring? Fixed once created: the cadence sets the validity.
-              label('Does this repeat?'),
+              label(context.l10n.manage_doesThisRepeat),
               DropdownButtonFormField<String>(
                 isExpanded: true,
                 initialValue: _recurrence,
-                items: const [
+                items: [
                   DropdownMenuItem(
-                      value: 'one_time', child: Text('One-time — pay once')),
-                  DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
-                  DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
+                      value: 'one_time', child: Text(context.l10n.manage_oneTimePayOnce)),
+                  DropdownMenuItem(value: 'weekly', child: Text(context.l10n.manage_weekly)),
+                  DropdownMenuItem(value: 'monthly', child: Text(context.l10n.manage_monthly)),
                   DropdownMenuItem(
-                      value: 'quarterly', child: Text('Quarterly')),
-                  DropdownMenuItem(value: 'yearly', child: Text('Yearly')),
+                      value: 'quarterly', child: Text(context.l10n.manage_quarterly)),
+                  DropdownMenuItem(value: 'yearly', child: Text(context.l10n.manage_yearly)),
                 ],
                 onChanged: editing
                     ? null
@@ -2036,36 +2035,31 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
               ),
               if (editing)
                 hint(
-                    'How often a ticket renews can\'t change after it\'s created — '
-                    'create a new ticket instead.')
+                    context.l10n.manage_howOftenATicketRenews)
               else if (_isRecurring)
                 hint(
-                    'Players pay again each period — dues, memberships, season fees.'),
+                    context.l10n.manage_playersPayAgainEachPeriod),
               if (_isEvent && _isRecurring)
-                hint('Covers every occurrence of this event during each cycle '
-                    '(e.g. a monthly pass for a weekly session).'),
+                hint(context.l10n.manage_coversEveryOccurrenceOfThis),
 
               // Validity — how long a purchase admits you. Set by SportPadi on
               // create, from the first day; read-only afterwards.
               if (preview != null) ...[
                 const SizedBox(height: 14),
-                label('First day'),
+                label(context.l10n.manage_firstDay),
                 _PickerTile(
                   value: DateFormat('EEE d MMM yyyy').format(_firstDay),
                   onTap: _pickFirstDay,
                 ),
                 infoBox(
-                  'Valid ${preview.current} · renews every ${cycleUnit(_recurrence)} '
-                      '(next: ${preview.next})',
-                  'Validity is set by SportPadi from the first day and can\'t be changed '
-                      'later. When a cycle\'s last day ends, a fresh ticket starts the next '
-                      'cycle; last cycle\'s tickets are used up and can\'t be refunded.',
+                  context.l10n.manage_validRenewsEveryNext(preview.current, cycleUnit(_recurrence), preview.next),
+                  context.l10n.manage_validityIsSetBySportPadi,
                 ),
               ],
               if (editValidity != null)
                 infoBox(
-                  'Valid $editValidity · cycle $cycleNo',
-                  'Set by SportPadi when the ticket was created — it can\'t be changed.',
+                  context.l10n.manage_validCycle2(editValidity, cycleNo),
+                  context.l10n.manage_setBySportPadiWhenThe,
                 ),
               const Divider(height: 32),
 
@@ -2075,10 +2069,10 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        label('Sales open (optional)'),
+                        label(context.l10n.manage_salesOpenOptional),
                         _PickerTile(
                           value: _salesStart == null
-                              ? (_isRecurring ? 'Cycle start' : 'Now')
+                              ? (_isRecurring ? context.l10n.manage_cycleStart : context.l10n.manage_now)
                               : fmt.format(_salesStart!),
                           onTap: () => _pickDate(true),
                           onClear: _salesStart == null
@@ -2092,10 +2086,10 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        label('Sales close (optional)'),
+                        label(context.l10n.manage_salesCloseOptional),
                         _PickerTile(
                           value: _salesEnd == null
-                              ? (_isRecurring ? 'Cycle end' : 'Never')
+                              ? (_isRecurring ? context.l10n.manage_cycleEnd : context.l10n.manage_never)
                               : fmt.format(_salesEnd!),
                           onTap: () => _pickDate(false),
                           onClear: _salesEnd == null
@@ -2107,27 +2101,27 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
               ]),
               if (_isRecurring)
                 hint(
-                    'When people can buy it. Leave empty to sell for the whole cycle.'),
+                    context.l10n.manage_whenPeopleCanBuyIt),
               const SizedBox(height: 14),
 
-              label('Capacity (optional)'),
+              label(context.l10n.manage_capacityOptional),
               TextFormField(
                 controller: _capacity,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(hintText: 'Unlimited'),
+                decoration: InputDecoration(hintText: context.l10n.manage_unlimited),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return null;
                   final n = int.tryParse(v.trim());
                   return n == null || n <= 0
-                      ? 'Enter a whole number above 0'
+                      ? context.l10n.manage_enterAWholeNumberAbove0
                       : null;
                 },
               ),
               const SizedBox(height: 14),
 
               switchRow(
-                title: 'Active',
-                body: 'Visible and on sale to players.',
+                title: context.l10n.manage_active,
+                body: context.l10n.manage_visibleAndOnSaleTo,
                 value: _isActive,
                 onChanged: (v) => setState(() => _isActive = v),
               ),
@@ -2145,7 +2139,7 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
                   child: OutlinedButton(
                     onPressed:
                         _busy ? null : () => Navigator.pop(context, false),
-                    child: const Text('Cancel'),
+                    child: Text(context.l10n.manage_cancel),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -2159,7 +2153,7 @@ class _TicketEditorState extends ConsumerState<_TicketEditor> {
                             width: 20,
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Colors.white))
-                        : Text(editing ? 'Save changes' : 'Create ticket'),
+                        : Text(editing ? context.l10n.manage_saveChanges : context.l10n.manage_createTicket),
                   ),
                 ),
               ]),
@@ -2212,7 +2206,7 @@ class _FlierField extends StatelessWidget {
                           width: 14,
                           height: 14,
                           child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Replace'),
+                      : Text(context.l10n.manage_replace),
                 ),
                 const SizedBox(width: 6),
                 IconButton.filledTonal(
@@ -2248,10 +2242,10 @@ class _FlierField extends StatelessWidget {
             else
               Icon(Icons.image_outlined, size: 26, color: p.muted),
             const SizedBox(height: 6),
-            Text(uploading ? 'Uploading…' : 'Upload a flier',
+            Text(uploading ? context.l10n.manage_uploading2 : context.l10n.manage_uploadAFlier,
                 style: TextStyle(
                     color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w600)),
-            Text('Shown to players · 16:9 works best',
+            Text(context.l10n.manage_shownToPlayers169,
                 style: TextStyle(color: p.muted, fontSize: 11)),
           ]),
         ),
@@ -2380,10 +2374,10 @@ class _FeePreviewState extends ConsumerState<_FeePreview> {
     final p = context.palette;
     String money(int m) => formatMoney(m, widget.currency, widget.exponent);
     final note = q.tooLow
-        ? 'This price is too low — the fees would take more than half of it. Raise the price.'
+        ? context.l10n.manage_thisPriceIsTooLow
         : q.bearer == 'group'
-            ? 'Your group pays the fees, so they come out of what you receive. Change this in Wallet.'
-            : 'Buyers pay the fees on top of your price. Set who pays in Wallet.';
+            ? context.l10n.manage_yourGroupPaysTheFees
+            : context.l10n.manage_buyersPayTheFeesOn;
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
@@ -2396,11 +2390,11 @@ class _FeePreviewState extends ConsumerState<_FeePreview> {
           style:
               TextStyle(color: q.tooLow ? p.orangeInk : p.ink, fontSize: 12.5),
           children: [
-            const TextSpan(text: 'Buyers pay '),
+            TextSpan(text: context.l10n.manage_buyersPay),
             TextSpan(
                 text: money(q.buyerPaysMinor),
                 style: const TextStyle(fontWeight: FontWeight.w800)),
-            const TextSpan(text: ' · you receive '),
+            TextSpan(text: context.l10n.manage_youReceive),
             TextSpan(
                 text: money(q.groupReceivesMinor),
                 style: const TextStyle(fontWeight: FontWeight.w800)),

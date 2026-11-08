@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Groups the signed-in player goes by another name in, as `groupId -> aka`.
 /// Read on their own profile so each group card can say what it calls them.
@@ -37,7 +38,7 @@ Future<String?> setGroupAka(WidgetRef ref, String groupId, String? aka) async {
     final m = res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {};
     return parseStr(m['aka']);
   } catch (e) {
-    throw apiError(e, fallback: 'Could not save that name.');
+    throw apiError(e, fallback: l10n.profile_couldNotSaveThatName2);
   }
 }
 
@@ -88,8 +89,8 @@ class _AkaCardState extends ConsumerState<AkaCard> {
       widget.onSaved();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(saved == null
-              ? 'Name cleared'
-              : '${widget.groupName} will call you "$saved"')));
+              ? l10n.profile_nameCleared
+              : l10n.profile_willCallYou2(widget.groupName, saved))));
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -110,7 +111,7 @@ class _AkaCardState extends ConsumerState<AkaCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('ALSO KNOWN AS',
+                  Text(context.l10n.profile_alsoKnownAs2,
                       style: TextStyle(
                           color: p.muted,
                           fontSize: 9.5,
@@ -127,7 +128,7 @@ class _AkaCardState extends ConsumerState<AkaCard> {
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700)),
                         TextSpan(
-                            text: ' — what ${widget.groupName} calls you',
+                            text: context.l10n.profile_whatCallsYou(widget.groupName),
                             style: TextStyle(color: p.muted, fontSize: 12)),
                       ]),
                       maxLines: 2,
@@ -135,15 +136,14 @@ class _AkaCardState extends ConsumerState<AkaCard> {
                     )
                   else
                     Text(
-                        'Go by another name in ${widget.groupName}? Set one and '
-                        'it shows up wherever this group lists you.',
+                        context.l10n.profile_goByAnotherNameIn(widget.groupName),
                         style: TextStyle(
                             color: p.muted, fontSize: 12, height: 1.3)),
                 ]),
           ),
           const SizedBox(width: 10),
           _MiniBtn(
-            label: aka == null ? 'Set' : 'Change',
+            label: aka == null ? context.l10n.profile_setLabel : context.l10n.profile_change,
             icon: Icons.edit_outlined,
             onTap: () {
               _c.text = aka ?? '';
@@ -159,7 +159,7 @@ class _AkaCardState extends ConsumerState<AkaCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('ALSO KNOWN AS',
+            Text(context.l10n.profile_alsoKnownAs2,
                 style: TextStyle(
                     color: p.muted,
                     fontSize: 9.5,
@@ -174,7 +174,7 @@ class _AkaCardState extends ConsumerState<AkaCard> {
               decoration: InputDecoration(
                 isDense: true,
                 counterText: '',
-                hintText: 'What ${widget.groupName} calls you',
+                hintText: context.l10n.profile_whatCallsYou2(widget.groupName),
                 hintStyle: TextStyle(color: p.muted, fontSize: 13),
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -185,14 +185,13 @@ class _AkaCardState extends ConsumerState<AkaCard> {
             ),
             const SizedBox(height: 6),
             Text(
-                'Only for this group — members, the board, team sheets and '
-                'scoresheets here will use it. Your profile keeps your real name.',
+                context.l10n.profile_onlyForThisGroupMembers,
                 style: TextStyle(color: p.muted, fontSize: 11, height: 1.3)),
             const SizedBox(height: 10),
             Row(children: [
               Expanded(
                 child: SpButton(
-                  label: _saving ? 'Saving…' : 'Save',
+                  label: _saving ? context.l10n.profile_saving : context.l10n.profile_save,
                   expand: true,
                   onTap: _saving
                       ? null
@@ -202,7 +201,7 @@ class _AkaCardState extends ConsumerState<AkaCard> {
               ),
               const SizedBox(width: 8),
               _MiniBtn(
-                label: 'Cancel',
+                label: context.l10n.profile_cancel,
                 onTap: _saving ? null : () => setState(() => _editing = false),
               ),
             ]),
@@ -210,7 +209,7 @@ class _AkaCardState extends ConsumerState<AkaCard> {
               const SizedBox(height: 8),
               InkWell(
                 onTap: _saving ? null : () => _save(null),
-                child: Text('Use my real name here',
+                child: Text(context.l10n.profile_useMyRealNameHere,
                     style: TextStyle(
                         color: p.danger,
                         fontSize: 12,

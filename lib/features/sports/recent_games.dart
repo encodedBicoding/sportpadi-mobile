@@ -5,6 +5,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/players/player_record.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Recent games, each row in the sport's own style (design §5, §8): a match
 /// report for soccer, a box-score line for basketball, a linescore for
@@ -41,7 +42,7 @@ class _RecentGamesState extends State<RecentGames> {
     final games = widget.games;
     final shown = _all ? games : games.take(widget.initial).toList();
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      RecordSectionTitle('Recent games', count: games.length),
+      RecordSectionTitle(context.l10n.profile_recentGames, count: games.length),
       const SizedBox(height: 10),
       RecordList(children: [
         for (final g in shown)
@@ -58,7 +59,7 @@ class _RecentGamesState extends State<RecentGames> {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 13),
               child: Center(
-                child: Text('Show all ${games.length}',
+                child: Text(context.l10n.profile_showAll(games.length),
                     style: TextStyle(
                         color: p.greenText,
                         fontSize: 13.5,
@@ -104,7 +105,7 @@ class RecentGameRow extends StatelessWidget {
     final us = mapOf(game['us']);
     final them = game['them'] is Map ? mapOf(game['them']) : null;
     final counts = mapOf(game['counts']);
-    final usName = parseStr(us['name']) ?? 'Us';
+    final usName = parseStr(us['name']) ?? context.l10n.profile_us;
     final themName = parseStr(them?['name']);
     final usScore = statInt(us['score']);
     final themScore = statInt(them?['score']);
@@ -114,9 +115,9 @@ class RecentGameRow extends StatelessWidget {
     final chess = family == SportFamily.chess;
 
     final (badgeBg, badgeFg, letter) = switch (result) {
-      'win' => (p.accentTint, p.greenText, chess ? '1' : 'W'),
-      'loss' => (p.liveTint, p.danger, chess ? '0' : 'L'),
-      'draw' => (p.surface2, p.muted, chess ? '½' : 'D'),
+      'win' => (p.accentTint, p.greenText, chess ? '1' : context.l10n.profile_w),
+      'loss' => (p.liveTint, p.danger, chess ? '0' : context.l10n.profile_l),
+      'draw' => (p.surface2, p.muted, chess ? '½' : context.l10n.profile_d),
       _ => (p.surface2, p.muted, '–'),
     };
 
@@ -126,7 +127,7 @@ class RecentGameRow extends StatelessWidget {
         fontWeight: FontWeight.w600,
         fontFeatures: tabularFigures);
     final score = them == null ? '$usScore' : '$usScore–$themScore';
-    final vs = them == null ? null : 'vs ${themName ?? 'Opponent'}';
+    final vs = them == null ? null : context.l10n.team_vs(themName ?? context.l10n.profile_opponent);
 
     // Under the headline: the day and the event — for golf the headline has
     // those, so the score against the field goes here instead.
@@ -137,7 +138,7 @@ class RecentGameRow extends StatelessWidget {
         plainDay(game['date']),
         venue,
       ],
-      if (tournament) 'Tournament',
+      if (tournament) context.l10n.profile_tournament,
     ].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
 
     // The headline: a match report for soccer ("Lions 3 – 1 Eagles", my team
@@ -156,8 +157,8 @@ class RecentGameRow extends StatelessWidget {
                   fontWeight: FontWeight.w600)),
         ]),
       SportFamily.golf => TextSpan(children: [
-          const TextSpan(
-              text: 'Rd', style: TextStyle(fontWeight: FontWeight.w800)),
+          TextSpan(
+              text: context.l10n.profile_rd, style: const TextStyle(fontWeight: FontWeight.w800)),
           TextSpan(
               text: [shortDay(game['date']), venue ?? '']
                   .where((s) => s.isNotEmpty)
@@ -185,7 +186,7 @@ class RecentGameRow extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w800)),
           if (them != null)
             TextSpan(
-                text: themName ?? 'Opponent',
+                text: themName ?? context.l10n.profile_opponent,
                 style: TextStyle(color: p.muted, fontWeight: FontWeight.w600)),
         ]),
       _ => TextSpan(children: [
@@ -263,12 +264,12 @@ class RecentGameRow extends StatelessWidget {
           if (n('assists') > 0) '🅰️ ${n('assists')}',
           if (n('yellows') > 0) n('yellows') > 1 ? '🟨 ${n('yellows')}' : '🟨',
           if (n('reds') > 0) '🟥',
-          if (n('ownGoals') > 0) '🥅 ${n('ownGoals')} OG',
+          if (n('ownGoals') > 0) '🥅 ${l10n.profile_p5OwnGoalsShort(n('ownGoals'))}',
           ...rest(const {'goals', 'assists', 'yellows', 'reds', 'ownGoals'}),
         ]);
       case SportFamily.tennis:
         return _chips(p, [
-          if (n('aces') > 0) '🎯 ${plural(n('aces'), 'ace')}',
+          if (n('aces') > 0) '🎯 ${l10n.profile_aceCount(n('aces'))}',
           ...rest(const {'aces'}),
         ]);
       case SportFamily.padel:
@@ -283,23 +284,23 @@ class RecentGameRow extends StatelessWidget {
         return _chips(p, rest(const {}));
       case SportFamily.basketball:
         return _boxLine(p, [
-          (n('points'), 'PTS'),
-          if (hasStat('assists', fields, counts)) (n('assists'), 'AST'),
-          if (n('reb') > 0) (n('reb'), 'REB'),
-          if (hasStat('fouls', fields, counts)) (n('fouls'), 'PF'),
+          (n('points'), l10n.profile_p5StatPts),
+          if (hasStat('assists', fields, counts)) (n('assists'), l10n.profile_p5StatAst),
+          if (n('reb') > 0) (n('reb'), l10n.profile_p5StatReb),
+          if (hasStat('fouls', fields, counts)) (n('fouls'), l10n.profile_p5StatPf),
         ]);
       case SportFamily.volleyball:
         return _boxLine(p, [
-          (n('points'), n('points') == 1 ? 'pt' : 'pts'),
-          if (n('aces') > 0) (n('aces'), n('aces') == 1 ? 'ace' : 'aces'),
+          (n('points'), l10n.profile_p5PtsLabel(n('points'))),
+          if (n('aces') > 0) (n('aces'), l10n.profile_p5AcesLabel(n('aces'))),
           if (n('blocks') > 0)
-            (n('blocks'), n('blocks') == 1 ? 'block' : 'blocks'),
+            (n('blocks'), l10n.profile_p5BlocksLabel(n('blocks'))),
         ]);
       case SportFamily.baseball:
         return _boxLine(p, [
-          (n('runs'), 'R'),
-          (n('hits'), 'H'),
-          if (n('homeRuns') > 0) (n('homeRuns'), 'HR'),
+          (n('runs'), l10n.profile_p5StatR),
+          (n('hits'), l10n.profile_p5StatH),
+          if (n('homeRuns') > 0) (n('homeRuns'), l10n.profile_p5StatHr),
         ]);
     }
   }

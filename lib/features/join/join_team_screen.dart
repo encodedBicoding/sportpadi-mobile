@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 class JoinTeamScreen extends ConsumerStatefulWidget {
   const JoinTeamScreen({super.key, required this.teamId});
@@ -59,7 +60,7 @@ class _JoinTeamScreenState extends ConsumerState<JoinTeamScreen> {
     final p = context.palette;
     return Scaffold(
       appBar:
-          AppBar(leading: const SpLeading(), title: const Text('Join team')),
+          AppBar(leading: const SpLeading(), title: Text(context.l10n.join_joinTeam)),
       body: AsyncView(
         value: info,
         onRetry: () => ref.invalidate(teamJoinInfoProvider(widget.teamId)),
@@ -74,7 +75,7 @@ class _JoinTeamScreenState extends ConsumerState<JoinTeamScreen> {
                   label: t.name,
                   size: 80),
               const SizedBox(height: 16),
-              Text("You're invited to join",
+              Text(context.l10n.join_youreInvitedToJoin,
                   style: TextStyle(color: p.muted, fontSize: 12)),
               const SizedBox(height: 4),
               Text(t.name,
@@ -97,14 +98,14 @@ class _JoinTeamScreenState extends ConsumerState<JoinTeamScreen> {
               if (t.alreadyOnTeam)
                 FilledButton(
                   onPressed: () => goWithHome(context, '/teams/${t.id}'),
-                  child: const Text('Go to team'),
+                  child: Text(context.l10n.join_goToTeam),
                 )
               else if (signedIn) ...[
                 TextField(
                   controller: _jersey,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Jersey number (optional)',
+                  decoration: InputDecoration(
+                    labelText: context.l10n.join_jerseyNumberOptional,
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -118,13 +119,13 @@ class _JoinTeamScreenState extends ConsumerState<JoinTeamScreen> {
                             width: 20,
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Colors.white))
-                        : Text('Join ${t.name}'),
+                        : Text(context.l10n.join_join(t.name)),
                   ),
                 ),
               ] else
                 FilledButton(
                   onPressed: () => context.go('/sign-in'),
-                  child: const Text('Sign in to join'),
+                  child: Text(context.l10n.join_signInToJoin),
                 ),
             ]),
           ),

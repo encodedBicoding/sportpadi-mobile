@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/data/groups/member_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// One person picked to officiate.
 typedef PickedOfficiant = ({String userId, String label});
@@ -151,8 +152,8 @@ class _OfficiantPickerState extends ConsumerState<OfficiantPicker> {
           decoration: InputDecoration(
             isDense: true,
             hintText: widget.selected.isEmpty
-                ? 'Search anyone by name or @handle'
-                : 'Add another by name or @handle',
+                ? context.l10n.tournament_searchAnyoneByNameOr
+                : context.l10n.tournament_addAnotherByNameOr,
             hintStyle: TextStyle(color: p.muted, fontSize: 13),
             prefixIcon: Icon(Icons.search, size: 18, color: p.muted),
             suffixIcon: _searching
@@ -182,7 +183,7 @@ class _OfficiantPickerState extends ConsumerState<OfficiantPicker> {
             child: candidates.isEmpty
                 ? Padding(
                     padding: const EdgeInsets.all(10),
-                    child: Text(_searching ? 'Searching…' : 'No one found.',
+                    child: Text(_searching ? context.l10n.tournament_searching : context.l10n.tournament_noOneFound,
                         style: TextStyle(color: p.muted, fontSize: 12)),
                   )
                 : ListView(
@@ -260,8 +261,8 @@ class _AddOfficiantsSheetState extends ConsumerState<AddOfficiantsSheet> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(added == 0
-              ? 'They were already on the list'
-              : 'Asked $added ${added == 1 ? 'person' : 'people'} to officiate')));
+              ? l10n.tournament_theyWereAlreadyOnThe
+              : l10n.tournament_askedPeopleToOfficiate(added))));
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
@@ -277,12 +278,11 @@ class _AddOfficiantsSheetState extends ConsumerState<AddOfficiantsSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        const SpSheetHeader(
+        SpSheetHeader(
           icon: Icons.sports_rounded,
-          title: 'Add officiants',
+          title: context.l10n.tournament_addOfficiants,
           subtitle:
-              'Ask anyone on SportPadi. Each person gets a request and can '
-              'run the match once they accept — have as many as you need.',
+              context.l10n.tournament_askAnyoneOnSportPadiEach2,
         ),
         OfficiantPicker(
           eventId: widget.eventId,
@@ -293,10 +293,10 @@ class _AddOfficiantsSheetState extends ConsumerState<AddOfficiantsSheet> {
         const SizedBox(height: 16),
         SpButton(
           label: _saving
-              ? 'Sending…'
+              ? context.l10n.tournament_sending
               : n == 0
-                  ? 'Send requests'
-                  : 'Send $n ${n == 1 ? 'request' : 'requests'}',
+                  ? context.l10n.tournament_sendRequests
+                  : context.l10n.tournament_sendRequests2(n),
           expand: true,
           onTap: _saving || n == 0 ? null : _submit,
         ),

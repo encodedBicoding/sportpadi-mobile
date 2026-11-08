@@ -22,6 +22,7 @@ import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// One conversation (docs B4/B5/B8): staff on one side, a member — or a
 /// ward's guardians — on the other. Polls every few seconds while open and
@@ -170,17 +171,16 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Close this conversation?'),
-        content: const Text(
-            "It becomes read-only for everyone. Either side can start a new "
-            'one later if they still need to talk.'),
+        title: Text(l10n.inbox_closeThisConversation),
+        content: Text(
+            l10n.inbox_itBecomesReadOnlyFor2),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(l10n.inbox_cancel)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Close it')),
+              child: Text(l10n.inbox_closeIt)),
         ],
       ),
     );
@@ -192,7 +192,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
       await ref.read(conversationProvider(_id).notifier).refreshLatest();
       if (!mounted) return;
       ref.invalidate(messagesListProvider);
-      _snack('Conversation closed.');
+      _snack(l10n.inbox_conversationClosed2);
     } catch (e) {
       _snack('$e');
     } finally {
@@ -215,20 +215,20 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
           children: [
             SpSheetHeader(
               icon: Icons.notifications_off_outlined,
-              title: 'Mute this conversation',
+              title: l10n.inbox_muteThisConversation,
               subtitle: c.isMuted
                   ? (c.isMutedForever
-                      ? 'Muted until you turn it back on'
-                      : 'Muted until ${fmtInstant(c.mutedUntil)}')
-                  : "You'll still see new messages here — just no pushes.",
+                      ? l10n.inbox_mutedUntilYouTurnIt
+                      : l10n.inbox_mutedUntil(fmtInstant(c.mutedUntil)))
+                  : l10n.inbox_youllStillSeeNewMessages,
             ),
             SpListCard(children: [
-              tile('8', Icons.schedule_rounded, 'For 8 hours'),
-              tile('168', Icons.date_range_outlined, 'For 1 week'),
+              tile('8', Icons.schedule_rounded, l10n.inbox_for8Hours),
+              tile('168', Icons.date_range_outlined, l10n.inbox_for1Week),
               tile('forever', Icons.notifications_off_outlined,
-                  'Until I turn it back on'),
+                  l10n.inbox_untilITurnItBack),
               if (c.isMuted)
-                tile('off', Icons.notifications_active_outlined, 'Unmute'),
+                tile('off', Icons.notifications_active_outlined, l10n.inbox_unmute),
             ]),
           ],
         );
@@ -250,7 +250,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
       await ref.read(conversationProvider(_id).notifier).refreshLatest();
       if (!mounted) return;
       _listsStale();
-      _snack(choice == 'off' ? 'Unmuted.' : 'Muted.');
+      _snack(choice == 'off' ? l10n.inbox_unmuted : l10n.inbox_muted2);
     } catch (e) {
       _snack('$e');
     } finally {
@@ -262,16 +262,16 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete this message?'),
-        content: const Text(
-            'Everyone in the conversation will see "Message deleted" instead.'),
+        title: Text(l10n.inbox_deleteThisMessage),
+        content: Text(
+            l10n.inbox_everyoneInTheConversationWill2),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(l10n.inbox_cancel)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete')),
+              child: Text(l10n.inbox_delete)),
         ],
       ),
     );
@@ -281,7 +281,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
       if (!mounted) return;
       ref.read(conversationProvider(_id).notifier).markDeleted(m.id);
       ref.invalidate(messagesListProvider);
-      _snack('Message deleted.');
+      _snack(l10n.inbox_messageDeleted2);
     } catch (e) {
       _snack('$e');
     }
@@ -302,25 +302,25 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
               if (m.body.isNotEmpty)
                 ListTile(
                   leading: Icon(Icons.copy_rounded, color: p.ink),
-                  title: const Text('Copy text'),
+                  title: Text(l10n.inbox_copyText),
                   onTap: () => Navigator.of(ctx).pop('copy'),
                 ),
               if (m.body.isNotEmpty)
                 ListTile(
                   leading: Icon(Icons.text_fields_rounded, color: p.ink),
-                  title: const Text('Select text'),
+                  title: Text(l10n.inbox_selectText),
                   onTap: () => Navigator.of(ctx).pop('select'),
                 ),
               if (m.canDelete)
                 ListTile(
                   leading: Icon(Icons.delete_outline_rounded, color: p.danger),
-                  title: Text('Delete', style: TextStyle(color: p.danger)),
+                  title: Text(l10n.inbox_delete, style: TextStyle(color: p.danger)),
                   onTap: () => Navigator.of(ctx).pop('delete'),
                 ),
               if (canReport)
                 ListTile(
                   leading: Icon(Icons.flag_outlined, color: p.danger),
-                  title: const Text('Report'),
+                  title: Text(l10n.inbox_report),
                   onTap: () => Navigator.of(ctx).pop('report'),
                 ),
             ]),
@@ -332,7 +332,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
     switch (action) {
       case 'copy':
         await Clipboard.setData(ClipboardData(text: m.body));
-        _snack('Copied.');
+        _snack(l10n.inbox_copied);
       case 'select':
         await showSpSheet<void>(
           context,
@@ -368,7 +368,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
     showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'Close',
+      barrierLabel: context.l10n.inbox_close,
       barrierColor: Colors.black,
       pageBuilder: (ctx, __, ___) => SafeArea(
         child: Stack(children: [
@@ -391,7 +391,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
             top: 8,
             right: 8,
             child: IconButton(
-              tooltip: 'Close',
+              tooltip: context.l10n.inbox_close,
               onPressed: () => Navigator.of(ctx).pop(),
               icon: const Icon(Icons.close_rounded, color: Colors.white),
             ),
@@ -404,7 +404,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
   // ── build ────────────────────────────────────────────────────────────────
 
   String _subtitle(ConversationInfo c) {
-    if (c.isProfile) return 'Direct message';
+    if (c.isProfile) return context.l10n.inbox_directMessage;
     if (c.isOversight) {
       return [
         'with ${c.staffName}',
@@ -412,8 +412,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
       ].join(' · ');
     }
     if (c.mySide == 'member') {
-      if (c.isContactAdmins) return 'Contact the admins';
-      return c.teamName != null ? 'Coach · ${c.teamName}' : 'Admin';
+      if (c.isContactAdmins) return context.l10n.inbox_contactTheAdmins2;
+      return c.teamName != null ? context.l10n.inbox_coach3(c.teamName ?? '') : context.l10n.inbox_admin;
     }
     return c.teamName ?? c.group.name;
   }
@@ -439,16 +439,16 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
             if (party)
               PopupMenuItem(
                 value: 'mute',
-                child: Text(c.isMuted ? 'Muted — change…' : 'Mute…'),
+                child: Text(c.isMuted ? context.l10n.inbox_mutedChange : context.l10n.inbox_mute),
               ),
             if (c.canClose)
-              const PopupMenuItem(
-                  value: 'close', child: Text('Close conversation')),
+              PopupMenuItem(
+                  value: 'close', child: Text(context.l10n.inbox_closeConversation)),
             if (c.hasGroup)
               PopupMenuItem(
-                  value: 'group', child: Text('Open ${c.group.name}')),
+                  value: 'group', child: Text(context.l10n.inbox_open2(c.group.name))),
             if (c.isProfile && c.otherUserId != null)
-              const PopupMenuItem(value: 'profile', child: Text('View profile')),
+              PopupMenuItem(value: 'profile', child: Text(context.l10n.inbox_viewProfile)),
           ];
     return Scaffold(
       backgroundColor: p.bg,
@@ -457,7 +457,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
             child: SpHeader(
-              title: c?.title ?? 'Conversation',
+              title: c?.title ?? context.l10n.inbox_conversation,
               subtitle: c == null ? null : _subtitle(c),
               actions: [
                 if (c != null && c.isMuted)
@@ -465,7 +465,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
                       size: 18, color: p.muted),
                 if (menu.isNotEmpty)
                   PopupMenuButton<String>(
-                    tooltip: 'More',
+                    tooltip: context.l10n.inbox_more,
                     enabled: !_busy,
                     icon: Icon(Icons.more_vert_rounded, color: p.ink),
                     onSelected: (v) {
@@ -548,7 +548,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
                     height: 14,
                     child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.history_rounded, size: 18),
-            label: const Text('Load earlier messages'),
+            label: Text(context.l10n.inbox_loadEarlierMessages),
           ),
         ),
       );
@@ -556,7 +556,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
     if (t.messages.isEmpty) {
       rows.add(Padding(
         padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Text('No messages yet.',
+        child: Text(context.l10n.inbox_noMessagesYet,
             textAlign: TextAlign.center,
             style: TextStyle(color: p.muted, fontSize: 13)),
       ));
@@ -576,23 +576,19 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
     String? banner;
     IconData icon = Icons.lock_outline_rounded;
     if (c.isOversight) {
-      banner = "You're viewing this as a group admin — only the participants "
-          'can reply.';
+      banner = context.l10n.inbox_youreViewingThisAsA;
       icon = Icons.visibility_outlined;
     } else if (c.isClosed) {
       banner = c.mySide == 'member'
-          ? 'This conversation was closed. You can start a new one from the '
-              'group page if you still need to.'
-          : 'This conversation was closed. It is read-only now.';
+          ? context.l10n.inbox_thisConversationWasClosedYou
+          : context.l10n.inbox_thisConversationWasClosedIt;
       icon = Icons.check_circle_outline;
     } else if (c.isLocked) {
       banner = c.mySide == 'member'
-          ? "This conversation is locked — you're no longer in reach of this "
-              'admin or coach (you left the group or changed team).'
-          : 'This conversation is locked — the member left the group, or the '
-              'coach no longer coaches their team.';
+          ? context.l10n.inbox_thisConversationIsLockedYoure
+          : context.l10n.inbox_thisConversationIsLockedThe;
     } else if (!c.canReply) {
-      banner = "You can't reply in this conversation.";
+      banner = context.l10n.inbox_youCantReplyInThis;
     }
     if (banner != null) {
       return Container(
@@ -648,7 +644,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen>
               textCapitalization: TextCapitalization.sentences,
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                hintText: 'Message',
+                hintText: context.l10n.inbox_message,
                 counterText: '',
                 isDense: true,
                 filled: true,
@@ -723,7 +719,7 @@ class _InfoStrip extends StatelessWidget {
                         onTap: c.otherUserId == null
                             ? null
                             : () => context.push('/players/${c.otherUserId}'),
-                        child: Text('Direct message · View profile',
+                        child: Text(context.l10n.inbox_directMessageViewProfile,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -760,7 +756,7 @@ class _InfoStrip extends StatelessWidget {
                         c.mySide != 'member' &&
                         guardians.isNotEmpty) ...[
                       const SizedBox(height: 4),
-                      Text("With ${ward.firstName}'s guardians: $guardians",
+                      Text(context.l10n.inbox_withSGuardians(ward.firstName, guardians),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(color: p.wardInk, fontSize: 12)),
@@ -780,8 +776,8 @@ class _InfoStrip extends StatelessWidget {
               Expanded(
                 child: Text(
                     c.isProfile
-                        ? 'Just the two of you. Either can end it; reports go to SportPadi.'
-                        : "Visible to ${c.group.name}'s admins",
+                        ? context.l10n.inbox_justTheTwoOfYou2
+                        : context.l10n.inbox_visibleToSAdmins(c.group.name),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: p.muted, fontSize: 11.5)),
@@ -860,7 +856,7 @@ class _Bubble extends StatelessWidget {
       content = Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(Icons.block_rounded, size: 14, color: p.muted),
         const SizedBox(width: 6),
-        Text('Message deleted',
+        Text(context.l10n.inbox_messageDeleted,
             style: TextStyle(
                 color: p.muted, fontSize: 13.5, fontStyle: FontStyle.italic)),
       ]);

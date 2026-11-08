@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/sports/sport_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Paintball 🎯 (design §8) — wins and losses as paint splats, then the
 /// field stats with per-game rates.
@@ -25,7 +26,7 @@ class PaintballRecord extends StatelessWidget {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
-        _SplatBadge(value: nums.wins, label: 'Won', color: win, seed: 5),
+        _SplatBadge(value: nums.wins, label: context.l10n.profile_won, color: win, seed: 5),
         Expanded(
           child: Column(children: [
             Text(nums.games > 0 ? '${nums.winRate}%' : '—',
@@ -34,18 +35,18 @@ class PaintballRecord extends StatelessWidget {
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                     fontFeatures: tabularFigures)),
-            Text('win rate', style: TextStyle(color: p.muted, fontSize: 11)),
+            Text(context.l10n.profile_winRate2, style: TextStyle(color: p.muted, fontSize: 11)),
             if (streak != null) ...[
               const SizedBox(height: 8),
-              MiniChip('Streak $streak', color: streakColor(p, streak!)),
+              MiniChip(context.l10n.profile_streak2(streak ?? ''), color: streakColor(p, streak!)),
             ],
           ]),
         ),
-        _SplatBadge(value: nums.losses, label: 'Lost', color: loss, seed: 9),
+        _SplatBadge(value: nums.losses, label: context.l10n.profile_lost, color: loss, seed: 9),
       ]),
       if (nums.draws > 0) ...[
         const SizedBox(height: 10),
-        Center(child: MiniChip('D ${nums.draws}')),
+        Center(child: MiniChip(context.l10n.profile_d2(nums.draws))),
       ],
     ]);
   }
@@ -151,7 +152,7 @@ class PaintballStats extends StatelessWidget {
   Widget build(BuildContext context) {
     if (nums.fields.isEmpty) return const ResultsOnlyNote();
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const BlockHeading('On the field'),
+      BlockHeading(context.l10n.profile_onTheField),
       const SizedBox(height: 10),
       StatTileGrid(fields: nums.fields, counts: nums.counts, games: nums.games),
     ]);

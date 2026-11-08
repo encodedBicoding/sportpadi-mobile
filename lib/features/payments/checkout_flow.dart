@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Open the provider's hosted checkout in the browser, then wait for the user
 /// to come back and confirm. Returns true when they tapped "I've paid".
@@ -9,7 +10,7 @@ Future<bool> runHostedCheckout(BuildContext context, String url) async {
   if (!ok) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open the payment page.')));
+          SnackBar(content: Text(l10n.wallet_couldNotOpenThePayment)));
     }
     return false;
   }
@@ -18,16 +19,16 @@ Future<bool> runHostedCheckout(BuildContext context, String url) async {
     context: context,
     barrierDismissible: false,
     builder: (ctx) => AlertDialog(
-      title: const Text('Complete payment'),
-      content: const Text(
-          'Finish the payment in your browser, then come back here.'),
+      title: Text(l10n.wallet_completePayment),
+      content: Text(
+          l10n.wallet_finishThePaymentInYour),
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel')),
+            child: Text(l10n.wallet_cancel)),
         TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("I've paid")),
+            child: Text(l10n.wallet_ivePaid)),
       ],
     ),
   );

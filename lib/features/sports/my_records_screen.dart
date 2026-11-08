@@ -12,6 +12,7 @@ import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// My records (`/profile/records`, design §6): one sport card per sport I've
 /// played (or set up), then every other sport as a quiet list — each opens
@@ -43,12 +44,12 @@ class MyRecordsScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
             children: [
               SpHeader(
-                title: 'My records',
-                subtitle: 'Your numbers, sport by sport',
+                title: context.l10n.profile_myRecords,
+                subtitle: context.l10n.profile_yourNumbersSportBySport,
                 actions: [
                   SpRoundButton(
                     icon: Icons.tune_rounded,
-                    tooltip: 'My sports',
+                    tooltip: context.l10n.profile_mySports,
                     onTap: () => context.push('/profile/sports'),
                   ),
                 ],
@@ -110,18 +111,18 @@ class _Content extends StatelessWidget {
             SpIconTile(Icons.emoji_events_outlined,
                 bg: p.accentTint, fg: p.greenText, size: 52, iconSize: 25),
             const SizedBox(height: 12),
-            Text('No games on record yet',
+            Text(context.l10n.profile_noGamesOnRecordYet2,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     color: p.ink, fontSize: 15.5, fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
             Text(
-                'Tell us the sports you play, then finish a game — your numbers land here, sport by sport.',
+                context.l10n.profile_tellUsTheSportsYou,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.45)),
             const SizedBox(height: 16),
             SpButton(
-              label: 'Set up my sports',
+              label: context.l10n.profile_setUpMySports,
               icon: Icons.tune_rounded,
               onTap: () => context.push('/profile/sports'),
             ),
@@ -134,7 +135,7 @@ class _Content extends StatelessWidget {
         ],
       if (others.isNotEmpty) ...[
         const SizedBox(height: 26),
-        SpSectionTitle('Other sports', count: others.length),
+        SpSectionTitle(context.l10n.profile_otherSports, count: others.length),
         const SizedBox(height: 10),
         SpListCard(children: [
           for (final c in others)

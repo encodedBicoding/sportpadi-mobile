@@ -13,6 +13,7 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// "My leagues" (web `/leagues/mine`): where I'm registered, my next league
 /// matches, and — when the organiser set a roster cutoff — my league pass.
@@ -25,8 +26,8 @@ class MyLeaguesScreen extends ConsumerWidget {
     final p = context.palette;
     final q = ref.watch(myLeaguesProvider);
     return SpSubPage(
-      title: 'My leagues',
-      subtitle: 'Your registrations and league pass',
+      title: context.l10n.league_myLeagues,
+      subtitle: context.l10n.league_yourRegistrationsAndLeaguePass,
       body: AsyncView(
         value: q,
         onRetry: () => ref.invalidate(myLeaguesProvider),
@@ -40,9 +41,9 @@ class MyLeaguesScreen extends ConsumerWidget {
             children: [
               const _CallUps(),
               if (list.isEmpty)
-                const SpEmpty(
+                SpEmpty(
                     icon: Icons.emoji_events_rounded,
-                    text: "You're not on a league roster yet. When a coach calls you up and you accept, it shows up here."),
+                    text: context.l10n.league_youreNotOnALeague),
               for (final r in list) ...[
                 GlassCard(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -61,12 +62,12 @@ class MyLeaguesScreen extends ConsumerWidget {
                               ].whereType<String>().join(' · '),
                               style: TextStyle(color: p.muted, fontSize: 12)),
                           if (r.o('presentedBy') != null)
-                            Text('Presented by ${r.o('presentedBy')!.str('name')}',
+                            Text(context.l10n.league_presentedBy3(r.o('presentedBy')!.str('name')),
                                 style: TextStyle(color: p.muted, fontSize: 11)),
                         ]),
                       ),
                       SpPill(
-                          label: 'Table',
+                          label: context.l10n.league_table,
                           tone: SpPillTone.soft,
                           height: 32,
                           onTap: () => context.push('/leagues/${r.o('league')?.str('slug')}')),
@@ -75,7 +76,7 @@ class MyLeaguesScreen extends ConsumerWidget {
                       const SizedBox(height: 12),
                       if (r.o('pass')!.b('live'))
                         SpButton(
-                          label: 'Show league pass',
+                          label: context.l10n.league_showLeaguePass,
                           icon: Icons.qr_code_2_rounded,
                           expand: true,
                           onTap: () => showSpSheet<void>(context, builder: (_) => _PassSheet(entryId: r.str('entryId'))),
@@ -85,7 +86,9 @@ class MyLeaguesScreen extends ConsumerWidget {
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(color: p.surface2, borderRadius: BorderRadius.circular(14)),
                           child: Text(
-                              'Your league pass goes live ${r.o('pass')!.date('liveAt') == null ? 'after the roster cutoff' : 'on ${MaterialLocalizations.of(context).formatFullDate(r.o('pass')!.date('liveAt')!)}'}.',
+                              r.o('pass')!.date('liveAt') == null
+                                  ? context.l10n.league_p5PassLiveAfterCutoff
+                                  : context.l10n.league_p5PassLiveOn(MaterialLocalizations.of(context).formatFullDate(r.o('pass')!.date('liveAt')!)),
                               style: TextStyle(color: p.muted, fontSize: 12.5)),
                         ),
                     ],
@@ -115,10 +118,10 @@ class _CallUps extends ConsumerWidget {
     final calls = ref.watch(myLeagueCallsProvider).valueOrNull ?? const <J>[];
     if (calls.isEmpty) return const SizedBox.shrink();
     Future<void> answer(J c, bool accept) => leagueAction(context, ref, 'respondCall', {'callId': c.str('callId'), 'accept': accept},
-        success: accept ? "You're on the league roster." : 'Your coach has been told.',
+        success: accept ? context.l10n.league_youreOnTheLeagueRoster : context.l10n.league_yourCoachHasBeenTold,
         refresh: [myLeagueCallsProvider, myLeaguesProvider]);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      SpSectionTitle('Call-ups', count: calls.length),
+      SpSectionTitle(context.l10n.league_callUps, count: calls.length),
       const SizedBox(height: 8),
       for (final c in calls) ...[
         Container(
@@ -130,19 +133,19 @@ class _CallUps extends ConsumerWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('${c.o('team')?.str('name', 'Your team') ?? 'Your team'} calls you up'.toUpperCase(),
+                  Text(context.l10n.league_callsYouUp2(c.o('team')?.str('name', context.l10n.league_yourTeam2) ?? context.l10n.league_yourTeam2).toUpperCase(),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: p.orange, fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 1.1)),
-                  Text(c.o('league')?.str('title') ?? 'League',
+                  Text(c.o('league')?.str('title') ?? context.l10n.league_league,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: p.onHero, fontSize: 15, fontWeight: FontWeight.w800)),
                   Text(
                       [
-                        c.s('calledByName') != null ? 'From ${c.str('calledByName')}' : 'From your coach',
+                        c.s('calledByName') != null ? context.l10n.league_from(c.str('calledByName')) : context.l10n.league_fromYourCoach,
                         if (c.o('league')?.date('rosterLockAt') != null)
-                          'answer by ${MaterialLocalizations.of(context).formatMediumDate(c.o('league')!.date('rosterLockAt')!)}',
+                          context.l10n.league_answerByDate(MaterialLocalizations.of(context).formatMediumDate(c.o('league')!.date('rosterLockAt')!)),
                       ].join(' · '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -166,7 +169,7 @@ class _CallUps extends ConsumerWidget {
                     style: FilledButton.styleFrom(backgroundColor: p.accentDeep, foregroundColor: Colors.white, minimumSize: const Size(0, 44)),
                     onPressed: () => answer(c, true),
                     icon: const Icon(Icons.check_rounded, size: 18),
-                    label: const Text("I'm in", style: TextStyle(fontWeight: FontWeight.w700)),
+                    label: Text(context.l10n.league_imIn, style: const TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -176,12 +179,12 @@ class _CallUps extends ConsumerWidget {
                         backgroundColor: p.onHero.withAlpha(26), foregroundColor: p.onHero, minimumSize: const Size(0, 44)),
                     onPressed: () => answer(c, false),
                     icon: const Icon(Icons.close_rounded, size: 18),
-                    label: const Text("Can't play", style: TextStyle(fontWeight: FontWeight.w700)),
+                    label: Text(context.l10n.league_cantPlay, style: const TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ),
               ])
             else
-              Text('The roster cutoff has passed — ask your coach or the organiser.',
+              Text(context.l10n.league_theRosterCutoffHasPassed,
                   style: TextStyle(color: p.heroMuted, fontSize: 12.5)),
           ]),
         ),
@@ -221,7 +224,7 @@ class _PassSheetState extends ConsumerState<_PassSheet> {
     final p = context.palette;
     final q = ref.watch(leaguePassProvider(widget.entryId));
     return Column(mainAxisSize: MainAxisSize.min, children: [
-      const SpSheetHeader(title: 'League pass', subtitle: 'Show this to the organiser when they ask.', icon: Icons.verified_rounded),
+      SpSheetHeader(title: context.l10n.league_leaguePass, subtitle: context.l10n.league_showThisToTheOrganiser, icon: Icons.verified_rounded),
       AsyncView(
         value: q,
         data: (d) {
@@ -229,7 +232,7 @@ class _PassSheetState extends ConsumerState<_PassSheet> {
           if (v == null) {
             return Padding(
               padding: const EdgeInsets.all(20),
-              child: Text('Your pass isn\'t live yet.', style: TextStyle(color: p.muted)),
+              child: Text(context.l10n.league_yourPassIsntLiveYet, style: TextStyle(color: p.muted)),
             );
           }
           return Column(children: [
@@ -242,10 +245,10 @@ class _PassSheetState extends ConsumerState<_PassSheet> {
             Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               Icon(Icons.verified_rounded, color: p.greenText, size: 18),
               const SizedBox(width: 6),
-              Text('Registered player', style: TextStyle(color: p.greenText, fontWeight: FontWeight.w700)),
+              Text(context.l10n.league_registeredPlayer, style: TextStyle(color: p.greenText, fontWeight: FontWeight.w700)),
             ]),
             const SizedBox(height: 4),
-            Text('Refreshes every 30 seconds — a screenshot won\'t scan.', style: TextStyle(color: p.muted, fontSize: 12)),
+            Text(context.l10n.league_refreshesEvery30SecondsA, style: TextStyle(color: p.muted, fontSize: 12)),
             const SizedBox(height: 8),
           ]);
         },

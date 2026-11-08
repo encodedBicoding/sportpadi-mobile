@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The player's personal QR — organizers scan it at the gate.
 class MyQrScreen extends ConsumerWidget {
@@ -20,8 +21,8 @@ class MyQrScreen extends ConsumerWidget {
         leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
-        title: const Text('My QR code',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        title: Text(context.l10n.profile_myQrCode,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
       ),
       body: AsyncView(
         value: me,
@@ -30,7 +31,7 @@ class MyQrScreen extends ConsumerWidget {
           final code = profile?.qrCode;
           if (code == null || code.isEmpty) {
             return Center(
-              child: Text('No QR code on your profile yet.',
+              child: Text(context.l10n.profile_noQrCodeOnYour,
                   style: TextStyle(color: p.muted)),
             );
           }
@@ -54,7 +55,7 @@ class MyQrScreen extends ConsumerWidget {
                         fontSize: 16,
                         fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
-                Text('Show this to an organizer to be identified.',
+                Text(context.l10n.profile_showThisToAnOrganizer,
                     style: TextStyle(color: p.muted, fontSize: 12.5)),
               ],
             ),

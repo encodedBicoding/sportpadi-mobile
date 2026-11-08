@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/core/push/push_service.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Pre-permission explainer (the "soft ask"). Shown before the one-shot OS
 /// dialog so the user knows what they'd get; "Not now" is respected and the
@@ -84,32 +85,30 @@ class NotificationPermissionSheet extends ConsumerWidget {
         children: [
           Icon(Icons.notifications_active_rounded, size: 40, color: p.accent),
           const SizedBox(height: 10),
-          Text(settings ? 'Notifications are off' : 'Stay in the loop',
+          Text(settings ? context.l10n.inbox_notificationsAreOff : context.l10n.inbox_stayInTheLoop,
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: p.ink, fontSize: 19, fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
           Text(
             settings
-                ? 'This device has notifications switched off for SportPadi, '
-                    'so game reminders and updates can\'t reach you here. '
-                    'Allow them in Settings to turn that on.'
-                : 'Turn on notifications so you never miss a game. You can change this any time in Settings.',
+                ? context.l10n.inbox_thisDeviceHasNotificationsSwitched
+                : context.l10n.inbox_turnOnNotificationsSoYou,
             textAlign: TextAlign.center,
             style: TextStyle(color: p.muted, fontSize: 13, height: 1.4),
           ),
           const SizedBox(height: 18),
-          row(Icons.sports_soccer_rounded, 'Game reminders',
-              'Kick-off times, venue changes and cancellations for events you\'re in.'),
-          row(Icons.groups_rounded, 'Team assignments',
-              'Find out which side you\'re on the moment teams are set.'),
-          row(Icons.confirmation_number_rounded, 'Tickets & payments',
-              'Purchase confirmations, refunds and check-in updates.'),
-          row(Icons.account_balance_wallet_rounded, 'Group admin alerts',
-              'Withdrawal approvals and new followers for groups you run.'),
+          row(Icons.sports_soccer_rounded, context.l10n.inbox_gameReminders,
+              context.l10n.inbox_kickOffTimesVenueChanges),
+          row(Icons.groups_rounded, context.l10n.inbox_teamAssignments,
+              context.l10n.inbox_findOutWhichSideYoure),
+          row(Icons.confirmation_number_rounded, context.l10n.inbox_ticketsPayments,
+              context.l10n.inbox_purchaseConfirmationsRefundsAndCheck),
+          row(Icons.account_balance_wallet_rounded, context.l10n.inbox_groupAdminAlerts,
+              context.l10n.inbox_withdrawalApprovalsAndNewFollowers),
           const SizedBox(height: 6),
           SpButton(
-            label: settings ? 'Open Settings' : 'Turn on notifications',
+            label: settings ? context.l10n.inbox_openSettings : context.l10n.inbox_turnOnNotifications,
             icon:
                 settings ? Icons.settings_rounded : Icons.notifications_rounded,
             expand: true,
@@ -118,7 +117,7 @@ class NotificationPermissionSheet extends ConsumerWidget {
           const SizedBox(height: 6),
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Not now', style: TextStyle(color: p.muted)),
+            child: Text(context.l10n.inbox_notNow, style: TextStyle(color: p.muted)),
           ),
         ]);
   }
@@ -159,15 +158,15 @@ class NotificationsOffBanner extends ConsumerWidget {
           Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Push notifications are off',
+              Text(context.l10n.inbox_pushNotificationsAreOff,
                   style: TextStyle(
                       color: p.ink,
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700)),
               Text(
                 notAsked
-                    ? 'Turn them on for game reminders and updates.'
-                    : 'Allow SportPadi in your device settings for game reminders and updates.',
+                    ? context.l10n.inbox_turnThemOnForGame
+                    : context.l10n.inbox_allowSportPadiInYourDevice,
                 style: TextStyle(color: p.muted, fontSize: 12, height: 1.35),
               ),
             ]),
@@ -182,7 +181,7 @@ class NotificationsOffBanner extends ConsumerWidget {
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                child: Text(notAsked ? 'Turn on' : 'Settings',
+                child: Text(notAsked ? context.l10n.inbox_turnOn : context.l10n.inbox_settings,
                     style: TextStyle(
                         color: p.onHero,
                         fontSize: 12.5,

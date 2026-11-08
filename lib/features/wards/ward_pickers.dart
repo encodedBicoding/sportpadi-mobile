@@ -14,6 +14,7 @@ import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Acting for a ward (A5, A8): the "Who's going?" RSVP sheet on an event,
 /// the "Who's checking in?" picker after an event QR is scanned, and the
@@ -83,17 +84,16 @@ class _WhoIsGoingSheetState extends ConsumerState<_WhoIsGoingSheet> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SpSheetHeader(
+        SpSheetHeader(
           icon: Icons.how_to_reg_rounded,
-          title: "Who's going?",
+          title: context.l10n.ward_whosGoing,
           subtitle:
-              'RSVP for yourself and your wards. It tells the organiser who '
-              'to expect — check-in still happens at the venue.',
+              context.l10n.ward_rsvpForYourselfAndYour,
         ),
         SpListCard(children: [
           _PersonSwitchRow(
-            name: 'Me',
-            sub: e.myCheckedIn ? 'Checked in' : (_me ? 'Going' : 'Not going'),
+            name: context.l10n.ward_me,
+            sub: e.myCheckedIn ? context.l10n.ward_checkedIn : (_me ? context.l10n.ward_going : context.l10n.ward_notGoing),
             avatarUrl: me?.avatarUrl,
             avatarName: me?.displayName ?? 'Me',
             value: _me,
@@ -105,12 +105,14 @@ class _WhoIsGoingSheetState extends ConsumerState<_WhoIsGoingSheet> {
             _PersonSwitchRow(
               name: w.displayName,
               sub: [
-                if (w.age != null) 'Age ${w.age}',
-                'Ward',
+                if (w.age != null) context.l10n.ward_age(w.age!),
+                context.l10n.ward_ward,
                 if (w.checkedIn)
-                  'Checked in'
+                  context.l10n.ward_checkedIn
                 else
-                  (_wards[w.userId] ?? false) ? 'Going' : 'Not going',
+                  (_wards[w.userId] ?? false)
+                      ? context.l10n.ward_going
+                      : context.l10n.ward_notGoing,
               ].join(' · '),
               avatarUrl: w.avatarUrl,
               avatarName: w.displayName,
@@ -126,7 +128,7 @@ class _WhoIsGoingSheetState extends ConsumerState<_WhoIsGoingSheet> {
         ],
         const SizedBox(height: 16),
         SpButton(
-          label: 'Done',
+          label: context.l10n.ward_done,
           icon: Icons.check_rounded,
           expand: true,
           onTap: () => Navigator.of(context).pop(_joined),
@@ -161,7 +163,7 @@ class _PersonSwitchRow extends StatelessWidget {
     final p = context.palette;
     final Widget trailing;
     if (checkedIn) {
-      trailing = SpBadge('Checked in',
+      trailing = SpBadge(context.l10n.ward_checkedIn,
           icon: Icons.check_circle_rounded, tone: p.greenText);
     } else if (busy) {
       trailing = const Padding(
@@ -240,14 +242,14 @@ class _WhoIsCheckingInSheetState extends ConsumerState<_WhoIsCheckingInSheet> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SpSheetHeader(
+        SpSheetHeader(
           icon: Icons.qr_code_scanner_rounded,
-          title: "Who's checking in?",
-          subtitle: 'Pick everyone who is here with you.',
+          title: context.l10n.ward_whosCheckingIn,
+          subtitle: context.l10n.ward_pickEveryoneWhoIsHere,
         ),
         SpListCard(children: [
           _PickRow(
-            name: 'Me',
+            name: context.l10n.ward_me,
             sub: me?.displayName,
             avatarName: me?.displayName ?? 'Me',
             avatarUrl: me?.avatarUrl,
@@ -257,7 +259,10 @@ class _WhoIsCheckingInSheetState extends ConsumerState<_WhoIsCheckingInSheet> {
           for (final w in widget.wards)
             _PickRow(
               name: w.displayName,
-              sub: [if (w.age != null) 'Age ${w.age}', 'Ward'].join(' · '),
+              sub: [
+                if (w.age != null) context.l10n.ward_age(w.age!),
+                context.l10n.ward_ward,
+              ].join(' · '),
               avatarName: w.displayName,
               avatarUrl: w.avatarUrl,
               selected: _picked.contains(w.userId),
@@ -267,10 +272,10 @@ class _WhoIsCheckingInSheetState extends ConsumerState<_WhoIsCheckingInSheet> {
         const SizedBox(height: 16),
         SpButton(
           label: n == 0
-              ? 'Pick at least one person'
+              ? context.l10n.ward_pickAtLeastOnePerson
               : n == 1
-                  ? 'Check in'
-                  : 'Check in $n people',
+                  ? context.l10n.ward_checkIn
+                  : context.l10n.ward_checkInPeople2(n),
           icon: Icons.how_to_reg_rounded,
           tone: SpButtonTone.brand,
           expand: true,
@@ -403,17 +408,17 @@ class CheckinOutcome {
   bool get wardFined => status == 'fined' && forWard;
 
   String get headline => switch (status) {
-        'checked_in' => 'Checked in',
-        'already_checked_in' => 'Already checked in',
-        'payment_required' => 'Payment required',
-        'limit_reached' => 'Check-ins are full',
-        'rsvp_required' => 'RSVP first',
-        'full' => 'Event is full',
-        'fined' => 'Outstanding fine',
-        'self_checkin' => "That's your own QR",
-        'not_registered' => 'Not registered for this league',
-        'error' => "Couldn't check in",
-        _ => 'Not checked in',
+        'checked_in' => l10n.ward_checkedIn,
+        'already_checked_in' => l10n.ward_alreadyCheckedIn,
+        'payment_required' => l10n.ward_paymentRequired,
+        'limit_reached' => l10n.ward_checkInsAreFull,
+        'rsvp_required' => l10n.ward_rsvpFirst,
+        'full' => l10n.ward_eventIsFull,
+        'fined' => l10n.ward_outstandingFine,
+        'self_checkin' => l10n.ward_thatsYourOwnQr,
+        'not_registered' => l10n.ward_notRegisteredForThisLeague,
+        'error' => l10n.ward_couldntCheckIn,
+        _ => l10n.ward_notCheckedIn,
       };
 
   factory CheckinOutcome.fromResult(Map<String, dynamic> res,
@@ -426,32 +431,31 @@ class CheckinOutcome {
     final forWard = res['forWard'] == true || !isMe;
     final message = switch (status) {
       'checked_in' => parseStr(res['letInBy']) != null
-          ? 'Checked in to $title. Let in by ${parseStr(res['letInBy'])}.'
-          : 'Checked in to $title.',
-      'already_checked_in' => 'Already on the list for $title.',
+          ? l10n.ward_checkedInToLetIn(title, parseStr(res['letInBy']) ?? '')
+          : l10n.ward_checkedInTo(title),
+      'already_checked_in' => l10n.ward_alreadyOnTheListFor(title),
       'payment_required' => forWard
           ? '$title needs a paid ticket for $name. Pay for them here, then '
               'scan again to check them in.'
-          : 'This event needs a paid ticket before check-in. Open the event '
-              'page to pay, then scan again.',
+          : l10n.ward_thisEventNeedsAPaid,
       'limit_reached' =>
-        reason ?? "This group's monthly check-in limit has been reached.",
+        reason ?? l10n.ward_thisGroupsMonthlyCheckIn,
       'rsvp_required' => forWard
           ? '$name needs an RSVP for $title first. RSVP for them on the '
               'event page, then scan again.'
           : reason ??
-              'This event needs an RSVP before check-in. Open the event, RSVP, then scan again.',
+              l10n.ward_thisEventNeedsAnRsvp,
       'full' => reason ?? '$title is full — every spot is taken.',
       'fined' => forWard
           ? '${reason ?? '$name has an unpaid fine with this group.'} '
               'You can pay it from Fines, then scan again.'
           : reason ??
-              'There is an unpaid fine with this group — settle it to check in.',
+              l10n.ward_thereIsAnUnpaidFine,
       'self_checkin' =>
-        reason ?? "You can't scan your own QR. Use another admin's.",
+        reason ?? l10n.ward_youCantScanYourOwn,
       'not_registered' =>
-        reason ?? 'Only players on a registered roster can check in to this match.',
-      _ => 'Unexpected result: $status',
+        reason ?? l10n.ward_onlyPlayersOnARegistered,
+      _ => l10n.ward_unexpectedResult(status),
     };
     final outstanding = res['outstanding'] is List
         ? [
@@ -530,8 +534,8 @@ class _CheckinResultsSheetState extends ConsumerState<_CheckinResultsSheet> {
       }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(status == 'paid'
-              ? 'Paid ✅ — scan again to check ${o.name} in.'
-              : 'Payment $status — try scanning again in a moment.')));
+              ? l10n.ward_paidScanAgainToCheck(o.name)
+              : l10n.ward_paymentTryScanningAgainIn(status))));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -547,7 +551,7 @@ class _CheckinResultsSheetState extends ConsumerState<_CheckinResultsSheet> {
     final o = widget.results[i];
     if (o.canPayForWard) {
       if (_paid.contains(i)) {
-        return Text('Paid — scan again to check ${o.name} in.',
+        return Text(context.l10n.ward_paidScanAgainToCheck2(o.name),
             style: TextStyle(
                 color: p.greenText,
                 fontSize: 12.5,
@@ -560,7 +564,7 @@ class _CheckinResultsSheetState extends ConsumerState<_CheckinResultsSheet> {
       return Align(
         alignment: Alignment.centerLeft,
         child: SpButton(
-          label: busy ? 'Opening checkout…' : 'Pay for ${o.name}$amount',
+          label: busy ? context.l10n.ward_openingCheckout : context.l10n.ward_payFor(o.name, amount),
           icon: Icons.lock_outline_rounded,
           tone: SpButtonTone.brand,
           onTap: busy ? null : () => _payFor(i),
@@ -571,7 +575,7 @@ class _CheckinResultsSheetState extends ConsumerState<_CheckinResultsSheet> {
       return Align(
         alignment: Alignment.centerLeft,
         child: SpButton(
-          label: 'See fines',
+          label: context.l10n.ward_seeFines,
           icon: Icons.receipt_long_outlined,
           onTap: () => Navigator.of(context).pop(CheckinSheetAction.openFines),
         ),
@@ -607,12 +611,12 @@ class _CheckinResultsSheetState extends ConsumerState<_CheckinResultsSheet> {
                   ? p.danger
                   : p.orangeInk,
           title: allOk
-              ? (results.length == 1 ? "You're all set" : "Everyone's in")
+              ? (results.length == 1 ? context.l10n.ward_youreAllSet : context.l10n.ward_everyonesIn)
               : noneOk
-                  ? 'Nobody was checked in'
-                  : 'Some check-ins need attention',
+                  ? context.l10n.ward_nobodyWasCheckedIn
+                  : context.l10n.ward_someCheckInsNeedAttention,
           subtitle:
-              allOk ? 'Have a great game.' : 'Here is how each check-in went.',
+              allOk ? context.l10n.ward_haveAGreatGame : context.l10n.ward_hereIsHowEachCheck,
         ),
         SpListCard(children: [
           for (var i = 0; i < results.length; i++)
@@ -623,7 +627,7 @@ class _CheckinResultsSheetState extends ConsumerState<_CheckinResultsSheet> {
         ]),
         const SizedBox(height: 16),
         SpButton(
-          label: 'Done',
+          label: context.l10n.ward_done,
           icon: Icons.check_rounded,
           expand: true,
           onTap: () => Navigator.of(context).pop(CheckinSheetAction.done),
@@ -642,7 +646,7 @@ class _CheckinResultsSheetState extends ConsumerState<_CheckinResultsSheet> {
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Icon(Icons.qr_code_scanner_rounded, size: 18, color: p.ink),
                 const SizedBox(width: 7),
-                Text('Scan another code',
+                Text(context.l10n.ward_scanAnotherCode,
                     style: TextStyle(
                         color: p.ink,
                         fontSize: 14,

@@ -4,6 +4,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/event_models.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Team events — "Who's it for?" on the create / edit event forms, and the
 /// "For U12 Lions" chip on event headers, lists and calendar rows.
@@ -15,9 +16,8 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 
 /// The helper line under the team list (and the Private switch subtitle).
 String teamEventHint({required bool isPrivate}) => isPrivate
-    ? 'Only this team can open it'
-    : "Only this team's players, their guardians and coaches are notified "
-        'and see it — anyone with the link can still join';
+    ? l10n.common_onlyThisTeamCanOpen
+    : l10n.common_onlyThisTeamsPlayersTheir;
 
 class EventAudiencePicker extends StatelessWidget {
   const EventAudiencePicker({
@@ -47,12 +47,12 @@ class EventAudiencePicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final everyone = groupName == null || groupName!.trim().isEmpty
-        ? 'Everyone in the group'
-        : 'Everyone in ${groupName!.trim()}';
+        ? context.l10n.common_everyoneInTheGroup
+        : context.l10n.common_everyoneInGroup(groupName!.trim());
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text("Who's it for?",
+        Text(context.l10n.common_whosItFor,
             style: TextStyle(
                 color: p.muted, fontSize: 11.5, fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
@@ -70,7 +70,7 @@ class EventAudiencePicker extends StatelessWidget {
             Expanded(
               child: _ChoiceCard(
                 icon: Icons.shield_outlined,
-                label: 'A team',
+                label: context.l10n.common_aTeam,
                 selected: forTeams,
                 onTap: () => onForTeamsChanged(true),
               ),
@@ -80,7 +80,7 @@ class EventAudiencePicker extends StatelessWidget {
           if (allowEveryone) const SizedBox(height: 8),
           if (teams.isEmpty)
             Text(
-                'No teams to pick yet — build one from the group\'s Teams tab.',
+                context.l10n.common_noTeamsToPickYet,
                 style: TextStyle(color: p.muted, fontSize: 12.5))
           else
             for (final t in teams)
@@ -186,14 +186,14 @@ class _TeamRow extends StatelessWidget {
                           fontSize: 14,
                           fontWeight: FontWeight.w700)),
                   if (players != null)
-                    Text('$players player${players == 1 ? '' : 's'}',
+                    Text(context.l10n.common_players(players),
                         style: TextStyle(color: p.muted, fontSize: 12)),
                 ],
               ),
             ),
             if (team.isKids) ...[
               const SizedBox(width: 8),
-              _Tag('Kids', color: p.wardInk),
+              _Tag(context.l10n.common_kids, color: p.wardInk),
             ],
             const SizedBox(width: 10),
             Icon(

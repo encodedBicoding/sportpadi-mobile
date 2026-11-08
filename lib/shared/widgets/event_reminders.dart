@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Event reminder slots, farthest from the event first — mirrors the
 /// server's `reminders/schedule.ts` (REMINDER_SLOTS / DEFAULT_REMINDERS).
-const kReminderSlots = <String, String>{
-  'd5': '5 days',
-  'd3': '3 days',
-  'd2': '2 days',
-  'd1': '1 day',
-  'h2': '2 hours',
-};
+/// Keys are the server's slot ids; values are labels in the current language.
+Map<String, String> get kReminderSlots => <String, String>{
+      'd5': l10n.common_reminderDays(5),
+      'd3': l10n.common_reminderDays(3),
+      'd2': l10n.common_reminderDays(2),
+      'd1': l10n.common_reminderDays(1),
+      'h2': l10n.common_reminderHours(2),
+    };
 
 /// What a new event gets when the organizer doesn't change anything.
 const kDefaultReminderSlots = <String>['d2', 'h2'];
 
-const kRemindersHelp =
-    'People going get these; everyone else the event is for gets one '
-    '“Are you coming?” nudge. Day reminders arrive at 9am their time.';
+String get kRemindersHelp => l10n.common_remindersHelp;
 
 /// The slots in server order (farthest first), unknown values dropped.
 List<String> orderReminderSlots(Iterable<String> slots) => [
@@ -53,10 +53,10 @@ class EventRemindersPicker extends StatelessWidget {
         Row(children: [
           Icon(Icons.alarm_rounded, size: 15, color: p.muted),
           const SizedBox(width: 6),
-          Text('Reminders',
+          Text(context.l10n.common_reminders,
               style: TextStyle(
                   color: p.muted, fontSize: 11.5, fontWeight: FontWeight.w600)),
-          Text(' · before the event',
+          Text(context.l10n.common_beforeTheEvent,
               style: TextStyle(color: p.muted, fontSize: 11.5)),
         ]),
         const SizedBox(height: 6),
@@ -74,7 +74,7 @@ class EventRemindersPicker extends StatelessWidget {
                   : null,
             ),
           _ReminderChip(
-            label: 'No reminders',
+            label: context.l10n.common_noReminders,
             on: selected.isEmpty,
             onTap: enabled && selected.isNotEmpty
                 ? () => onChanged(<String>{})

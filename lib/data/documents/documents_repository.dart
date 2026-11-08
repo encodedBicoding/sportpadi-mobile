@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// A document a sport's teams may be asked for (owner console → Team
 /// documents) and what one team has on file for it.
@@ -111,7 +112,7 @@ class DocumentsRepository {
         data: Stream.fromIterable([bytes]),
         options: Options(headers: {...headers, 'Content-Length': bytes.length}, contentType: contentType),
       );
-      if ((res.statusCode ?? 500) >= 300) throw ApiException('Upload failed.', statusCode: res.statusCode);
+      if ((res.statusCode ?? 500) >= 300) throw ApiException(l10n.common_uploadFailed, statusCode: res.statusCode);
       return d['publicUrl'] as String;
     } catch (e) {
       throw apiError(e, fallback: 'Upload failed.');

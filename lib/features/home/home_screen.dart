@@ -44,6 +44,7 @@ import 'package:sportpadi_mobile/data/weather/weather_repository.dart';
 import 'package:sportpadi_mobile/features/home/intent_first_card.dart';
 import 'package:sportpadi_mobile/features/notifications/notifications_nudge_card.dart';
 import 'package:sportpadi_mobile/features/home/balance_gaps_card.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Home — the user's personal dashboard: their upcoming events across every
 /// group they belong to (live events beep on the tab), a Kids tab (future),
@@ -116,7 +117,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// "Ward · Tobi, Zara" — which of my wards an event is on my feed for.
   static String? _wardChip(EventSummary e) => e.forWards.isEmpty
       ? null
-      : 'Ward · ${e.forWards.map((w) => w.name).join(', ')}';
+      : l10n.home_wardChip(e.forWards.map((w) => w.name).join(', '));
 
   /// Pull to refresh: everything on Home — the feed, the header (me, your
   /// week, the bell, the inbox, the menu dot), the suggestions shelf (for
@@ -272,14 +273,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         Row(children: [
                           Expanded(
                             child: _quickAction(p, Icons.group_add_outlined,
-                                'Create group', () => _newGroupSheet(context)),
+                                context.l10n.home_createGroup, () => _newGroupSheet(context)),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: _quickAction(
                                 p,
                                 Icons.qr_code_scanner_rounded,
-                                'Scan QR',
+                                context.l10n.home_scanQr,
                                 () => context.push('/scan'),
                                 dark: true),
                           ),
@@ -341,23 +342,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             child: Column(children: [
                               const Text('🧭', style: TextStyle(fontSize: 28)),
                               const SizedBox(height: 8),
-                              Text('Nothing here yet',
+                              Text(context.l10n.home_nothingHereYet,
                                   style: TextStyle(
                                       color: p.ink,
                                       fontSize: 14.5,
                                       fontWeight: FontWeight.w700)),
                               const SizedBox(height: 4),
                               Text(
-                                "You're not in any group yet, so there are no "
-                                "events on your Home. Browse what's happening on "
-                                'SportPadi and find your crew.',
+                                context.l10n.home_youreNotInAnyGroup2,
                                 textAlign: TextAlign.center,
                                 style:
                                     TextStyle(color: p.muted, fontSize: 12.5),
                               ),
                               const SizedBox(height: 12),
                               SpButton(
-                                label: 'Browse events',
+                                label: context.l10n.home_browseEvents,
                                 icon: Icons.explore_outlined,
                                 onTap: () => ref
                                     .read(homeTabIndexProvider.notifier)
@@ -548,8 +547,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final parts = key.split('-').map(int.parse).toList();
     final d = DateTime(parts[0], parts[1], parts[2]);
     final diff = d.difference(today).inDays;
-    if (diff == 0) return 'Today';
-    if (diff == 1) return 'Tomorrow';
+    if (diff == 0) return l10n.home_today;
+    if (diff == 1) return l10n.home_tomorrow;
     return '${_wd3[d.weekday - 1]} ${d.day} ${_mo[d.month - 1].substring(0, 3)}';
   }
 
@@ -741,18 +740,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         p,
         Icons.event_available_outlined,
         _day != null
-            ? 'Nothing on ${_dayLabel(_day!).toLowerCase().startsWith('to') ? _dayLabel(_day!).toLowerCase() : _dayLabel(_day!)}'
+            ? context.l10n.home_nothingOn(_dayLabel(_day!).toLowerCase().startsWith('to') ? _dayLabel(_day!).toLowerCase() : _dayLabel(_day!))
             : _range == 'live'
-                ? 'Nothing live right now'
+                ? context.l10n.home_nothingLiveRightNow
                 : _range == 'today'
-                    ? 'Nothing happening today'
-                    : 'Nothing coming up',
+                    ? context.l10n.home_nothingHappeningToday
+                    : context.l10n.home_nothingComingUp,
         _sport != null
-            ? 'No $_sport events here — try another sport or day.'
-            : 'Across the groups you belong to or follow.',
+            ? context.l10n.home_noEventsHereTryAnother(_sport ?? '')
+            : context.l10n.home_acrossTheGroupsYouBelong,
         action: _day == null && _range != 'today'
             ? SpButton(
-                label: 'Browse events',
+                label: context.l10n.home_browseEvents,
                 icon: Icons.explore_outlined,
                 onTap: () => ref.read(homeTabIndexProvider.notifier).state = 1,
               )
@@ -764,7 +763,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         for (final g in groups.entries) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 12, 4, 4),
-            child: Text(g.key.isEmpty ? 'Date to be set' : _dayLabel(g.key),
+            child: Text(g.key.isEmpty ? context.l10n.home_dateToBeSet : _dayLabel(g.key),
                 style: TextStyle(
                     color: p.muted,
                     fontSize: 11.5,
@@ -786,8 +785,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   Text(
                       _agendaOpen
-                          ? 'Show less'
-                          : 'Show all ${panelList.length}',
+                          ? context.l10n.home_showLess
+                          : context.l10n.home_showAll(panelList.length),
                       style: TextStyle(
                           color: p.greenText,
                           fontSize: 13,
@@ -823,13 +822,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Your calendar',
+                    Text(context.l10n.home_yourCalendar,
                         style: TextStyle(
                             color: p.ink,
                             fontSize: 17,
                             fontWeight: FontWeight.w700)),
                     Text(
-                        '$monthLabel · ${all.length} upcoming across your groups',
+                        context.l10n.home_upcomingAcrossYourGroups(monthLabel, all.length),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: p.muted, fontSize: 12)),
@@ -845,7 +844,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     foregroundColor: p.greenText,
                     textStyle: const TextStyle(
                         fontSize: 12.5, fontWeight: FontWeight.w700)),
-                child: const Text('Clear day'),
+                child: Text(context.l10n.home_clearDay),
               ),
           ]),
         ),
@@ -932,7 +931,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(live ? 'Now' : (start ?? 'TBC'),
+                    Text(live ? context.l10n.home_now : (start ?? context.l10n.home_tbc),
                         style: TextStyle(
                             color: live ? p.danger : p.ink,
                             fontSize: 12.5,
@@ -1024,8 +1023,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     decoration: BoxDecoration(
                         color: p.danger,
                         borderRadius: BorderRadius.circular(999)),
-                    child: const Text('LIVE',
-                        style: TextStyle(
+                    child: Text(context.l10n.home_live2,
+                        style: const TextStyle(
                             color: Colors.white,
                             fontSize: 10,
                             fontWeight: FontWeight.w800)),
@@ -1056,18 +1055,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SpSheetHeader(
+            SpSheetHeader(
               icon: Icons.group_add_outlined,
-              title: 'Create a group',
+              title: l10n.home_createAGroup,
               subtitle:
-                  'Name it now — you can add a crest, sports and more later.',
+                  l10n.home_nameItNowYouCan,
             ),
             TextField(
               controller: name,
               style: TextStyle(color: p.ink, fontSize: 14),
               decoration: InputDecoration(
                 isDense: true,
-                hintText: 'Group name',
+                hintText: l10n.home_groupName,
                 hintStyle: TextStyle(color: p.muted, fontSize: 13.5),
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
@@ -1083,7 +1082,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               style: TextStyle(color: p.ink, fontSize: 14),
               decoration: InputDecoration(
                 isDense: true,
-                hintText: 'Description (optional)',
+                hintText: l10n.home_descriptionOptional,
                 hintStyle: TextStyle(color: p.muted, fontSize: 13.5),
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
@@ -1094,7 +1093,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SizedBox(height: 14),
             SpButton(
-              label: 'Create group',
+              label: l10n.home_createGroup,
               icon: Icons.group_add_outlined,
               expand: true,
               onTap: () async {
@@ -1174,10 +1173,10 @@ class _HomeHeader extends ConsumerWidget {
     final unread = ref.watch(unreadCountProvider).valueOrNull ?? 0;
     final h = DateTime.now().hour;
     final greeting = h < 12
-        ? 'Good morning'
+        ? context.l10n.home_goodMorning
         : h < 17
-            ? 'Good afternoon'
-            : 'Good evening';
+            ? context.l10n.home_goodAfternoon
+            : context.l10n.home_goodEvening;
     final first =
         capitalizeFirst(me?.displayName.trim().split(RegExp(r'\s+')).first);
     final initial = first.isNotEmpty ? first[0].toUpperCase() : '?';
@@ -1190,7 +1189,7 @@ class _HomeHeader extends ConsumerWidget {
             Text(greeting,
                 style: TextStyle(
                     color: p.muted, fontSize: 13, fontWeight: FontWeight.w500)),
-            Text(first.isEmpty ? 'Welcome' : first,
+            Text(first.isEmpty ? context.l10n.home_welcome : first,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -1211,7 +1210,7 @@ class _HomeHeader extends ConsumerWidget {
         const SizedBox(width: 8),
         Semantics(
           button: true,
-          label: unread > 0 ? 'Notifications, $unread unread' : 'Notifications',
+          label: unread > 0 ? context.l10n.home_notificationsUnread(unread) : context.l10n.home_notifications,
           child: Material(
             color: p.surface,
             shape: const CircleBorder(),
@@ -1248,7 +1247,7 @@ class _HomeHeader extends ConsumerWidget {
         const SizedBox(width: 10),
         Semantics(
           button: true,
-          label: 'Menu',
+          label: context.l10n.home_menu,
           child: GestureDetector(
             onTap: () => showSideMenu(context),
             child: SizedBox(
@@ -1298,7 +1297,7 @@ class _HomeHeader extends ConsumerWidget {
                             border: Border.all(color: p.bg, width: 2),
                           ),
                           // "Lv 7", not a bare number nobody can place.
-                          child: Text('Lv ${week.level}',
+                          child: Text(context.l10n.home_lv(week.level),
                               style: const TextStyle(
                                   color: Color(0xFF1A0E04),
                                   fontSize: 9.5,
@@ -1335,25 +1334,22 @@ class _NothingUpNextCard extends ConsumerWidget {
     final VoidCallback onTap;
     if (hasFix) {
       icon = Icons.explore_outlined;
-      title = 'Nothing up next';
-      body = 'No game on your calendar yet. See what\'s on near you and '
-          'get one in.';
-      cta = 'Browse games';
+      title = context.l10n.home_nothingUpNext;
+      body = context.l10n.home_noGameOnYourCalendar;
+      cta = context.l10n.home_browseGames;
       onTap = () => ref.read(homeTabIndexProvider.notifier).state = 1;
     } else if (st.denied) {
       icon = Icons.location_off_rounded;
-      title = 'Nothing up next';
-      body = 'Location is off for SportPadi. Turn it on in Settings and '
-          'we\'ll suggest games near you.';
-      cta = 'Open Settings';
+      title = context.l10n.home_nothingUpNext;
+      body = context.l10n.home_locationIsOffForSportPadi;
+      cta = context.l10n.home_openSettings;
       onTap = () => Geolocator.openAppSettings();
     } else {
       icon = Icons.location_searching_rounded;
-      title = 'Nothing up next';
+      title = context.l10n.home_nothingUpNext;
       body = st.error ??
-          'Allow SportPadi to read your location and we\'ll suggest games '
-              'near you to fill the gap.';
-      cta = st.loading ? 'Finding you…' : 'Allow location';
+          context.l10n.home_allowSportPadiToReadYour;
+      cta = st.loading ? context.l10n.home_findingYou : context.l10n.home_allowLocation;
       onTap = () => ref.read(locationProvider.notifier).request();
     }
     return GlassCard(
@@ -1399,17 +1395,17 @@ class _NextUpCard extends StatelessWidget {
   final bool onNow;
 
   String _eyebrow() {
-    if (live) return 'LIVE NOW';
-    if (onNow) return 'ON NOW';
+    if (live) return l10n.home_liveNow;
+    if (onNow) return l10n.home_onNow;
     final d = event.eventDate?.toUtc();
-    if (d == null) return 'NEXT UP';
+    if (d == null) return l10n.home_nextUp;
     final now = DateTime.now();
     final today = DateTime.utc(now.year, now.month, now.day);
     final day = DateTime.utc(d.year, d.month, d.day);
     final n = day.difference(today).inDays;
-    if (n <= 0) return 'NEXT UP · TODAY';
-    if (n == 1) return 'NEXT UP · TOMORROW';
-    return 'NEXT UP · IN $n DAYS';
+    if (n <= 0) return l10n.home_nextUpToday;
+    if (n == 1) return l10n.home_nextUpTomorrow;
+    return l10n.home_nextUpInDays(n);
   }
 
   @override
@@ -1480,7 +1476,7 @@ class _NextUpCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     (e.interestCount ?? 0) > 0
-                        ? '${e.interestCount} RSVP${e.interestCount == 1 ? '' : 's'}'
+                        ? context.l10n.home_rSVPs(e.interestCount ?? 0)
                         : '',
                     style: TextStyle(color: p.heroMuted, fontSize: 12.5),
                   ),
@@ -1502,7 +1498,7 @@ class _NextUpCard extends StatelessWidget {
                             size: 17,
                             color: p.hero),
                         const SizedBox(width: 6),
-                        Text(live ? 'Check in' : 'View',
+                        Text(live ? context.l10n.home_checkIn : context.l10n.home_view,
                             style: TextStyle(
                                 color: p.hero,
                                 fontSize: 14,

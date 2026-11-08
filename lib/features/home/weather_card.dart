@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/core/location/location_provider.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/weather/weather_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Home weather card (signed-in, app only). Shown once the session has a
 /// location fix: current temperature and condition, today's range, and the
@@ -70,13 +71,13 @@ class _WeatherCardState extends ConsumerState<WeatherCard> {
                 bg: p.accentTint, fg: p.greenText, size: 36, iconSize: 18),
             const SizedBox(width: 12),
             Expanded(
-              child: Text("See today's weather for your games",
+              child: Text(context.l10n.home_seeTodaysWeatherForYour,
                   style: TextStyle(
                       color: p.ink,
                       fontSize: 13.5,
                       fontWeight: FontWeight.w600)),
             ),
-            Text('Allow location',
+            Text(context.l10n.home_allowLocation,
                 style: TextStyle(
                     color: p.greenText,
                     fontSize: 12.5,

@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// A player's social links (docs/design/scouting-profile.md § Social links).
 /// Web twin: components/profile/SocialLinks.tsx. Any platform can be added:
@@ -16,7 +17,7 @@ import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 /// the profile URL; anything else is a labelled https link.
 
 /// Platform → (name, short badge). Must match packages/lib/src/socialLinks.ts.
-const kSocialPlatforms = <String, (String, String)>{
+Map<String, (String, String)> get kSocialPlatforms => <String, (String, String)>{
   'instagram': ('Instagram', 'IG'),
   'tiktok': ('TikTok', 'TT'),
   'x': ('X', 'X'),
@@ -26,7 +27,7 @@ const kSocialPlatforms = <String, (String, String)>{
   'snapchat': ('Snapchat', 'SC'),
   'linkedin': ('LinkedIn', 'in'),
   'twitch': ('Twitch', 'TW'),
-  'other': ('Other link', '↗'),
+  'other': (l10n.profile_otherLink, '↗'),
 };
 const kMaxSocialLinks = 10;
 
@@ -37,7 +38,7 @@ class SocialLink {
   final String url;
   final String label;
 
-  String get platformName => kSocialPlatforms[platform]?.$1 ?? 'Link';
+  String get platformName => kSocialPlatforms[platform]?.$1 ?? l10n.profile_link;
 
   static List<SocialLink> listFrom(dynamic v) => [
         if (v is List)
@@ -49,7 +50,7 @@ class SocialLink {
                     : 'other',
                 url: e['url'] as String,
                 label: parseStr(e['label']) ??
-                    (kSocialPlatforms[e['platform']]?.$1 ?? 'Link'),
+                    (kSocialPlatforms[e['platform']]?.$1 ?? l10n.profile_link),
               ),
       ];
 }
@@ -176,7 +177,7 @@ class _SocialLinksSheetState extends ConsumerState<_SocialLinksSheet> {
     final v = _value.text.trim();
     if (v.isEmpty) return;
     if (_rows.length >= kMaxSocialLinks) {
-      setState(() => _error = 'Up to $kMaxSocialLinks links.');
+      setState(() => _error = context.l10n.profile_upToLinks2(kMaxSocialLinks));
       return;
     }
     setState(() {
@@ -212,7 +213,7 @@ class _SocialLinksSheetState extends ConsumerState<_SocialLinksSheet> {
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = apiError(e, fallback: 'Could not save.').message;
+          _error = apiError(e, fallback: l10n.profile_couldNotSave).message;
         });
       }
     }
@@ -256,12 +257,12 @@ class _SocialLinksSheetState extends ConsumerState<_SocialLinksSheet> {
                         color: p.line, borderRadius: BorderRadius.circular(2))),
               ),
               const SizedBox(height: 16),
-              Text('Social links',
+              Text(context.l10n.profile_socialLinks,
                   style: TextStyle(
                       color: p.ink, fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
               Text(
-                  'Shown on your public profile. Add any platform — a handle becomes a profile link.',
+                  context.l10n.profile_shownOnYourPublicProfile2,
                   style: TextStyle(color: p.muted, fontSize: 12.5)),
               const SizedBox(height: 14),
               if (_rows.isNotEmpty)
@@ -303,7 +304,7 @@ class _SocialLinksSheetState extends ConsumerState<_SocialLinksSheet> {
                             ),
                           ),
                           IconButton(
-                            tooltip: 'Remove',
+                            tooltip: context.l10n.profile_remove,
                             icon: Icon(Icons.delete_outline_rounded,
                                 size: 20, color: p.muted),
                             onPressed: () => setState(() => _rows.removeAt(i)),
@@ -317,7 +318,7 @@ class _SocialLinksSheetState extends ConsumerState<_SocialLinksSheet> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: _platform,
-                  decoration: const InputDecoration(labelText: 'Platform'),
+                  decoration: InputDecoration(labelText: context.l10n.profile_platform),
                   items: [
                     for (final e in kSocialPlatforms.entries)
                       DropdownMenuItem(value: e.key, child: Text(e.value.$1)),
@@ -331,8 +332,8 @@ class _SocialLinksSheetState extends ConsumerState<_SocialLinksSheet> {
                   autocorrect: false,
                   textCapitalization: TextCapitalization.none,
                   decoration: InputDecoration(
-                    labelText: isOther ? 'Link' : 'Handle or link',
-                    hintText: isOther ? 'https://…' : '@handle or $host link',
+                    labelText: isOther ? context.l10n.profile_link : context.l10n.profile_handleOrLink2,
+                    hintText: isOther ? 'https://…' : context.l10n.profile_handleOrLink3(host),
                   ),
                   onSubmitted: (_) => _add(),
                 ),
@@ -341,8 +342,8 @@ class _SocialLinksSheetState extends ConsumerState<_SocialLinksSheet> {
                   TextField(
                     controller: _label,
                     maxLength: 40,
-                    decoration: const InputDecoration(
-                        labelText: 'Label', hintText: 'Hudl, Linktree, my site…', counterText: ''),
+                    decoration: InputDecoration(
+                        labelText: context.l10n.profile_label, hintText: context.l10n.profile_hudlLinktreeMySite, counterText: ''),
                   ),
                 ],
                 const SizedBox(height: 8),
@@ -351,7 +352,7 @@ class _SocialLinksSheetState extends ConsumerState<_SocialLinksSheet> {
                   child: TextButton.icon(
                     onPressed: _add,
                     icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Add'),
+                    label: Text(context.l10n.profile_add),
                   ),
                 ),
               ],
@@ -361,7 +362,7 @@ class _SocialLinksSheetState extends ConsumerState<_SocialLinksSheet> {
               ],
               const SizedBox(height: 12),
               SpButton(
-                label: _busy ? 'Saving…' : 'Save links',
+                label: _busy ? context.l10n.profile_saving : context.l10n.profile_saveLinks,
                 expand: true,
                 onTap: _busy ? null : _save,
               ),
@@ -387,16 +388,16 @@ class SocialLinksScreen extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: Column(children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: SpHeader(title: 'Social links'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: SpHeader(title: context.l10n.profile_socialLinks),
           ),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
               children: [
                 Text(
-                    'Where people can find you. These show as links on your public profile — a handle becomes a profile link, and any other site can be added with a label.',
+                    context.l10n.profile_wherePeopleCanFindYou,
                     style: TextStyle(color: p.muted, fontSize: 13.5, height: 1.45)),
                 const SizedBox(height: 16),
                 if (links.isEmpty)
@@ -404,11 +405,11 @@ class SocialLinksScreen extends ConsumerWidget {
                     child: Column(children: [
                       Icon(Icons.link_rounded, size: 28, color: p.muted),
                       const SizedBox(height: 8),
-                      Text('No links yet',
+                      Text(context.l10n.profile_noLinksYet,
                           style: TextStyle(
                               color: p.ink, fontSize: 15, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 2),
-                      Text('Instagram, TikTok, X, Facebook, Threads — any platform.',
+                      Text(context.l10n.profile_instagramTikTokXFacebookThreads2,
                           textAlign: TextAlign.center,
                           style: TextStyle(color: p.muted, fontSize: 12.5)),
                     ]),
@@ -452,7 +453,7 @@ class SocialLinksScreen extends ConsumerWidget {
                   ),
                 const SizedBox(height: 14),
                 SpButton(
-                  label: links.isEmpty ? 'Add links' : 'Edit links',
+                  label: links.isEmpty ? context.l10n.profile_addLinks : context.l10n.profile_editLinks,
                   icon: Icons.edit_outlined,
                   expand: true,
                   onTap: () => showSocialLinksEditor(context, links: links),

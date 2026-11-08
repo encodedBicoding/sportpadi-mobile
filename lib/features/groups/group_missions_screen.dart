@@ -7,19 +7,20 @@ import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
-const _kindLabel = <String, String>{
-  'checkin': 'Check-ins',
-  'checkin_early': 'Early check-ins',
-  'rsvp': 'RSVPs',
-  'game_completed': 'Games completed',
-  'game_won': 'Wins',
-  'new_teammate': 'New teammates',
-  'new_venue': 'New venues',
-  'new_group': 'New groups played with',
-  'last_minute': 'Last-minute RSVP + show up',
-  'brought_rsvp': 'RSVPs from their share link',
-  'stat': 'Recorded stats',
+Map<String, String> get _kindLabel => <String, String>{
+  'checkin': l10n.group_missionKindCheckins,
+  'checkin_early': l10n.group_missionKindEarlyCheckins,
+  'rsvp': l10n.group_missionKindRsvps,
+  'game_completed': l10n.group_missionKindGamesCompleted,
+  'game_won': l10n.group_wins,
+  'new_teammate': l10n.group_missionKindNewTeammates,
+  'new_venue': l10n.group_missionKindNewVenues,
+  'new_group': l10n.group_missionKindNewGroups,
+  'last_minute': l10n.group_missionKindLastMinute,
+  'brought_rsvp': l10n.group_missionKindBroughtRsvps,
+  'stat': l10n.group_missionKindRecordedStats,
 };
 
 /// Group admins publish time-boxed missions to their members and followers
@@ -63,7 +64,7 @@ class _GroupMissionsScreenState extends ConsumerState<GroupMissionsScreen> {
       });
 
   Future<void> _publish() async {
-    if (_title.text.trim().length < 3) return _snack('Give the mission a title');
+    if (_title.text.trim().length < 3) return _snack(l10n.group_giveTheMissionATitle);
     setState(() => _busy = true);
     try {
       await ref.read(progressionRepositoryProvider).createMission(widget.groupId, {
@@ -77,7 +78,7 @@ class _GroupMissionsScreenState extends ConsumerState<GroupMissionsScreen> {
       ref.invalidate(groupMissionsProvider(widget.groupId));
       _title.clear();
       _description.clear();
-      _snack('Mission published to your players');
+      _snack(l10n.group_missionPublishedToYourPlayers);
     } on ApiException catch (e) {
       _snack(e.message);
     } finally {
@@ -99,8 +100,8 @@ class _GroupMissionsScreenState extends ConsumerState<GroupMissionsScreen> {
     final p = context.palette;
     final data = ref.watch(groupMissionsProvider(widget.groupId));
     return SpSubPage(
-      title: 'Missions',
-      subtitle: 'Goals for your players',
+      title: context.l10n.group_missions,
+      subtitle: context.l10n.group_goalsForYourPlayers,
       body: AsyncView(
         value: data,
         onRetry: () => ref.invalidate(groupMissionsProvider(widget.groupId)),
@@ -116,7 +117,7 @@ class _GroupMissionsScreenState extends ConsumerState<GroupMissionsScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                      'A mission shows up in your players\' "Your week" card until it ends, and pays its XP once when they complete it. Only activity in this group\'s games counts.',
+                      context.l10n.group_aMissionShowsUpIn,
                       style: TextStyle(color: p.orangeInk, fontSize: 12.5, height: 1.45)),
                 ),
               ]),
@@ -126,7 +127,7 @@ class _GroupMissionsScreenState extends ConsumerState<GroupMissionsScreen> {
             // New mission
             GlassCard(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const SpSectionTitle('New mission'),
+                SpSectionTitle(context.l10n.group_newMission),
                 if (d.presets.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Wrap(spacing: 6, runSpacing: 6, children: [
@@ -139,11 +140,11 @@ class _GroupMissionsScreenState extends ConsumerState<GroupMissionsScreen> {
                   ]),
                 ],
                 const SizedBox(height: 12),
-                TextField(controller: _title, maxLength: 80, decoration: const InputDecoration(labelText: 'Title', hintText: 'Fill the Squad', counterText: '')),
+                TextField(controller: _title, maxLength: 80, decoration: InputDecoration(labelText: context.l10n.group_title, hintText: context.l10n.group_fillTheSquad, counterText: '')),
                 const SizedBox(height: 10),
-                TextField(controller: _description, maxLength: 240, decoration: const InputDecoration(labelText: 'Description', counterText: '')),
+                TextField(controller: _description, maxLength: 240, decoration: InputDecoration(labelText: context.l10n.group_description, counterText: '')),
                 const SizedBox(height: 12),
-                Text('Counts', style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                Text(context.l10n.group_counts, style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
                   initialValue: d.kinds.contains(_ruleKind) ? _ruleKind : (d.kinds.isNotEmpty ? d.kinds.first : null),
@@ -151,14 +152,14 @@ class _GroupMissionsScreenState extends ConsumerState<GroupMissionsScreen> {
                   onChanged: (v) => setState(() => _ruleKind = v ?? _ruleKind),
                 ),
                 const SizedBox(height: 12),
-                _Counter(label: 'Target', value: _target, min: 1, max: 50, onChanged: (v) => setState(() => _target = v)),
+                _Counter(label: context.l10n.group_target, value: _target, min: 1, max: 50, onChanged: (v) => setState(() => _target = v)),
                 const SizedBox(height: 8),
                 _Counter(label: 'XP', value: _xp, min: 0, max: 500, step: 10, onChanged: (v) => setState(() => _xp = v)),
                 const SizedBox(height: 8),
-                _Counter(label: 'Runs for (days)', value: _days, min: 1, max: 90, onChanged: (v) => setState(() => _days = v)),
+                _Counter(label: context.l10n.group_runsForDays, value: _days, min: 1, max: 90, onChanged: (v) => setState(() => _days = v)),
                 const SizedBox(height: 14),
                 SpButton(
-                  label: _busy ? 'Publishing…' : 'Publish mission',
+                  label: _busy ? context.l10n.group_publishing : context.l10n.group_publishMission,
                   expand: true,
                   onTap: _busy || _title.text.trim().length < 3 ? null : _publish,
                 ),
@@ -168,7 +169,7 @@ class _GroupMissionsScreenState extends ConsumerState<GroupMissionsScreen> {
             // Your missions
             if (d.missions.isNotEmpty) ...[
               const SizedBox(height: 18),
-              SpSectionTitle('Your missions', count: d.missions.length),
+              SpSectionTitle(context.l10n.group_yourMissions, count: d.missions.length),
               const SizedBox(height: 8),
               SpListCard(children: [
                 for (final m in d.missions)
@@ -188,9 +189,8 @@ class _GroupMissionsScreenState extends ConsumerState<GroupMissionsScreen> {
                                 style: TextStyle(color: p.muted, fontSize: 11.5),
                                 children: [
                                   TextSpan(
-                                      text: '${_kindLabel[m.ruleKind] ?? m.ruleKind} ×${m.target} · +${m.xp} XP · '
-                                          '${m.live ? 'ends ${m.endsAt != null ? _day(m.endsAt!) : '—'}' : 'ended'} · '),
-                                  TextSpan(text: '${m.completions} completed', style: TextStyle(color: p.greenText, fontWeight: FontWeight.w600)),
+                                      text: context.l10n.group_xp2(_kindLabel[m.ruleKind] ?? m.ruleKind, m.target, m.xp, m.live ? context.l10n.group_ends(m.endsAt != null ? _day(m.endsAt!) : '—') : context.l10n.group_ended)),
+                                  TextSpan(text: context.l10n.group_completed(m.completions), style: TextStyle(color: p.greenText, fontWeight: FontWeight.w600)),
                                 ],
                               ),
                             ),
@@ -198,7 +198,7 @@ class _GroupMissionsScreenState extends ConsumerState<GroupMissionsScreen> {
                         ),
                         if (m.live) ...[
                           const SizedBox(width: 8),
-                          SpPill(label: 'End', tone: SpPillTone.soft, height: 32, onTap: () => _end(m)),
+                          SpPill(label: context.l10n.group_end, tone: SpPillTone.soft, height: 32, onTap: () => _end(m)),
                         ],
                       ]),
                     ),

@@ -4,6 +4,7 @@ import 'volleyball_models.dart';
 
 export 'basketball_models.dart';
 export 'volleyball_models.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// One side in a game, with its live score.
 class GameTeam {
@@ -483,8 +484,8 @@ class OfficiatingProfile {
       family: parseStr(j['family']) ?? 'generic',
       clock: parseStr(j['clock']) ?? 'match',
       lengthMinutes: parseInt(j['lengthMinutes']),
-      pauseLabel: parseStr(j['pauseLabel']) ?? 'Pause',
-      resumeLabel: parseStr(j['resumeLabel']) ?? 'Resume',
+      pauseLabel: parseStr(j['pauseLabel']) ?? l10n.common_pause,
+      resumeLabel: parseStr(j['resumeLabel']) ?? l10n.common_resume,
       stoppagePresets: j['stoppagePresets'] is List
           ? [
               for (final v in j['stoppagePresets'] as List)

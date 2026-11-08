@@ -21,6 +21,7 @@ import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
 import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Public player profile — the scout's view (web /players/[id] twin).
 ///
@@ -40,11 +41,11 @@ final playerProfileProvider = FutureProvider.autoDispose
   try {
     final res = await ref.watch(dioProvider).get('/api/mobile/players/$userId');
     if (res.data is! Map) {
-      throw ApiException('Player not found.', statusCode: 404);
+      throw ApiException(l10n.profile_playerNotFound2, statusCode: 404);
     }
     return Map<String, dynamic>.from(res.data as Map);
   } catch (e) {
-    throw apiError(e, fallback: 'Could not load the player.');
+    throw apiError(e, fallback: l10n.profile_couldNotLoadThePlayer);
   }
 });
 
@@ -61,7 +62,7 @@ final playerRecordsProvider = FutureProvider.autoDispose
         ? Map<String, dynamic>.from(res.data as Map)
         : <String, dynamic>{};
   } catch (e) {
-    throw apiError(e, fallback: 'Could not load the record.');
+    throw apiError(e, fallback: l10n.profile_couldNotLoadTheRecord);
   }
 });
 
@@ -191,9 +192,9 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                       teams: listOf(m['teams']),
                       playsIn: parseStr(m['playsIn']),
                       links: SocialLink.listFrom(m['links']),
-                      games: parseInt(honours?['games']),
-                      avgRating: parseDouble(honours?['avgRating']),
-                      statsLoaded: stats != null,
+                      categories: categories,
+                      ratings: listOf(honours?['ratingsByCategory']),
+                      statsLoaded: stats != null && honours != null,
                       onBack: _back,
                     ),
                     Padding(
@@ -226,19 +227,19 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                             child: Row(children: [
                               _PillTab(
                                   icon: Icons.groups_outlined,
-                                  label: 'Groups',
+                                  label: context.l10n.profile_groups,
                                   count: groups.length,
                                   selected: _tab == 0,
                                   onTap: () => setState(() => _tab = 0)),
                               _PillTab(
                                   icon: Icons.emoji_events_outlined,
-                                  label: 'Tournaments',
+                                  label: context.l10n.profile_tournaments,
                                   count: tournaments.length,
                                   selected: _tab == 1,
                                   onTap: () => setState(() => _tab = 1)),
                               _PillTab(
                                   icon: Icons.photo_library_outlined,
-                                  label: 'Highlights',
+                                  label: context.l10n.profile_highlights,
                                   count: posts.length,
                                   selected: _tab == 2,
                                   onTap: () => setState(() => _tab = 2)),
@@ -268,7 +269,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
               child: SpRoundButton(
                 icon: Icons.arrow_back_ios_new_rounded,
                 iconSize: 18,
-                tooltip: 'Back',
+                tooltip: context.l10n.profile_back,
                 onTap: _back,
               ),
             ),
@@ -281,8 +282,8 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
 
   List<Widget> _groups(AppPalette p, List<Map<String, dynamic>> groups) {
     if (groups.isEmpty) {
-      return const [
-        _Empty(icon: Icons.groups_outlined, text: 'Not in any groups yet.'),
+      return [
+        _Empty(icon: Icons.groups_outlined, text: context.l10n.profile_notInAnyGroupsYet),
       ];
     }
     return [
@@ -311,7 +312,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                     children: [
                       Row(children: [
                         Flexible(
-                          child: Text(parseStr(g['name']) ?? 'Group',
+                          child: Text(parseStr(g['name']) ?? context.l10n.profile_group,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -335,7 +336,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                               color: p.accentTint,
                               borderRadius: BorderRadius.circular(999),
                             ),
-                            child: Text('Admin',
+                            child: Text(context.l10n.profile_admin,
                                 style: TextStyle(
                                     color: p.greenText,
                                     fontSize: 10.5,
@@ -344,7 +345,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                         ],
                       ]),
                       const SizedBox(height: 2),
-                      Text('See their record here',
+                      Text(context.l10n.profile_seeTheirRecordHere,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(color: p.muted, fontSize: 12)),
@@ -362,7 +363,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 6),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Text('Group',
+                        Text(context.l10n.profile_group,
                             style: TextStyle(
                                 color: p.ink,
                                 fontSize: 11.5,
@@ -382,10 +383,10 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
 
   List<Widget> _tournamentsTab(List<Map<String, dynamic>> rows) {
     if (rows.isEmpty) {
-      return const [
+      return [
         _Empty(
           icon: Icons.emoji_events_outlined,
-          text: 'No tournaments yet.',
+          text: context.l10n.profile_noTournamentsYet,
         ),
       ];
     }
@@ -394,8 +395,8 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
 
   List<Widget> _posts(AppPalette p, List<Map<String, dynamic>> posts) {
     if (posts.isEmpty) {
-      return const [
-        _Empty(icon: Icons.photo_library_outlined, text: 'No highlights yet.'),
+      return [
+        _Empty(icon: Icons.photo_library_outlined, text: context.l10n.profile_noHighlightsYet),
       ];
     }
     return [
@@ -418,7 +419,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                       color: p.surface2,
                       alignment: Alignment.center,
                       padding: const EdgeInsets.all(8),
-                      child: Text(parseStr(post['caption']) ?? 'Highlight',
+                      child: Text(parseStr(post['caption']) ?? context.l10n.profile_highlight,
                           maxLines: 4,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
@@ -444,8 +445,8 @@ class _Hero extends ConsumerWidget {
     this.teams = const [],
     this.playsIn,
     this.links = const [],
-    this.games,
-    this.avgRating,
+    this.categories = const [],
+    this.ratings = const [],
     this.restricted = false,
     this.privateProfile = false,
   });
@@ -460,8 +461,10 @@ class _Hero extends ConsumerWidget {
   final List<Map<String, dynamic>> teams;
   final String? playsIn;
   final List<SocialLink> links;
-  final int? games;
-  final double? avgRating;
+  /// Every sport they have a record in, and their average rating per sport —
+  /// the header tiles, each opening that sport's record.
+  final List<dynamic> categories;
+  final List<dynamic> ratings;
   final bool statsLoaded;
   final VoidCallback onBack;
 
@@ -506,15 +509,15 @@ class _Hero extends ConsumerWidget {
                   SpRoundButton(
                     icon: Icons.arrow_back_ios_new_rounded,
                     iconSize: 18,
-                    tooltip: 'Back',
+                    tooltip: context.l10n.profile_back,
                     onTap: onBack,
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Padding(
-                      padding: EdgeInsets.only(top: 11),
-                      child: Text('Player',
+                      padding: const EdgeInsets.only(top: 11),
+                      child: Text(context.l10n.profile_player,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16,
                               fontWeight: FontWeight.w800)),
@@ -552,7 +555,7 @@ class _Hero extends ConsumerWidget {
                     await Clipboard.setData(ClipboardData(text: username));
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('@$username copied.')));
+                          SnackBar(content: Text(l10n.profile_copied(username))));
                     }
                   },
                   child: Padding(
@@ -590,9 +593,8 @@ class _Hero extends ConsumerWidget {
             if (!restricted) FollowCounts(userId: userId),
             if (restricted && privateProfile) ...[
               const SizedBox(height: 16),
-              const WardPrivateNote(
-                  text: 'This profile is private. Their records, groups and '
-                      'posts are only visible to them.'),
+              WardPrivateNote(
+                  text: context.l10n.profile_thisProfileIsPrivateTheir),
             ] else if (restricted) ...[
               const SizedBox(height: 10),
               const WardBadge(),
@@ -602,10 +604,10 @@ class _Hero extends ConsumerWidget {
               // Positions / strong foot are per-sport: they live in the sport's
               // own card below, not up here as one fixed fact.
               const SizedBox(height: 16),
-              HeadlineTiles(
-                  primary: primary,
-                  games: games,
-                  avgRating: avgRating,
+              SportRatingTiles(
+                  categories: categories,
+                  ratings: ratings,
+                  hrefFor: (categoryId) => '/players/$userId/records/$categoryId',
                   loaded: statsLoaded),
               const SizedBox(height: 12),
               Row(children: [

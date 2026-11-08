@@ -13,6 +13,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Admins: every conversation in the group, read-only (docs B8 — there is no
 /// hidden staff-to-member channel), and the reports made in it.
@@ -44,14 +45,14 @@ class _GroupMessagesScreenState extends ConsumerState<GroupMessagesScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: SpHeader(
-              title: 'Conversations',
+              title: context.l10n.group_conversations,
               subtitle: group?.name,
             ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
             child: SpSegmented(
-              options: const ['All conversations', 'Reports'],
+              options: [context.l10n.group_allConversations, context.l10n.group_reports],
               icons: const [
                 Icons.forum_outlined,
                 Icons.flag_outlined,
@@ -95,9 +96,7 @@ class _OversightList extends ConsumerWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                  "Every conversation between this group's admins or coaches and its "
-                  "members. You can read them all; only the people in a "
-                  'conversation can reply.',
+                  context.l10n.group_everyConversationBetweenThisGroups,
                   style:
                       TextStyle(color: p.muted, fontSize: 12.5, height: 1.4)),
             ),
@@ -115,7 +114,7 @@ class _OversightList extends ConsumerWidget {
                     SpIconTile(Icons.forum_outlined, size: 60, iconSize: 28),
               ),
               const SizedBox(height: 14),
-              Text('No conversations yet',
+              Text(context.l10n.group_noConversationsYet,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       color: p.ink,
@@ -209,8 +208,8 @@ class _ReportsListState extends ConsumerState<_ReportsList> {
       ref.invalidate(messageReportsProvider);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(status == 'dismissed'
-              ? 'Report dismissed.'
-              : 'Marked as reviewed.')));
+              ? l10n.group_reportDismissed
+              : l10n.group_markedAsReviewed)));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
@@ -264,7 +263,7 @@ class _ReportsListState extends ConsumerState<_ReportsList> {
                           size: 60, iconSize: 28),
                     ),
                     const SizedBox(height: 14),
-                    Text(_status == 'open' ? 'No open reports' : 'Nothing here',
+                    Text(_status == 'open' ? context.l10n.group_noOpenReports : context.l10n.group_nothingHere,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             color: p.ink,
@@ -272,8 +271,7 @@ class _ReportsListState extends ConsumerState<_ReportsList> {
                             fontWeight: FontWeight.w700)),
                     const SizedBox(height: 4),
                     Text(
-                        'When someone reports a message, an announcement or '
-                        'a discussion in this group, it shows up here.',
+                        context.l10n.group_whenSomeoneReportsAMessage,
                         textAlign: TextAlign.center,
                         style: TextStyle(color: p.muted, fontSize: 13)),
                   ],
@@ -302,16 +300,18 @@ class _ReportsListState extends ConsumerState<_ReportsList> {
 
   Widget _reportCard(AppPalette p, MessageReport r) {
     final busy = _busy.contains(r.id);
-    final discussionTitle = r.discussionTitle ?? 'a discussion';
+    final discussionTitle = r.discussionTitle ?? context.l10n.group_aDiscussion;
+    final sender = r.messageSenderName ?? context.l10n.group_aMember;
     final what = r.isAnnouncement
-        ? 'Announcement: ${r.announcementTitle ?? 'Untitled'}'
+        ? context.l10n.group_announcementTitle(
+            r.announcementTitle ?? context.l10n.group_untitled)
         : r.isDiscussionComment
-            ? 'Comment on "$discussionTitle"'
+            ? context.l10n.group_commentOnDiscussion(discussionTitle)
             : r.isDiscussion
-                ? 'Discussion: $discussionTitle'
+                ? context.l10n.group_discussionTitle(discussionTitle)
                 : r.messageDeleted
-                    ? 'Message from ${r.messageSenderName ?? 'a member'} (deleted)'
-                    : 'Message from ${r.messageSenderName ?? 'a member'}';
+                    ? context.l10n.group_messageFromDeleted(sender)
+                    : context.l10n.group_messageFrom(sender);
     // The reported text: a message, or a discussion comment.
     final quoted = (r.isDiscussion
             ? (r.isDiscussionComment ? r.discussionCommentBody : null)
@@ -350,7 +350,7 @@ class _ReportsListState extends ConsumerState<_ReportsList> {
             ),
           ],
           const SizedBox(height: 8),
-          Text('Reported by ${r.reporterName ?? 'a member'}',
+          Text(context.l10n.group_reportedBy(r.reporterName ?? 'a member'),
               style: TextStyle(color: p.muted, fontSize: 12)),
           if (r.details != null) ...[
             const SizedBox(height: 4),
@@ -367,37 +367,37 @@ class _ReportsListState extends ConsumerState<_ReportsList> {
                 onPressed: () =>
                     context.push('/inbox/messages/${r.conversationId}'),
                 icon: const Icon(Icons.forum_outlined, size: 17),
-                label: const Text('Open conversation'),
+                label: Text(context.l10n.group_openConversation),
               ),
             if (r.announcementId != null)
               TextButton.icon(
                 onPressed: () =>
                     context.push('/inbox/announcements/${r.announcementId}'),
                 icon: const Icon(Icons.campaign_outlined, size: 17),
-                label: const Text('Open announcement'),
+                label: Text(context.l10n.group_openAnnouncement),
               ),
             if (r.discussionId != null)
               TextButton.icon(
                 onPressed: () => context.push('/discussions/${r.discussionId}'),
                 icon: const Icon(Icons.forum_outlined, size: 17),
-                label: const Text('Open discussion'),
+                label: Text(context.l10n.group_openDiscussion),
               ),
             if (r.isOpen) ...[
               TextButton.icon(
                 onPressed: busy ? null : () => _resolve(r, 'reviewed'),
                 icon: const Icon(Icons.check_rounded, size: 17),
-                label: const Text('Reviewed'),
+                label: Text(context.l10n.group_reviewed),
               ),
               TextButton.icon(
                 onPressed: busy ? null : () => _resolve(r, 'dismissed'),
                 icon: const Icon(Icons.close_rounded, size: 17),
-                label: const Text('Dismiss'),
+                label: Text(context.l10n.group_dismiss),
               ),
             ] else
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: SpBadge(
-                    r.status == 'dismissed' ? 'Dismissed' : 'Reviewed',
+                    r.status == 'dismissed' ? context.l10n.group_dismissed : context.l10n.group_reviewed,
                     icon: r.status == 'dismissed'
                         ? Icons.close_rounded
                         : Icons.check_rounded),

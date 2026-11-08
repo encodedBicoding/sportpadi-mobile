@@ -16,6 +16,7 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /* ─── Small form bits ──────────────────────────────────────────────────── */
 
@@ -142,32 +143,32 @@ class _ScheduleSheetState extends ConsumerState<_ScheduleSheet> {
   Widget build(BuildContext context) {
     final venues = VenuesData.fromJson(ref.watch(leagueVenuesProvider(widget.leagueId)).valueOrNull?.raw ?? const {}).active;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-      const SpSheetHeader(
-          title: 'Set fixture dates',
-          subtitle: 'Round 1 on the start date, then a round every few days. Change any match after.',
+      SpSheetHeader(
+          title: context.l10n.league_setFixtureDates,
+          subtitle: context.l10n.league_round1OnTheStart2,
           icon: Icons.calendar_month_rounded),
-      const FieldLabel('Round 1'),
+      FieldLabel(context.l10n.league_round1),
       PickField(
-          text: _start == null ? 'Pick a date' : fixtureDay(ymdOf(_start!)),
+          text: _start == null ? context.l10n.league_pickADate : fixtureDay(ymdOf(_start!)),
           onTap: () async {
             final d = await pickDay(context, _start);
             if (d != null) setState(() => _start = d);
           }),
-      const FieldLabel('Every'),
+      FieldLabel(context.l10n.league_every),
       Wrap(spacing: 8, children: [
         for (final n in [7, 14, 3, 1])
           ChoiceChip(
-              label: Text(n == 1 ? 'Daily' : n == 7 ? 'Weekly' : n == 14 ? 'Fortnightly' : 'Every $n days'),
+              label: Text(n == 1 ? context.l10n.league_daily : n == 7 ? context.l10n.league_weekly : n == 14 ? context.l10n.league_fortnightly : context.l10n.league_everyDays2(n)),
               selected: _every == n,
               onSelected: (_) => setState(() => _every = n)),
       ]),
       Row(children: [
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const FieldLabel('Kick-off'),
+            FieldLabel(context.l10n.league_kickOff),
             PickField(
                 icon: Icons.schedule_rounded,
-                text: _time == null ? 'Any time' : formatTime12(_time!),
+                text: _time == null ? context.l10n.league_anyTime : formatTime12(_time!),
                 onTap: () async {
                   final t = await pickHhmm(context, _time);
                   if (t != null) setState(() => _time = t);
@@ -177,7 +178,7 @@ class _ScheduleSheetState extends ConsumerState<_ScheduleSheet> {
         const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const FieldLabel('Ends'),
+            FieldLabel(context.l10n.league_ends),
             PickField(
                 icon: Icons.schedule_rounded,
                 text: _end == null ? '—' : formatTime12(_end!),
@@ -188,12 +189,12 @@ class _ScheduleSheetState extends ConsumerState<_ScheduleSheet> {
           ]),
         ),
       ]),
-      const FieldLabel('Venue'),
-      VenueDropdown(venues: venues, value: _venueId, none: "Keep each fixture's venue", onChanged: (v) => setState(() => _venueId = v)),
-      const VenueHint("Kick-off is local time at each fixture's venue. Pick one to put them all there."),
+      FieldLabel(context.l10n.league_venue),
+      VenueDropdown(venues: venues, value: _venueId, none: context.l10n.league_keepEachFixturesVenue, onChanged: (v) => setState(() => _venueId = v)),
+      VenueHint(context.l10n.league_kickOffIsLocalTime),
       const SizedBox(height: 18),
       SpButton(
-        label: 'Apply',
+        label: context.l10n.league_apply,
         expand: true,
         onTap: _start == null || _busy
             ? null
@@ -207,7 +208,7 @@ class _ScheduleSheetState extends ConsumerState<_ScheduleSheet> {
                   'startTime': _time,
                   'endTime': _end,
                   'venueId': _venueId,
-                }, success: 'Fixtures scheduled', refresh: [leagueManageProvider(widget.leagueId)]);
+                }, success: context.l10n.league_fixturesScheduled2, refresh: [leagueManageProvider(widget.leagueId)]);
                 if (!mounted) return;
                 setState(() => _busy = false);
                 if (ok) Navigator.of(this.context).pop();
@@ -257,7 +258,7 @@ class _FixtureSheetState extends ConsumerState<_FixtureSheet> {
       if (_venueId != widget.f.s('venueId')) 'venueId': _venueId,
       'timezone': deviceTimezone,
       'swapSides': swap,
-    }, success: widget.f.b('published') ? 'Rescheduled — both teams were told' : 'Saved', refresh: [leagueManageProvider(widget.leagueId)]);
+    }, success: widget.f.b('published') ? context.l10n.league_rescheduledBothTeamsWereTold : context.l10n.league_saved, refresh: [leagueManageProvider(widget.leagueId)]);
     if (!mounted) return;
     setState(() => _busy = false);
     if (ok) Navigator.of(context).pop();
@@ -270,12 +271,12 @@ class _FixtureSheetState extends ConsumerState<_FixtureSheet> {
     final picked = venues.where((v) => v.id == _venueId).firstOrNull;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
       SpSheetHeader(
-          title: '${f.o('home')?.str('name') ?? f.str('homeSlot', 'TBC')} vs ${f.o('away')?.str('name') ?? f.str('awaySlot', 'TBC')}',
-          subtitle: f.s('label') ?? 'Round ${f.i('round')}',
+          title: context.l10n.league_vs(f.o('home')?.str('name') ?? f.str('homeSlot', context.l10n.league_tbc), f.o('away')?.str('name') ?? f.str('awaySlot', context.l10n.league_tbc)),
+          subtitle: f.s('label') ?? context.l10n.league_round4(f.i('round')),
           icon: Icons.sports_soccer_rounded),
-      const FieldLabel('Date'),
+      FieldLabel(context.l10n.league_date),
       PickField(
-          text: _date == null ? 'Pick a date' : fixtureDay(ymdOf(_date!)),
+          text: _date == null ? context.l10n.league_pickADate : fixtureDay(ymdOf(_date!)),
           onTap: () async {
             final d = await pickDay(context, _date);
             if (d != null) setState(() => _date = d);
@@ -283,7 +284,7 @@ class _FixtureSheetState extends ConsumerState<_FixtureSheet> {
       Row(children: [
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const FieldLabel('Kick-off'),
+            FieldLabel(context.l10n.league_kickOff),
             PickField(
                 icon: Icons.schedule_rounded,
                 text: _time == null ? '—' : formatTime12(_time!),
@@ -296,7 +297,7 @@ class _FixtureSheetState extends ConsumerState<_FixtureSheet> {
         const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const FieldLabel('Ends'),
+            FieldLabel(context.l10n.league_ends),
             PickField(
                 icon: Icons.schedule_rounded,
                 text: _end == null ? '—' : formatTime12(_end!),
@@ -307,19 +308,21 @@ class _FixtureSheetState extends ConsumerState<_FixtureSheet> {
           ]),
         ),
       ]),
-      const FieldLabel('Venue'),
+      FieldLabel(context.l10n.league_venue),
       VenueDropdown(
-          venues: venues, value: _venueId, none: f.b('published') ? null : 'No venue yet', onChanged: (v) => setState(() => _venueId = v)),
-      if (_venueId == null && f.s('venue') != null) VenueHint('Currently: ${f.str('venue')}'),
+          venues: venues, value: _venueId, none: f.b('published') ? null : context.l10n.league_noVenueYet, onChanged: (v) => setState(() => _venueId = v)),
+      if (_venueId == null && f.s('venue') != null) VenueHint(context.l10n.league_currently2(f.str('venue'))),
       VenueHint(picked?.timezone != null
-          ? 'Kick-off is local time there (${picked!.timezone!.replaceAll('_', ' ')}).${f.b('published') && _venueId != f.s('venueId') ? ' Everyone in the match is told.' : ''}'
-          : "Pick one of the season's venues — add more on the Venues tab."),
+          ? (f.b('published') && _venueId != f.s('venueId')
+              ? context.l10n.league_p5KickOffLocalTimeTold(picked!.timezone!.replaceAll('_', ' '))
+              : context.l10n.league_p5KickOffLocalTime(picked!.timezone!.replaceAll('_', ' ')))
+          : context.l10n.league_pickOneOfTheSeasons),
       const SizedBox(height: 18),
       Row(children: [
         if (!f.b('published')) ...[
           Expanded(
             child: SpPill(
-                label: 'Swap home/away',
+                label: context.l10n.league_swapHomeAway,
                 icon: Icons.swap_horiz_rounded,
                 tone: SpPillTone.soft,
                 expand: true,
@@ -331,7 +334,7 @@ class _FixtureSheetState extends ConsumerState<_FixtureSheet> {
         // A published match always keeps a venue (it's where the teams turn up).
         Expanded(
             child: SpButton(
-                label: 'Save',
+                label: context.l10n.league_save,
                 expand: true,
                 onTap: _busy || (f.b('published') && _venueId == null && f.s('venue') == null) ? null : () => _save())),
       ]),
@@ -377,12 +380,12 @@ class _ForfeitSheetState extends ConsumerState<_ForfeitSheet> {
     final teams = [f.o('home'), f.o('away')].whereType<J>().toList();
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
       SpSheetHeader(
-          title: 'Forfeit this match',
-          subtitle: 'The other team gets the win. The played score stays on record; you can revoke it later.',
+          title: context.l10n.league_forfeitThisMatch,
+          subtitle: context.l10n.league_theOtherTeamGetsThe,
           icon: Icons.gavel_rounded,
           iconBg: context.palette.liveTint,
           iconFg: context.palette.danger),
-      const FieldLabel('Team that forfeits'),
+      FieldLabel(context.l10n.league_teamThatForfeits),
       Row(children: [
         for (final (i, t) in teams.indexed) ...[
           if (i > 0) const SizedBox(width: 8),
@@ -395,30 +398,30 @@ class _ForfeitSheetState extends ConsumerState<_ForfeitSheet> {
           ),
         ],
       ]),
-      const FieldLabel('Reason'),
+      FieldLabel(context.l10n.league_reason),
       Wrap(spacing: 8, runSpacing: 6, children: [
         for (final (k, v) in [
-          ('ineligible_player', 'Ineligible player'),
-          ('no_show', "Didn't show up"),
-          ('conduct', 'Conduct'),
-          ('other', 'Other'),
+          ('ineligible_player', context.l10n.league_ineligiblePlayer),
+          ('no_show', context.l10n.league_didntShowUp),
+          ('conduct', context.l10n.league_conduct),
+          ('other', context.l10n.league_other),
         ])
           ChoiceChip(label: Text(v), selected: _reason == k, onSelected: (_) => setState(() => _reason = k)),
       ]),
-      const FieldLabel('Public reason (on the league page)'),
-      TextField(controller: _public, maxLength: 200, decoration: fieldDeco(context, 'Fielded an unregistered player')),
-      const FieldLabel('Private note (organisers only)'),
-      TextField(controller: _private, maxLines: 3, decoration: fieldDeco(context, 'Optional')),
+      FieldLabel(context.l10n.league_publicReasonOnTheLeague),
+      TextField(controller: _public, maxLength: 200, decoration: fieldDeco(context, context.l10n.league_fieldedAnUnregisteredPlayer)),
+      FieldLabel(context.l10n.league_privateNoteOrganisersOnly),
+      TextField(controller: _private, maxLines: 3, decoration: fieldDeco(context, context.l10n.league_optional2)),
       const SizedBox(height: 16),
       SpButton(
-        label: 'Record forfeit',
+        label: context.l10n.league_recordForfeit,
         icon: Icons.gavel_rounded,
         expand: true,
         onTap: _busy || _team == null
             ? null
             : () async {
                 if (_public.text.trim().length < 3) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Add a short public reason.')));
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.league_addAShortPublicReason)));
                   return;
                 }
                 setState(() => _busy = true);
@@ -429,7 +432,7 @@ class _ForfeitSheetState extends ConsumerState<_ForfeitSheet> {
                   'publicReason': _public.text.trim(),
                   'privateNote': _private.text.trim().isEmpty ? null : _private.text.trim(),
                   'evidenceCheckId': widget.evidenceCheckId,
-                }, success: 'Forfeit recorded — the table is updated', refresh: [leagueManageProvider(widget.leagueId)]);
+                }, success: context.l10n.league_forfeitRecordedTheTableIs, refresh: [leagueManageProvider(widget.leagueId)]);
                 if (!mounted) return;
                 setState(() => _busy = false);
                 if (ok) Navigator.of(this.context).pop();
@@ -460,18 +463,18 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
     final p = context.palette;
     final q = ref.watch(leagueTeamSearchProvider('${widget.leagueId}|$_q'));
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-      const SpSheetHeader(
-          title: 'Invite teams', subtitle: 'Your own teams join straight away; others get an invitation.', icon: Icons.group_add_rounded),
+      SpSheetHeader(
+          title: context.l10n.league_inviteTeams, subtitle: context.l10n.league_yourOwnTeamsJoinStraight2, icon: Icons.group_add_rounded),
       TextField(
         autofocus: true,
-        decoration: fieldDeco(context, 'Search teams by name or @handle').copyWith(prefixIcon: const Icon(Icons.search_rounded)),
+        decoration: fieldDeco(context, context.l10n.league_searchTeamsByNameOr).copyWith(prefixIcon: const Icon(Icons.search_rounded)),
         onChanged: (v) => setState(() => _q = v.trim()),
       ),
       const SizedBox(height: 10),
       AsyncView(
         value: q,
         data: (list) => list.isEmpty
-            ? Padding(padding: const EdgeInsets.all(16), child: Text('No teams found for this sport.', style: TextStyle(color: p.muted)))
+            ? Padding(padding: const EdgeInsets.all(16), child: Text(context.l10n.league_noTeamsFoundForThis, style: TextStyle(color: p.muted)))
             : SpListCard(children: [
                 for (final t in list)
                   Padding(
@@ -482,22 +485,22 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(t.str('name'), style: TextStyle(color: p.ink, fontWeight: FontWeight.w700, fontSize: 13.5)),
-                          Text('@${t.str('username')}${t.b('ownTeam') ? ' · your team' : ''}',
+                          Text(['@${t.str('username')}', if (t.b('ownTeam')) context.l10n.league_p5YourTeamLower].join(' · '),
                               style: TextStyle(color: p.muted, fontSize: 11.5)),
                         ]),
                       ),
                       if (t.o('entry') != null)
-                        SpBadge(t.o('entry')!.b('here') ? (t.o('entry')!.s('status') == 'approved' ? 'In' : 'Invited') : 'Elsewhere')
+                        SpBadge(t.o('entry')!.b('here') ? (t.o('entry')!.s('status') == 'approved' ? context.l10n.league_inLabel : context.l10n.league_invited) : context.l10n.league_elsewhere)
                       else
                         SpPill(
-                          label: t.b('ownTeam') ? 'Add' : 'Invite',
+                          label: t.b('ownTeam') ? context.l10n.league_add : context.l10n.league_invite,
                           height: 34,
                           onTap: _busy.contains(t.str('id'))
                               ? null
                               : () async {
                                   setState(() => _busy.add(t.str('id')));
                                   await leagueAction(context, ref, 'inviteTeam', {'leagueId': widget.leagueId, 'teamId': t.str('id')},
-                                      success: t.b('ownTeam') ? 'Team added' : 'Invite sent',
+                                      success: t.b('ownTeam') ? context.l10n.league_teamAdded : context.l10n.league_inviteSent,
                                       refresh: [leagueManageProvider(widget.leagueId), leagueTeamSearchProvider('${widget.leagueId}|$_q')]);
                                   if (mounted) setState(() => _busy.remove(t.str('id')));
                                 },
@@ -533,7 +536,7 @@ class _AdvanceSheetState extends ConsumerState<_AdvanceSheet> {
     return AsyncView(
       value: q,
       data: (d) {
-        if (d == null) return const Padding(padding: EdgeInsets.all(20), child: Text('No stage is waiting.'));
+        if (d == null) return Padding(padding: const EdgeInsets.all(20), child: Text(context.l10n.league_noStageIsWaiting));
         final list = _list ??
             [
               for (final e in d.list('entries'))
@@ -542,15 +545,19 @@ class _AdvanceSheetState extends ConsumerState<_AdvanceSheet> {
                   'origin': e.s('origin'),
                   'table': e.s('table'),
                   'position': e.iOrNull('position'),
-                  'name': e.o('team')?.str('name') ?? 'Team',
+                  'name': e.o('team')?.str('name') ?? context.l10n.league_team,
                 }
             ];
         final others = d.list('teams').where((t) => !list.any((x) => x['teamId'] == t.s('teamId'))).toList();
         void set(List<Map<String, dynamic>> v) => setState(() => _list = v);
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
           SpSheetHeader(
-              title: 'Into the ${d.o('to')?.str('name').toLowerCase() ?? 'next stage'}',
-              subtitle: 'Proposed from ${d.o('from')?.str('name').toLowerCase() ?? 'the last stage'}. Teams not listed are out. Order = seeding.',
+              title: d.o('to') != null
+                  ? context.l10n.league_intoThe(d.o('to')!.str('name').toLowerCase())
+                  : context.l10n.league_p5IntoTheNextStage,
+              subtitle: d.o('from') != null
+                  ? context.l10n.league_proposedFromTeamsNotListed(d.o('from')!.str('name').toLowerCase())
+                  : context.l10n.league_p5ProposedFromLastStage,
               icon: Icons.swap_vert_rounded),
           if (d.s('note') != null) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(d.str('note'), style: TextStyle(color: p.muted, fontSize: 12))),
           SpListCard(children: [
@@ -562,7 +569,7 @@ class _AdvanceSheetState extends ConsumerState<_AdvanceSheet> {
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('${e['name']}', style: TextStyle(color: p.ink, fontWeight: FontWeight.w600)),
-                      Text('${e['origin'] ?? 'Added by you'}', style: TextStyle(color: p.muted, fontSize: 11.5)),
+                      Text('${e['origin'] ?? context.l10n.league_addedByYou}', style: TextStyle(color: p.muted, fontSize: 11.5)),
                     ]),
                   ),
                   IconButton(
@@ -577,21 +584,21 @@ class _AdvanceSheetState extends ConsumerState<_AdvanceSheet> {
               ),
           ]),
           if (others.isNotEmpty) ...[
-            const FieldLabel('Add a team'),
+            FieldLabel(context.l10n.league_addATeam2),
             Wrap(spacing: 6, runSpacing: 6, children: [
               for (final t in others)
                 ActionChip(
                   label: Text('${t.str('name')}${t.s('finished') != null ? ' (${t.str('finished')})' : ''}'),
                   onPressed: () => set([
                     ...list,
-                    {'teamId': t.str('teamId'), 'origin': 'Added by you', 'table': null, 'position': null, 'name': t.str('name')}
+                    {'teamId': t.str('teamId'), 'origin': context.l10n.league_addedByYou, 'table': null, 'position': null, 'name': t.str('name')}
                   ]),
                 ),
             ]),
           ],
           const SizedBox(height: 16),
           SpButton(
-            label: 'Confirm ${list.length} teams & draw',
+            label: context.l10n.league_confirmTeamsDraw(list.length),
             expand: true,
             onTap: list.length < 2 || _busy
                 ? null
@@ -602,7 +609,7 @@ class _AdvanceSheetState extends ConsumerState<_AdvanceSheet> {
                       'entries': [
                         for (final e in list) {'teamId': e['teamId'], 'origin': e['origin'], 'table': e['table'], 'position': e['position']}
                       ],
-                    }, success: 'Drawn — set dates, then open the stage', refresh: [leagueManageProvider(widget.leagueId)]);
+                    }, success: context.l10n.league_drawnSetDatesThenOpenTheStage, refresh: [leagueManageProvider(widget.leagueId)]);
                     if (!mounted) return;
                     setState(() => _busy = false);
                     if (ok) Navigator.of(this.context).pop();
@@ -626,8 +633,8 @@ Future<void> showConfirmRoundSheet(BuildContext context, WidgetRef ref,
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
       SpSheetHeader(
-          title: 'Confirm the ${name.toLowerCase()} winners',
-          subtitle: 'These teams move up the bracket. Wrong result? Fix the match (or record a forfeit) first.',
+          title: context.l10n.league_confirmTheWinners2(name.toLowerCase()),
+          subtitle: context.l10n.league_theseTeamsMoveUpThe,
           icon: Icons.account_tree_rounded),
       SpListCard(children: [
         for (final f in ties)
@@ -636,21 +643,24 @@ Future<void> showConfirmRoundSheet(BuildContext context, WidgetRef ref,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(f.str('label'), style: TextStyle(color: p.muted, fontSize: 11.5)),
               Text(
-                  '${f.o('home')?.str('name')} ${f.i('homeScore')}–${f.i('awayScore')} ${f.o('away')?.str('name')}'
-                  '${f.s('decision') == 'shootout' ? ' (pens ${f.i('homeSo')}–${f.i('awaySo')})' : f.s('decision') == 'forfeit' ? ' (forfeit)' : ''}',
+                  switch (f.s('decision')) {
+                    'shootout' => context.l10n.league_p5ResultLinePens(f.o('home')?.str('name') ?? '', f.i('homeScore'), f.i('awayScore'), f.o('away')?.str('name') ?? '', f.i('homeSo'), f.i('awaySo')),
+                    'forfeit' => context.l10n.league_p5ResultLineForfeit(f.o('home')?.str('name') ?? '', f.i('homeScore'), f.i('awayScore'), f.o('away')?.str('name') ?? ''),
+                    _ => context.l10n.league_p5ResultLine(f.o('home')?.str('name') ?? '', f.i('homeScore'), f.i('awayScore'), f.o('away')?.str('name') ?? ''),
+                  },
                   style: TextStyle(color: p.ink, fontSize: 13.5)),
               const SizedBox(height: 2),
-              Text('✓ ${winner(f) ?? '—'} go through', style: TextStyle(color: p.greenText, fontWeight: FontWeight.w700, fontSize: 12.5)),
+              Text(context.l10n.league_goThrough2(winner(f) ?? '—'), style: TextStyle(color: p.greenText, fontWeight: FontWeight.w700, fontSize: 12.5)),
             ]),
           ),
       ]),
       const SizedBox(height: 16),
       SpButton(
-        label: 'Confirm & move them up',
+        label: context.l10n.league_confirmMoveThemUp,
         expand: true,
         onTap: () async {
           final ok = await leagueAction(ctx, ref, 'confirmRound', {'stageId': stageId, 'round': round},
-              success: 'Through — give the next matches a date to create them', refresh: [leagueManageProvider(leagueId)]);
+              success: ctx.l10n.league_throughGiveTheNextMatchesADate, refresh: [leagueManageProvider(leagueId)]);
           if (ok && ctx.mounted) Navigator.of(ctx).pop();
         },
       ),
@@ -698,9 +708,9 @@ class _LeaguePassScannerState extends State<LeaguePassScanner> {
             child: Row(children: [
               IconButton.filledTonal(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.close_rounded)),
               const SizedBox(width: 12),
-              const Expanded(
-                child: Text("Scan the player's league pass",
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+              Expanded(
+                child: Text(context.l10n.league_scanThePlayersLeaguePass2,
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
               ),
             ]),
           ),
@@ -776,14 +786,14 @@ class _DrawSetupSheetState extends ConsumerState<_DrawSetupSheet> {
     final kind = widget.stage.s('kind');
     final byId = {for (final t in widget.teams) t.str('teamId'): t};
     final hint = kind == 'knockout'
-        ? 'Seeded: 1 meets the last seed, and the top two can only meet in the final.'
+        ? context.l10n.league_seeded1MeetsTheLast2
         : kind == 'groups'
-            ? 'Seeded: teams are dealt in pots in this order, so the top seeds land in different groups.'
-            : 'Seeded: unpicked teams are dealt in this order instead of at random.';
+            ? context.l10n.league_seededTeamsAreDealtIn2
+            : context.l10n.league_seededUnpickedTeamsAreDealt;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
       SpSheetHeader(
-          title: _split ? 'Tables & seeding' : 'Seeding',
-          subtitle: _split ? 'Pick which table each team starts in — "Draw" puts it in the smaller table.' : hint,
+          title: _split ? context.l10n.league_tablesSeeding : context.l10n.league_seeding,
+          subtitle: _split ? context.l10n.league_pickWhichTableEachTeam2 : hint,
           icon: Icons.format_list_numbered_rounded),
       if (_split) ...[
         Row(children: [
@@ -791,7 +801,7 @@ class _DrawSetupSheetState extends ConsumerState<_DrawSetupSheet> {
             if (k > 0) const SizedBox(width: 8),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                FieldLabel('Table ${k + 1} · ${_list.where((e) => e.split == sp.str('key')).length} picked'),
+                FieldLabel(context.l10n.league_tablePicked(k + 1, _list.where((e) => e.split == sp.str('key')).length)),
                 TextField(controller: _names[k], maxLength: 30, decoration: const InputDecoration(counterText: '')),
               ]),
             ),
@@ -801,7 +811,7 @@ class _DrawSetupSheetState extends ConsumerState<_DrawSetupSheet> {
       ],
       SwitchListTile.adaptive(
         contentPadding: EdgeInsets.zero,
-        title: Text('Seeded draw', style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
+        title: Text(context.l10n.league_seededDraw, style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
         subtitle: _split ? Text(hint, style: TextStyle(color: p.muted, fontSize: 12)) : null,
         value: _seeded,
         onChanged: (v) => setState(() => _seeded = v),
@@ -819,7 +829,7 @@ class _DrawSetupSheetState extends ConsumerState<_DrawSetupSheet> {
                   size: 26),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(byId[e.teamId]?.str('name') ?? 'Team',
+                child: Text(byId[e.teamId]?.str('name') ?? context.l10n.league_team,
                     maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.ink, fontWeight: FontWeight.w600)),
               ),
               if (_split)
@@ -828,7 +838,7 @@ class _DrawSetupSheetState extends ConsumerState<_DrawSetupSheet> {
                   underline: const SizedBox.shrink(),
                   style: TextStyle(color: p.ink, fontSize: 12.5),
                   items: [
-                    const DropdownMenuItem<String?>(value: null, child: Text('Draw')),
+                    DropdownMenuItem<String?>(value: null, child: Text(context.l10n.league_draw)),
                     for (final (k, sp) in _splits.indexed)
                       DropdownMenuItem<String?>(
                           value: sp.str('key'),
@@ -851,7 +861,7 @@ class _DrawSetupSheetState extends ConsumerState<_DrawSetupSheet> {
       ]),
       const SizedBox(height: 16),
       SpButton(
-        label: 'Save',
+        label: context.l10n.league_save,
         expand: true,
         onTap: _busy
             ? null
@@ -873,7 +883,7 @@ class _DrawSetupSheetState extends ConsumerState<_DrawSetupSheet> {
                             _names[k].text.trim().isEmpty ? sp.str('name') : _names[k].text.trim()
                         ],
                     },
-                    success: 'Saved',
+                    success: context.l10n.league_saved,
                     refresh: [leagueManageProvider(widget.leagueId)]);
                 if (!mounted) return;
                 setState(() => _busy = false);
@@ -904,7 +914,7 @@ class _ShareLeagueSheetState extends State<_ShareLeagueSheet> {
   Future<void> _copy(String text, String what) async {
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$what copied')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.league_copied(what))));
   }
 
   @override
@@ -916,29 +926,29 @@ class _ShareLeagueSheetState extends State<_ShareLeagueSheet> {
     final code = '<iframe src="$src" title="${widget.title.replaceAll('"', '&quot;')}" width="100%" '
         'height="${_view == 'table' ? 560 : 420}" style="border:0;border-radius:16px;max-width:640px" loading="lazy"></iframe>';
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-      const SpSheetHeader(
-          title: 'Share & embed',
-          subtitle: "Send the link, post the table as an image, or put a live widget on your club's website.",
+      SpSheetHeader(
+          title: context.l10n.league_shareEmbed,
+          subtitle: context.l10n.league_sendTheLinkPostThe,
           icon: Icons.ios_share_rounded),
       SpListCard(children: [
         ListTile(
           leading: const Icon(Icons.link_rounded),
-          title: const Text('Copy link'),
+          title: Text(context.l10n.league_copyLink),
           subtitle: Text(link, maxLines: 1, overflow: TextOverflow.ellipsis),
-          onTap: () => _copy(link, 'Link'),
+          onTap: () => _copy(link, context.l10n.league_link),
         ),
         ListTile(
           leading: const Icon(Icons.image_outlined),
-          title: const Text('Table image'),
-          subtitle: const Text('Opens it — save or share from there'),
+          title: Text(context.l10n.league_tableImage),
+          subtitle: Text(context.l10n.league_opensItSaveOrShare),
           onTap: () => launchUrl(Uri.parse(image), mode: LaunchMode.externalApplication),
-          trailing: IconButton(icon: const Icon(Icons.copy_rounded, size: 18), onPressed: () => _copy(image, 'Image link')),
+          trailing: IconButton(icon: const Icon(Icons.copy_rounded, size: 18), onPressed: () => _copy(image, context.l10n.league_imageLink)),
         ),
       ]),
       const SizedBox(height: 14),
-      const FieldLabel('Website widget'),
+      FieldLabel(context.l10n.league_websiteWidget),
       Wrap(spacing: 6, children: [
-        for (final (v, label) in [('table', 'Table'), ('fixtures', 'Next fixtures'), ('results', 'Results')])
+        for (final (v, label) in [('table', context.l10n.league_table), ('fixtures', context.l10n.league_nextFixtures), ('results', context.l10n.league_results2)])
           ChoiceChip(label: Text(label), selected: _view == v, onSelected: (_) => setState(() => _view = v)),
       ]),
       const SizedBox(height: 8),
@@ -948,9 +958,9 @@ class _ShareLeagueSheetState extends State<_ShareLeagueSheet> {
         child: SelectableText(code, style: TextStyle(color: p.ink, fontFamily: 'monospace', fontSize: 11.5)),
       ),
       const SizedBox(height: 10),
-      SpButton(label: 'Copy embed code', icon: Icons.code_rounded, expand: true, onTap: () => _copy(code, 'Embed code')),
+      SpButton(label: context.l10n.league_copyEmbedCode, icon: Icons.code_rounded, expand: true, onTap: () => _copy(code, context.l10n.league_embedCode)),
       const SizedBox(height: 6),
-      Text('The widget updates itself as results come in.', style: TextStyle(color: p.muted, fontSize: 12)),
+      Text(context.l10n.league_theWidgetUpdatesItselfAs2, style: TextStyle(color: p.muted, fontSize: 12)),
     ]);
   }
 }
@@ -1005,7 +1015,7 @@ class _AddFixtureSheetState extends ConsumerState<_AddFixtureSheet> {
     final ordered = [...approved.where((t) => inTable.contains(t.str('teamId'))), ...approved.where((t) => !inTable.contains(t.str('teamId')))];
     DropdownMenuItem<String> item(J t) => DropdownMenuItem(
           value: t.str('teamId'),
-          child: Text('${t.str('name')}${inTable.contains(t.str('teamId')) || table == null ? '' : ' (other table)'}',
+          child: Text(inTable.contains(t.str('teamId')) || table == null ? t.str('name') : context.l10n.league_p5NameOtherTable(t.str('name')),
               overflow: TextOverflow.ellipsis),
         );
     Widget teamPick(String label, String? value, String? other, ValueChanged<String?> set) => Column(
@@ -1018,40 +1028,40 @@ class _AddFixtureSheetState extends ConsumerState<_AddFixtureSheet> {
               isExpanded: true,
               items: [for (final t in ordered.where((t) => t.str('teamId') != other)) item(t)],
               onChanged: set,
-              decoration: fieldDeco(context, 'Pick…'),
+              decoration: fieldDeco(context, context.l10n.league_pick),
             ),
           ],
         );
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
       SpSheetHeader(
-          title: 'Add a fixture',
-          subtitle: '${widget.stage.str('name')}: you make the fixtures for this stage.',
+          title: context.l10n.league_addAFixture,
+          subtitle: context.l10n.league_youMakeTheFixturesFor2(widget.stage.str('name')),
           icon: Icons.add_circle_outline_rounded),
       if (_tables.length > 1) ...[
-        const FieldLabel('Table'),
+        FieldLabel(context.l10n.league_table),
         Wrap(spacing: 6, children: [
           for (final t in _tables)
             ChoiceChip(label: Text(t.str('name')), selected: t.s('id') == table?.s('id'), onSelected: (_) => setState(() => _table = t.s('id'))),
         ]),
       ],
       Row(children: [
-        Expanded(child: teamPick('Home', _home, _away, (v) => setState(() => _home = v))),
+        Expanded(child: teamPick(context.l10n.league_home, _home, _away, (v) => setState(() => _home = v))),
         const SizedBox(width: 10),
-        Expanded(child: teamPick('Away', _away, _home, (v) => setState(() => _away = v))),
+        Expanded(child: teamPick(context.l10n.league_away, _away, _home, (v) => setState(() => _away = v))),
       ]),
       Row(children: [
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const FieldLabel('Round'),
+            FieldLabel(context.l10n.league_round2),
             TextField(controller: _round, keyboardType: TextInputType.number, decoration: fieldDeco(context, '1')),
           ]),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const FieldLabel('Date (optional)'),
+            FieldLabel(context.l10n.league_dateOptional),
             PickField(
-              text: _date == null ? 'No date' : fixtureDay(ymdOf(_date!)),
+              text: _date == null ? context.l10n.league_noDate : fixtureDay(ymdOf(_date!)),
               onClear: _date == null ? null : () => setState(() => _date = null),
               onTap: () async {
                 final d = await pickDay(context, _date);
@@ -1061,16 +1071,16 @@ class _AddFixtureSheetState extends ConsumerState<_AddFixtureSheet> {
           ]),
         ),
       ]),
-      const FieldLabel('Venue'),
+      FieldLabel(context.l10n.league_venue),
       VenueDropdown(
           venues: VenuesData.fromJson(ref.watch(leagueVenuesProvider(widget.data.o('league')!.str('id'))).valueOrNull?.raw ?? const {}).active,
           value: _venueId,
-          none: "Default — the only venue, or the home team's",
+          none: context.l10n.league_defaultTheOnlyVenueOrHome,
           onChanged: (v) => setState(() => _venueId = v)),
-      const VenueHint("Needed before the match goes live — it sets the match's local time zone. Add venues on the Venues tab."),
+      VenueHint(context.l10n.league_neededBeforeTheMatchGoes),
       const SizedBox(height: 16),
       SpButton(
-        label: 'Add fixture',
+        label: context.l10n.league_addFixture,
         icon: Icons.add_rounded,
         expand: true,
         onTap: _busy || _home == null || _away == null || (int.tryParse(_round.text.trim()) ?? 0) < 1
@@ -1091,7 +1101,7 @@ class _AddFixtureSheetState extends ConsumerState<_AddFixtureSheet> {
                     'scheduledDate': _date == null ? null : ymdOf(_date!),
                     'venueId': _venueId,
                   },
-                  success: 'Fixture added',
+                  success: context.l10n.league_fixtureAdded,
                   refresh: [leagueManageProvider(widget.data.o('league')!.str('id'))],
                 );
                 if (!mounted) return;
@@ -1106,7 +1116,7 @@ class _AddFixtureSheetState extends ConsumerState<_AddFixtureSheet> {
               },
       ),
       const SizedBox(height: 6),
-      Text('Add as many as you like — the sheet stays open.', style: TextStyle(color: p.muted, fontSize: 12)),
+      Text(context.l10n.league_addAsManyAsYou, style: TextStyle(color: p.muted, fontSize: 12)),
     ]);
   }
 }

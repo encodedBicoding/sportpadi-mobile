@@ -20,6 +20,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// One player's record in ONE sport (design §3) — `/players/:id/records/:cat`
 /// for anyone, `/profile/records/:cat` for the signed-in player.
@@ -79,7 +80,7 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
           child: RefreshIndicator(
             onRefresh: _refresh,
             child: _alwaysPullable(
-                context, const PlayerPrivateView(title: 'Record')),
+                context, PlayerPrivateView(title: context.l10n.profile_record)),
           ),
         ),
       );
@@ -98,7 +99,7 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
               children: [
-                const SpHeader(title: 'Record'),
+                SpHeader(title: context.l10n.profile_record),
                 const SizedBox(height: 32),
                 AsyncView(
                   value: statsAsync,
@@ -130,13 +131,13 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
-              children: const [
-                SpHeader(title: 'Record'),
-                SizedBox(height: 24),
+              children: [
+                SpHeader(title: context.l10n.profile_record),
+                const SizedBox(height: 24),
                 RecordEmpty(
                   icon: Icons.sports_outlined,
-                  title: 'Sport not found',
-                  body: "This sport isn't on SportPadi any more.",
+                  title: context.l10n.profile_sportNotFound,
+                  body: context.l10n.profile_thisSportIsntOnSportPadi,
                 ),
               ],
             ),
@@ -163,7 +164,7 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
       Map<String, dynamic> cat, Map<String, dynamic> profile) {
     final isMe = widget.isMe;
     final family = familyOf(cat);
-    final name = parseStr(cat['name']) ?? 'Sport';
+    final name = parseStr(cat['name']) ?? context.l10n.profile_sport;
     final catId = parseStr(cat['categoryId']) ?? widget.categoryId;
     final overall = tallyOf(cat, RecordScope.all);
     final hasGames = gamesOf(overall) > 0;
@@ -192,9 +193,8 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
     final me =
         isMe ? ref.watch(authControllerProvider).valueOrNull?.user : null;
     final playerName =
-        parseStr(profile['displayName']) ?? parseStr(me?.name) ?? 'Player';
+        parseStr(profile['displayName']) ?? parseStr(me?.name) ?? context.l10n.profile_player;
     final avatarUrl = parseStr(profile['avatarUrl']) ?? me?.image;
-    final they = isMe ? 'you' : 'they';
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -221,15 +221,15 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
                 RecordEmpty(
                   icon: Icons.sports_outlined,
                   title: attendanceSport
-                      ? 'No $name outings on record yet.'
-                      : 'No $name games on record yet.',
+                      ? context.l10n.profile_noOutingsOnRecordYet(name)
+                      : context.l10n.profile_noGamesOnRecordYet3(name),
                   body: attendanceSport
                       ? (isMe
-                          ? 'Check in to a $name event and it starts counting here.'
-                          : 'Their outings appear here once they check in to a $name event.')
+                          ? context.l10n.profile_checkInToAEvent2(name)
+                          : context.l10n.profile_theirOutingsAppearHereOnce(name))
                       : (isMe
-                          ? 'Finish a $name game on SportPadi and your numbers start here.'
-                          : "Their numbers appear here once they've finished a $name game."),
+                          ? context.l10n.profile_finishAGameOnSportPadi(name)
+                          : context.l10n.profile_theirNumbersAppearHereOnce(name)),
                 )
               else ...[
                 // Hikes and runs lead with showing up: twelve months of
@@ -242,10 +242,10 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
                         children: [
                           BlockHeading(
                               family == SportFamily.running
-                                  ? 'Runs by month'
-                                  : 'Hikes by month',
+                                  ? context.l10n.profile_runsByMonth
+                                  : context.l10n.profile_hikesByMonth,
                               trailing: Text(
-                                  plural(checkIns, outingNoun(family)),
+                                  outingsCount(family, checkIns),
                                   style: TextStyle(
                                       color: p.muted,
                                       fontSize: 11.5,
@@ -261,7 +261,7 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
                   if (hasGames) ...[
                     const SizedBox(height: 24),
                     RecordSectionTitle(
-                        family == SportFamily.running ? 'Races' : 'Games',
+                        family == SportFamily.running ? context.l10n.profile_races : context.l10n.profile_games,
                         count: gamesOf(overall)),
                     const SizedBox(height: 10),
                   ],
@@ -282,7 +282,7 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
                         children: [
                           BlockHeading(recordBlockTitle(family),
                               trailing: Text(
-                                  '${scope.label} · ${gamesPhrase(family, gamesOf(tally))}',
+                                  '${scope.label} · ${gamesCount(family, gamesOf(tally))}',
                                   style: TextStyle(
                                       color: p.muted,
                                       fontSize: 11.5,
@@ -334,7 +334,7 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
                     RecentOutings(
                         family: family,
                         outings: outings,
-                        title: 'Recent check-ins'),
+                        title: context.l10n.profile_recentCheckIns),
                   ],
                 ],
 
@@ -342,13 +342,13 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
                 // tournaments in Tournaments.
                 if (scope != RecordScope.tournament && groups.isNotEmpty) ...[
                   const SizedBox(height: 24),
-                  RecordSectionTitle('Where $they play', count: groups.length),
+                  RecordSectionTitle(isMe ? context.l10n.profile_whereYouPlay : context.l10n.profile_whereTheyPlay, count: groups.length),
                   const SizedBox(height: 10),
                   RecordList(children: [
                     for (final g in groups)
                       _GroupRow(
-                        name: parseStr(g['name']) ?? 'Group',
-                        sub: isMe ? 'Your record here' : 'Their record here',
+                        name: parseStr(g['name']) ?? context.l10n.profile_group,
+                        sub: isMe ? context.l10n.profile_yourRecordHere : context.l10n.profile_theirRecordHere,
                         onTap: () => context.push(
                             '/players/$_userId/groups/${parseStr(g['id'])}'),
                       ),
@@ -360,14 +360,14 @@ class _SportRecordScreenState extends ConsumerState<SportRecordScreen> {
                   const SizedBox(height: 24),
                   TournamentList(
                       rows: tournaments,
-                      title: '$name tournaments',
+                      title: context.l10n.profile_tournaments4(name),
                       playerId: _userId),
                 ],
               ],
               if (isMe) ...[
                 const SizedBox(height: 24),
                 SpButton(
-                  label: 'Edit my $name profile',
+                  label: context.l10n.profile_editMyProfile(name),
                   icon: Icons.tune_rounded,
                   expand: true,
                   onTap: () => context.push('/profile/sports'),

@@ -5,6 +5,7 @@ import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/core/storage/token_storage.dart';
 import 'package:sportpadi_mobile/data/auth/auth_models.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Talks to Better Auth. NOTE: requires the backend to enable the **bearer**
 /// plugin so a native client can hold a token (the web app uses cookies). The
@@ -37,7 +38,7 @@ class AuthRepository {
       );
       await _persistToken(res);
       final user = _extractUser(res.data);
-      if (user == null) throw ApiException('Could not sign you in.');
+      if (user == null) throw ApiException(l10n.common_couldNotSignYouIn);
       return user;
     } on DioException catch (e) {
       throw _err(e);
@@ -56,7 +57,7 @@ class AuthRepository {
       );
       await _persistToken(res);
       final user = _extractUser(res.data);
-      if (user == null) throw ApiException('Could not create your account.');
+      if (user == null) throw ApiException(l10n.common_couldNotCreateYourAccount);
       return user;
     } on DioException catch (e) {
       throw _err(e);
@@ -87,7 +88,7 @@ class AuthRepository {
       );
       await _persistToken(res);
       final user = _extractUser(res.data);
-      if (user == null) throw ApiException('Could not sign you in.');
+      if (user == null) throw ApiException(l10n.common_couldNotSignYouIn);
       return user;
     } on DioException catch (e) {
       throw _err(e, social: provider);
@@ -258,7 +259,7 @@ class AuthRepository {
           'Can\'t reach the server. Check the API URL and that it\'s running.';
     }
     return ApiException(
-      msg ?? 'Something went wrong. Please try again.',
+      msg ?? l10n.common_somethingWentWrongPleaseTry,
       statusCode: e.response?.statusCode,
     );
   }

@@ -19,6 +19,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// /register/<token> — a tournament's "call for teams" landing page (web
 /// twin: app/register/[token]/page.tsx).
@@ -58,9 +59,9 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
       if (status == 'payment_required' && ttId is String) {
         await _pay(ttId);
       } else if (status == 'approved') {
-        _snack("You're in! 🎉");
+        _snack(l10n.tournament_youreIn);
       } else {
-        _snack('Registered — the organiser will confirm your place.');
+        _snack(l10n.tournament_registeredTheOrganiserWillConfirm);
       }
       _refresh();
       ref.invalidate(myTeamCardsProvider);
@@ -77,7 +78,7 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
     if (!mounted) return;
     final paid = await runHostedCheckout(context, url);
     if (paid) {
-      _snack('Thanks — confirming your payment…');
+      _snack(l10n.tournament_thanksConfirmingYourPayment);
       // The webhook settles the row a moment after; refetch a few times.
       for (var i = 0; i < 4; i++) {
         await Future<void>.delayed(const Duration(seconds: 3));
@@ -91,13 +92,13 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
     final sure = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Withdraw registration?'),
+        title: Text(l10n.tournament_withdrawRegistration2),
         content: Text(paid
-            ? 'Your entry fee will be refunded in full.'
-            : 'Your team will be taken out of the registration.'),
+            ? l10n.tournament_yourEntryFeeWillBe
+            : l10n.tournament_yourTeamWillBeTaken),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Withdraw')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.tournament_keep)),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.tournament_withdraw)),
         ],
       ),
     );
@@ -106,7 +107,7 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
       final refunded = await ref
           .read(tournamentsRepositoryProvider)
           .withdrawRegistration(widget.token, tournamentTeamId);
-      _snack(refunded ? 'Withdrawn — your entry fee is being refunded in full.' : 'Registration withdrawn.');
+      _snack(refunded ? l10n.tournament_withdrawnYourEntryFeeIs : l10n.tournament_registrationWithdrawn);
       _refresh();
     } on ApiException catch (e) {
       _snack(e.message);
@@ -120,7 +121,7 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
     final signedIn = ref.watch(authControllerProvider).value?.isAuthenticated ?? false;
     return Scaffold(
       backgroundColor: p.bg,
-      appBar: AppBar(leading: const SpLeading(), title: const Text('Register your team')),
+      appBar: AppBar(leading: const SpLeading(), title: Text(context.l10n.tournament_registerYourTeam)),
       body: AsyncView(
         value: page,
         onRetry: _refresh,
@@ -186,24 +187,23 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
           decoration: BoxDecoration(color: p.hero, borderRadius: BorderRadius.circular(22)),
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('CALL FOR TEAMS',
+            Text(context.l10n.tournament_callForTeams2,
                 style: TextStyle(color: p.heroMuted, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
             const SizedBox(height: 4),
-            Text(event['title'] as String? ?? 'Tournament',
+            Text(event['title'] as String? ?? context.l10n.tournament_tournament2,
                 style: TextStyle(color: p.onHero, fontSize: 22, fontWeight: FontWeight.w800, height: 1.15)),
             const SizedBox(height: 4),
             Text(
-                '${cat?['emoji'] ?? ''} ${cat?['name'] ?? ''} · $maxTeams-team ${isLeague ? 'league' : 'tournament'}'
-                '${group != null ? ' by ${group['name']}' : ''}',
+                context.l10n.tournament_team4(cat?['emoji'] ?? '', cat?['name'] ?? '', maxTeams, (isLeague ? context.l10n.tournament_league2 : context.l10n.tournament_tournament), (group != null ? ' by ${group['name']}' : '')),
                 style: TextStyle(color: p.heroMuted, fontSize: 13)),
             if (isLeague && league?['format'] is String)
               Text(league!['format'] as String, style: TextStyle(color: p.heroMuted, fontSize: 12)),
             const SizedBox(height: 10),
             Wrap(spacing: 6, runSpacing: 6, children: [
-              SpBadge(open ? '$spotsLeft of $maxTeams places left' : (d['stateCopy'] as String? ?? 'Closed'),
+              SpBadge(open ? context.l10n.tournament_ofPlacesLeft(spotsLeft, maxTeams) : (d['stateCopy'] as String? ?? context.l10n.tournament_closed),
                   tone: open ? p.accent : p.heroMuted),
-              SpBadge(d['gradeLabel'] as String? ?? 'Any team', icon: Icons.groups_rounded, tone: p.heroMuted),
-              SpBadge(fee != null ? '$fee per team' : 'Free entry', icon: Icons.confirmation_num_outlined, tone: p.heroMuted),
+              SpBadge(d['gradeLabel'] as String? ?? context.l10n.tournament_anyTeam, icon: Icons.groups_rounded, tone: p.heroMuted),
+              SpBadge(fee != null ? context.l10n.tournament_perTeam(fee) : context.l10n.tournament_freeEntry, icon: Icons.confirmation_num_outlined, tone: p.heroMuted),
             ]),
           ]),
         ),
@@ -214,8 +214,8 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
                 Icons.calendar_today_rounded,
                 isLeague
                     ? (league?['seasonStartsOn'] is String
-                        ? 'Season starts ${league!['seasonStartsOn']}'
-                        : 'Season ${league?['season'] ?? ''}')
+                        ? context.l10n.tournament_seasonStarts(league!['seasonStartsOn'])
+                        : context.l10n.tournament_season(league?['season'] ?? ''))
                     : when.line),
             if ((event['locationName'] as String?)?.isNotEmpty == true) ...[
               const SizedBox(height: 8),
@@ -223,17 +223,16 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
             ],
             if (d['closesAt'] != null) ...[
               const SizedBox(height: 8),
-              InfoRow(Icons.schedule_rounded, 'Registration closes ${formatEventTime(eventDate: parseDate(d['closesAt']), startTime: parseDate(d['closesAt'])).line}'),
+              InfoRow(Icons.schedule_rounded, context.l10n.tournament_registrationCloses2(formatEventTime(eventDate: parseDate(d['closesAt']), startTime: parseDate(d['closesAt'])).line)),
             ],
             if (manual) ...[
               const SizedBox(height: 8),
-              InfoRow(Icons.verified_user_outlined, 'The organiser confirms each team'
-                      "${fee != null ? " — a team that isn't taken is refunded in full" : ''}."),
+              InfoRow(Icons.verified_user_outlined, context.l10n.tournament_theOrganiserConfirmsEachTeam2((fee != null ? context.l10n.tournament_aTeamThatIsntTaken2 : ''))),
             ],
             if (requiredDocs.isNotEmpty) ...[
               const SizedBox(height: 8),
               InfoRow(Icons.description_outlined,
-                  'Teams must have on file: ${requiredDocs.map((x) => x['name']).join(', ')}. The organiser reviews them before confirming.'),
+                  context.l10n.tournament_teamsMustHaveOnFile2(requiredDocs.map((x) => x['name']).join(', '))),
             ],
             if ((event['description'] as String?)?.isNotEmpty == true) ...[
               const SizedBox(height: 10),
@@ -245,7 +244,7 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
           const SizedBox(height: 12),
           GlassCard(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Eyebrow('Rules'),
+              Eyebrow(context.l10n.tournament_rules),
               const SizedBox(height: 6),
               Text(d['rules'] as String, style: TextStyle(color: p.ink, fontSize: 13.5, height: 1.4)),
             ]),
@@ -256,7 +255,7 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
         const SizedBox(height: 12),
         GlassCard(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Eyebrow('Register your team'),
+            Eyebrow(context.l10n.tournament_registerYourTeam),
             for (final t in entered) ...[
               const SizedBox(height: 10),
               _EnteredRow(
@@ -283,8 +282,8 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(t['name'] as String? ?? 'Team', style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
-                        Text("The organiser didn't take this registration", style: TextStyle(color: p.muted, fontSize: 11.5)),
+                        Text(t['name'] as String? ?? context.l10n.tournament_team, style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
+                        Text(context.l10n.tournament_theOrganiserDidntTakeThis, style: TextStyle(color: p.muted, fontSize: 11.5)),
                       ]),
                     ),
                   ]),
@@ -293,12 +292,12 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(color: p.surface, borderRadius: BorderRadius.circular(12)),
-                      child: Text("Organiser's note: ${t['registration']['reviewNote']}", style: TextStyle(color: p.ink, fontSize: 12.5)),
+                      child: Text(context.l10n.tournament_organisersNote2(t['registration']['reviewNote']), style: TextStyle(color: p.ink, fontSize: 12.5)),
                     ),
                   ],
                   if (open) ...[
                     const SizedBox(height: 4),
-                    Text('Fix what was asked${requiredDocs.isNotEmpty ? ' (update the documents below)' : ''} and apply again.',
+                    Text(context.l10n.tournament_fixWhatWasAskedAnd(requiredDocs.isNotEmpty ? context.l10n.tournament_updateTheDocumentsBelow2 : ''),
                         style: TextStyle(color: p.muted, fontSize: 11.5)),
                   ],
                 ]),
@@ -307,14 +306,14 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
             const SizedBox(height: 10),
             if (!signedIn) ...[
               SpButton(
-                label: 'Log in or sign up to register',
+                label: context.l10n.tournament_logInOrSignUp,
                 icon: Icons.arrow_forward_rounded,
                 expand: true,
                 tone: SpButtonTone.brand,
                 onTap: () => context.push('/sign-in?redirect=${Uri.encodeComponent('/register/${widget.token}')}'),
               ),
               const SizedBox(height: 6),
-              Text("You'll come right back here. New to SportPadi? Signing up is free, and you can build your team in a minute.",
+              Text(context.l10n.tournament_youllComeRightBackHere,
                   style: TextStyle(color: p.muted, fontSize: 11.5)),
             ] else if (!open) ...[
               if (entered.isEmpty)
@@ -336,7 +335,7 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
               ),
             ] else ...[
               if (eligible.isNotEmpty) ...[
-                Text('Which team?', style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                Text(context.l10n.tournament_whichTeam, style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
                 for (final t in eligible)
                   _PickRow(
@@ -346,7 +345,7 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
                   ),
                 if (pickedTeam != null && checklist.isNotEmpty) ...[
                   const SizedBox(height: 6),
-                  Text('Documents (${checklist.where((c) => c.ok).length}/${checklist.length} on file)',
+                  Text(context.l10n.tournament_documentsOnFile(checklist.where((c) => c.ok).length, checklist.length),
                       style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 6),
                   for (final c in checklist)
@@ -360,12 +359,12 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
                 const SizedBox(height: 10),
                 SpButton(
                   label: _busy
-                      ? 'Registering…'
+                      ? context.l10n.tournament_registering
                       : missingCount > 0
-                          ? 'Add $missingCount document${missingCount == 1 ? '' : 's'} to register'
+                          ? context.l10n.tournament_addDocumentsToRegister(missingCount)
                           : pickedTeam?['registration'] != null
-                              ? (fee != null ? 'Apply again & pay $fee' : 'Apply again')
-                              : (fee != null ? 'Register & pay $fee' : 'Register team'),
+                              ? (fee != null ? context.l10n.tournament_applyAgainPay(fee) : context.l10n.tournament_applyAgain)
+                              : (fee != null ? context.l10n.tournament_registerPay(fee) : context.l10n.tournament_registerTeam),
                   icon: Icons.emoji_events_outlined,
                   expand: true,
                   tone: SpButtonTone.brand,
@@ -380,7 +379,7 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
                     Icon(Icons.info_outline_rounded, size: 14, color: p.muted),
                     const SizedBox(width: 6),
                     Expanded(
-                      child: Text("${t['name']} can't enter: ${t['problem']}",
+                      child: Text(context.l10n.tournament_cantEnter2(t['name'], t['problem']),
                           style: TextStyle(color: p.muted, fontSize: 12)),
                     ),
                   ]),
@@ -389,13 +388,12 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
               OutlinedButton.icon(
                 onPressed: () => setState(() => _building = true),
                 icon: const Icon(Icons.add_rounded, size: 18),
-                label: Text(eligible.isNotEmpty ? 'Register a new team instead' : 'Build your team and register'),
+                label: Text(eligible.isNotEmpty ? context.l10n.tournament_registerANewTeamInstead : context.l10n.tournament_buildYourTeamAndRegister),
               ),
               if (fee != null) ...[
                 const SizedBox(height: 6),
                 Text(
-                    'The entry fee is paid by card at checkout and goes to the organiser.'
-                    "${manual ? " If the organiser doesn't take your team, you're refunded in full." : ''}",
+                    context.l10n.tournament_theEntryFeeIsPaid2((manual ? context.l10n.tournament_ifTheOrganiserDoesntTake2 : '')),
                     style: TextStyle(color: p.muted, fontSize: 11.5)),
               ],
             ],
@@ -407,7 +405,7 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
           const SizedBox(height: 12),
           GlassCard(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Eyebrow('Teams in (${d['seated'] ?? teamsIn.length}/$maxTeams)'),
+              Eyebrow(context.l10n.tournament_teamsIn2(d['seated'] ?? teamsIn.length, maxTeams)),
               const SizedBox(height: 8),
               for (final t in teamsIn)
                 Padding(
@@ -422,7 +420,7 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(t['name'] as String? ?? 'Team',
+                        Text(t['name'] as String? ?? context.l10n.tournament_team,
                             style: TextStyle(color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w700)),
                         Text(t['groupName'] as String? ?? '', style: TextStyle(color: p.muted, fontSize: 11.5)),
                       ]),
@@ -433,7 +431,7 @@ class _RegisterTeamScreenState extends ConsumerState<RegisterTeamScreen> {
           ),
         ],
         const SizedBox(height: 16),
-        Text('Live scores, match stats, ratings and awards for every team — on SportPadi.',
+        Text(context.l10n.tournament_liveScoresMatchStatsRatings,
             textAlign: TextAlign.center, style: TextStyle(color: p.muted, fontSize: 11.5)),
       ],
     );
@@ -470,7 +468,7 @@ class _PickRow extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(team['name'] as String? ?? 'Team',
+              Text(team['name'] as String? ?? context.l10n.tournament_team,
                   style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
               Text('@${team['username']} · ${team['via'] == 'coach' ? 'you coach' : 'your group'}',
                   style: TextStyle(color: p.muted, fontSize: 11.5)),
@@ -516,14 +514,14 @@ class _EnteredRow extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(team['name'] as String? ?? 'Team',
+              Text(team['name'] as String? ?? context.l10n.tournament_team,
                   style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
               Text(
                   approved
-                      ? "You're in"
+                      ? context.l10n.tournament_youreIn2
                       : unpaid
-                          ? 'Entry fee not paid yet'
-                          : 'Paid · waiting for the organiser to confirm',
+                          ? context.l10n.tournament_entryFeeNotPaidYet
+                          : context.l10n.tournament_paidWaitingForTheOrganiser,
                   style: TextStyle(color: p.muted, fontSize: 11.5)),
             ]),
           ),
@@ -533,7 +531,7 @@ class _EnteredRow extends StatelessWidget {
             FilledButton(
               style: FilledButton.styleFrom(visualDensity: VisualDensity.compact, minimumSize: const Size(0, 36), padding: const EdgeInsets.symmetric(horizontal: 14), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
               onPressed: () => onPay(id),
-              child: Text('Pay ${feeLabel ?? ''}'),
+              child: Text(context.l10n.tournament_pay(feeLabel ?? '')),
             )
           else
             SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: p.muted)),
@@ -542,13 +540,13 @@ class _EnteredRow extends StatelessWidget {
           TextButton(
             onPressed: () => context.push(isLeague ? '/groups/${team['groupId']}/tournaments/mode/league' : '/tournaments/teams/${team['id']}'),
             style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
-            child: Text(isLeague ? 'Register your roster →' : 'Register your squad →'),
+            child: Text(isLeague ? context.l10n.tournament_registerYourRoster2 : context.l10n.tournament_registerYourSquad2),
           )
         else
           TextButton(
             onPressed: () => onWithdraw(id, paid),
             style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact, foregroundColor: p.muted),
-            child: const Text('Withdraw registration'),
+            child: Text(context.l10n.tournament_withdrawRegistration),
           ),
       ]),
     );
@@ -596,9 +594,9 @@ class _BuildTeamState extends ConsumerState<_BuildTeam> {
 
   Future<void> _submit(List<dynamic> adminGroups) async {
     final newGroup = adminGroups.isEmpty || _groupId == '__new';
-    if (_name.text.trim().isEmpty) return setState(() => _error = 'Name your team');
-    if (newGroup && _groupName.text.trim().isEmpty) return setState(() => _error = 'Name your club or group');
-    if (!newGroup && _groupId == null) return setState(() => _error = 'Pick a group');
+    if (_name.text.trim().isEmpty) return setState(() => _error = l10n.tournament_nameYourTeam);
+    if (newGroup && _groupName.text.trim().isEmpty) return setState(() => _error = l10n.tournament_nameYourClubOrGroup);
+    if (!newGroup && _groupId == null) return setState(() => _error = l10n.tournament_pickAGroup);
     setState(() {
       _working = true;
       _error = null;
@@ -619,12 +617,12 @@ class _BuildTeamState extends ConsumerState<_BuildTeam> {
       if (id is String && id.isNotEmpty) {
         widget.onBuilt(id);
       } else {
-        setState(() => _error = 'Could not build the team.');
+        setState(() => _error = l10n.tournament_couldNotBuildTheTeam2);
       }
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } catch (_) {
-      setState(() => _error = 'Could not build the team.');
+      setState(() => _error = l10n.tournament_couldNotBuildTheTeam2);
     } finally {
       if (mounted) setState(() => _working = false);
     }
@@ -640,34 +638,34 @@ class _BuildTeamState extends ConsumerState<_BuildTeam> {
     final label = TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       if (adminGroups.isNotEmpty) ...[
-        Text('Club / group', style: label),
+        Text(context.l10n.tournament_clubGroup, style: label),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
           initialValue: _groupId,
           items: [
             for (final g in adminGroups) DropdownMenuItem(value: g.id, child: Text(g.name)),
-            const DropdownMenuItem(value: '__new', child: Text('+ New club / group')),
+            DropdownMenuItem(value: '__new', child: Text(context.l10n.tournament_newClubGroup)),
           ],
           onChanged: (v) => setState(() => _groupId = v),
-          decoration: const InputDecoration(hintText: 'Which group owns this team?'),
+          decoration: InputDecoration(hintText: context.l10n.tournament_whichGroupOwnsThisTeam),
         ),
         const SizedBox(height: 10),
       ],
       if (newGroup) ...[
-        Text('Your club or group', style: label),
+        Text(context.l10n.tournament_yourClubOrGroup, style: label),
         const SizedBox(height: 6),
-        TextField(controller: _groupName, decoration: const InputDecoration(hintText: 'e.g. Riverside FC')),
+        TextField(controller: _groupName, decoration: InputDecoration(hintText: context.l10n.tournament_eGRiversideFc)),
         const SizedBox(height: 4),
-        Text('Teams live in a group on SportPadi — yours is created for free alongside the team.',
+        Text(context.l10n.tournament_teamsLiveInAGroup,
             style: TextStyle(color: p.muted, fontSize: 11.5)),
         const SizedBox(height: 10),
       ],
-      Text('Team name', style: label),
+      Text(context.l10n.tournament_teamName, style: label),
       const SizedBox(height: 6),
-      TextField(controller: _name, decoration: InputDecoration(hintText: 'e.g. Riverside ${widget.sportName} XI')),
+      TextField(controller: _name, decoration: InputDecoration(hintText: context.l10n.tournament_eGRiversideXi(widget.sportName))),
       if (widget.grade == 'any') ...[
         const SizedBox(height: 10),
-        Text('Level', style: label),
+        Text(context.l10n.tournament_level, style: label),
         const SizedBox(height: 6),
         Wrap(spacing: 8, children: [
           for (final g in const ['adults', 'kids'])
@@ -679,13 +677,13 @@ class _BuildTeamState extends ConsumerState<_BuildTeam> {
       ],
       if (_teamGrade == 'kids') ...[
         const SizedBox(height: 10),
-        Text('Age group', style: label),
+        Text(context.l10n.tournament_ageGroup, style: label),
         const SizedBox(height: 6),
         Wrap(spacing: 8, children: [
           for (final a in const [12, 16, 18])
             if (widget.maxAge == null || a <= widget.maxAge!)
               ChoiceChip(
-                  label: Text('Under $a'),
+                  label: Text(context.l10n.tournament_under(a)),
                   selected: _ageLimit == a,
                   onSelected: (_) => setState(() => _ageLimit = a)),
         ]),
@@ -696,7 +694,7 @@ class _BuildTeamState extends ConsumerState<_BuildTeam> {
       ],
       const SizedBox(height: 12),
       Row(children: [
-        OutlinedButton(onPressed: _working ? null : widget.onCancel, child: const Text('Back')),
+        OutlinedButton(onPressed: _working ? null : widget.onCancel, child: Text(context.l10n.tournament_back)),
         const SizedBox(width: 8),
         Expanded(
           child: FilledButton.icon(
@@ -704,7 +702,7 @@ class _BuildTeamState extends ConsumerState<_BuildTeam> {
             icon: _working
                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.add_rounded, size: 18),
-            label: const Text('Build team & register'),
+            label: Text(context.l10n.tournament_buildTeamRegister),
           ),
         ),
       ]),

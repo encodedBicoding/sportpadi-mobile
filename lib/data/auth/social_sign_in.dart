@@ -9,6 +9,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import 'package:sportpadi_mobile/core/env/sso_config.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// What a native sign-in button hands back: the provider's ID token (the
 /// server verifies it and mints our session), the raw nonce the token was
@@ -55,7 +56,7 @@ class SocialSignIn {
     if (_googleReady) return;
     if (!SsoConfig.googleEnabled) {
       throw ApiException(
-          'Google sign-in is not set up in this build (GOOGLE_SERVER_CLIENT_ID).');
+          l10n.common_googleSignInIsNot);
     }
     await GoogleSignIn.instance.initialize(
       serverClientId: SsoConfig.googleServerClientId,
@@ -84,7 +85,7 @@ class SocialSignIn {
     final idToken = account.authentication.idToken;
     if (idToken == null || idToken.isEmpty) {
       throw ApiException(
-          "Google didn't return a sign-in token. Check the build's client ids.");
+          l10n.common_googleDidntReturnASign);
     }
     // No name needed: Google's token carries it and the server reads it.
     return SocialCredential(provider: 'google', idToken: idToken);
@@ -101,7 +102,7 @@ class SocialSignIn {
 
   Future<SocialCredential> apple() async {
     if (!SsoConfig.appleEnabled) {
-      throw ApiException('Sign in with Apple is only available on iOS.');
+      throw ApiException(l10n.common_signInWithAppleIs);
     }
     final rawNonce = _randomNonce();
     final AuthorizationCredentialAppleID cred;
@@ -122,11 +123,11 @@ class SocialSignIn {
         // Apple answers (and when the simulator has no Apple ID signed in).
         throw const SocialSignInCancelled();
       }
-      throw ApiException('Apple sign-in failed (${e.code.name}).');
+      throw ApiException(l10n.common_appleSignInFailed(e.code.name));
     }
     final idToken = cred.identityToken;
     if (idToken == null || idToken.isEmpty) {
-      throw ApiException("Apple didn't return a sign-in token.");
+      throw ApiException(l10n.common_appleDidntReturnASign);
     }
     return SocialCredential(
       provider: 'apple',
@@ -161,17 +162,15 @@ class SocialSignIn {
   static String _googleMessage(GoogleSignInException e) {
     if (e.code == GoogleSignInExceptionCode.canceled &&
         _looksLikeNoCredential(e)) {
-      return 'No Google account could be used on this device. If you do have '
-          "one, this build's signing key isn't registered for Google "
-          'sign-in yet.';
+      return l10n.common_noGoogleAccountCouldBe;
     }
     switch (e.code) {
       case GoogleSignInExceptionCode.clientConfigurationError:
-        return 'Google sign-in is misconfigured for this build (client ids / SHA-1).';
+        return l10n.common_googleSignInIsMisconfigured;
       case GoogleSignInExceptionCode.providerConfigurationError:
-        return 'Google Play services are missing or out of date on this device.';
+        return l10n.common_googlePlayServicesAreMissing;
       case GoogleSignInExceptionCode.uiUnavailable:
-        return "Google sign-in isn't available right now. Try again in a moment.";
+        return l10n.common_googleSignInIsntAvailable;
       case GoogleSignInExceptionCode.unknownError:
         // "[28444] Developer console is not set up correctly" lands here on
         // Android when the signing SHA-1 is missing from the OAuth client.
@@ -181,7 +180,7 @@ class SocialSignIn {
                 '(Google Cloud: Android OAuth client SHA-1).'
             : (d.isEmpty ? 'Google sign-in failed. Please try again.' : d);
       default:
-        return e.description ?? 'Google sign-in failed. Please try again.';
+        return e.description ?? l10n.common_googleSignInFailedPlease;
     }
   }
 }

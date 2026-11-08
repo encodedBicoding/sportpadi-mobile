@@ -4,6 +4,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/sports/generic_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/sport_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Ultimate 🥏 (design §8) — scores and assists. The record block is W–L
 /// over a split bar (shared with volleyball). Spirit isn't tracked, so it
@@ -32,7 +33,7 @@ class UltimateStats extends StatelessWidget {
       if (scoreKey != null)
         (
           nums.field(scoreKey).icon ?? '🥏',
-          'Scores',
+          context.l10n.profile_scores,
           nums.n(scoreKey),
           nums.rate(scoreKey)
         ),
@@ -49,10 +50,10 @@ class UltimateStats extends StatelessWidget {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       BlockHeading(scoreKey != null && hasAssists
-          ? 'Scores & assists'
+          ? context.l10n.profile_scoresAssists
           : scoreKey != null
-              ? 'Scores'
-              : 'Assists'),
+              ? context.l10n.profile_scores
+              : context.l10n.profile_assists),
       const SizedBox(height: 12),
       Row(children: [
         for (var i = 0; i < tiles.length; i++)
@@ -93,7 +94,7 @@ class UltimateStats extends StatelessWidget {
                               fontFeatures: tabularFigures)),
                     ),
                     const SizedBox(height: 4),
-                    Text('${tiles[i].$4} / game',
+                    Text(context.l10n.profile_game(tiles[i].$4),
                         style: TextStyle(
                             color: p.muted,
                             fontSize: 11.5,
@@ -106,13 +107,13 @@ class UltimateStats extends StatelessWidget {
         const SizedBox(height: 12),
         Text.rich(
           TextSpan(children: [
-            const TextSpan(text: 'A hand in '),
+            TextSpan(text: context.l10n.profile_aHandIn),
             TextSpan(
                 text: '$involved',
                 style: TextStyle(color: p.ink, fontWeight: FontWeight.w800)),
             TextSpan(
                 text:
-                    ' ${involved == 1 ? 'score' : 'scores'} · ${perGame(involved, nums.games)} a game'),
+                    context.l10n.profile_countPluralOneScoreA(involved, perGame(involved, nums.games))),
           ]),
           style: TextStyle(
               color: p.muted, fontSize: 12.5, fontFeatures: tabularFigures),

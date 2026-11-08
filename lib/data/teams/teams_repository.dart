@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 class TeamsRepository {
   TeamsRepository(this._dio);
@@ -51,7 +52,7 @@ class TeamsRepository {
     try {
       final res = await _dio.get('/api/mobile/teams/$teamId');
       if (res.data == null || res.data is! Map) {
-        throw ApiException('Team not found.', statusCode: 404);
+        throw ApiException(l10n.common_teamNotFound, statusCode: 404);
       }
       return TeamDetail.fromJson(Map<String, dynamic>.from(res.data as Map));
     } catch (e) {

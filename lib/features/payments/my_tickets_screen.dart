@@ -18,6 +18,7 @@ import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sheet_scroll.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// My purchases — paid tickets as ticket stubs (2026), each opening its
 /// gate QR. Unused tickets lead; used ones — scanned, or used up when their
@@ -87,16 +88,16 @@ class _MyTicketsScreenState extends ConsumerState<MyTicketsScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: SpHeader(
-              title: 'My purchases',
-              subtitle: tickets.hasValue ? '$ready ready to use' : null,
+              title: context.l10n.wallet_myPurchases,
+              subtitle: tickets.hasValue ? context.l10n.wallet_readyToUse2(ready) : null,
             ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
             child: SpSegmented(
               options: [
-                ready > 0 ? 'Ready · $ready' : 'Ready',
-                used > 0 ? 'Used · $used' : 'Used',
+                ready > 0 ? context.l10n.wallet_readyN(ready) : context.l10n.wallet_ready,
+                used > 0 ? context.l10n.wallet_usedN(used) : context.l10n.wallet_used,
               ],
               index: _used ? 1 : 0,
               onChanged: (i) => setState(() => _used = i == 1),
@@ -147,10 +148,10 @@ class _MyTicketsScreenState extends ConsumerState<MyTicketsScreen> {
                         const SizedBox(height: 14),
                         Text(
                             _used
-                                ? 'No used tickets yet'
+                                ? context.l10n.wallet_noUsedTicketsYet
                                 : list.isEmpty
-                                    ? 'No purchases yet'
-                                    : 'Nothing waiting to be scanned',
+                                    ? context.l10n.wallet_noPurchasesYet
+                                    : context.l10n.wallet_nothingWaitingToBeScanned,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                                 color: p.ink,
@@ -159,8 +160,8 @@ class _MyTicketsScreenState extends ConsumerState<MyTicketsScreen> {
                         const SizedBox(height: 4),
                         Text(
                             _used
-                                ? 'Tickets move here once they\'re scanned at the gate, or when their cycle ends.'
-                                : 'Tickets you buy — or get gifted — land here, ready to show at the gate.',
+                                ? context.l10n.wallet_ticketsMoveHereOnceTheyre
+                                : context.l10n.wallet_ticketsYouBuyOrGet,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                                 color: p.muted, fontSize: 13, height: 1.45)),
@@ -210,17 +211,17 @@ class _TicketStub extends StatelessWidget {
     final muted = ready ? p.heroMuted : p.muted;
     final ward = t.forWard;
     final eyebrow = ward == null && t.giftedByName != null
-        ? 'GIFTED BY ${t.giftedByName!.toUpperCase()}'
+        ? context.l10n.wallet_giftedBy2(t.giftedByName!.toUpperCase())
         : ready
-            ? 'READY TO SCAN'
+            ? context.l10n.wallet_readyToScan.toUpperCase()
             : usedUp
-                ? 'CYCLE ENDED'
-                : 'USED ${formatDayYear(t.redeemedAt).toUpperCase()}';
+                ? context.l10n.wallet_cycleEnded.toUpperCase()
+                : context.l10n.wallet_used2(formatDayYear(t.redeemedAt)).toUpperCase();
     final valid = validityRange(t.validFrom, t.validUntil);
     final meta = [
       if (t.groupName != null) t.groupName!,
       if (t.eventDate != null) formatDayYear(t.eventDate),
-      if (valid != null) 'Valid $valid',
+      if (valid != null) context.l10n.wallet_validRange(valid),
     ].join(' · ');
 
     return Material(
@@ -281,7 +282,7 @@ class _TicketStub extends StatelessWidget {
                                 color: p.surface2,
                                 borderRadius: BorderRadius.circular(999),
                               ),
-                              child: Text('Used up',
+                              child: Text(context.l10n.wallet_usedUp,
                                   style: TextStyle(
                                       color: p.muted,
                                       fontSize: 11,
@@ -319,7 +320,7 @@ class _TicketStub extends StatelessWidget {
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Receipt code',
+                        Text(context.l10n.wallet_receiptCode,
                             style: TextStyle(color: muted, fontSize: 11.5)),
                         Text(t.code,
                             maxLines: 1,
@@ -353,7 +354,7 @@ class _TicketStub extends StatelessWidget {
                         size: 16,
                         color: ready ? const Color(0xFF0E1411) : p.ink),
                     const SizedBox(width: 5),
-                    Text(ready ? 'Show' : 'Receipt',
+                    Text(ready ? context.l10n.wallet_show : context.l10n.wallet_receipt,
                         style: TextStyle(
                             color: ready ? const Color(0xFF0E1411) : p.ink,
                             fontSize: 12.5,
@@ -439,9 +440,9 @@ class _FollowNudgeState extends ConsumerState<_FollowNudge> {
       await ref.read(eventsRepositoryProvider).setFollow(widget.groupId, true);
       if (mounted) {
         setState(() => _done = true);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content:
-                Text("Following — their events now show on your home page.")));
+                Text(l10n.wallet_followingTheirEventsNowShow)));
       }
       ref.invalidate(myTicketsProvider);
     } catch (e) {
@@ -470,13 +471,13 @@ class _FollowNudgeState extends ConsumerState<_FollowNudge> {
         const SizedBox(width: 12),
         Expanded(
           child: Text(
-            'Follow ${widget.groupName} so their events always show on your home page.',
+            context.l10n.wallet_followSoTheirEventsAlways(widget.groupName),
             style: TextStyle(color: p.ink, fontSize: 12.5, height: 1.4),
           ),
         ),
         const SizedBox(width: 8),
         SpButton(
-          label: 'Follow',
+          label: context.l10n.wallet_follow,
           onTap: _busy ? null : _follow,
         ),
       ]),
@@ -570,7 +571,7 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
             ),
             SpRoundButton(
               icon: Icons.close_rounded,
-              tooltip: 'Close',
+              tooltip: context.l10n.wallet_close,
               onTap: () => Navigator.of(context).pop(),
             ),
           ]),
@@ -599,10 +600,10 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
                             Expanded(
                               child: Text(
                                   ward != null
-                                      ? 'FOR ${ward.firstName.toUpperCase()}'
+                                      ? context.l10n.wallet_forLabel2(ward.firstName.toUpperCase())
                                       : t.giftedByName != null
-                                          ? 'GIFTED BY ${t.giftedByName!.toUpperCase()}'
-                                          : 'MATCH TICKET',
+                                          ? context.l10n.wallet_giftedBy2(t.giftedByName!.toUpperCase())
+                                          : context.l10n.wallet_matchTicket2,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
@@ -622,11 +623,11 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
                               ),
                               child: Text(
                                   used
-                                      ? 'Used'
+                                      ? context.l10n.wallet_used
                                       : usedUp
-                                          ? 'Used up'
+                                          ? context.l10n.wallet_usedUp
                                           : t.status == 'paid'
-                                              ? 'Valid'
+                                              ? context.l10n.wallet_valid2
                                               : capitalizeFirst(t.status),
                                   style: TextStyle(
                                       color: used
@@ -657,7 +658,7 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
                                 if (t.groupName != null) t.groupName!,
                                 if (t.eventDate != null)
                                   formatDayYear(t.eventDate),
-                                if (valid != null) 'Valid $valid',
+                                if (valid != null) context.l10n.wallet_validRange(valid),
                               ].join(' · '),
                               style: TextStyle(
                                   color: p.heroMuted, fontSize: 12.5)),
@@ -685,14 +686,14 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
                               const SizedBox(height: 12),
                               Text(
                                   _justScanned
-                                      ? "You're in — enjoy the game"
-                                      : 'Checked in',
+                                      ? context.l10n.wallet_youreInEnjoyTheGame
+                                      : context.l10n.wallet_checkedIn,
                                   style: TextStyle(
                                       color: p.greenText,
                                       fontSize: 18,
                                       fontWeight: FontWeight.w800)),
                               const SizedBox(height: 2),
-                              Text('Scanned ${timeAgo(t.redeemedAt)}',
+                              Text(context.l10n.wallet_scanned(timeAgo(t.redeemedAt)),
                                   style: TextStyle(
                                       color: p.muted, fontSize: 12.5)),
                             ]),
@@ -718,16 +719,14 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
                                         size: 30, color: p.muted),
                                   ),
                                   const SizedBox(height: 12),
-                                  Text('Used up',
+                                  Text(context.l10n.wallet_usedUp,
                                       style: TextStyle(
                                           color: p.ink,
                                           fontSize: 18,
                                           fontWeight: FontWeight.w800)),
                                   const SizedBox(height: 2),
                                   Text(
-                                      'Used up — this cycle has ended'
-                                      '${t.validUntil != null ? ' (last day ${shortDay(t.validUntil!)})' : ''}. '
-                                      'Used-up tickets can\'t be refunded.',
+                                      context.l10n.wallet_usedUpThisCycleHas2((t.validUntil != null ? ' (last day ${shortDay(t.validUntil!)})' : '')),
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                           color: p.muted,
@@ -751,8 +750,8 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
                                       Expanded(
                                         child: Text(
                                           t.status != 'paid'
-                                              ? 'This payment is ${t.status} — the gate QR appears once it has gone through.'
-                                              : 'The gate QR is with ${t.holderName ?? 'the ticket holder'} — they show it at the gate.',
+                                              ? context.l10n.wallet_thisPaymentIsTheGate(t.status)
+                                              : context.l10n.wallet_theGateQrIsWith(t.holderName ?? 'the ticket holder'),
                                           style: TextStyle(
                                               color: p.muted,
                                               fontSize: 12.5,
@@ -790,8 +789,8 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
                                           Flexible(
                                             child: Text(
                                                 ward != null
-                                                    ? 'Show this at the gate for ${ward.firstName}'
-                                                    : 'Show this at the gate — it updates when scanned',
+                                                    ? context.l10n.wallet_showThisAtTheGate3(ward.firstName)
+                                                    : context.l10n.wallet_showThisAtTheGate2,
                                                 textAlign: TextAlign.center,
                                                 style: TextStyle(
                                                     color: p.muted,
@@ -812,8 +811,8 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
                           await Clipboard.setData(ClipboardData(text: t.code));
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Receipt code copied')));
+                                SnackBar(
+                                    content: Text(l10n.wallet_receiptCodeCopied)));
                           }
                         },
                         child: Padding(
@@ -824,7 +823,7 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
                               child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Receipt code',
+                                    Text(context.l10n.wallet_receiptCode,
                                         style: TextStyle(
                                             color: p.muted, fontSize: 11.5)),
                                     Text(t.code,
@@ -851,37 +850,37 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
           GlassCard(
             padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
             child: Column(children: [
-              _kv(p, 'Ticket',
+              _kv(p, context.l10n.wallet_ticket2,
                   formatMoney(t.amountMinor, t.currency, t.currencyExponent)),
               if (t.feeMinor > 0)
-                _kv(p, 'Fees',
+                _kv(p, context.l10n.wallet_fees,
                     formatMoney(t.feeMinor, t.currency, t.currencyExponent)),
               Divider(height: 14, color: p.surface2),
-              _kv(p, 'Total paid',
+              _kv(p, context.l10n.wallet_totalPaid,
                   formatMoney(t.totalMinor, t.currency, t.currencyExponent),
                   bold: true),
               if (t.refundedMinor > 0)
                 _kv(
                     p,
-                    t.status == 'refunded' ? 'Refunded' : 'Refunded so far',
+                    t.status == 'refunded' ? context.l10n.wallet_refunded : context.l10n.wallet_refundedSoFar,
                     formatMoney(
                         t.refundedMinor, t.currency, t.currencyExponent)),
-              if (ward != null) _kv(p, 'For', ward.displayName),
+              if (ward != null) _kv(p, context.l10n.wallet_forLabel, ward.displayName),
               if (ward == null && !t.canPresent && t.holderName != null)
-                _kv(p, 'For', t.holderName!),
-              if (t.groupName != null) _kv(p, 'Group', t.groupName!),
-              if (t.eventTitle != null) _kv(p, 'Event', t.eventTitle!),
+                _kv(p, context.l10n.wallet_forLabel, t.holderName!),
+              if (t.groupName != null) _kv(p, context.l10n.wallet_group, t.groupName!),
+              if (t.eventTitle != null) _kv(p, context.l10n.wallet_event, t.eventTitle!),
               if (t.eventDate != null)
-                _kv(p, 'Date', formatDayYear(t.eventDate)),
-              if (t.paidAt != null) _kv(p, 'Paid', formatDayYear(t.paidAt)),
+                _kv(p, context.l10n.wallet_date, formatDayYear(t.eventDate)),
+              if (t.paidAt != null) _kv(p, context.l10n.wallet_paid, formatDayYear(t.paidAt)),
               if (t.giftedByName != null)
-                _kv(p, 'Paid for by', t.giftedByName!),
-              if (valid != null) _kv(p, 'Valid', valid),
+                _kv(p, context.l10n.wallet_paidForBy, t.giftedByName!),
+              if (valid != null) _kv(p, context.l10n.wallet_valid2, valid),
               if (t.redeemedAt != null)
-                _kv(p, 'Used', formatDayYear(t.redeemedAt)),
+                _kv(p, context.l10n.wallet_used, formatDayYear(t.redeemedAt)),
               // The cycle's last day (when it was closed can be the morning after).
               if (usedUp)
-                _kv(p, 'Cycle ended', shortDay(t.validUntil ?? t.expiredAt!)),
+                _kv(p, context.l10n.wallet_cycleEnded, shortDay(t.validUntil ?? t.expiredAt!)),
             ]),
           ),
         ]),

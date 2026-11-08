@@ -18,6 +18,7 @@ import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// One comment in the flattened tree: its ancestors (for the thread lines)
 /// and, when collapsed, how many replies are hidden under it.
@@ -165,23 +166,22 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
     );
     if (r == null || !mounted) return;
     await _run(() => _ctrl.edit(title: r.title, body: r.body, flair: r.flair),
-        done: 'Saved.');
+        done: l10n.inbox_saved2);
   }
 
   Future<void> _delete(DiscussionDetail d) async {
     final ok = await confirmDiscussionAction(
       context,
-      title: 'Remove this discussion?',
-      message: "It disappears for everyone. The group's admins can still "
-          'see it for review.',
-      confirm: 'Remove',
+      title: l10n.inbox_removeThisDiscussion,
+      message: l10n.inbox_itDisappearsForEveryoneThe,
+      confirm: l10n.inbox_remove,
     );
     if (!ok || !mounted) return;
     setState(() => _busy = true);
     try {
       await _ctrl.delete();
       if (!mounted) return;
-      _snack('Discussion removed.');
+      _snack(l10n.inbox_discussionRemoved2);
       if (context.canPop()) {
         context.pop();
       } else {
@@ -213,17 +213,19 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
       case 'status':
         // ignore: discarded_futures
         _run(() => _ctrl.setStatus(d.isResolved ? 'open' : 'resolved'),
-            done: d.isResolved ? 'Reopened.' : 'Marked as resolved.');
+            done: d.isResolved
+                ? l10n.inbox_reopened2
+                : l10n.inbox_markedAsResolved);
       case 'pin':
         // ignore: discarded_futures
         _run(() => _ctrl.moderate(pinned: !d.pinned),
-            done: d.pinned ? 'Unpinned.' : 'Pinned to the top.');
+            done: d.pinned ? l10n.inbox_unpinned2 : l10n.inbox_pinnedToTheTop2);
       case 'lock':
         // ignore: discarded_futures
         _run(() => _ctrl.moderate(locked: !d.locked),
             done: d.locked
-                ? 'Comments reopened.'
-                : 'Locked — only moderators can comment now.');
+                ? l10n.inbox_commentsReopened
+                : l10n.inbox_lockedOnlyModeratorsCanCommentNow);
       case 'delete':
         // ignore: discarded_futures
         _delete(d);
@@ -254,14 +256,14 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SpListCard(children: [
-              if (t.me.canComment) tile('reply', Icons.reply_rounded, 'Reply'),
+              if (t.me.canComment) tile('reply', Icons.reply_rounded, l10n.inbox_reply),
               if (c.body.isNotEmpty)
-                tile('copy', Icons.copy_rounded, 'Copy text'),
-              if (c.canEdit) tile('edit', Icons.edit_outlined, 'Edit'),
+                tile('copy', Icons.copy_rounded, l10n.inbox_copyText),
+              if (c.canEdit) tile('edit', Icons.edit_outlined, l10n.inbox_edit),
               if (c.canDelete)
-                tile('delete', Icons.delete_outline_rounded, 'Delete',
+                tile('delete', Icons.delete_outline_rounded, l10n.inbox_delete,
                     color: p.danger),
-              if (!c.mine) tile('report', Icons.flag_outlined, 'Report'),
+              if (!c.mine) tile('report', Icons.flag_outlined, l10n.inbox_report),
             ]),
           ],
         );
@@ -273,23 +275,24 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
         _reply(c);
       case 'copy':
         await Clipboard.setData(ClipboardData(text: c.body));
-        _snack('Copied.');
+        _snack(l10n.inbox_copied);
       case 'edit':
         final body = await showSpSheet<String>(
           context,
           builder: (_) => _EditCommentSheet(initial: c.body),
         );
         if (body == null || !mounted) return;
-        await _run(() => _ctrl.editComment(c.id, body), done: 'Saved.');
+        await _run(() => _ctrl.editComment(c.id, body), done: l10n.inbox_saved2);
       case 'delete':
         final ok = await confirmDiscussionAction(
           context,
-          title: 'Remove this comment?',
-          message: 'It shows as [removed]; replies to it stay.',
-          confirm: 'Remove',
+          title: l10n.inbox_removeThisComment,
+          message: l10n.inbox_itShowsAsRemovedReplies,
+          confirm: l10n.inbox_remove,
         );
         if (!ok || !mounted) return;
-        await _run(() => _ctrl.deleteComment(c.id), done: 'Comment removed.');
+        await _run(() => _ctrl.deleteComment(c.id),
+            done: l10n.inbox_commentRemoved2);
       case 'report':
         _report(commentId: c.id);
     }
@@ -377,28 +380,28 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
         ? const <PopupMenuEntry<String>>[]
         : <PopupMenuEntry<String>>[
             if (t.me.canEdit)
-              const PopupMenuItem(value: 'edit', child: Text('Edit')),
+              PopupMenuItem(value: 'edit', child: Text(context.l10n.inbox_edit)),
             if (t.me.canResolve)
               PopupMenuItem(
                   value: 'status',
                   child: Text(
-                      t.discussion.isResolved ? 'Reopen' : 'Mark as resolved')),
+                      t.discussion.isResolved ? context.l10n.inbox_reopen : context.l10n.inbox_markAsResolved)),
             if (t.me.canModerate) ...[
               PopupMenuItem(
                   value: 'pin',
-                  child: Text(t.discussion.pinned ? 'Unpin' : 'Pin to top')),
+                  child: Text(t.discussion.pinned ? context.l10n.inbox_unpin : context.l10n.inbox_pinToTop)),
               PopupMenuItem(
                   value: 'lock',
                   child: Text(t.discussion.locked
-                      ? 'Unlock comments'
-                      : 'Lock comments')),
+                      ? context.l10n.inbox_unlockComments
+                      : context.l10n.inbox_lockComments)),
             ],
             if (t.me.canDelete)
-              const PopupMenuItem(value: 'delete', child: Text('Remove')),
+              PopupMenuItem(value: 'delete', child: Text(context.l10n.inbox_remove)),
             if (!t.me.isOP)
-              const PopupMenuItem(value: 'report', child: Text('Report')),
+              PopupMenuItem(value: 'report', child: Text(context.l10n.inbox_report)),
             PopupMenuItem(
-                value: 'group', child: Text('Open ${t.discussion.group.name}')),
+                value: 'group', child: Text(context.l10n.inbox_open2(t.discussion.group.name))),
           ];
 
     return Scaffold(
@@ -408,16 +411,16 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
             child: SpHeader(
-              title: d?.teamName ?? d?.group.name ?? 'Discussion',
+              title: d?.teamName ?? d?.group.name ?? context.l10n.inbox_discussion,
               subtitle: d == null
                   ? null
                   : d.teamName != null
                       ? d.group.name
-                      : 'Group discussion',
+                      : context.l10n.inbox_groupDiscussion,
               actions: [
                 if (menu.isNotEmpty)
                   PopupMenuButton<String>(
-                    tooltip: 'More',
+                    tooltip: context.l10n.inbox_more,
                     enabled: !_busy,
                     icon: Icon(Icons.more_vert_rounded, color: p.ink),
                     onSelected: (v) {
@@ -467,15 +470,19 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
       Row(children: [
         Text(
             t.discussion.commentCount == 1
-                ? '1 comment'
-                : '${t.discussion.commentCount} comments',
+                ? context.l10n.inbox_t1Comment
+                : context.l10n.inbox_comments3(t.discussion.commentCount),
             style: TextStyle(
                 color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
         const Spacer(),
         SizedBox(
           width: 190,
           child: SpSegmented(
-            options: const ['Best', 'New', 'Old'],
+            options: [
+              context.l10n.inbox_best,
+              context.l10n.inbox_newLabel,
+              context.l10n.inbox_old,
+            ],
             index: _sorts.indexOf(_sort),
             onChanged: (i) {
               if (_sorts[i] == _sort) return;
@@ -490,8 +497,8 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           padding: const EdgeInsets.symmetric(vertical: 28),
           child: Text(
               t.me.canComment
-                  ? 'No comments yet. Start the conversation.'
-                  : 'No comments.',
+                  ? context.l10n.inbox_noCommentsYetStartThe
+                  : context.l10n.inbox_noComments,
               textAlign: TextAlign.center,
               style: TextStyle(color: p.muted, fontSize: 13)),
         ),
@@ -529,9 +536,9 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
     final d = t.discussion;
     final tags = <Widget>[
       if (d.pinned)
-        SpBadge('Pinned', icon: Icons.push_pin_rounded, tone: p.greenText),
+        SpBadge(context.l10n.inbox_pinned, icon: Icons.push_pin_rounded, tone: p.greenText),
       if (d.locked)
-        SpBadge('Locked', icon: Icons.lock_outline_rounded, tone: p.orangeInk),
+        SpBadge(context.l10n.inbox_locked2, icon: Icons.lock_outline_rounded, tone: p.orangeInk),
       DiscussionFlairPill(d.flair),
       if (d.isResolved) const DiscussionResolvedPill(),
     ];
@@ -631,7 +638,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
                   _focus.requestFocus();
                 },
                 icon: const Icon(Icons.mode_comment_outlined, size: 17),
-                label: const Text('Comment'),
+                label: Text(context.l10n.inbox_comment2),
               ),
           ]),
         ],
@@ -654,7 +661,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-                'Locked — new comments are turned off for this discussion.',
+                context.l10n.inbox_lockedNewCommentsAreTurned,
                 style: TextStyle(color: p.muted, fontSize: 13, height: 1.4)),
           ),
         ]),
@@ -689,15 +696,15 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         if (d.locked)
           note(Icons.lock_outline_rounded,
-              'Locked — only moderators can comment.', p.orangeInk),
+              context.l10n.inbox_lockedOnlyModeratorsCanComment, p.orangeInk),
         if (ward != null)
           note(
             Icons.child_care_rounded,
-            "Commenting as ${ward.firstName}'s guardian",
+            context.l10n.inbox_commentingAsSGuardian(ward.firstName),
             p.wardInk,
             trailing: wards.length > 1
                 ? PopupMenuButton<String>(
-                    tooltip: 'Choose ward',
+                    tooltip: context.l10n.inbox_chooseWard,
                     padding: EdgeInsets.zero,
                     icon: Icon(Icons.swap_horiz_rounded,
                         size: 18, color: p.wardInk),
@@ -706,7 +713,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
                       for (final w in wards)
                         PopupMenuItem(
                             value: w.id,
-                            child: Text("${w.firstName}'s guardian")),
+                            child: Text(context.l10n.inbox_sGuardian3(w.firstName))),
                     ],
                   )
                 : null,
@@ -714,7 +721,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
         if (replyTo != null)
           note(
             Icons.reply_rounded,
-            'Replying to ${replyTo.author?.name ?? 'a comment'}',
+            context.l10n.inbox_replyingTo(replyTo.author?.name ?? 'a comment'),
             p.greenText,
             trailing: InkWell(
               customBorder: const CircleBorder(),
@@ -737,7 +744,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
               textCapitalization: TextCapitalization.sentences,
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                hintText: replyTo != null ? 'Your reply' : 'Add a comment',
+                hintText: replyTo != null ? context.l10n.inbox_yourReply : context.l10n.inbox_addAComment2,
                 counterText: '',
                 isDense: true,
                 filled: true,
@@ -816,7 +823,7 @@ class _CommentRow extends StatelessWidget {
     final live = !c.deleted && !c.pending;
 
     final Widget head = c.deleted || author == null
-        ? Text('[removed]',
+        ? Text(context.l10n.inbox_removed,
             style: TextStyle(
                 color: p.muted, fontSize: 12.5, fontStyle: FontStyle.italic))
         : DiscussionAuthorLine(
@@ -824,7 +831,7 @@ class _CommentRow extends StatelessWidget {
             userId: author.id,
             isOP: c.isOP,
             note: c.pending
-                ? 'Posting…'
+                ? context.l10n.inbox_posting
                 : discussionTimeNote(c.createdAt, editedAt: c.editedAt),
           );
 
@@ -849,8 +856,8 @@ class _CommentRow extends StatelessWidget {
                   ),
                   child: Text(
                       row.hidden == 0
-                          ? 'Folded'
-                          : '+${row.hidden} ${row.hidden == 1 ? 'reply' : 'replies'}',
+                          ? context.l10n.inbox_folded
+                          : context.l10n.inbox_replies(row.hidden),
                       style: TextStyle(
                           color: p.muted,
                           fontSize: 11,
@@ -891,12 +898,12 @@ class _CommentRow extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                     ),
                     icon: const Icon(Icons.reply_rounded, size: 16),
-                    label: const Text('Reply',
-                        style: TextStyle(
+                    label: Text(context.l10n.inbox_reply,
+                        style: const TextStyle(
                             fontSize: 12.5, fontWeight: FontWeight.w700)),
                   ),
                 IconButton(
-                  tooltip: 'More',
+                  tooltip: context.l10n.inbox_more,
                   visualDensity: VisualDensity.compact,
                   onPressed: onMore,
                   icon:
@@ -959,10 +966,10 @@ class _EditDiscussionSheetState extends State<_EditDiscussionSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SpSheetHeader(
+        SpSheetHeader(
           icon: Icons.edit_outlined,
-          title: 'Edit discussion',
-          subtitle: 'Everyone will see it was edited.',
+          title: context.l10n.inbox_editDiscussion,
+          subtitle: context.l10n.inbox_everyoneWillSeeItWas,
         ),
         Wrap(spacing: 8, runSpacing: 8, children: [
           for (final f in discussionFlairs)
@@ -978,7 +985,7 @@ class _EditDiscussionSheetState extends State<_EditDiscussionSheet> {
           controller: _title,
           maxLength: 140,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(labelText: 'Title'),
+          decoration: InputDecoration(labelText: context.l10n.inbox_title),
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 6),
@@ -989,14 +996,14 @@ class _EditDiscussionSheetState extends State<_EditDiscussionSheet> {
           maxLines: 10,
           keyboardType: TextInputType.multiline,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            labelText: 'Details',
+          decoration: InputDecoration(
+            labelText: context.l10n.inbox_details,
             alignLabelWithHint: true,
           ),
         ),
         const SizedBox(height: 10),
         SpButton(
-          label: 'Save',
+          label: context.l10n.inbox_save,
           icon: Icons.check_rounded,
           expand: true,
           onTap: ok
@@ -1036,7 +1043,7 @@ class _EditCommentSheetState extends State<_EditCommentSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SpSheetHeader(icon: Icons.edit_outlined, title: 'Edit comment'),
+        SpSheetHeader(icon: Icons.edit_outlined, title: context.l10n.inbox_editComment),
         TextField(
           controller: _body,
           autofocus: true,
@@ -1049,7 +1056,7 @@ class _EditCommentSheetState extends State<_EditCommentSheet> {
         ),
         const SizedBox(height: 10),
         SpButton(
-          label: 'Save',
+          label: context.l10n.inbox_save,
           icon: Icons.check_rounded,
           expand: true,
           onTap: text.isEmpty || text == widget.initial.trim()

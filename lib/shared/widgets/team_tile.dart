@@ -5,6 +5,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// "#16a34a" → Color, or null for anything unparseable.
 Color? kitColor(String? v) {
@@ -115,7 +116,7 @@ class TeamTile extends StatelessWidget {
                 Icon(Icons.groups_outlined, size: 14, color: p.greenText),
                 const SizedBox(width: 4),
                 Text(
-                    '${t.memberCount ?? 0} player${(t.memberCount ?? 0) == 1 ? '' : 's'}',
+                    context.l10n.common_countPluralOnePlayerOther((t.memberCount ?? 0), t.memberCount ?? 0),
                     style: TextStyle(
                         color: p.greenText,
                         fontSize: 11.5,

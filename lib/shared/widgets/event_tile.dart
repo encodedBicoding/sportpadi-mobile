@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/event_models.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The 2026 event tile (web: components/EventTile.tsx) — Browse, and the
 /// group page's Events tab and events page: a cover (photo, or a pitch drawn
@@ -136,7 +137,7 @@ class EventTile extends StatelessWidget {
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: pill(
-                          t ? 'Tournament' : (e.categoryName ?? 'Event'),
+                          t ? context.l10n.common_tournament : (e.categoryName ?? context.l10n.common_event),
                           const Color(0xEBFFFFFF),
                           t ? const Color(0xFF9A4308) : const Color(0xFF0F7A45),
                         ),
@@ -147,7 +148,7 @@ class EventTile extends StatelessWidget {
                         right: 8,
                         top: 8,
                         child: pill(
-                            'LIVE', const Color(0xFFE02424), Colors.white,
+                            context.l10n.common_live2, const Color(0xFFE02424), Colors.white,
                             lead: Container(
                                 width: 5,
                                 height: 5,

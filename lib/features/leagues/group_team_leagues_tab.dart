@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 String ordinal(int n) {
   final t = n % 100;
@@ -76,9 +77,9 @@ class GroupTeamLeaguesTab extends ConsumerWidget {
         ];
         if (teams.isEmpty) {
           if (embedded) return const SizedBox.shrink();
-          return const Padding(
-            padding: EdgeInsets.all(20),
-            child: SpEmpty(icon: Icons.emoji_events_rounded, text: "None of this group's teams is in a league yet."),
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: SpEmpty(icon: Icons.emoji_events_rounded, text: context.l10n.league_noneOfThisGroupsTeams),
           );
         }
         return Padding(
@@ -92,7 +93,7 @@ class GroupTeamLeaguesTab extends ConsumerWidget {
                   SpIconTile(Icons.mark_email_unread_outlined, bg: p.surface, fg: p.orangeInk, size: 38, iconSize: 19),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text('${d.i('invitations')} league invitation${d.i('invitations') == 1 ? '' : 's'} waiting',
+                    child: Text(context.l10n.league_leagueInvitationsWaiting(d.i('invitations')),
                         style: TextStyle(color: p.ink, fontSize: 13, fontWeight: FontWeight.w700)),
                   ),
                 ]),
@@ -112,10 +113,10 @@ class GroupTeamLeaguesTab extends ConsumerWidget {
                         size: 30),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text(t.o('team')?.str('name') ?? 'Team',
+                      child: Text(t.o('team')?.str('name') ?? context.l10n.league_team,
                           style: TextStyle(color: p.ink, fontSize: 15, fontWeight: FontWeight.w800)),
                     ),
-                    Text('${t.list('entries').where((e) => keep(e, phases, search)).length} league${t.list('entries').where((e) => keep(e, phases, search)).length == 1 ? '' : 's'}',
+                    Text(context.l10n.league_leagues(t.list('entries').where((e) => keep(e, phases, search)).length),
                         style: TextStyle(color: p.muted, fontSize: 11.5)),
                     Icon(Icons.chevron_right_rounded, color: p.muted),
                   ]),
@@ -148,7 +149,7 @@ class _LeagueHub extends ConsumerWidget {
     final phase = e.str('phase');
     final champion = e.b('champion');
     final published = l?.s('status') != 'draft';
-    final teamName = e.str('teamName', 'Your team');
+    final teamName = e.str('teamName', context.l10n.league_yourTeam2);
     final organiser = e.o('organiser')?.s('name');
     // Entry fee (team admins): "due" on an invite, "pending" mid-checkout.
     final fee = e.o('fee');
@@ -159,10 +160,10 @@ class _LeagueHub extends ConsumerWidget {
     // organiser confirms (or turns the team down, with a note).
     final selfRegistered = e.raw['selfRegistered'] == true;
     final (String badge, Color? tone) = switch (phase) {
-      'invited' => (selfRegistered ? 'Awaiting approval' : 'Invited', p.orangeInk),
-      'upcoming' => ('Starting soon', p.ink),
-      'active' => ('Playing', p.greenText),
-      _ => (champion ? 'Champions' : 'Finished', champion ? p.greenText : null),
+      'invited' => (selfRegistered ? context.l10n.league_awaitingApproval : context.l10n.league_invited, p.orangeInk),
+      'upcoming' => (context.l10n.league_startingSoon, p.ink),
+      'active' => (context.l10n.league_playing, p.greenText),
+      _ => (champion ? context.l10n.league_champions : context.l10n.league_finished, champion ? p.greenText : null),
     };
 
     return GlassCard(
@@ -182,13 +183,13 @@ class _LeagueHub extends ConsumerWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: p.ink, fontWeight: FontWeight.w800, fontSize: 15)),
-              Text('by ${organiser ?? 'an organiser'} · ${l?.str('format') ?? ''}',
+              Text(context.l10n.league_by2(organiser ?? context.l10n.league_anOrganiser, l?.str('format') ?? ''),
                   maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.muted, fontSize: 12)),
             ]),
           ),
           if (published && phase != 'invited')
             SpPill(
-              label: 'League',
+              label: context.l10n.league_league,
               tone: SpPillTone.outline,
               height: 32,
               onTap: () => context.push('/leagues/${l?.str('slug')}'),
@@ -198,17 +199,14 @@ class _LeagueHub extends ConsumerWidget {
         if (phase == 'invited' && selfRegistered) ...[
           const SizedBox(height: 10),
           Text(
-              '$teamName registered for this league and is waiting for ${organiser ?? 'the organiser'} to confirm its place'
-              '${feeDue ? ' — pay the entry fee from the registration link to complete it' : ''}.',
+              context.l10n.league_registeredForThisLeagueAnd2(teamName, organiser ?? context.l10n.league_theOrganiser, (feeDue ? context.l10n.league_payTheEntryFeeFrom2 : '')),
               style: TextStyle(color: p.muted, fontSize: 12.5)),
         ],
         // Invited: answer it
         if (phase == 'invited' && !selfRegistered) ...[
           const SizedBox(height: 10),
           Text(
-              'Accepting enters $teamName and registers its current players '
-              '(rosters take ${l?.o('rosters')?.i('minPlayers')}–${l?.o('rosters')?.i('maxPlayers')}). '
-              "You can edit the roster until the organiser's cutoff.",
+              context.l10n.league_acceptingEntersAndRegistersIts2(teamName, (l?.o('rosters')?.i('minPlayers')) ?? '', (l?.o('rosters')?.i('maxPlayers')) ?? ''),
               style: TextStyle(color: p.muted, fontSize: 12.5)),
           // Entry fee: paying (card checkout into the organiser's wallet) is what accepts.
           if (feeDue) ...[
@@ -217,10 +215,8 @@ class _LeagueHub extends ConsumerWidget {
               icon: Icons.credit_card_rounded,
               bg: p.orangeTint,
               fg: p.orangeInk,
-              title: 'Entry fee $feeLabel.',
-              text: 'Paid by card to ${organiser ?? 'the organiser'} — paying accepts the invite. If the organiser removes your team '
-                  "before the season starts, the fee comes back (SportPadi's processing fee doesn't)."
-                  '${fee.str('status') == 'pending' ? ' A payment was started — if you finished it, tap Check payment.' : ''}',
+              title: context.l10n.league_entryFee(feeLabel),
+              text: context.l10n.league_paidByCardToPaying(organiser ?? context.l10n.league_theOrganiser, (fee.str('status') == 'pending' ? context.l10n.league_aPaymentWasStartedIf2 : '')),
             ),
           ],
           if (isAdmin) ...[
@@ -228,31 +224,31 @@ class _LeagueHub extends ConsumerWidget {
             Wrap(spacing: 8, runSpacing: 8, children: [
               if (feeDue)
                 SpPill(
-                  label: 'Pay $feeLabel & accept',
+                  label: context.l10n.league_payAccept(feeLabel),
                   icon: Icons.credit_card_rounded,
                   height: 34,
                   onTap: () => _pay(context, ref, e.str('entryId')),
                 )
               else
                 SpPill(
-                  label: 'Accept',
+                  label: context.l10n.league_accept,
                   icon: Icons.check_rounded,
                   height: 34,
                   onTap: () => _accept(context, ref, e.str('entryId')),
                 ),
               if (fee?.str('status') == 'pending')
                 SpPill(
-                  label: 'Check payment',
+                  label: context.l10n.league_checkPayment,
                   tone: SpPillTone.soft,
                   height: 34,
                   onTap: () => _checkPayment(context, ref, e.str('entryId')),
                 ),
               SpPill(
-                label: 'Decline',
+                label: context.l10n.league_decline,
                 tone: SpPillTone.soft,
                 height: 34,
                 onTap: () => leagueAction(context, ref, 'respond', {'entryId': e.str('entryId'), 'accept': false},
-                    success: 'Invite declined', refresh: _refresh),
+                    success: context.l10n.league_inviteDeclined, refresh: _refresh),
               ),
             ]),
           ],
@@ -265,9 +261,8 @@ class _LeagueHub extends ConsumerWidget {
             icon: Icons.hourglass_top_rounded,
             bg: p.accentTint,
             fg: p.greenText,
-            title: '$teamName is in.',
-            text: '${organiser ?? 'The organiser'} is still setting the league up — fixtures show here once '
-                "they're published${l?.date('seasonStartsOn') != null ? ' (season starts ${MaterialLocalizations.of(context).formatMediumDate(l!.date('seasonStartsOn')!)})' : ''}.",
+            title: context.l10n.league_isIn(teamName),
+            text: _stillSettingUp(context, organiser, l?.date('seasonStartsOn')),
           ),
           const SizedBox(height: 10),
           Row(children: [
@@ -285,9 +280,9 @@ class _LeagueHub extends ConsumerWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                  '${d.list('teams').length} team${d.list('teams').length == 1 ? '' : 's'} in'
-                  '${d.i('teamsInvited') > 0 ? ' · ${d.i('teamsInvited')} invited' : ''}'
-                  ' · takes ${l?.i('teamsMin')}–${l?.i('teamsMax')}',
+                  d.i('teamsInvited') > 0
+                      ? context.l10n.league_p5TeamsInInvitedTakes(d.list('teams').length, d.i('teamsInvited'), l?.i('teamsMin') ?? 0, l?.i('teamsMax') ?? 0)
+                      : context.l10n.league_p5TeamsInTakes(d.list('teams').length, l?.i('teamsMin') ?? 0, l?.i('teamsMax') ?? 0),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: p.muted, fontSize: 12.5)),
@@ -344,7 +339,7 @@ class _LeagueHub extends ConsumerWidget {
       for (final x in _refresh) {
         ref.invalidate(x);
       }
-      messenger.showSnackBar(const SnackBar(content: Text("You're in — now call your players onto the league roster")));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.league_youreInNowCallYour2)));
     } catch (err) {
       messenger.showSnackBar(SnackBar(content: Text('$err')));
     }
@@ -358,7 +353,7 @@ class _LeagueHub extends ConsumerWidget {
       for (final x in _refresh) {
         ref.invalidate(x);
       }
-      messenger.showSnackBar(const SnackBar(content: Text('Finish paying in the browser, then come back and tap Check payment.')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.league_finishPayingInTheBrowser)));
     } catch (err) {
       messenger.showSnackBar(SnackBar(content: Text('$err')));
     }
@@ -373,8 +368,8 @@ class _LeagueHub extends ConsumerWidget {
       }
       messenger.showSnackBar(SnackBar(
           content: Text(r.str('status') == 'paid'
-              ? "Entry fee paid — you're in. Call your players onto the league roster."
-              : 'Payment not confirmed yet — it can take a minute. Check again shortly.')));
+              ? l10n.league_entryFeePaidYoureIn
+              : l10n.league_paymentNotConfirmedYetIt)));
     } catch (err) {
       messenger.showSnackBar(SnackBar(content: Text('$err')));
     }
@@ -410,13 +405,13 @@ class _LeagueHub extends ConsumerWidget {
     return [
       const SizedBox(height: 12),
       Row(children: [
-        tile(st != null ? ordinal(st.i('position')) : '–', 'Position', accent: true),
+        tile(st != null ? ordinal(st.i('position')) : '–', context.l10n.league_position, accent: true),
         const SizedBox(width: 6),
-        tile('${st?.i('played') ?? 0}', 'Played'),
+        tile('${st?.i('played') ?? 0}', context.l10n.league_played3),
         const SizedBox(width: 6),
-        tile(st != null ? '${st.i('won')}-${st.i('drawn')}-${st.i('lost')}' : '0-0-0', 'W-D-L'),
+        tile(st != null ? '${st.i('won')}-${st.i('drawn')}-${st.i('lost')}' : '0-0-0', context.l10n.league_wDL),
         const SizedBox(width: 6),
-        tile('${st?.i('points') ?? 0}', 'Points'),
+        tile('${st?.i('points') ?? 0}', context.l10n.league_points),
       ]),
       if (sanctions.isNotEmpty) ...[
         const SizedBox(height: 10),
@@ -424,12 +419,12 @@ class _LeagueHub extends ConsumerWidget {
           icon: Icons.warning_amber_rounded,
           bg: p.orangeTint,
           fg: p.orangeInk,
-          title: '${sanctions.length} forfeit${sanctions.length == 1 ? '' : 's'} against $teamName',
+          title: context.l10n.league_countPluralOneForfeitAgainst(sanctions.length, teamName),
           text: sanctions.take(2).map((s) => s.str('publicReason')).join('\n'),
         ),
       ],
       if (next.isNotEmpty) ...[
-        sub('Next up'),
+        sub(context.l10n.league_nextUp),
         SpListCard(children: [for (final f in next) FixtureTile(f: f)]),
       ] else ...[
         const SizedBox(height: 10),
@@ -438,16 +433,16 @@ class _LeagueHub extends ConsumerWidget {
           bg: p.surface2,
           fg: p.muted,
           text: d.i('fixturesTotal') > 0
-              ? 'No more fixtures scheduled for now.'
-              : "Fixtures for this team aren't published yet.",
+              ? context.l10n.league_noMoreFixturesScheduledFor
+              : context.l10n.league_fixturesForThisTeamArent,
         ),
       ],
       if (recent.isNotEmpty) ...[
-        sub('Results'),
+        sub(context.l10n.league_results2),
         SpListCard(children: [for (final f in recent) FixtureTile(f: f)]),
       ],
       if (table != null) ...[
-        sub(table.str('name', 'Table')),
+        sub(table.str('name', context.l10n.league_table)),
         StandingsTableView(rows: tableWindow(table.list('rows'), e.str('teamId')), highlightTeamId: e.str('teamId')),
       ],
       if (e.iOrNull('registered') != null) ...[
@@ -458,13 +453,26 @@ class _LeagueHub extends ConsumerWidget {
   }
 }
 
+/// "… is still setting the league up …" — whole sentences per case: named
+/// organiser or not, season start known or not.
+String _stillSettingUp(BuildContext context, String? organiser, DateTime? startsOn) {
+  final l = context.l10n;
+  if (startsOn == null) {
+    return organiser != null ? l.league_p5StillSettingUpNamed(organiser) : l.league_p5StillSettingUpUnnamed;
+  }
+  final date = MaterialLocalizations.of(context).formatMediumDate(startsOn);
+  return organiser != null
+      ? l.league_p5StillSettingUpNamedStarts(organiser, date)
+      : l.league_p5StillSettingUpUnnamedStarts(date);
+}
+
 String _finishLine(J e) {
   final st = e.o('standing');
-  if (e.b('champion')) return 'Champions';
+  if (e.b('champion')) return l10n.league_champions;
   if (st != null) {
-    return 'Finished ${ordinal(st.i('position'))} · ${st.i('won')}W ${st.i('drawn')}D ${st.i('lost')}L · ${st.i('points')} pts';
+    return l10n.league_finishedWDLPts2(ordinal(st.i('position')), st.i('won'), st.i('drawn'), st.i('lost'), st.i('points'));
   }
-  return e.b('movedAway') ? 'Moved to another division' : 'No games played';
+  return e.b('movedAway') ? l10n.league_movedToAnotherDivision : l10n.league_noGamesPlayed;
 }
 
 /// Tinted one-liner: icon, optional bold title, text.
@@ -525,25 +533,25 @@ class _RosterStrip extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('$n registered · $min–$max allowed',
+            Text(context.l10n.league_registeredAllowed2(n, min, max),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: p.ink, fontSize: 13, fontWeight: FontWeight.w700)),
             Text(
                 short
-                    ? '${min - n} more needed'
+                    ? context.l10n.league_moreNeeded2(min - n)
                     : locked
-                        ? 'Locked — ask the organiser for changes'
+                        ? context.l10n.league_lockedAskTheOrganiserFor
                         : lockAt != null
-                            ? 'Call players until ${MaterialLocalizations.of(context).formatMediumDate(lockAt)}'
-                            : 'Call-ups open — no cutoff set yet',
+                            ? context.l10n.league_callPlayersUntil2(MaterialLocalizations.of(context).formatMediumDate(lockAt))
+                            : context.l10n.league_callUpsOpenNoCutoff,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: p.muted, fontSize: 11.5)),
           ]),
         ),
         SpPill(
-          label: canEdit ? (n == 0 ? 'Call players' : 'Squad') : 'View',
+          label: canEdit ? (n == 0 ? context.l10n.league_callPlayers : context.l10n.league_squad) : context.l10n.league_view,
           tone: canEdit ? SpPillTone.ink : SpPillTone.outline,
           height: 32,
           onTap: () => context.push('/groups/$groupId/leagues/${l?.str('id')}/roster/${e.str('teamId')}'),
@@ -591,33 +599,35 @@ class TeamLeaguesSection extends ConsumerWidget {
         ),
         title: Text(e.o('league')?.str('title') ?? '', style: TextStyle(color: p.ink, fontWeight: FontWeight.w700, fontSize: 14)),
         subtitle: Text(soon
-            ? 'Starting soon${e.iOrNull('registered') != null ? ' · ${e.i('registered')} registered' : ''}'
+            ? (e.iOrNull('registered') != null
+                ? context.l10n.league_p5StartingSoonRegistered(e.i('registered'))
+                : context.l10n.league_startingSoon)
             : champion
-                ? 'Champions'
+                ? context.l10n.league_champions
                 : st != null
-                    ? '${ordinal(st.i('position'))} · ${st.i('won')}W ${st.i('drawn')}D ${st.i('lost')}L · ${st.i('points')} pts'
+                    ? context.l10n.league_wDLPts2(ordinal(st.i('position')), st.i('won'), st.i('drawn'), st.i('lost'), st.i('points'))
                     : e.b('movedAway')
-                        ? 'Moved to another division'
-                        : 'No games yet'),
+                        ? context.l10n.league_movedToAnotherDivision
+                        : context.l10n.league_noGamesYet),
         trailing: Icon(Icons.chevron_right_rounded, color: p.muted),
       );
     }
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       if (upcoming.isNotEmpty) ...[
-        SpSectionTitle('Leagues — starting soon', count: upcoming.length),
+        SpSectionTitle(context.l10n.league_leaguesStartingSoon, count: upcoming.length),
         const SizedBox(height: 8),
         SpListCard(children: [for (final e in upcoming) row(e)]),
         const SizedBox(height: 14),
       ],
       if (active.isNotEmpty) ...[
-        SpSectionTitle('Leagues — playing now', count: active.length),
+        SpSectionTitle(context.l10n.league_leaguesPlayingNow, count: active.length),
         const SizedBox(height: 8),
         SpListCard(children: [for (final e in active) row(e)]),
         const SizedBox(height: 14),
       ],
       if (past.isNotEmpty) ...[
-        SpSectionTitle('Past league seasons', count: past.length),
+        SpSectionTitle(context.l10n.league_pastLeagueSeasons, count: past.length),
         const SizedBox(height: 8),
         SpListCard(children: [for (final e in past) row(e)]),
         const SizedBox(height: 14),

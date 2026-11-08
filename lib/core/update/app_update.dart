@@ -16,6 +16,7 @@ import 'package:sportpadi_mobile/core/push/push_service.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /*
  * App version tracking (docs/design/2026-redesign.md row 76).
@@ -92,7 +93,7 @@ class AppUpdateRepository {
   }
 
   /// "Update in Google Play" / "Update in the App Store".
-  static String get storeName => isAndroid ? 'Google Play' : 'the App Store';
+  static String get storeName => isAndroid ? l10n.common_googlePlay : 'the App Store';
 
   /// Null when it couldn't ask (offline, server down) — never a prompt then.
   Future<AppUpdateCheck?> check() async {
@@ -422,17 +423,19 @@ class _UpdateCard extends StatelessWidget {
     final v = check?.latestVersion;
     final (String title, String body) = switch (android) {
       _Android.downloading => (
-          'Downloading the update…',
-          'Keep using SportPadi — we’ll let you know when it’s ready.'
+          context.l10n.common_downloadingTheUpdate,
+          context.l10n.common_keepUsingSportPadiWellLetYouKnow
         ),
       _Android.downloaded => (
-          'Update ready',
-          'Restart SportPadi to finish installing${v != null ? ' version $v' : ''}.'
+          context.l10n.common_updateReady,
+          v != null
+              ? context.l10n.common_restartSportPadiToFinishInstallingVersion(v)
+              : context.l10n.common_restartSportPadiToFinishInstalling
         ),
       _Android.idle => (
-          'A new version of SportPadi is here',
+          context.l10n.common_aNewVersionOfSportPadiIsHere,
           [
-            if (v != null) 'Version $v',
+            if (v != null) context.l10n.common_versionNumber(v),
             if (check?.notes != null) check!.notes!,
           ].join(' · ')
         ),
@@ -490,7 +493,7 @@ class _UpdateCard extends StatelessWidget {
                           foregroundColor: p.heroMuted,
                           visualDensity: VisualDensity.compact),
                       child: Text(
-                          android == _Android.downloading ? 'Hide' : 'Not now'),
+                          android == _Android.downloading ? context.l10n.common_hideLabel : context.l10n.common_notNow),
                     ),
                     const Spacer(),
                     if (android != _Android.downloading)
@@ -507,8 +510,8 @@ class _UpdateCard extends StatelessWidget {
                                 : Icons.download_rounded,
                             size: 16),
                         label: Text(android == _Android.downloaded
-                            ? 'Restart'
-                            : 'Update in ${AppUpdateRepository.storeName}'),
+                            ? context.l10n.common_restart
+                            : context.l10n.common_updateIn(AppUpdateRepository.storeName)),
                       ),
                   ]),
                 ]),
@@ -543,14 +546,13 @@ class _RequiredScreen extends StatelessWidget {
             SpIconTile(Icons.system_update_rounded,
                 size: 72, iconSize: 34, bg: p.accentTint, fg: p.greenText),
             const SizedBox(height: 20),
-            Text('Time to update',
+            Text(context.l10n.common_timeToUpdate,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     color: p.ink, fontSize: 24, fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
             Text(
-                'This version of SportPadi is no longer supported. '
-                'Update${v != null ? ' to version $v' : ''} to keep using the app.',
+                context.l10n.common_thisVersionOfSportPadiIs((v != null ? ' to version $v' : '')),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 14.5, height: 1.45)),
             if (check.notes != null) ...[
@@ -564,7 +566,7 @@ class _RequiredScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: SpButton(
-                label: 'Update in ${AppUpdateRepository.storeName}',
+                label: context.l10n.common_updateIn(AppUpdateRepository.storeName),
                 icon: Icons.download_rounded,
                 expand: true,
                 tone: SpButtonTone.brand,

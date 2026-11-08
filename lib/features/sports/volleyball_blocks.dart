@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/sports/sport_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Volleyball 🏐 — won/lost with a split bar, then where the points come
 /// from.
@@ -44,7 +45,7 @@ class VolleyballRecord extends StatelessWidget {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-        big('$w', 'Won', p.greenText, CrossAxisAlignment.start),
+        big('$w', context.l10n.profile_won, p.greenText, CrossAxisAlignment.start),
         Expanded(
           child: Column(children: [
             Text(nums.games > 0 ? '${nums.winRate}%' : '—',
@@ -53,10 +54,10 @@ class VolleyballRecord extends StatelessWidget {
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     fontFeatures: tabularFigures)),
-            Text('win rate', style: TextStyle(color: p.muted, fontSize: 11)),
+            Text(context.l10n.profile_winRate2, style: TextStyle(color: p.muted, fontSize: 11)),
           ]),
         ),
-        big('$l', 'Lost', p.danger, CrossAxisAlignment.end),
+        big('$l', context.l10n.profile_lost, p.danger, CrossAxisAlignment.end),
       ]),
       const SizedBox(height: 12),
       ClipRRect(
@@ -82,9 +83,9 @@ class VolleyballRecord extends StatelessWidget {
       if (d > 0 || streak != null) ...[
         const SizedBox(height: 12),
         Wrap(spacing: 6, runSpacing: 6, children: [
-          if (d > 0) MiniChip('D $d'),
+          if (d > 0) MiniChip(context.l10n.profile_d3(d)),
           if (streak != null)
-            MiniChip('Streak $streak', color: streakColor(p, streak!)),
+            MiniChip(context.l10n.profile_streak2(streak ?? ''), color: streakColor(p, streak!)),
         ]),
       ],
     ]);
@@ -109,15 +110,15 @@ class VolleyballStats extends StatelessWidget {
         ? (nums.n('points') - aces - blocks).clamp(0, 1 << 30).toInt()
         : nums.n('kills');
     final sources = <(String, int, Color)>[
-      ('Attack', attack, _attackColor),
-      ('Aces', aces, _aceColor),
-      ('Blocks', blocks, _blockColor),
+      (context.l10n.profile_attack, attack, _attackColor),
+      (context.l10n.profile_aces, aces, _aceColor),
+      (context.l10n.profile_blocks, blocks, _blockColor),
     ];
     final total = attack + aces + blocks;
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      BlockHeading('Scoring mix',
-          trailing: Text(plural(total, 'point'),
+      BlockHeading(context.l10n.profile_scoringMix,
+          trailing: Text(context.l10n.profile_p5PointsCount(total),
               style: TextStyle(
                   color: p.muted,
                   fontSize: 12,
@@ -176,27 +177,27 @@ class VolleyballStats extends StatelessWidget {
           ]),
         ),
       const BlockDivider(),
-      const BlockHeading('Per game'),
+      BlockHeading(context.l10n.profile_perGame),
       const SizedBox(height: 12),
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(
           child: StatFigure(
               value: nums.rate('points'),
-              label: 'Points',
-              sub: '${nums.n('points')} total'),
+              label: context.l10n.profile_points,
+              sub: context.l10n.profile_total3(nums.n('points'))),
         ),
         Expanded(
           child: StatFigure(
               value: nums.rate('aces'),
-              label: 'Aces',
-              sub: '$aces total',
+              label: context.l10n.profile_aces,
+              sub: context.l10n.profile_total4(aces),
               color: const Color(0xFFD97706)),
         ),
         Expanded(
           child: StatFigure(
               value: nums.rate('blocks'),
-              label: 'Blocks',
-              sub: '$blocks total',
+              label: context.l10n.profile_blocks,
+              sub: context.l10n.profile_total5(blocks),
               color: _blockColor),
         ),
       ]),

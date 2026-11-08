@@ -8,11 +8,12 @@ import 'package:sportpadi_mobile/data/wards/ward_models.dart';
 import 'package:sportpadi_mobile/data/wards/wards_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Shared bits for the wards screens: a round avatar, choice pills, the
 /// date-of-birth field and the profile entry points.
 
-final _dobFormat = DateFormat('d MMM yyyy');
+DateFormat get _dobFormat => DateFormat('d MMM yyyy');
 
 /// "YYYY-MM-DD" — the API's date-of-birth form.
 String wardYmd(DateTime d) =>
@@ -79,7 +80,7 @@ class WardForChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = 'Ward · $name';
+    final label = context.l10n.ward_ward3(name);
     if (!onDark) {
       return SpBadge(label,
           icon: Icons.supervisor_account_rounded,
@@ -110,12 +111,10 @@ class WardForChip extends StatelessWidget {
 /// A ward's private profile, as others see it: a lock and one line on who
 /// decides.
 class WardPrivateNote extends StatelessWidget {
-  const WardPrivateNote({
-    super.key,
-    this.text =
-        'This profile is private. Their guardians manage who can see it.',
-  });
-  final String text;
+  const WardPrivateNote({super.key, this.text});
+
+  /// Defaults to "This profile is private. Their guardians manage…".
+  final String? text;
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +129,7 @@ class WardPrivateNote extends StatelessWidget {
         Icon(Icons.lock_outline_rounded, size: 18, color: p.wardInk),
         const SizedBox(width: 10),
         Expanded(
-          child: Text(text,
+          child: Text(text ?? context.l10n.ward_thisProfileIsPrivateTheirGuardians,
               style: TextStyle(
                   color: p.wardInk,
                   fontSize: 12.5,
@@ -215,7 +214,7 @@ class WardDobField extends StatelessWidget {
       firstDate: DateTime(now.year - 120),
       lastDate: today,
       initialEntryMode: DatePickerEntryMode.calendarOnly,
-      helpText: 'Date of birth',
+      helpText: l10n.ward_dateOfBirth,
     );
     if (picked != null) onPicked?.call(picked);
   }
@@ -240,7 +239,7 @@ class WardDobField extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                v == null ? 'Date of birth' : _dobFormat.format(v),
+                v == null ? context.l10n.ward_dateOfBirth : _dobFormat.format(v),
                 style: TextStyle(
                     color: v == null ? p.muted : p.ink,
                     fontSize: 14.5,
@@ -273,9 +272,9 @@ class WardsMenuRow extends ConsumerWidget {
     final invites = (o?.invites.length ?? 0) + teamInvites;
     final sub = [
       n == 0
-          ? 'Children, or anyone you care for'
-          : '$n ward${n == 1 ? '' : 's'}',
-      if (invites > 0) '$invites invite${invites == 1 ? '' : 's'} waiting',
+          ? context.l10n.ward_childrenOrAnyoneYouCareFor
+          : context.l10n.ward_wardCount(n),
+      if (invites > 0) context.l10n.ward_invitesWaiting(invites),
     ].join(' · ');
     return InkWell(
       borderRadius: BorderRadius.circular(18),
@@ -291,7 +290,7 @@ class WardsMenuRow extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  Text('Wards',
+                  Text(context.l10n.ward_wards,
                       style: TextStyle(
                           color: p.ink,
                           fontSize: 14.5,
@@ -360,8 +359,8 @@ class WardsProfileCard extends ConsumerWidget {
     final sub = invites > 0
         ? '$invites guardian invitation${invites == 1 ? '' : 's'} waiting'
         : wards > 0
-            ? 'Players you manage — check them in and sign them up'
-            : 'Supervising ${supervisedNames.join(', ')}';
+            ? context.l10n.ward_playersYouManageCheckThem
+            : context.l10n.ward_supervising2(supervisedNames.join(', '));
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: GlassCard(
@@ -376,7 +375,7 @@ class WardsProfileCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  Text('Wards',
+                  Text(context.l10n.ward_wards,
                       style: TextStyle(
                           color: p.ink,
                           fontSize: 15,
@@ -399,7 +398,7 @@ class WardsProfileCard extends ConsumerWidget {
                   if (invites > 0) ...[
                     const SizedBox(width: 6),
                     Semantics(
-                      label: 'Invitation waiting',
+                      label: context.l10n.ward_invitationWaiting,
                       child: Container(
                         width: 8,
                         height: 8,
@@ -448,12 +447,10 @@ Future<bool> answerWardTeamInvite(
     final first = invite.wardFirstName;
     final notes = [
       accept
-          ? '$first is on ${invite.teamName}.'
-          : "Declined — $first won't join ${invite.teamName}.",
-      if (accept && r.jerseyDropped)
-        'Their shirt number was taken meanwhile, so the coach will pick another.',
-      if (accept && r.madeSub)
-        'The starting line-up was full, so they joined as a sub.',
+          ? l10n.ward_isOnTeam(first, invite.teamName)
+          : l10n.ward_declinedWontJoinTeam(first, invite.teamName),
+      if (accept && r.jerseyDropped) l10n.ward_theirShirtNumberWasTaken,
+      if (accept && r.madeSub) l10n.ward_theStartingLineUpWasFull,
     ];
     messenger.showSnackBar(SnackBar(content: Text(notes.join(' '))));
     // Every list of invitations, and the ward's groups (their team chips).
@@ -506,7 +503,7 @@ class _WardTeamInviteCardState extends ConsumerState<WardTeamInviteCard> {
           Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('${i.teamName} wants ${i.wardFirstName}',
+              Text(context.l10n.ward_wants(i.teamName, i.wardFirstName),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -526,11 +523,11 @@ class _WardTeamInviteCardState extends ConsumerState<WardTeamInviteCard> {
         Wrap(spacing: 6, runSpacing: 6, children: [
           for (final pos in i.positions) SpBadge(pos),
           if (i.jerseyNumber != null) SpBadge('#${i.jerseyNumber}'),
-          SpBadge(i.isStarter ? 'Starter' : 'Sub'),
+          SpBadge(i.isStarter ? context.l10n.ward_starter : context.l10n.ward_sub),
         ]),
         if (i.invitedByName != null) ...[
           const SizedBox(height: 8),
-          Text('Invited by ${i.invitedByName}',
+          Text(context.l10n.ward_invitedBy(i.invitedByName ?? ''),
               style: TextStyle(color: p.muted, fontSize: 12)),
         ],
         const SizedBox(height: 12),
@@ -544,7 +541,7 @@ class _WardTeamInviteCardState extends ConsumerState<WardTeamInviteCard> {
                 onTap: _busy ? null : () => _answer(false),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 13),
-                  child: Text('Decline',
+                  child: Text(context.l10n.ward_decline,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           color: p.ink,
@@ -557,7 +554,7 @@ class _WardTeamInviteCardState extends ConsumerState<WardTeamInviteCard> {
           const SizedBox(width: 10),
           Expanded(
             child: SpButton(
-              label: 'Accept',
+              label: context.l10n.ward_accept,
               icon: Icons.check_rounded,
               tone: SpButtonTone.brand,
               expand: true,
@@ -600,7 +597,7 @@ class _WardTeamInviteRowState extends ConsumerState<WardTeamInviteRow> {
         if (i.categoryEmoji != null) i.categoryEmoji!,
         i.groupName,
       ].join(' '),
-      if (i.invitedByName != null) 'Invited by ${i.invitedByName}',
+      if (i.invitedByName != null) context.l10n.ward_invitedBy(i.invitedByName!),
     ].join(' · ');
     return InkWell(
       borderRadius: BorderRadius.circular(18),
@@ -626,7 +623,7 @@ class _WardTeamInviteRowState extends ConsumerState<WardTeamInviteRow> {
           ),
           const SizedBox(width: 6),
           IconButton(
-            tooltip: 'Decline',
+            tooltip: context.l10n.ward_decline,
             visualDensity: VisualDensity.compact,
             onPressed: _busy ? null : () => _answer(false),
             icon: Icon(Icons.close_rounded, size: 20, color: p.muted),

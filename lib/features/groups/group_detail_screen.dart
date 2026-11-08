@@ -13,6 +13,7 @@ import 'package:sportpadi_mobile/data/announcements/announcements_repository.dar
 import 'package:sportpadi_mobile/data/discussions/discussions_repository.dart'
     show DiscussionListKey, discussionListProvider, discussionSpacesProvider;
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
+import 'package:sportpadi_mobile/data/groups/group_class.dart';
 import 'package:sportpadi_mobile/data/groups/group_models.dart';
 import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
@@ -39,8 +40,6 @@ import 'package:sportpadi_mobile/features/groups/group_invitations.dart';
 import 'package:sportpadi_mobile/features/groups/group_talk_section.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/features/groups/plan_gate.dart';
-import 'package:sportpadi_mobile/features/shell/home_shell.dart'
-    show ShellBottomBar;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
@@ -56,6 +55,7 @@ import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/sheet_scroll.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Group header geometry: cover banner height and how far the avatar/stats
 /// row hangs below it.
@@ -170,14 +170,9 @@ class GroupDetailScreen extends ConsumerWidget {
     };
     return Scaffold(
       backgroundColor: p.bg,
-      // Keep the dock in reach here (nothing lit — Groups isn't a tab any
-      // more); any tab jumps back to the shell on that tab.
-      bottomNavigationBar: ShellBottomBar(
-        index: -1,
-        onSelect: (i) => ShellBottomBar.goToTab(context, ref, i),
-      ),
+      // No dock on a group's pages (same as the web): the group is its own
+      // space, and the header's back / home button is the way out.
       body: SafeArea(
-        bottom: false,
         child: Stack(children: [
           _pullablePage(
               ref,
@@ -256,7 +251,7 @@ class GroupDetailScreen extends ConsumerWidget {
               child: SpRoundButton(
                 icon: Icons.arrow_back_ios_new_rounded,
                 iconSize: 18,
-                tooltip: 'Back',
+                tooltip: context.l10n.group_back,
                 onTap: () =>
                     context.canPop() ? context.pop() : context.go('/home'),
               ),
@@ -405,7 +400,7 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
     Clipboard.setData(ClipboardData(
         text: withRef('$base/groups/$groupId', me, 'group', groupId)));
     ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Group link copied')));
+        .showSnackBar(SnackBar(content: Text(context.l10n.group_groupLinkCopied)));
   }
 
   @override
@@ -526,19 +521,26 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
                   VerifiedBadgeButton(size: 20, groupName: name),
                 ],
               ]),
+              // Group type (school, church, club…) — nothing when not set.
+              if (group.classification != null) ...[
+                const SizedBox(height: 4),
+                _ClassBadge(
+                    code: group.classification!,
+                    locked: group.classificationLocked),
+              ],
               const SizedBox(height: 2),
               Row(children: [
                 Flexible(
                   child: Text(
                       group.isOwner
-                          ? 'You own this group'
+                          ? context.l10n.group_youOwnThisGroup
                           : canManage
-                              ? 'You manage this group'
+                              ? context.l10n.group_youManageThisGroup
                               : group.isMember
-                                  ? 'You\'re a member'
+                                  ? context.l10n.group_youreAMember
                                   : group.isFollower
-                                      ? 'You follow this group'
-                                      : 'Public group',
+                                      ? context.l10n.group_youFollowThisGroup
+                                      : context.l10n.group_publicGroup,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: p.muted, fontSize: 12.5)),
@@ -550,7 +552,7 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
                     onTap: () => confirmLeaveGroup(context, ref, groupId, name),
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(6, 4, 4, 4),
-                      child: Text('· Leave',
+                      child: Text(context.l10n.group_leave2,
                           style: TextStyle(
                               color: p.danger,
                               fontSize: 12.5,
@@ -578,7 +580,7 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => _editDescription(context, ref, ''),
-            child: Text('+ Add a description…',
+            child: Text(context.l10n.group_addADescription,
                 style: TextStyle(
                     color: p.greenText,
                     fontSize: 13,
@@ -587,13 +589,13 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
         ],
         const SizedBox(height: 14),
         Row(children: [
-          stat(eventsCount?.toString() ?? '–', 'Events',
+          stat(eventsCount?.toString() ?? '–', context.l10n.group_events,
               onTap: () => context.push('/groups/$groupId/events')),
           const SizedBox(width: 8),
-          stat(memberCount?.toString() ?? '–', 'Members',
+          stat(memberCount?.toString() ?? '–', context.l10n.group_members,
               onTap: () => context.push('/groups/$groupId/members')),
           const SizedBox(width: 8),
-          stat(followerCount?.toString() ?? '–', 'Followers',
+          stat(followerCount?.toString() ?? '–', context.l10n.group_followers,
               onTap: canManage
                   ? () => context.push('/groups/$groupId/followers')
                   : null),
@@ -603,7 +605,7 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
           Row(children: [
             Expanded(
               child: SpButton(
-                label: 'New event',
+                label: context.l10n.group_newEvent,
                 icon: Icons.add_rounded,
                 expand: true,
                 onTap: () => context.push('/groups/$groupId/new-event'),
@@ -612,7 +614,7 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
             const SizedBox(width: 8),
             Expanded(
               child: _OutlineButton(
-                label: 'Invite',
+                label: context.l10n.group_invite,
                 icon: Icons.person_add_alt_rounded,
                 onTap: () => _openInvite(context),
               ),
@@ -623,7 +625,7 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
         ] else if (coachCanCreate) ...[
           const SizedBox(height: 14),
           SpButton(
-            label: 'New team event',
+            label: context.l10n.group_newTeamEvent,
             icon: Icons.add_rounded,
             expand: true,
             onTap: () => context.push('/groups/$groupId/new-event'),
@@ -661,7 +663,7 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
                   ? Icons.arrow_back_ios_new_rounded
                   : Icons.home_outlined,
               iconSize: canPop ? 18 : 21,
-              tooltip: canPop ? 'Back' : 'Home',
+              tooltip: canPop ? context.l10n.group_back : context.l10n.group_home,
               onTap: () =>
                   context.canPop() ? context.pop() : context.go('/home'),
             ),
@@ -682,7 +684,7 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
               ],
               SpRoundButton(
                   icon: Icons.ios_share_rounded,
-                  tooltip: 'Share',
+                  tooltip: context.l10n.group_share,
                   onTap: _share),
             ]),
           ),
@@ -763,8 +765,8 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
           mainAxisSize: MainAxisSize.min,
           children: [
             SpSheetHeader(
-              title: current.isEmpty ? 'Add a description' : 'Edit description',
-              subtitle: 'What the group is about — shown on its page and in Discover.',
+              title: current.isEmpty ? l10n.group_addADescription2 : l10n.group_editDescription,
+              subtitle: l10n.group_whatTheGroupIsAbout,
               icon: Icons.notes_rounded,
             ),
             TextField(
@@ -773,8 +775,8 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
               minLines: 3,
               maxLines: 6,
               maxLength: 600,
-              decoration: const InputDecoration(
-                  hintText: 'e.g. Sunday 7-a-side at Burnaby Lake, all levels welcome.'),
+              decoration: InputDecoration(
+                  hintText: l10n.group_eGSunday7A),
             ),
             const SizedBox(height: 8),
             Row(children: [
@@ -782,7 +784,7 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
                 TextButton(
                   onPressed: () => Navigator.of(ctx).pop(''),
                   style: TextButton.styleFrom(foregroundColor: p.muted),
-                  child: const Text('Remove'),
+                  child: Text(l10n.group_remove),
                 ),
               const Spacer(),
               FilledButton(
@@ -790,7 +792,7 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
                     minimumSize: const Size(0, 44),
                     padding: const EdgeInsets.symmetric(horizontal: 22)),
                 onPressed: () => Navigator.of(ctx).pop(ctl.text.trim()),
-                child: const Text('Save'),
+                child: Text(l10n.group_save),
               ),
             ]),
           ],
@@ -806,7 +808,7 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
       ref.invalidate(groupProvider(groupId));
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(saved.isEmpty ? 'Description removed' : 'Description saved')));
+            content: Text(saved.isEmpty ? l10n.group_descriptionRemoved : l10n.group_descriptionSaved)));
       }
     } catch (e) {
       if (context.mounted) {
@@ -849,9 +851,8 @@ void _handleNewTournament(BuildContext context, WidgetRef ref, String groupId) {
     return;
   }
   showPlanLockedDialog(context, ref, groupId,
-      title: "Tournaments aren't enabled for this group",
-      body: 'Tournament events — brackets, friendlies and inviting teams from '
-          "other groups — aren't switched on for this group yet.");
+      title: context.l10n.group_tournamentsArentEnabledForThis,
+      body: context.l10n.group_tournamentEventsBracketsFriendliesAnd);
 }
 
 class _ManageMenu extends ConsumerWidget {
@@ -872,7 +873,7 @@ class _ManageMenu extends ConsumerWidget {
     // against the screen edge lower down the page).
     final menu = SpRoundButton(
       icon: Icons.more_horiz_rounded,
-      tooltip: 'Manage',
+      tooltip: context.l10n.group_manage,
       onTap: () => showSpSheet<void>(
         context,
         framed: false,
@@ -907,9 +908,9 @@ class _ManageMenu extends ConsumerWidget {
         final me = ref.read(meProvider).valueOrNull?.userId;
         Clipboard.setData(ClipboardData(
             text: withRef('$base/join/$groupId', me, 'group', groupId)));
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content:
-                Text('Membership link copied — anyone with it can join.')));
+                Text(context.l10n.group_membershipLinkCopiedAnyoneWith)));
         break;
       case 'edit':
         showSpSheet<void>(
@@ -1080,7 +1081,7 @@ class _ManageMenuSheet extends ConsumerWidget {
                 ClipOval(
                   child: Crest(
                       logoUrl: group?.logoUrl,
-                      label: group?.name ?? 'Group',
+                      label: group?.name ?? context.l10n.group_group,
                       size: 46),
                 ),
                 const SizedBox(width: 12),
@@ -1088,14 +1089,14 @@ class _ManageMenuSheet extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(group?.name ?? 'Group',
+                      Text(group?.name ?? context.l10n.group_group,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               color: p.ink,
                               fontSize: 17,
                               fontWeight: FontWeight.w800)),
-                      Text(isOwner ? 'Owner · manage this group' : 'Admin · manage this group',
+                      Text(isOwner ? context.l10n.group_ownerManageThisGroup : context.l10n.group_adminManageThisGroup,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(color: p.muted, fontSize: 12.5)),
@@ -1104,23 +1105,23 @@ class _ManageMenuSheet extends ConsumerWidget {
                 ),
                 SpRoundButton(
                   icon: Icons.close_rounded,
-                  tooltip: 'Close',
+                  tooltip: context.l10n.group_close,
                   onTap: () => Navigator.of(context).pop(),
                 ),
               ]),
               const SizedBox(height: 18),
               Row(children: [
-                quick('wallet', Icons.account_balance_wallet_outlined, 'Wallet'),
+                quick('wallet', Icons.account_balance_wallet_outlined, context.l10n.group_wallet),
                 const SizedBox(width: 8),
-                quick('fines', Icons.gavel_rounded, 'Fines'),
+                quick('fines', Icons.gavel_rounded, context.l10n.group_fines),
                 const SizedBox(width: 8),
                 quick(ios ? 'plan' : 'upgrade', Icons.workspace_premium_outlined,
-                    ios ? 'Plan' : 'Upgrade'),
+                    ios ? context.l10n.group_plan : context.l10n.group_upgrade),
               ]),
               const SizedBox(height: 18),
-              const Padding(
-                padding: EdgeInsets.only(left: 4, bottom: 8),
-                child: Eyebrow('Group'),
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 8),
+                child: Eyebrow(context.l10n.group_group),
               ),
               SpListCard(children: [
                 if (showOffer)
@@ -1128,41 +1129,41 @@ class _ManageMenuSheet extends ConsumerWidget {
                       'pro',
                       Icons.auto_awesome_rounded,
                       offer.status == 'opted_out'
-                          ? 'Switch Pro features back on'
-                          : 'Try Pro features for free',
-                      'Free while SportPadi runs the offer',
+                          ? context.l10n.group_switchProFeaturesBackOn
+                          : context.l10n.group_tryProFeaturesForFree,
+                      context.l10n.group_freeWhileSportPadiRunsThe,
                       p.accentTint,
                       p.greenText),
-                row('edit', Icons.edit_outlined, 'Edit group',
-                    'Name, logo, description and settings', p.surface2, p.ink),
-                row('link', Icons.link_rounded, 'Copy membership link',
-                    'Anyone with it can join', p.accentTint, p.greenText),
+                row('edit', Icons.edit_outlined, context.l10n.group_editGroup,
+                    context.l10n.group_nameLogoDescriptionAndSettings, p.surface2, p.ink),
+                row('link', Icons.link_rounded, context.l10n.group_copyMembershipLink,
+                    context.l10n.group_anyoneWithItCanJoin, p.accentTint, p.greenText),
                 if (!ios)
                   row('promo', Icons.confirmation_number_outlined,
-                      'Promo codes', 'Apply a code to this group',
+                      context.l10n.group_promoCodes, context.l10n.group_applyACodeToThis,
                       p.orangeTint, p.orangeInk),
                 if (isOwner)
                   row('requests', Icons.how_to_reg_outlined,
-                      'Membership requests',
+                      context.l10n.group_membershipRequests,
                       pending > 0
                           ? '$pending waiting for you'
-                          : 'People asking to join',
+                          : context.l10n.group_peopleAskingToJoin,
                       p.surface2, p.ink,
                       badge: pending),
                 if (isOwner)
                   row('transfer', Icons.swap_horiz_rounded,
-                      'Transfer ownership', 'Hand the group to another admin',
+                      context.l10n.group_transferOwnership, context.l10n.group_handTheGroupToAnother,
                       p.surface2, p.ink),
               ]),
               const SizedBox(height: 16),
-              const Padding(
-                padding: EdgeInsets.only(left: 4, bottom: 8),
-                child: Eyebrow('Teams & tournaments'),
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 8),
+                child: Eyebrow(context.l10n.group_teamsTournaments),
               ),
               SpListCard(children: [
                 if (canTeams)
-                  row('team', Icons.shield_outlined, 'New team',
-                      'Build a team from your members', p.accentTint,
+                  row('team', Icons.shield_outlined, context.l10n.group_newTeam,
+                      context.l10n.group_buildATeamFromYour, p.accentTint,
                       p.greenText),
                 // Tournaments are a plan feature. On a tier without them the
                 // row is offered only where tapping it can lead somewhere —
@@ -1172,14 +1173,14 @@ class _ManageMenuSheet extends ConsumerWidget {
                   row(
                       'tournament',
                       Icons.emoji_events_outlined,
-                      'New tournament',
+                      context.l10n.group_newTournament,
                       canTournaments
-                          ? 'Brackets, friendlies and leagues'
-                          : 'Not on this plan',
+                          ? context.l10n.group_bracketsFriendliesAndLeagues
+                          : context.l10n.group_notOnThisPlan,
                       p.orangeTint,
                       p.orangeInk),
                 row('invites', Icons.mail_outline_rounded,
-                    'Tournament invites', 'Invitations from other groups',
+                    context.l10n.group_tournamentInvites, context.l10n.group_invitationsFromOtherGroups,
                     p.surface2, p.ink),
               ]),
               const SizedBox(height: 16),
@@ -1188,10 +1189,10 @@ class _ManageMenuSheet extends ConsumerWidget {
                 row(
                     'leave',
                     Icons.logout_rounded,
-                    'Leave group',
+                    context.l10n.group_leaveGroup,
                     isOwner
-                        ? 'Transfer ownership first'
-                        : 'Stop being a member',
+                        ? context.l10n.group_transferOwnershipFirst
+                        : context.l10n.group_stopBeingAMember,
                     p.liveTint,
                     p.danger),
               ]),
@@ -1258,12 +1259,12 @@ class _EventsTab extends ConsumerWidget {
     final list = events.valueOrNull;
 
     final header = SpSectionTitle(
-      'Upcoming',
+      context.l10n.group_upcoming,
       count: list?.length,
       trailing: Row(mainAxisSize: MainAxisSize.min, children: [
         if (canCreate) ...[
           SpPill(
-            label: 'New',
+            label: context.l10n.group_newLabel,
             icon: Icons.add_rounded,
             height: 32,
             onTap: () => context.push('/groups/$groupId/new-event'),
@@ -1275,8 +1276,8 @@ class _EventsTab extends ConsumerWidget {
           style: TextButton.styleFrom(
               foregroundColor: p.greenText,
               visualDensity: VisualDensity.compact),
-          child: const Text('View all',
-              style: TextStyle(fontWeight: FontWeight.w700)),
+          child: Text(context.l10n.group_viewAll,
+              style: const TextStyle(fontWeight: FontWeight.w700)),
         ),
       ]),
     );
@@ -1298,11 +1299,11 @@ class _EventsTab extends ConsumerWidget {
     } else if (list == null) {
       body = GlassCard(
         child: Column(children: [
-          Text('Could not load events.',
+          Text(context.l10n.group_couldNotLoadEvents,
               style: TextStyle(color: p.muted, fontSize: 13.5)),
           TextButton(
               onPressed: () => ref.invalidate(groupEventsProvider(groupId)),
-              child: const Text('Try again')),
+              child: Text(context.l10n.group_tryAgain)),
         ]),
       );
     } else if (list.isEmpty) {
@@ -1310,13 +1311,13 @@ class _EventsTab extends ConsumerWidget {
         SpEmpty(
           icon: Icons.calendar_today_outlined,
           text: canCreate
-              ? 'No upcoming events — create one to get started.'
-              : 'No upcoming events.',
+              ? context.l10n.group_noUpcomingEventsCreateOne
+              : context.l10n.group_noUpcomingEvents,
         ),
         const SizedBox(height: 10),
         Center(
           child: SpPill(
-            label: 'Past events',
+            label: context.l10n.group_pastEvents,
             tone: SpPillTone.soft,
             height: 34,
             onTap: () => context.push('/groups/$groupId/events'),
@@ -1464,12 +1465,12 @@ class _PendingInvitesStrip extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              '$count tournament invitation${count == 1 ? '' : 's'} waiting',
+              context.l10n.group_tournamentInvitationsWaiting(count),
               style: TextStyle(
                   color: p.ink, fontSize: 13, fontWeight: FontWeight.w700),
             ),
           ),
-          Text('Review',
+          Text(context.l10n.group_review,
               style: TextStyle(
                   color: p.orangeInk,
                   fontSize: 12.5,
@@ -1577,7 +1578,7 @@ class _FollowButtonState extends ConsumerState<_FollowButton> {
                 size: 18, color: following ? p.ink : p.onHero),
             const SizedBox(width: 6),
             Text(
-              following ? 'Following' : 'Follow group',
+              following ? context.l10n.group_following : context.l10n.group_followGroup,
               style: TextStyle(
                 color: following ? p.ink : p.onHero,
                 fontSize: 14,
@@ -1620,7 +1621,7 @@ class _JoinRequestControlState extends ConsumerState<_JoinRequestControl> {
     );
     if (sent != true || !mounted) return;
     ref.invalidate(groupProvider(_groupId));
-    _snack('Request sent — the group owner will review it.');
+    _snack(l10n.group_requestSentTheGroupOwner);
   }
 
   Future<void> _cancel() async {
@@ -1629,7 +1630,7 @@ class _JoinRequestControlState extends ConsumerState<_JoinRequestControl> {
       await ref.read(membershipRequestsRepositoryProvider).cancel(_groupId);
       if (!mounted) return;
       ref.invalidate(groupProvider(_groupId));
-      _snack('Request cancelled.');
+      _snack(l10n.group_requestCancelled2);
     } catch (e) {
       if (mounted) _snack('$e');
     } finally {
@@ -1652,7 +1653,7 @@ class _JoinRequestControlState extends ConsumerState<_JoinRequestControl> {
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             Icon(Icons.hourglass_top_rounded, size: 15, color: p.greenText),
             const SizedBox(width: 6),
-            Text('Requested',
+            Text(context.l10n.group_requested,
                 style: TextStyle(
                     color: p.greenText,
                     fontSize: 13,
@@ -1663,15 +1664,15 @@ class _JoinRequestControlState extends ConsumerState<_JoinRequestControl> {
         Expanded(
           child: Text(
               req.createdAt != null
-                  ? 'Sent ${timeAgo(req.createdAt)}'
-                  : 'Waiting for the owner',
+                  ? context.l10n.group_sent(timeAgo(req.createdAt))
+                  : context.l10n.group_waitingForTheOwner,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(color: p.muted, fontSize: 12)),
         ),
         TextButton(
           onPressed: _busy ? null : _cancel,
-          child: const Text('Cancel request'),
+          child: Text(context.l10n.group_cancelRequest),
         ),
       ]);
     }
@@ -1680,13 +1681,13 @@ class _JoinRequestControlState extends ConsumerState<_JoinRequestControl> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _OutlineButton(
-          label: declined ? 'Request to join again' : 'Request to join',
+          label: declined ? context.l10n.group_requestToJoinAgain : context.l10n.group_requestToJoin,
           icon: Icons.how_to_reg_outlined,
           onTap: _busy ? null : _request,
         ),
         if (declined) ...[
           const SizedBox(height: 6),
-          Text("Your last request wasn't approved — you can ask again.",
+          Text(context.l10n.group_yourLastRequestWasntApproved2,
               textAlign: TextAlign.center,
               style: TextStyle(color: p.muted, fontSize: 12)),
         ],
@@ -1740,12 +1741,11 @@ class _RequestToJoinSheetState extends ConsumerState<_RequestToJoinSheet> {
       children: [
         SpSheetHeader(
           icon: Icons.how_to_reg_outlined,
-          title: 'Request to join',
+          title: context.l10n.group_requestToJoin,
           subtitle: widget.groupName,
         ),
         Text(
-            "The group's owner gets your request and decides. You'll follow "
-            'the group while you wait.',
+            context.l10n.group_theGroupsOwnerGetsYour,
             style: TextStyle(color: p.muted, fontSize: 13, height: 1.45)),
         const SizedBox(height: 14),
         TextField(
@@ -1755,15 +1755,15 @@ class _RequestToJoinSheetState extends ConsumerState<_RequestToJoinSheet> {
           maxLines: 5,
           enabled: !_sending,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            labelText: 'Message (optional)',
-            hintText: 'Say hello, or why you’d like to join',
+          decoration: InputDecoration(
+            labelText: context.l10n.group_messageOptional,
+            hintText: context.l10n.group_sayHelloOrWhyYoud,
             alignLabelWithHint: true,
           ),
         ),
         const SizedBox(height: 12),
         SpButton(
-          label: _sending ? 'Sending…' : 'Send request',
+          label: _sending ? context.l10n.group_sending : context.l10n.group_sendRequest,
           icon: Icons.send_rounded,
           expand: true,
           onTap: _sending ? null : _send,
@@ -1785,7 +1785,7 @@ class _MembershipRequestsButton extends ConsumerWidget {
         ref.watch(membershipRequestCountProvider(groupId)).valueOrNull ?? 0;
     return Stack(clipBehavior: Clip.none, children: [
       _OutlineButton(
-        label: 'Membership requests',
+        label: context.l10n.group_membershipRequests,
         icon: Icons.how_to_reg_outlined,
         onTap: () => context.push('/groups/$groupId/requests'),
       ),
@@ -1830,8 +1830,8 @@ class _OverviewSection extends ConsumerWidget {
               context,
               icon: Icons.leaderboard_outlined,
               iconTone: p.orange,
-              title: 'Leaderboard',
-              subtitle: 'Rankings & records',
+              title: context.l10n.group_leaderboard,
+              subtitle: context.l10n.group_rankingsRecords,
               onTap: () => context.push('/groups/$groupId/leaderboard'),
             ),
           ),
@@ -1842,9 +1842,9 @@ class _OverviewSection extends ConsumerWidget {
                 context,
                 icon: Icons.credit_card_rounded,
                 iconTone: p.orangeInk,
-                title: 'Outstanding',
+                title: context.l10n.group_outstanding,
                 subtitle:
-                    '${ov.outstandingCount} unpaid · ${formatMoney(ov.outstandingTotalMinor, ov.outstandingCurrency, ov.outstandingExponent)}',
+                    context.l10n.group_unpaid(ov.outstandingCount, formatMoney(ov.outstandingTotalMinor, ov.outstandingCurrency, ov.outstandingExponent)),
                 highlighted: true,
                 onTap: () => context.push('/groups/$groupId/outstanding'),
               ),
@@ -1866,18 +1866,18 @@ class _OverviewSection extends ConsumerWidget {
                     : (ov.walletFrozen || ov.walletActionNeeded)
                         ? p.orangeInk
                         : p.greenText,
-                title: 'Wallet',
+                title: context.l10n.group_wallet,
                 subtitle: ov.showUnlockBanner
-                    ? 'Not enabled for this group'
+                    ? context.l10n.group_notEnabledForThisGroup
                     : ov.walletFrozen
-                        ? 'Paused — view records'
+                        ? context.l10n.group_pausedViewRecords
                         : ov.walletActionNeeded
                             ? (ov.walletOnboardingStep == 'verify_identity'
-                                ? 'Action needed — verify your identity with Stripe'
-                                : 'Action needed — finish Stripe setup')
+                                ? context.l10n.group_actionNeededVerifyYourIdentity
+                                : context.l10n.group_actionNeededFinishStripeSetup)
                             : ov.walletUnderReview
-                                ? 'Stripe is reviewing your details'
-                                : 'Collect & withdraw',
+                                ? context.l10n.group_stripeIsReviewingYourDetails
+                                : context.l10n.group_collectWithdraw,
                 highlighted: ov.walletActionNeeded,
                 onTap: () => context.push('/groups/$groupId/wallet'),
               ),
@@ -1888,8 +1888,8 @@ class _OverviewSection extends ConsumerWidget {
                 context,
                 icon: Icons.confirmation_number_outlined,
                 iconTone: p.greenText,
-                title: 'Tickets',
-                subtitle: 'Sell entry & collect',
+                title: context.l10n.group_tickets,
+                subtitle: context.l10n.group_sellEntryCollect,
                 onTap: () => context.push('/groups/$groupId/tickets'),
               ),
             ),
@@ -2009,7 +2009,7 @@ class _CheckinUsageCard extends StatelessWidget {
             children: [
               Row(children: [
                 Expanded(
-                  child: Text('Check-ins this month',
+                  child: Text(context.l10n.group_checkInsThisMonth,
                       style: TextStyle(
                           color: p.ink,
                           fontSize: 13,
@@ -2158,11 +2158,11 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Invite members',
+            Text(context.l10n.group_inviteMembers,
                 style: TextStyle(
                     color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
-            Text('Search by name or @username — they get an invitation.',
+            Text(context.l10n.group_searchByNameOrUsername3,
                 style: TextStyle(color: p.muted, fontSize: 12)),
             const SizedBox(height: 12),
             TextField(
@@ -2170,7 +2170,7 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
               autofocus: true,
               onChanged: _onChanged,
               decoration: InputDecoration(
-                hintText: 'Search people',
+                hintText: context.l10n.group_searchPeople,
                 prefixIcon: Icon(Icons.search_rounded, color: p.muted),
                 isDense: true,
                 suffixIcon: _searching
@@ -2205,7 +2205,7 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
                     trailing: _invited.contains(u.userId)
                         ? Icon(Icons.check_circle_rounded,
                             color: p.accent, size: 20)
-                        : SpButton(label: 'Invite', onTap: () => _invite(u)),
+                        : SpButton(label: context.l10n.group_invite, onTap: () => _invite(u)),
                   ),
               ]),
             ),
@@ -2216,7 +2216,47 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
   }
 }
 
-/// Edit group — name + description (the web edit page's core fields).
+/// The group type under the name on the group page: emoji + full name, with
+/// a check ("Confirmed by SportPadi") once the owner console locked it.
+class _ClassBadge extends StatelessWidget {
+  const _ClassBadge({required this.code, required this.locked});
+  final String code;
+  final bool locked;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(
+        color: p.surface2,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Text(groupClassEmoji[code] ?? '', style: const TextStyle(fontSize: 12)),
+        const SizedBox(width: 5),
+        Flexible(
+          child: Text(groupClassName(context.l10n, code),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  color: p.ink, fontSize: 11.5, fontWeight: FontWeight.w700)),
+        ),
+        if (locked) ...[
+          const SizedBox(width: 4),
+          Tooltip(
+            message: context.l10n.group_classConfirmed,
+            triggerMode: TooltipTriggerMode.tap,
+            child: Icon(Icons.verified_rounded, size: 14, color: p.greenText),
+          ),
+        ],
+      ]),
+    );
+  }
+}
+
+/// Edit group — name + description (the web edit page's core fields) and
+/// the group type (read-only once SportPadi confirmed it).
 class _EditGroupSheet extends ConsumerStatefulWidget {
   const _EditGroupSheet({required this.groupId});
   final String groupId;
@@ -2229,6 +2269,9 @@ class _EditGroupSheetState extends ConsumerState<_EditGroupSheet> {
   TextEditingController? _name;
   TextEditingController? _desc;
   bool _busy = false;
+  // The picked type (null = Not set), seeded from the group once it's here.
+  String? _class;
+  bool _classSeeded = false;
 
   @override
   void dispose() {
@@ -2240,22 +2283,116 @@ class _EditGroupSheetState extends ConsumerState<_EditGroupSheet> {
   Future<void> _save() async {
     final name = _name?.text.trim() ?? '';
     if (name.isEmpty) return;
+    final group = ref.read(groupProvider(widget.groupId)).valueOrNull;
+    // A locked type isn't the admin's to change (the server refuses too).
+    final classChanged = _classSeeded &&
+        group != null &&
+        !group.classificationLocked &&
+        _class != group.classification;
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy = true);
     try {
-      await ref.read(groupsRepositoryProvider).updateGroup(widget.groupId, {
+      final repo = ref.read(groupsRepositoryProvider);
+      await repo.updateGroup(widget.groupId, {
         'name': name,
         'description':
             (_desc?.text.trim().isEmpty ?? true) ? null : _desc!.text.trim(),
       });
+      if (classChanged) {
+        await repo.setClassification(widget.groupId, _class);
+      }
       ref.invalidate(groupProvider(widget.groupId));
       if (mounted) Navigator.of(context).pop();
+      if (classChanged) {
+        messenger.showSnackBar(
+            SnackBar(content: Text(l10n.group_classSaved)));
+      }
     } catch (e) {
+      // The name may have saved before the type failed — show what's there.
+      ref.invalidate(groupProvider(widget.groupId));
       if (mounted) {
         setState(() => _busy = false);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+        messenger.showSnackBar(SnackBar(content: Text('$e')));
       }
     }
+  }
+
+  /// Group type: a picker ("Not set" + the seven types), or — once SportPadi
+  /// confirmed it — the type read-only with the mark and the support hint.
+  Widget _classField(AppPalette p, GroupDetail? group) {
+    final t = context.l10n;
+    final locked = group?.classificationLocked ?? false;
+    final current = group?.classification;
+    if (locked) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(t.group_classTitle,
+            style: TextStyle(
+                color: p.muted, fontSize: 12, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 6),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: p.surface2,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(children: [
+            Text(current == null ? '' : (groupClassEmoji[current] ?? ''),
+                style: const TextStyle(fontSize: 16)),
+            if (current != null) const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                  current == null
+                      ? t.group_classNotSet
+                      : groupClassName(t, current),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: p.ink,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700)),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.verified_rounded, size: 16, color: p.greenText),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(t.group_classConfirmed,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: p.greenText,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700)),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 6),
+        Text(t.group_classLockedHint,
+            style: TextStyle(color: p.muted, fontSize: 12, height: 1.4)),
+      ]);
+    }
+    return DropdownButtonFormField<String?>(
+      // Re-seeded once the group arrives (initialValue is read only once).
+      key: ValueKey('group-class-$_classSeeded'),
+      initialValue: _class,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: t.group_classTitle,
+        helperText: t.group_classPrompt,
+        helperMaxLines: 3,
+      ),
+      items: [
+        DropdownMenuItem<String?>(
+            value: null, child: Text(t.group_classNotSet)),
+        for (final c in groupClasses)
+          DropdownMenuItem<String?>(
+            value: c,
+            child: Text('${groupClassEmoji[c] ?? ''} ${groupClassName(t, c)}',
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+      ],
+      onChanged: _busy ? null : (v) => setState(() => _class = v),
+    );
   }
 
   @override
@@ -2264,6 +2401,10 @@ class _EditGroupSheetState extends ConsumerState<_EditGroupSheet> {
     final group = ref.watch(groupProvider(widget.groupId)).valueOrNull;
     _name ??= TextEditingController(text: group?.name ?? '');
     _desc ??= TextEditingController(text: group?.description ?? '');
+    if (!_classSeeded && group != null) {
+      _class = group.classification;
+      _classSeeded = true;
+    }
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: bottom),
@@ -2272,35 +2413,40 @@ class _EditGroupSheetState extends ConsumerState<_EditGroupSheet> {
           color: p.bg,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
         ),
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Edit group',
-                style: TextStyle(
-                    color: p.ink, fontSize: 18, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 14),
-            TextField(
-              controller: _name,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Name'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _desc,
-              maxLines: 3,
-              minLines: 2,
-              decoration: const InputDecoration(
-                  labelText: 'Description', alignLabelWithHint: true),
-            ),
-            const SizedBox(height: 16),
-            SpButton(
-              label: _busy ? 'Saving…' : 'Save changes',
-              expand: true,
-              onTap: _busy ? null : _save,
-            ),
-          ],
+        // Scrolls when the type picker and the keyboard leave too little room.
+        child: SheetScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(context.l10n.group_editGroup,
+                  style: TextStyle(
+                      color: p.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _name,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(labelText: context.l10n.group_name),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _desc,
+                maxLines: 3,
+                minLines: 2,
+                decoration: InputDecoration(
+                    labelText: context.l10n.group_description, alignLabelWithHint: true),
+              ),
+              const SizedBox(height: 12),
+              _classField(p, group),
+              const SizedBox(height: 16),
+              SpButton(
+                label: _busy ? context.l10n.group_saving : context.l10n.group_saveChanges,
+                expand: true,
+                onTap: _busy ? null : _save,
+              ),
+            ],
+          ),
         ),
       ),
     );

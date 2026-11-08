@@ -5,6 +5,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/teams/team_models.dart';
 import 'package:sportpadi_mobile/features/teams/sport_art.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Sport cards (web `components/groups/SportCards.tsx`): a group's Teams tab
 /// is a grid — New team (admins), then one card per sport the group has a
@@ -92,9 +93,9 @@ class SportCardsGrid extends StatelessWidget {
               child: Icon(Icons.add_rounded, color: p.bg, size: 28),
             ),
             const Spacer(),
-            Text('New team', style: TextStyle(color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
+            Text(context.l10n.team_newTeam, style: TextStyle(color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
             const SizedBox(height: 2),
-            Text('Any sport this group plays', style: TextStyle(color: p.muted, fontSize: 12)),
+            Text(context.l10n.team_anySportThisGroupPlays, style: TextStyle(color: p.muted, fontSize: 12)),
             const SizedBox(height: 8),
             Row(children: [
               for (final s in kSports.take(6))
@@ -113,9 +114,9 @@ class SportCardsGrid extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             SpIconTile(Icons.lock_outline_rounded, size: 48, iconSize: 22, bg: p.surface, fg: p.orangeInk),
             const Spacer(),
-            Text('Build teams', style: TextStyle(color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
+            Text(context.l10n.team_buildTeams, style: TextStyle(color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
             const SizedBox(height: 2),
-            Text('Upgrade, or redeem a promo code — one per sport, or several.',
+            Text(context.l10n.team_upgradeOrRedeemAPromo,
                 maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.orangeInk, fontSize: 12)),
           ]),
         ),
@@ -136,10 +137,10 @@ class SportCardsGrid extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                     b.teams.isEmpty
-                        ? 'No teams yet'
+                        ? context.l10n.team_noTeamsYet
                         : () {
                             final players = b.teams.fold<int>(0, (n, t) => n + (t.memberCount ?? 0));
-                            return '${b.teams.length} team${b.teams.length == 1 ? '' : 's'} · $players player${players == 1 ? '' : 's'}';
+                            return context.l10n.team_teamsAndPlayers(b.teams.length, players);
                           }(),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -147,7 +148,7 @@ class SportCardsGrid extends StatelessWidget {
                 const SizedBox(height: 4),
                 Row(children: [
                   Expanded(
-                    child: Text(b.teams.isEmpty ? (onNew != null && !locked ? 'Build one' : 'See the sport') : names(b.teams),
+                    child: Text(b.teams.isEmpty ? (onNew != null && !locked ? context.l10n.team_buildOne : context.l10n.team_seeTheSport) : names(b.teams),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: p.ink, fontSize: 12, fontWeight: FontWeight.w600)),
@@ -173,7 +174,7 @@ class SportCardsGrid extends StatelessWidget {
     if (cards.isEmpty) {
       return GlassCard(
         padding: const EdgeInsets.all(24),
-        child: Text("This group hasn't built any teams yet.",
+        child: Text(context.l10n.team_thisGroupHasntBuiltAny,
             textAlign: TextAlign.center, style: TextStyle(color: p.muted, fontSize: 13.5)),
       );
     }

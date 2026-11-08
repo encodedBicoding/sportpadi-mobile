@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/features/venues/venues.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The season's venues (web league console → Venues): add / edit / archive,
 /// place fixtures without a venue, and each team's home venue.
@@ -39,64 +40,63 @@ class LeagueVenuesSection extends ConsumerWidget {
       data: (j) {
         final data = VenuesData.fromJson(j.raw);
         if (!data.ready) {
-          return const SpEmpty(icon: Icons.place_rounded, text: 'Venues need the latest database update — run migration 20261208_competition_venues.');
+          return SpEmpty(icon: Icons.place_rounded, text: context.l10n.league_venuesNeedTheLatestDatabase);
         }
         final teams = j.list('teams');
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           VenuesPanel(
             data: data,
             noun: 'fixture',
-            intro: "Fixtures are played at the season's venues. Each venue is pinned once and sets the local time for its matches. "
-                'Edit a venue and every upcoming match there follows; move matches between venues any time — everyone in them is told.',
+            intro: context.l10n.league_fixturesArePlayedAtThe,
             actions: VenueActions(
               add: (b) => run('addVenue', {'leagueId': leagueId, ...b}, (r) {
                 final placed = n(r, 'placed');
-                return placed > 0 ? 'Venue added — $placed ${pluralNoun('fixture', placed)} placed there' : 'Venue added';
+                return placed > 0 ? l10n.league_venueAddedFixturesPlacedThere(placed) : l10n.league_venueAdded;
               }),
               update: (id, b) => run('updateVenue', {'venueId': id, ...b}, (r) {
                 final u = n(r, 'updated');
-                return u > 0 ? 'Saved — $u ${pluralNoun('fixture', u)} updated; everyone in published matches was told' : 'Saved';
+                return u > 0 ? l10n.league_savedFixturesUpdatedEveryoneTold(u) : l10n.league_saved;
               }),
               archive: (id, to) => run('archiveVenue', {'venueId': id, 'moveToVenueId': to}, (r) {
                 final m = n(r, 'moved');
-                return m > 0 ? 'Moved $m ${pluralNoun('fixture', m)} and archived the venue' : 'Venue archived';
+                return m > 0 ? l10n.league_movedFixturesAndArchivedTheVenue(m) : l10n.league_venueArchived;
               }),
-              restore: (id) => run('restoreVenue', {'venueId': id}, (_) => 'Venue restored'),
+              restore: (id) => run('restoreVenue', {'venueId': id}, (_) => l10n.league_venueRestored),
               placeUnplaced: (venueId) => run('placeFixtures', {'leagueId': leagueId, 'fixtureIds': data.unplacedIds, 'venueId': venueId}, (r) {
                 final c = n(r, 'placed');
-                return '$c ${pluralNoun('fixture', c)} placed';
+                return l10n.league_fixturesPlacedCount(c);
               }),
             ),
           ),
           if (data.active.length > 1 && teams.isNotEmpty) ...[
             const SizedBox(height: 20),
-            const SpSectionTitle('Home venues'),
+            SpSectionTitle(context.l10n.league_homeVenues),
             const SizedBox(height: 4),
-            Text("A team's home fixtures without a venue go to its home venue.", style: TextStyle(color: p.muted, fontSize: 12)),
+            Text(context.l10n.league_aTeamsHomeFixturesWithout, style: TextStyle(color: p.muted, fontSize: 12)),
             const SizedBox(height: 8),
             for (final t in teams) ...[
-              Text(t.str('name', 'Team'), style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
+              Text(t.str('name', context.l10n.league_team), style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               VenueDropdown(
                 venues: data.active,
                 value: t.s('homeVenueId'),
-                none: 'No home venue',
+                none: context.l10n.league_noHomeVenue,
                 onChanged: (v) async {
                   final ok = await runVenueAction(
                       context,
                       () => run('setHomeVenue', {'leagueId': leagueId, 'teamId': t.str('teamId'), 'venueId': v}, (r) {
                             final c = n(r, 'placed');
-                            return c > 0 ? 'Home venue set — $c ${pluralNoun('fixture', c)} placed there' : 'Home venue set';
+                            return c > 0 ? l10n.league_homeVenueSetFixturesPlacedThere(c) : l10n.league_homeVenueSet;
                           }));
                   if (!ok || v == null || !context.mounted) return;
                   final move = await showDialog<bool>(
                     context: context,
                     builder: (c) => AlertDialog(
-                      title: const Text('Move their home fixtures too?'),
-                      content: Text("${t.str('name')}'s unpublished home fixtures move to this venue."),
+                      title: Text(l10n.league_moveTheirHomeFixturesToo2),
+                      content: Text(l10n.league_sUnpublishedHomeFixturesMove(t.str('name'))),
                       actions: [
-                        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Not now')),
-                        TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Move them')),
+                        TextButton(onPressed: () => Navigator.pop(c, false), child: Text(l10n.league_notNow)),
+                        TextButton(onPressed: () => Navigator.pop(c, true), child: Text(l10n.league_moveThem)),
                       ],
                     ),
                   );
@@ -105,7 +105,7 @@ class LeagueVenuesSection extends ConsumerWidget {
                       context,
                       () => run('setHomeVenue', {'leagueId': leagueId, 'teamId': t.str('teamId'), 'venueId': v, 'moveHomeFixtures': true}, (r) {
                             final c = n(r, 'placed');
-                            return '$c ${pluralNoun('fixture', c)} moved';
+                            return l10n.league_fixturesMovedCount(c);
                           }));
                 },
               ),
@@ -148,11 +148,11 @@ class LeagueVenueNudge extends ConsumerWidget {
               Expanded(
                 child: Text(
                     none
-                        ? "No venues yet — add the season's venues and fixtures are placed in them."
-                        : '$n ${pluralNoun('fixture', n)} without a venue — place them in one.',
+                        ? context.l10n.league_noVenuesYetAddThe
+                        : context.l10n.league_withoutAVenuePlaceThem2(n, pluralNoun('fixture', n)),
                     style: TextStyle(color: p.orangeInk, fontSize: 12.5)),
               ),
-              Text('Venues →', style: TextStyle(color: p.orangeInk, fontWeight: FontWeight.w800, fontSize: 12.5)),
+              Text(context.l10n.league_venues, style: TextStyle(color: p.orangeInk, fontWeight: FontWeight.w800, fontSize: 12.5)),
             ]),
           ),
         ),

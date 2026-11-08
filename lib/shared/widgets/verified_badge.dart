@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Gold used for the group verification badge (web: VERIFIED_GOLD).
 const kVerifiedGold = Color(0xFFF0A500);
@@ -22,9 +23,9 @@ class VerifiedBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: 'Verified by SportPadi',
+      message: context.l10n.common_verifiedBySportPadi,
       child: Semantics(
-        label: 'Verified',
+        label: context.l10n.common_verified,
         child: CustomPaint(
           size: Size.square(size),
           painter: _BadgePainter(),
@@ -43,7 +44,7 @@ class VerifiedBadgeButton extends StatelessWidget {
 
   void _explain(BuildContext context) {
     final who =
-        (groupName ?? '').trim().isEmpty ? 'This group' : groupName!.trim();
+        (groupName ?? '').trim().isEmpty ? context.l10n.common_thisGroup : groupName!.trim();
     showSpSheet<void>(
       context,
       builder: (ctx) {
@@ -77,13 +78,13 @@ class VerifiedBadgeButton extends StatelessWidget {
             child: const VerifiedBadge(size: 44),
           ),
           const SizedBox(height: 14),
-          Text('Verified by SportPadi',
+          Text(context.l10n.common_verifiedBySportPadi,
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: p.ink, fontSize: 18, fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
           Text(
-            'A stamp of genuineness and authenticity. SportPadi has confirmed that $who is the real group it says it is.',
+            context.l10n.common_aStampOfGenuinenessAnd(who),
             textAlign: TextAlign.center,
             style: TextStyle(color: p.muted, fontSize: 13.5, height: 1.45),
           ),
@@ -95,10 +96,10 @@ class VerifiedBadgeButton extends StatelessWidget {
                 color: p.surface2, borderRadius: BorderRadius.circular(16)),
             child: Column(children: [
               point(
-                  'Given only by SportPadi, after checking the group is who it claims to be.'),
+                  context.l10n.common_givenOnlyBySportPadiAfter),
               point(
-                  "It can't be bought and has nothing to do with the group's plan."),
-              point("It's removed if a group stops being genuine."),
+                  context.l10n.common_itCantBeBoughtAnd),
+              point(context.l10n.common_itsRemovedIfAGroup),
             ]),
           ),
           const SizedBox(height: 16),
@@ -106,7 +107,7 @@ class VerifiedBadgeButton extends StatelessWidget {
             width: double.infinity,
             child: TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Got it'),
+              child: Text(context.l10n.common_gotIt),
             ),
           ),
         ]);
@@ -118,7 +119,7 @@ class VerifiedBadgeButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Verified by SportPadi — what this means',
+      label: context.l10n.common_verifiedBySportPadiWhatThis,
       child: InkResponse(
         onTap: () => _explain(context),
         radius: size,

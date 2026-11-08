@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/features/players/player_record.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Keys that are never a "best" (nobody brags about their most fouls).
 const _notABest = {
@@ -37,32 +38,42 @@ class PersonalBests extends StatelessWidget {
   List<(String, String, String?)> _wanted() {
     // "Most aces in a match", "Most birdies in a round" — no stroke
     // semantics are known, so golf reads higher-is-better too (§8).
-    String most(String key) =>
-        'Most ${fieldFor(key, fields, family).label.toLowerCase()} '
-        'in a ${gameNoun(family)}';
+    String most(String key) {
+      final stat = fieldFor(key, fields, family).label.toLowerCase();
+      // Same families as gameNoun(): match / round / race / game.
+      return switch (family) {
+        SportFamily.tennis ||
+        SportFamily.padel =>
+          l10n.profile_mostStatInAMatch(stat),
+        SportFamily.golf => l10n.profile_mostStatInARound(stat),
+        SportFamily.running => l10n.profile_mostStatInARace(stat),
+        _ => l10n.profile_mostStatInAGame(stat),
+      };
+    }
+
     switch (family) {
       case SportFamily.soccer:
         return [
-          ('goals', 'Most goals in a game', null),
-          ('assists', 'Most assists in a game', null),
+          ('goals', l10n.profile_mostGoalsInAGame, null),
+          ('assists', l10n.profile_mostAssistsInAGame, null),
         ];
       case SportFamily.basketball:
         return [
-          ('points', 'Career high', 'PTS'),
-          ('assists', 'Most assists', 'AST'),
-          ('reb', 'Most rebounds', 'REB'),
+          ('points', l10n.profile_careerHigh, l10n.profile_p5StatPts),
+          ('assists', l10n.profile_mostAssists, l10n.profile_p5StatAst),
+          ('reb', l10n.profile_mostRebounds, l10n.profile_p5StatReb),
         ];
       case SportFamily.volleyball:
         return [
-          ('points', 'Most points in a game', null),
-          ('aces', 'Most aces in a game', null),
-          ('blocks', 'Most blocks in a game', null),
+          ('points', l10n.profile_mostPointsInAGame, null),
+          ('aces', l10n.profile_mostAcesInAGame, null),
+          ('blocks', l10n.profile_mostBlocksInAGame, null),
         ];
       case SportFamily.baseball:
         return [
-          ('runs', 'Most runs in a game', null),
-          ('hits', 'Most hits in a game', null),
-          ('homeRuns', 'Most home runs in a game', null),
+          ('runs', l10n.profile_mostRunsInAGame, null),
+          ('hits', l10n.profile_mostHitsInAGame, null),
+          ('homeRuns', l10n.profile_mostHomeRunsInAGame, null),
         ];
       case SportFamily.tennis:
       case SportFamily.padel:
@@ -96,7 +107,7 @@ class PersonalBests extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(top: top),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const RecordSectionTitle('Personal bests'),
+        RecordSectionTitle(context.l10n.profile_personalBests),
         const SizedBox(height: 10),
         LayoutBuilder(builder: (context, box) {
           final cols = box.maxWidth >= 560 ? 3 : 2;

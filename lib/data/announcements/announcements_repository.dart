@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/data/announcements/announcement_models.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Announcements REST bridge (`/api/mobile/announcements`, Messaging 1).
 /// Errors carry the server's readable message (quota and rate limits
@@ -56,7 +57,7 @@ class AnnouncementsRepository {
     final d = await _get({
       if (cursor != null) 'cursor': cursor,
       if (groupId != null) 'groupId': groupId,
-    }, "Couldn't load announcements.");
+    }, l10n.common_couldntLoadAnnouncements);
     return AnnouncementPage.fromJson(_asMap(d));
   }
 
@@ -73,10 +74,10 @@ class AnnouncementsRepository {
 
   /// One announcement (opening it marks it seen). Staff also get receipts.
   Future<AnnouncementDetail> get(String id) async {
-    final d = await _get(const {}, "Couldn't load this announcement.",
+    final d = await _get(const {}, l10n.common_couldntLoadThisAnnouncement,
         path: '$_path/$id');
     if (d is! Map) {
-      throw ApiException('This announcement was removed.', statusCode: 404);
+      throw ApiException(l10n.common_thisAnnouncementWasRemoved, statusCode: 404);
     }
     return AnnouncementDetail.fromJson(Map<String, dynamic>.from(d));
   }
@@ -84,7 +85,7 @@ class AnnouncementsRepository {
   /// What I can send in [groupId]. Throws (403) for non-staff.
   Future<ComposerInfo> composer(String groupId) async {
     final d = await _get({'view': 'composer', 'groupId': groupId},
-        "Couldn't load the composer.");
+        l10n.common_couldntLoadTheComposer);
     return ComposerInfo.fromJson(_asMap(d));
   }
 
@@ -94,7 +95,7 @@ class AnnouncementsRepository {
       'view': 'pickable',
       'groupId': groupId,
       if (q != null && q.trim().isNotEmpty) 'q': q.trim(),
-    }, "Couldn't load members.");
+    }, l10n.common_couldntLoadMembers);
     return [for (final p in _asList(d)) PickablePerson.fromJson(p)];
   }
 
@@ -104,7 +105,7 @@ class AnnouncementsRepository {
       'view': 'sent',
       'groupId': groupId,
       if (cursor != null) 'cursor': cursor,
-    }, "Couldn't load sent announcements.");
+    }, l10n.common_couldntLoadSentAnnouncements);
     return SentPage.fromJson(_asMap(d));
   }
 
@@ -115,20 +116,20 @@ class AnnouncementsRepository {
       'view': 'pinned',
       'groupId': groupId,
       if (teamId != null) 'teamId': teamId,
-    }, "Couldn't load pinned announcements.");
+    }, l10n.common_couldntLoadPinnedAnnouncements);
     return [for (final a in _asList(d)) AnnouncementItem.fromJson(a)];
   }
 
   /// Groups whose announcements I've muted.
   Future<Set<String>> mutedGroups() async {
-    final d = await _get({'view': 'muted'}, "Couldn't load your settings.");
+    final d = await _get({'view': 'muted'}, l10n.common_couldntLoadYourSettings);
     return parseStrList(d).toSet();
   }
 
   /// Push / email per category.
   Future<List<NotificationPreference>> preferences() async {
     final d =
-        await _get({'view': 'preferences'}, "Couldn't load your settings.");
+        await _get({'view': 'preferences'}, l10n.common_couldntLoadYourSettings);
     return [for (final p in _asList(d)) NotificationPreference.fromJson(p)];
   }
 
@@ -141,7 +142,7 @@ class AnnouncementsRepository {
       'action': 'preview',
       'groupId': groupId,
       'audience': audience.toJson(),
-    }, "Couldn't count the audience.");
+    }, l10n.common_couldntCountTheAudience);
     return AudiencePreview.fromJson(r);
   }
 
@@ -172,7 +173,7 @@ class AnnouncementsRepository {
       if (link != null) 'link': {'type': link.type, 'id': link.id},
       if (attachments.isNotEmpty)
         'attachments': [for (final a in attachments) a.toJson()],
-    }, "Couldn't send the announcement.");
+    }, l10n.common_couldntSendTheAnnouncement);
     return (
       id: parseStr(r['id']) ?? '',
       recipientCount: parseInt(r['recipientCount']) ?? 0,
@@ -182,30 +183,30 @@ class AnnouncementsRepository {
 
   Future<void> markSeen(List<String> ids) async {
     if (ids.isEmpty) return;
-    await _post({'action': 'seen', 'ids': ids}, "Couldn't update.");
+    await _post({'action': 'seen', 'ids': ids}, l10n.common_couldntUpdate);
   }
 
   Future<void> markAllSeen() async {
-    await _post({'action': 'seen-all'}, "Couldn't mark them read.");
+    await _post({'action': 'seen-all'}, l10n.common_couldntMarkThemRead);
   }
 
   /// "Got it".
   Future<void> ack(String id) async {
-    await _post({'action': 'ack', 'id': id}, "Couldn't send your Got it.");
+    await _post({'action': 'ack', 'id': id}, l10n.common_couldntSendYourGotIt);
   }
 
   Future<void> delete(String id) async {
     await _post(
-        {'action': 'delete', 'id': id}, "Couldn't delete the announcement.");
+        {'action': 'delete', 'id': id}, l10n.common_couldntDeleteTheAnnouncement);
   }
 
   Future<void> unpin(String id) async {
-    await _post({'action': 'unpin', 'id': id}, "Couldn't unpin it.");
+    await _post({'action': 'unpin', 'id': id}, l10n.common_couldntUnpinIt);
   }
 
   Future<void> setMuted(String groupId, bool muted) async {
     await _post({'action': 'mute', 'groupId': groupId, 'muted': muted},
-        "Couldn't change the setting.");
+        l10n.common_couldntChangeTheSetting);
   }
 
   Future<void> setPreference(String category, {bool? push, bool? email}) async {
@@ -214,7 +215,7 @@ class AnnouncementsRepository {
       'category': category,
       if (push != null) 'push': push,
       if (email != null) 'email': email,
-    }, "Couldn't save the setting.");
+    }, l10n.common_couldntSaveTheSetting);
   }
 }
 

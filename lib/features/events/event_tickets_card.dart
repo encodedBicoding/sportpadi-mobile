@@ -12,13 +12,14 @@ import 'package:sportpadi_mobile/features/payments/recipient_sheet.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/ticket_validity.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
-const _recurrenceLabel = {
-  'daily': 'per day',
-  'weekly': 'per week',
-  'monthly': 'per month',
-  'quarterly': 'per quarter',
-  'yearly': 'per year',
+Map<String, String> get _recurrenceLabel => {
+  'daily': l10n.event_perDay,
+  'weekly': l10n.event_perWeek,
+  'monthly': l10n.event_perMonth,
+  'quarterly': l10n.event_perQuarter,
+  'yearly': l10n.event_perYear,
 };
 
 /// "Ticketed event" — the tickets tied to an event (plus the group's general
@@ -67,9 +68,9 @@ class _EventTicketsCardState extends ConsumerState<EventTicketsCard> {
     try {
       await ref.read(eventsRepositoryProvider).setFollow(groupId, true);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
-                "Following — this group's events now show on your home page.")));
+                l10n.event_followingThisGroupsEventsNow)));
       }
       ref.invalidate(eventTicketsProvider(widget.eventId));
     } catch (e) {
@@ -95,8 +96,8 @@ class _EventTicketsCardState extends ConsumerState<EventTicketsCard> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(status == 'paid'
-                ? 'Payment confirmed ✅ — you can check in.'
-                : 'Payment $status — pull to refresh in a moment.')));
+                ? l10n.event_paymentConfirmedYouCanCheck
+                : l10n.event_paymentPullToRefreshIn(status))));
       }
       ref.invalidate(eventTicketsProvider(widget.eventId));
     } catch (e) {
@@ -154,7 +155,7 @@ class _EventTicketsCardState extends ConsumerState<EventTicketsCard> {
                       runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Text('Ticketed event',
+                        Text(context.l10n.event_ticketedEvent,
                             style: TextStyle(
                                 color: p.ink,
                                 fontSize: 15,
@@ -162,8 +163,8 @@ class _EventTicketsCardState extends ConsumerState<EventTicketsCard> {
                         if (required.isNotEmpty)
                           SpBadge(
                             allPaid
-                                ? "✓ You're covered"
-                                : '🔒 Required to check in',
+                                ? context.l10n.event_youreCovered2
+                                : context.l10n.event_requiredToCheckIn3,
                             tone: allPaid ? p.accent : p.amber,
                           ),
                       ],
@@ -171,8 +172,8 @@ class _EventTicketsCardState extends ConsumerState<EventTicketsCard> {
                     const SizedBox(height: 2),
                     Text(
                       required.isNotEmpty
-                          ? "Pay before you scan in — the gate won't let an unpaid ticket through."
-                          : 'Optional tickets for this event.',
+                          ? context.l10n.event_payBeforeYouScanIn
+                          : context.l10n.event_optionalTicketsForThisEvent,
                       style: TextStyle(color: p.muted, fontSize: 12),
                     ),
                   ],
@@ -205,13 +206,13 @@ class _EventTicketsCardState extends ConsumerState<EventTicketsCard> {
                 child: Row(children: [
                   Expanded(
                     child: Text(
-                      "You've got a ticket here 🎟 Follow ${data.groupName ?? 'this group'} so this event always shows on your home page.",
+                      context.l10n.event_youveGotATicketHere2(data.groupName ?? 'this group'),
                       style: TextStyle(color: p.ink, fontSize: 12, height: 1.4),
                     ),
                   ),
                   const SizedBox(width: 8),
                   SpButton(
-                    label: 'Follow',
+                    label: context.l10n.event_follow,
                     icon: Icons.favorite_rounded,
                     onTap: _busy ? null : () => _follow(data.groupId!),
                   ),
@@ -221,7 +222,7 @@ class _EventTicketsCardState extends ConsumerState<EventTicketsCard> {
             if (payableRequired.length > 1)
               SpButton(
                 label:
-                    'Pay all required · ${formatMoney(payAllPrice, data.currency, data.currencyExponent)} + fees',
+                    context.l10n.event_payAllRequiredFees(formatMoney(payAllPrice, data.currency, data.currencyExponent)),
                 icon: Icons.confirmation_num_rounded,
                 expand: true,
                 onTap: _busy
@@ -253,16 +254,16 @@ class _TicketRow extends StatelessWidget {
     final valid =
         pass != null ? validityRange(t.validFrom, t.validUntil) : null;
     final meta = <String>[
-      t.required ? 'Required to check in' : 'Optional',
-      if (!t.eventSpecific) 'group pass',
-      if (valid != null) '$pass · valid $valid',
+      t.required ? context.l10n.event_requiredToCheckIn : context.l10n.event_optional,
+      if (!t.eventSpecific) context.l10n.event_groupPassLower,
+      if (valid != null) context.l10n.event_passValidRange(pass!, valid),
       if (t.soldLabel != null) t.soldLabel!,
-      if (t.lowStock) 'only ${t.remaining ?? (t.capacity! - t.sold)} left',
+      if (t.lowStock) context.l10n.event_onlyCountLeft(t.remaining ?? (t.capacity! - t.sold)),
       if (t.notOpenYet && t.salesStartAt != null)
-        'Sales open ${formatDayYear(t.salesStartAt)}',
+        context.l10n.event_salesOpenOn(formatDayYear(t.salesStartAt)),
       if (!t.notOpenYet && !t.closed && t.salesEndAt != null)
-        'Until ${formatDayYear(t.salesEndAt)}',
-      if (t.closed) 'Sales closed',
+        context.l10n.event_untilDate(formatDayYear(t.salesEndAt)),
+      if (t.closed) context.l10n.event_salesClosed2,
     ];
 
     return Container(
@@ -350,7 +351,7 @@ class _TicketRow extends StatelessWidget {
                               size: 15, color: p.accent),
                           const SizedBox(width: 5),
                           Flexible(
-                            child: Text('Paid · view your ticket',
+                            child: Text(context.l10n.event_paidViewYourTicket,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                     color: p.accent,
@@ -381,7 +382,7 @@ class _TicketRow extends StatelessWidget {
                                   Icon(Icons.card_giftcard_rounded,
                                       size: 15, color: p.ink),
                                   const SizedBox(width: 6),
-                                  Text('Buy for someone else',
+                                  Text(context.l10n.event_buyForSomeoneElse,
                                       style: TextStyle(
                                           color: p.ink,
                                           fontSize: 12,
@@ -395,17 +396,17 @@ class _TicketRow extends StatelessWidget {
                     ])
               else if (t.canBuy)
                 SpButton(
-                  label: 'Buy ticket',
+                  label: context.l10n.event_buyTicket,
                   icon: Icons.confirmation_num_rounded,
                   onTap: busy ? null : onPay,
                 )
               else
                 Text(
                   t.soldOut
-                      ? 'Sold out — all ${t.capacity} bought'
+                      ? context.l10n.event_soldOutAllBought(t.capacity ?? '')
                       : t.notOpenYet
-                          ? 'Not on sale yet'
-                          : 'Sales closed',
+                          ? context.l10n.event_notOnSaleYet
+                          : context.l10n.event_salesClosed2,
                   style: TextStyle(color: p.muted, fontSize: 12),
                 ),
             ],
@@ -444,7 +445,7 @@ class EventTicketedLine extends ConsumerWidget {
       parts.join(' · '),
       trailing: data.anyRequired
           ? Text(
-              data.allRequiredPaid ? 'paid ✓' : 'required to check in',
+              data.allRequiredPaid ? context.l10n.event_paid2 : context.l10n.event_requiredToCheckIn2,
               style: TextStyle(
                   color: data.allRequiredPaid ? p.accent : p.amber,
                   fontSize: 12,

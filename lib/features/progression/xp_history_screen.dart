@@ -13,6 +13,7 @@ import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart' show SpEmpty;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 class XpHistoryScreen extends ConsumerStatefulWidget {
   const XpHistoryScreen({super.key});
@@ -59,8 +60,8 @@ class _XpHistoryScreenState extends ConsumerState<XpHistoryScreen> {
   static String _dayKey(DateTime d) => '${d.year}-${d.month}-${d.day}';
   static String _dayLabel(DateTime d) {
     final now = DateTime.now();
-    if (_dayKey(d) == _dayKey(now)) return 'Today';
-    if (_dayKey(d) == _dayKey(now.subtract(const Duration(days: 1)))) return 'Yesterday';
+    if (_dayKey(d) == _dayKey(now)) return l10n.profile_today;
+    if (_dayKey(d) == _dayKey(now.subtract(const Duration(days: 1)))) return l10n.profile_yesterday;
     return DateFormat(d.year == now.year ? 'EEE d MMM' : 'EEE d MMM yyyy').format(d);
   }
 
@@ -87,7 +88,7 @@ class _XpHistoryScreenState extends ConsumerState<XpHistoryScreen> {
         leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
-        title: const Text('XP history', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        title: Text(context.l10n.profile_xpHistory, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -106,7 +107,7 @@ class _XpHistoryScreenState extends ConsumerState<XpHistoryScreen> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: SpButton(
-                      label: 'Open progress',
+                      label: context.l10n.profile_openProgress,
                       icon: Icons.trending_up_rounded,
                       onTap: () => context.push('/progress'),
                     ),
@@ -115,24 +116,22 @@ class _XpHistoryScreenState extends ConsumerState<XpHistoryScreen> {
               ),
             const SizedBox(height: 12),
             Text(
-              'Every point you earned or lost, and why. Showing up, playing and '
-              'stats earn XP; mistakes like an own goal or a missed penalty take '
-              'a little back — never more than the game paid.',
+              context.l10n.profile_everyPointYouEarnedOr,
               style: TextStyle(color: p.muted, fontSize: 13, height: 1.4),
             ),
             const SizedBox(height: 12),
             if (_error != null)
               GlassCard(
                 onTap: () => _load(reset: _items.isEmpty),
-                child: Text('$_error — tap to retry', style: TextStyle(color: p.danger, fontSize: 13)),
+                child: Text(context.l10n.profile_tapToRetry(_error ?? ''), style: TextStyle(color: p.danger, fontSize: 13)),
               )
             else if (_loading && _items.isEmpty)
               const Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator()))
             else if (_items.isEmpty)
-              const SpEmpty(
+              SpEmpty(
                   icon: Icons.auto_awesome_outlined,
-                  title: 'No XP yet',
-                  text: 'Check in to a game and it starts here.')
+                  title: context.l10n.profile_noXpYet,
+                  text: context.l10n.profile_checkInToAGame)
             else ...[
               for (final day in days) ...[
                 GlassCard(
@@ -169,7 +168,7 @@ class _XpHistoryScreenState extends ConsumerState<XpHistoryScreen> {
                 Center(
                   child: TextButton(
                     onPressed: _loading ? null : () => _load(),
-                    child: Text(_loading ? 'Loading…' : 'Show earlier'),
+                    child: Text(_loading ? context.l10n.profile_loading : context.l10n.profile_showEarlier),
                   ),
                 ),
             ],

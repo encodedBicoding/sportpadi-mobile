@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:sportpadi_mobile/core/i18n/date_locale.dart';
 import 'package:intl/intl.dart';
 
 import 'package:sportpadi_mobile/features/players/player_record.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The per-sport record design (docs/design/sport-records.md §2–§5, §8).
 ///
@@ -297,29 +299,30 @@ class SportStat {
   final String? icon;
 }
 
-const Map<String, String> _defaultLabels = {
-  'goals': 'Goals',
-  'assists': 'Assists',
-  'ownGoals': 'Own goals',
-  'yellows': 'Yellow cards',
-  'reds': 'Red cards',
-  'points': 'Points',
-  'fouls': 'Fouls',
-  'reb': 'Rebounds',
-  'steals': 'Steals',
-  'blocks': 'Blocks',
-  'turnovers': 'Turnovers',
-  'fg3Made': '3-pointers',
-  'aces': 'Aces',
-  'kills': 'Kills',
-  'digs': 'Digs',
-  'runs': 'Runs',
-  'homeRuns': 'Home runs',
-  'hits': 'Hits',
-  'strikeouts': 'Strikeouts',
-  'faults': 'Faults',
-  'scores': 'Scores',
-};
+/// Labels in the current language (see [defaultStatLabel]).
+Map<String, String> get _defaultLabels => {
+      'goals': l10n.profile_goals,
+      'assists': l10n.profile_assists,
+      'ownGoals': l10n.profile_ownGoalsLabel,
+      'yellows': l10n.profile_yellowCards,
+      'reds': l10n.profile_redCards,
+      'points': l10n.profile_points,
+      'fouls': l10n.profile_fouls,
+      'reb': l10n.profile_rebounds,
+      'steals': l10n.profile_steals,
+      'blocks': l10n.profile_blocks,
+      'turnovers': l10n.profile_turnovers,
+      'fg3Made': l10n.profile_threePointers,
+      'aces': l10n.profile_aces,
+      'kills': l10n.profile_kills,
+      'digs': l10n.profile_digs,
+      'runs': l10n.profile_runs,
+      'homeRuns': l10n.profile_homeRuns,
+      'hits': l10n.profile_hits,
+      'strikeouts': l10n.profile_strikeouts,
+      'faults': l10n.profile_faults,
+      'scores': l10n.profile_scores,
+    };
 
 String _defaultIcon(String key, SportFamily family) => switch (key) {
       'goals' => family == SportFamily.ultimate ? '🥏' : '⚽',
@@ -411,9 +414,6 @@ String baseballPct(int wins, int games) {
   return s.startsWith('0') ? s.substring(1) : s;
 }
 
-String plural(int n, String one, [String? many]) =>
-    '$n ${n == 1 ? one : (many ?? '${one}s')}';
-
 // ── Scopes ──────────────────────────────────────────────────────────────────
 
 /// All · Local · Tournaments.
@@ -435,9 +435,9 @@ extension RecordScopeX on RecordScope {
       };
 
   String get label => switch (this) {
-        RecordScope.all => 'All',
-        RecordScope.local => 'Local',
-        RecordScope.tournament => 'Tournaments',
+        RecordScope.all => l10n.profile_all,
+        RecordScope.local => l10n.profile_local,
+        RecordScope.tournament => l10n.profile_tournaments,
       };
 }
 
@@ -477,35 +477,46 @@ bool hasRecord(Map<String, dynamic> cat) => hasPlayed(cat);
 
 // ── Nouns ───────────────────────────────────────────────────────────────────
 
-/// What one game is called in the sport: a match, a round, a race …
+// Never build "N <noun>s" from these: the count helpers below are whole ICU
+// plural messages, so every language gets its own plural forms.
+
+/// What one game is called in the sport, translated: a match, a round, a
+/// race … (lower case, for a noun on its own).
 String gameNoun(SportFamily f) => switch (f) {
-      SportFamily.tennis || SportFamily.padel => 'match',
-      SportFamily.golf => 'round',
-      SportFamily.running => 'race',
-      _ => 'game',
+      SportFamily.tennis || SportFamily.padel => l10n.profile_p5MatchNoun,
+      SportFamily.golf => l10n.profile_p5RoundNoun,
+      SportFamily.running => l10n.profile_p5RaceNoun,
+      _ => l10n.profile_p5GameNoun,
     };
 
-/// [gameNoun] in the plural ("matches", "rounds").
-String gameNounPlural(SportFamily f) =>
-    gameNoun(f) == 'match' ? 'matches' : '${gameNoun(f)}s';
+/// "12 matches", "1 round" — the sport's games, counted.
+String gamesCount(SportFamily f, int n) => switch (f) {
+      SportFamily.tennis || SportFamily.padel => l10n.profile_p5MatchesCount(n),
+      SportFamily.golf => l10n.profile_p5RoundsCount(n),
+      SportFamily.running => l10n.profile_p5RacesCount(n),
+      _ => l10n.profile_p5GamesCount(n),
+    };
 
-/// "12 matches", "1 round".
-String gamesPhrase(SportFamily f, int n) =>
-    '$n ${n == 1 ? gameNoun(f) : gameNounPlural(f)}';
-
-/// What one check-in is called: a hike, a run, else a check-in.
+/// What one check-in is called, translated: a hike, a run, else a check-in.
 String outingNoun(SportFamily f) => switch (f) {
-      SportFamily.hiking => 'hike',
-      SportFamily.running => 'run',
-      _ => 'check-in',
+      SportFamily.hiking => l10n.profile_p5HikeNoun,
+      SportFamily.running => l10n.profile_p5RunNoun,
+      _ => l10n.profile_p5CheckInNoun,
+    };
+
+/// "24 hikes", "1 run", "3 check-ins" — the sport's check-ins, counted.
+String outingsCount(SportFamily f, int n) => switch (f) {
+      SportFamily.hiking => l10n.profile_p5HikesCount(n),
+      SportFamily.running => l10n.profile_p5RunsCount(n),
+      _ => l10n.profile_p5CheckInsCount(n),
     };
 
 // ── Attendance (§8) ─────────────────────────────────────────────────────────
 
-final DateFormat _monthYear = DateFormat('MMM yyyy', 'en_US');
-final DateFormat _monthDay = DateFormat('MMM d', 'en_US');
-final DateFormat _monthDayYear = DateFormat('MMM d, yyyy', 'en_US');
-final DateFormat _monthShort = DateFormat('MMM', 'en_US');
+DateFormat get _monthYear => DateFormat('MMM yyyy', spDateLocale);
+DateFormat get _monthDay => DateFormat('MMM d', spDateLocale);
+DateFormat get _monthDayYear => DateFormat('MMM d, yyyy', spDateLocale);
+DateFormat get _monthShort => DateFormat('MMM', spDateLocale);
 
 /// "Oct 12" this year, "Oct 12, 2025" before.
 String shortDay(dynamic v) {
@@ -537,13 +548,12 @@ String attendanceSummary(SportFamily f, Map<String, dynamic> att) {
   final n = statInt(att['checkIns']);
   final streak = statInt(att['weekStreak']);
   final last = shortDay(att['lastAt']);
-  final noun = outingNoun(f);
   return [
-    plural(n, noun),
+    outingsCount(f, n),
     if (streak > 0)
-      '$streak-week streak'
+      l10n.profile_weekStreakCount(streak)
     else if (last.isNotEmpty)
-      'last $last',
+      l10n.profile_p5LastOn(last),
   ].join(' · ');
 }
 
@@ -551,14 +561,14 @@ String attendanceSummary(SportFamily f, Map<String, dynamic> att) {
 String attendanceSinceLine(SportFamily f, Map<String, dynamic> att) {
   final first = parseDate(att['firstAt']);
   final last = shortDay(att['lastAt']);
-  final verb = switch (f) {
-    SportFamily.hiking => 'Hiking',
-    SportFamily.running => 'Running',
-    _ => 'Showing up',
-  };
+  String since(String month) => switch (f) {
+        SportFamily.hiking => l10n.profile_p5HikingSince(month),
+        SportFamily.running => l10n.profile_p5RunningSince(month),
+        _ => l10n.profile_p5ShowingUpSince(month),
+      };
   final parts = [
-    if (first != null) '$verb since ${_monthYear.format(first)}',
-    if (last.isNotEmpty) 'last $last',
+    if (first != null) since(_monthYear.format(first)),
+    if (last.isNotEmpty) l10n.profile_p5LastOn(last),
   ];
   return parts.isEmpty ? attendanceSummary(f, att) : parts.join(' · ');
 }
@@ -650,79 +660,79 @@ List<(String, String)> headlineFor(
   switch (family) {
     case SportFamily.soccer:
       return [
-        ('${n('goals')}', 'Goals'),
-        ('${n('assists')}', 'Assists'),
-        (perGame(n('goals') + n('assists'), g, decimals: 2), 'G+A / game'),
+        ('${n('goals')}', l10n.profile_goals),
+        ('${n('assists')}', l10n.profile_assists),
+        (perGame(n('goals') + n('assists'), g, decimals: 2), l10n.profile_goalsAssistsPerGame),
       ];
     case SportFamily.basketball:
       return [
-        ('${n('points')}', 'PTS'),
-        (perGame(n('points'), g), 'PPG'),
+        ('${n('points')}', l10n.profile_p5StatPts),
+        (perGame(n('points'), g), l10n.profile_p5StatPpg),
         if (hasStat('assists', fields, c))
-          (perGame(n('assists'), g), 'APG')
+          (perGame(n('assists'), g), l10n.profile_p5StatApg)
         else
-          ('$g', 'GP'),
+          ('$g', l10n.profile_p5StatGp),
       ];
     case SportFamily.volleyball:
       return [
-        ('${n('points')}', 'Points'),
-        ('${n('aces')}', 'Aces'),
-        ('${n('blocks')}', 'Blocks'),
+        ('${n('points')}', l10n.profile_points),
+        ('${n('aces')}', l10n.profile_aces),
+        ('${n('blocks')}', l10n.profile_blocks),
       ];
     case SportFamily.baseball:
       return [
-        ('${n('runs')}', 'Runs'),
-        ('${n('hits')}', 'Hits'),
-        ('${n('homeRuns')}', 'HR'),
+        ('${n('runs')}', l10n.profile_runs),
+        ('${n('hits')}', l10n.profile_hits),
+        ('${n('homeRuns')}', l10n.profile_p5StatHr),
       ];
     case SportFamily.tennis:
       return [
-        ('$w', 'Wins'),
-        (pct, 'Win %'),
-        if (tracks('aces')) ('${n('aces')}', 'Aces') else ('$g', 'Matches'),
+        ('$w', l10n.profile_wins2),
+        (pct, l10n.profile_winPct),
+        if (tracks('aces')) ('${n('aces')}', l10n.profile_aces) else ('$g', l10n.profile_matches),
       ];
     case SportFamily.padel:
       return [
-        ('$w', 'Wins'),
-        (pct, 'Win %'),
+        ('$w', l10n.profile_wins2),
+        (pct, l10n.profile_winPct),
         if (tracks('points'))
-          ('${n('points')}', 'Points')
+          ('${n('points')}', l10n.profile_points)
         else
-          ('$g', 'Matches'),
+          ('$g', l10n.profile_matches),
       ];
     case SportFamily.tableTennis:
       return [
-        ('$w', 'Wins'),
-        (pct, 'Win %'),
+        ('$w', l10n.profile_wins2),
+        (pct, l10n.profile_winPct),
         if (tracks('points'))
-          (perGame(n('points'), g), 'Pts / game')
+          (perGame(n('points'), g), l10n.profile_ptsPerGame)
         else
-          ('$g', 'Games'),
+          ('$g', l10n.profile_games),
       ];
     case SportFamily.chess:
       return [
         (
           g > 0 ? '${chessScore(w, statInt(tally['draws']))} / $g' : '—',
-          'Score'
+          l10n.profile_score
         ),
-        ('$w', 'Wins'),
-        ('${statInt(tally['draws'])}', 'Draws'),
+        ('$w', l10n.profile_wins2),
+        ('${statInt(tally['draws'])}', l10n.profile_draws),
       ];
     case SportFamily.ultimate:
       return _ultimateHeadline(tally, fields);
     case SportFamily.golf:
-      return [('$g', 'Rounds'), ('$w', 'Wins'), (pct, 'Win %')];
+      return [('$g', l10n.profile_rounds), ('$w', l10n.profile_wins2), (pct, l10n.profile_winPct)];
     case SportFamily.hiking:
     case SportFamily.running:
       return _attendanceHeadline(family, tally, fields, attendance);
     case SportFamily.paintball:
       return [
-        ('$g', 'Games'),
-        (pct, 'Win %'),
+        ('$g', l10n.profile_games),
+        (pct, l10n.profile_winPct),
         if (tracks('points'))
-          (perGame(n('points'), g), 'Pts / game')
+          (perGame(n('points'), g), l10n.profile_ptsPerGame)
         else
-          ('$w', 'Wins'),
+          ('$w', l10n.profile_wins2),
       ];
     case SportFamily.generic:
       return _genericHeadline(tally, fields);
@@ -733,12 +743,12 @@ List<(String, String)> _genericHeadline(
     Map<String, dynamic> tally, List<SportStat> fields) {
   final first = fields.isEmpty ? null : fields.first;
   return [
-    ('${gamesOf(tally)}', 'Games'),
-    (winPctOf(tally), 'Win %'),
+    ('${gamesOf(tally)}', l10n.profile_games),
+    (winPctOf(tally), l10n.profile_winPct),
     if (first != null)
       ('${countOf(mapOf(tally['counts']), first.key)}', first.label)
     else
-      ('${statInt(tally['points'])}', 'Points'),
+      ('${statInt(tally['points'])}', l10n.profile_points),
   ];
 }
 
@@ -749,14 +759,14 @@ List<(String, String)> _ultimateHeadline(
   final scoreKey = firstStatKey(const ['points', 'goals', 'scores'], fields, c);
   return [
     if (scoreKey != null)
-      ('${countOf(c, scoreKey)}', 'Scores')
+      ('${countOf(c, scoreKey)}', l10n.profile_scores)
     else
-      ('${gamesOf(tally)}', 'Games'),
+      ('${gamesOf(tally)}', l10n.profile_games),
     if (hasStat('assists', fields, c))
-      ('${countOf(c, 'assists')}', 'Assists')
+      ('${countOf(c, 'assists')}', l10n.profile_assists)
     else
-      ('${statInt(tally['wins'])}', 'Wins'),
-    (winPctOf(tally), 'Win %'),
+      ('${statInt(tally['wins'])}', l10n.profile_wins2),
+    (winPctOf(tally), l10n.profile_winPct),
   ];
 }
 
@@ -772,9 +782,11 @@ List<(String, String)> _attendanceHeadline(
     return _genericHeadline(tally, fields);
   }
   return [
-    ('$checkIns', family == SportFamily.hiking ? 'Hikes' : 'Runs'),
-    ('${statInt(att['thisYear'])}', 'This year'),
-    ('${statInt(att['weekStreak'])}', 'Week streak'),
+    ('$checkIns', family == SportFamily.hiking
+            ? l10n.profile_hikes
+            : l10n.profile_runningRuns),
+    ('${statInt(att['thisYear'])}', l10n.profile_thisYearLabel),
+    ('${statInt(att['weekStreak'])}', l10n.profile_weekStreakLabel),
   ];
 }
 
@@ -791,7 +803,7 @@ String recordLineFor(SportFamily family, Map<String, dynamic> tally,
   final rate = statInt(tally['winRate']);
   switch (family) {
     case SportFamily.soccer:
-      return 'P $g · W $w · D $d · L $l · ${statInt(tally['points'])} pts';
+      return l10n.profile_p5SoccerRecordLine(g, w, d, l, statInt(tally['points']));
     case SportFamily.basketball:
       return [
         d > 0 ? '$w–$d–$l' : '$w–$l',
@@ -800,9 +812,9 @@ String recordLineFor(SportFamily family, Map<String, dynamic> tally,
       ].join(' · ');
     case SportFamily.volleyball:
       return [
-        'W $w',
-        if (d > 0) 'D $d',
-        'L $l',
+        l10n.profile_p5RecordW(w),
+        if (d > 0) l10n.profile_p5RecordD(d),
+        l10n.profile_p5RecordL(l),
         '$rate%',
       ].join(' · ');
     case SportFamily.baseball:
@@ -812,31 +824,31 @@ String recordLineFor(SportFamily family, Map<String, dynamic> tally,
     case SportFamily.tableTennis:
     case SportFamily.paintball:
       return [
-        'W $w',
-        if (d > 0) 'D $d',
-        'L $l',
+        l10n.profile_p5RecordW(w),
+        if (d > 0) l10n.profile_p5RecordD(d),
+        l10n.profile_p5RecordL(l),
         winPctOf(tally),
       ].join(' · ');
     case SportFamily.chess:
       final scorePct = chessScorePct(w, d, g);
       return '+$w =$d −$l · ${scorePct == null ? '—' : '$scorePct%'}';
     case SportFamily.ultimate:
-      return ['W $w', if (d > 0) 'D $d', 'L $l'].join(' · ');
+      return [l10n.profile_p5RecordW(w), if (d > 0) l10n.profile_p5RecordD(d), l10n.profile_p5RecordL(l)].join(' · ');
     case SportFamily.golf:
       return [
-        gamesPhrase(family, g),
-        'W $w',
-        if (d > 0) 'T $d',
-        'L $l',
+        gamesCount(family, g),
+        l10n.profile_p5RecordW(w),
+        if (d > 0) l10n.profile_p5RecordT(d),
+        l10n.profile_p5RecordL(l),
       ].join(' · ');
     case SportFamily.hiking:
     case SportFamily.running:
       if (statInt(attendance['checkIns']) > 0) {
         return attendanceSinceLine(family, attendance);
       }
-      return ['W $w', if (d > 0) 'D $d', 'L $l'].join(' · ');
+      return [l10n.profile_p5RecordW(w), if (d > 0) l10n.profile_p5RecordD(d), l10n.profile_p5RecordL(l)].join(' · ');
     case SportFamily.generic:
-      return 'W $w · D $d · L $l';
+      return [l10n.profile_p5RecordW(w), l10n.profile_p5RecordD(d), l10n.profile_p5RecordL(l)].join(' · ');
   }
 }
 
@@ -855,7 +867,7 @@ String cardLineFor(SportFamily family, Map<String, dynamic> cat) {
         streak: streakOf(listOf(cat['recent'])), attendance: att);
   }
   if (checkIns > 0) return attendanceSummary(family, att);
-  return 'No games yet';
+  return l10n.profile_noGamesYet2;
 }
 
 // ── Dates ───────────────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/data/wards/wards_repository.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/auth/auth_scaffold.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Wards 3 (A11): a ward opens the hand-over link a guardian emailed them
 /// (`https://<site>/claim/<token>`) and chooses a password — the account
@@ -25,8 +26,8 @@ class ClaimAccountScreen extends ConsumerWidget {
     void close() => context.canPop() ? context.pop() : context.go('/home');
     return info.when(
       loading: () => AuthScaffold(
-        eyebrow: 'Your account',
-        title: 'Opening your link…',
+        eyebrow: context.l10n.auth_yourAccount,
+        title: context.l10n.auth_openingYourLink,
         onClose: close,
         card: const _Card(
           child: Padding(
@@ -36,13 +37,13 @@ class ClaimAccountScreen extends ConsumerWidget {
         ),
       ),
       error: (e, _) => AuthScaffold(
-        eyebrow: 'Your account',
-        title: "Couldn't open this link",
+        eyebrow: context.l10n.auth_yourAccount,
+        title: context.l10n.auth_couldntOpenThisLink,
         subtitle: Text('$e'),
         onClose: close,
         card: _Card(
           child: AuthPrimaryButton(
-            label: 'Try again',
+            label: context.l10n.auth_tryAgain,
             onTap: () => ref.invalidate(claimInfoProvider(token)),
           ),
         ),
@@ -85,27 +86,23 @@ class _DeadLink extends StatelessWidget {
     final p = context.palette;
     final (title, body, icon) = switch (state) {
       'expired' => (
-          'This link has expired',
-          'Hand-over links last 7 days. Ask your guardian to send you a new '
-              'one from your page in their SportPadi app.',
+          context.l10n.auth_thisLinkHasExpired,
+          context.l10n.auth_handOverLinksLast7Days,
           Icons.timer_off_outlined,
         ),
       'used' => (
-          'This account is already yours',
-          'The link has been used, so the account is already set up. Sign in '
-              'with your email and the password you chose.',
+          context.l10n.auth_thisAccountIsAlreadyYours,
+          context.l10n.auth_theLinkHasBeenUsed,
           Icons.verified_user_outlined,
         ),
       _ => (
-          "This link doesn't work",
-          "It may have been replaced by a newer one, or cancelled. Check your "
-              'email for the latest link, or ask your guardian to send it '
-              'again.',
+          context.l10n.auth_thisLinkDoesntWork,
+          context.l10n.auth_itMayHaveBeenReplaced,
           Icons.link_off_rounded,
         ),
     };
     return AuthScaffold(
-      eyebrow: 'Your account',
+      eyebrow: context.l10n.auth_yourAccount,
       title: title,
       onClose: onClose,
       card: _Card(
@@ -130,7 +127,7 @@ class _DeadLink extends StatelessWidget {
           ]),
           const SizedBox(height: 18),
           AuthPrimaryButton(
-            label: state == 'used' ? 'Sign in' : 'Go to SportPadi',
+            label: state == 'used' ? context.l10n.auth_signIn : context.l10n.auth_goToSportPadi,
             onTap: () => context.go(state == 'used' ? '/sign-in' : '/home'),
           ),
         ]),
@@ -181,7 +178,7 @@ class _ClaimFormState extends ConsumerState<_ClaimForm> {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
       if (mounted) {
-        setState(() => _error = 'Something went wrong. Please try again.');
+        setState(() => _error = l10n.auth_somethingWentWrongPleaseTry);
       }
     }
     return null;
@@ -223,7 +220,7 @@ class _ClaimFormState extends ConsumerState<_ClaimForm> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account ready — sign in')));
+          SnackBar(content: Text(l10n.auth_accountReadySignIn)));
       context.go(Uri(
         path: '/sign-in',
         queryParameters: email.isEmpty ? null : {'email': email},
@@ -239,21 +236,19 @@ class _ClaimFormState extends ConsumerState<_ClaimForm> {
     final ready = _readyEmail;
     if (ready != null) {
       return AuthScaffold(
-        eyebrow: 'All set',
+        eyebrow: context.l10n.auth_allSet,
         title:
-            name == null ? 'The account is ready' : "$name's account is ready",
+            name == null ? context.l10n.auth_theAccountIsReady : context.l10n.auth_sAccountIsReady(name),
         onClose: widget.onClose,
         card: _Card(
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Text(
-              "You're signed in as someone else on this phone, so we haven't "
-              'switched accounts. Sign in with $ready and the new password on '
-              'the phone ${name ?? 'they'} will use.',
+              context.l10n.auth_youreSignedInAsSomeone(ready, name ?? 'they'),
               style: TextStyle(color: p.muted, fontSize: 13.5, height: 1.45),
             ),
             const SizedBox(height: 18),
-            AuthPrimaryButton(label: 'Done', onTap: () => context.go('/home')),
+            AuthPrimaryButton(label: context.l10n.auth_done, onTap: () => context.go('/home')),
           ]),
         ),
       );
@@ -261,11 +256,10 @@ class _ClaimFormState extends ConsumerState<_ClaimForm> {
     final until = formatYmd(i.supervisedUntil);
     final guardian = i.guardianName ?? 'your guardian';
     return AuthScaffold(
-      eyebrow: 'Your own account',
-      title: name == null ? 'Choose a password' : 'Welcome, $name',
-      subtitle: const Text(
-          'Choose a password to start using your account. Everything stays — '
-          'your games, stats, badges, teams and tickets.'),
+      eyebrow: context.l10n.auth_yourOwnAccount,
+      title: name == null ? context.l10n.auth_chooseAPassword : context.l10n.auth_welcome(name),
+      subtitle: Text(
+          context.l10n.auth_chooseAPasswordToStart),
       onClose: widget.onClose,
       card: _Card(
         child: AutofillGroup(
@@ -276,7 +270,7 @@ class _ClaimFormState extends ConsumerState<_ClaimForm> {
               children: [
                 InputDecorator(
                   decoration: authInput(context,
-                      label: 'Email', icon: Icons.mail_outline_rounded),
+                      label: context.l10n.auth_email, icon: Icons.mail_outline_rounded),
                   child: Text(i.email ?? '',
                       style: TextStyle(
                           color: p.ink,
@@ -291,10 +285,10 @@ class _ClaimFormState extends ConsumerState<_ClaimForm> {
                   autofillHints: const [AutofillHints.newPassword],
                   decoration: authInput(
                     context,
-                    label: 'New password',
+                    label: context.l10n.auth_newPassword,
                     icon: Icons.lock_outline_rounded,
                     suffix: IconButton(
-                      tooltip: _show ? 'Hide password' : 'Show password',
+                      tooltip: _show ? context.l10n.auth_hidePassword : context.l10n.auth_showPassword,
                       icon: Icon(
                           _show
                               ? Icons.visibility_off_outlined
@@ -305,7 +299,7 @@ class _ClaimFormState extends ConsumerState<_ClaimForm> {
                     ),
                   ),
                   validator: (v) => (v == null || v.length < _min)
-                      ? 'At least $_min characters'
+                      ? context.l10n.auth_atLeastMinCharacters(_min)
                       : null,
                 ),
                 const SizedBox(height: 12),
@@ -316,15 +310,15 @@ class _ClaimFormState extends ConsumerState<_ClaimForm> {
                   autofillHints: const [AutofillHints.newPassword],
                   onFieldSubmitted: (_) => _submit(),
                   decoration: authInput(context,
-                      label: 'Confirm password',
+                      label: context.l10n.auth_confirmPassword,
                       icon: Icons.lock_outline_rounded),
                   validator: (v) =>
-                      v != _password.text ? "The passwords don't match" : null,
+                      v != _password.text ? context.l10n.auth_thePasswordsDontMatch : null,
                 ),
                 const SizedBox(height: 6),
                 Padding(
                   padding: const EdgeInsets.only(left: 4),
-                  child: Text('At least $_min characters.',
+                  child: Text(context.l10n.auth_atLeastCharacters(_min),
                       style: TextStyle(color: p.muted, fontSize: 12)),
                 ),
                 if (i.supervised) ...[
@@ -343,11 +337,7 @@ class _ClaimFormState extends ConsumerState<_ClaimForm> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              '${until.isEmpty ? 'Until you turn 18' : 'Until $until'}, '
-                              '$guardian stays on as your supervising '
-                              "guardian — they'll still hear from your "
-                              'coaches and group admins about you, but '
-                              "can't use your account.",
+                              context.l10n.auth_staysOnAsYourSupervising(until.isEmpty ? 'Until you turn 18' : 'Until $until', guardian),
                               style: TextStyle(
                                   color: p.wardInk,
                                   fontSize: 12.5,
@@ -364,7 +354,7 @@ class _ClaimFormState extends ConsumerState<_ClaimForm> {
                 ],
                 const SizedBox(height: 18),
                 AuthPrimaryButton(
-                  label: 'Set password and sign in',
+                  label: context.l10n.auth_setPasswordAndSignIn,
                   busy: _busy,
                   onTap: _submit,
                 ),
@@ -376,7 +366,7 @@ class _ClaimFormState extends ConsumerState<_ClaimForm> {
       footer: [
         const SizedBox(height: 18),
         Text(
-          'By continuing you agree to our Terms and Privacy Policy.',
+          context.l10n.auth_byContinuingYouAgreeTo2,
           textAlign: TextAlign.center,
           style: TextStyle(color: p.muted, fontSize: 11.5),
         ),

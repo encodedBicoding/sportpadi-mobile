@@ -1,6 +1,7 @@
 import 'package:sportpadi_mobile/data/messages/message_models.dart'
     show MessageAttachment, MessageGroupRef;
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Discussions: reddit-style-ish threads in a group or one of its teams
 /// (docs/design/discussions.md). Shapes mirror `/api/mobile/discussions` and
@@ -186,7 +187,7 @@ class DiscussionItem {
         groupId: parseStr(j['groupId']) ?? '',
         teamId: parseStr(j['teamId']),
         teamName: parseStr(j['teamName']),
-        title: parseStr(j['title']) ?? 'Discussion',
+        title: parseStr(j['title']) ?? l10n.common_discussion,
         preview: j['preview'] is String ? j['preview'] as String : '',
         flair: _flair(j['flair']),
         status: _status(j['status']),
@@ -380,7 +381,7 @@ class DiscussionDetail {
         group: MessageGroupRef.fromJson(_map(j['group'])),
         teamId: parseStr(j['teamId']),
         teamName: parseStr(j['teamName']),
-        title: parseStr(j['title']) ?? 'Discussion',
+        title: parseStr(j['title']) ?? l10n.common_discussion,
         body: j['body'] is String ? j['body'] as String : '',
         flair: _flair(j['flair']),
         status: _status(j['status']),

@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/data/wallet/fee_terms.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// A plan a group can buy, as the server describes it.
 class IapPlan {
@@ -186,7 +187,7 @@ class IapRepository {
       final res = await _ref
           .read(dioProvider)
           .get('/api/mobile/iap', queryParameters: {'groupId': groupId});
-      if (res.data is! Map) throw ApiException('Plans unavailable.');
+      if (res.data is! Map) throw ApiException(l10n.common_plansUnavailable);
       return IapCatalogue.fromJson(Map<String, dynamic>.from(res.data as Map));
     } catch (e) {
       throw apiError(e, fallback: 'Could not load plans.');
@@ -204,13 +205,13 @@ class IapRepository {
     if (ids.isEmpty) return const IapPriceResult();
     if (!supportedPlatform) {
       return IapPriceResult(
-          notFound: ids, error: 'Not supported on this device.');
+          notFound: ids, error: l10n.common_notSupportedOnThisDevice);
     }
     try {
       if (!await _iap.isAvailable()) {
         return IapPriceResult(
           notFound: ids,
-          error: 'The App Store isn\'t reachable right now.',
+          error: l10n.common_theAppStoreIsntReachable,
         );
       }
       final res = await _iap.queryProductDetails(ids);
@@ -300,7 +301,7 @@ class IapRepository {
     );
     final started = await _iap.buyNonConsumable(purchaseParam: param);
     if (!started) {
-      throw ApiException('The App Store could not start that purchase.');
+      throw ApiException(l10n.common_theAppStoreCouldNot);
     }
   }
 

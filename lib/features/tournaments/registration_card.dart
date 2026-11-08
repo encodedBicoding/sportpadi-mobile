@@ -13,6 +13,7 @@ import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Organiser's view of who can enter a multi-team tournament (web twin:
 /// components/tournaments/RegistrationPanel.tsx): the registration link
@@ -96,7 +97,7 @@ class _RegistrationCardState extends ConsumerState<RegistrationCard> {
 
   void _copy(String text, String what) {
     Clipboard.setData(ClipboardData(text: text));
-    _snack('$what copied');
+    _snack(context.l10n.tournament_copied(what));
   }
 
   @override
@@ -114,10 +115,10 @@ class _RegistrationCardState extends ConsumerState<RegistrationCard> {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
-        Text('Registration', style: TextStyle(color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
+        Text(context.l10n.tournament_registration, style: TextStyle(color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
         const SizedBox(width: 8),
         SpBadge(
-          open ? (state == 'open' ? 'Open' : parseStr(reg['stateCopy']) ?? 'Closed') : (mode == 'closed' ? 'Closed' : 'Invite only'),
+          open ? (state == 'open' ? context.l10n.tournament_open : parseStr(reg['stateCopy']) ?? context.l10n.tournament_closed) : (mode == 'closed' ? context.l10n.tournament_closed : context.l10n.tournament_inviteOnly),
           tone: state == 'open' ? p.accent : null,
         ),
         const Spacer(),
@@ -126,7 +127,7 @@ class _RegistrationCardState extends ConsumerState<RegistrationCard> {
             onPressed: () => _RegistrationSettingsSheet.show(context,
                 eventId: widget.eventId, reg: reg, isLeague: widget.isLeague, categoryId: widget.categoryId),
             icon: const Icon(Icons.tune_rounded, size: 16),
-            label: const Text('Settings'),
+            label: Text(context.l10n.tournament_settings),
             style: TextButton.styleFrom(visualDensity: VisualDensity.compact, foregroundColor: p.greenText),
           ),
       ]),
@@ -136,23 +137,23 @@ class _RegistrationCardState extends ConsumerState<RegistrationCard> {
           if (!open) ...[
             Text(
                 mode == 'closed'
-                    ? 'The registration link is closed. Teams you invite can still join.'
-                    : 'Only teams you invite can enter. Open registration to share a link any team can register through — perfect for a call for teams on social media.',
+                    ? context.l10n.tournament_theRegistrationLinkIsClosed
+                    : context.l10n.tournament_onlyTeamsYouInviteCan2,
                 style: TextStyle(color: p.muted, fontSize: 13, height: 1.35)),
             if (!widget.ended) ...[
               const SizedBox(height: 10),
               FilledButton.icon(
-                onPressed: _busy ? null : () => _set({'registration': 'open'}, done: 'Registration is open — share the link'),
+                onPressed: _busy ? null : () => _set({'registration': 'open'}, done: context.l10n.tournament_registrationIsOpenShare),
                 icon: const Icon(Icons.link_rounded, size: 18),
-                label: Text(mode == 'closed' ? 'Reopen registration' : 'Open registration'),
+                label: Text(mode == 'closed' ? context.l10n.tournament_reopenRegistration : context.l10n.tournament_openRegistration),
               ),
             ],
           ] else ...[
             Wrap(spacing: 6, runSpacing: 6, children: [
-              SpBadge(parseStr(reg['gradeLabel']) ?? 'Any team', icon: Icons.groups_rounded),
-              SpBadge(reg['approval'] == 'manual' ? 'You approve each team' : 'In once registered / paid'),
+              SpBadge(parseStr(reg['gradeLabel']) ?? context.l10n.tournament_anyTeam, icon: Icons.groups_rounded),
+              SpBadge(reg['approval'] == 'manual' ? context.l10n.tournament_youApproveEachTeam : context.l10n.tournament_inOnceRegisteredPaid),
               if ((reg['documents'] as List? ?? const []).isNotEmpty)
-                SpBadge('${(reg['documents'] as List).length} document${(reg['documents'] as List).length == 1 ? '' : 's'} required',
+                SpBadge(context.l10n.tournament_documentsRequired((reg['documents'] as List).length),
                     icon: Icons.description_outlined),
               SpBadge('$seated/${widget.maxTeams} places · $viaLink via link'),
             ]),
@@ -171,10 +172,10 @@ class _RegistrationCardState extends ConsumerState<RegistrationCard> {
                         style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w600)),
                   ),
                   IconButton(
-                    onPressed: () => _copy(link, 'Link'),
+                    onPressed: () => _copy(link, context.l10n.tournament_link),
                     icon: const Icon(Icons.copy_rounded, size: 18),
                     visualDensity: VisualDensity.compact,
-                    tooltip: 'Copy link',
+                    tooltip: context.l10n.tournament_copyLink,
                   ),
                 ]),
               ),
@@ -183,29 +184,29 @@ class _RegistrationCardState extends ConsumerState<RegistrationCard> {
             Row(children: [
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: shareText == null ? null : () => _copy(shareText, 'Call-for-teams post'),
+                  onPressed: shareText == null ? null : () => _copy(shareText, context.l10n.tournament_callForTeamsPost),
                   icon: const Icon(Icons.campaign_rounded, size: 18),
-                  label: const Text('Copy call for teams'),
+                  label: Text(context.l10n.tournament_copyCallForTeams),
                 ),
               ),
               if (!widget.ended) ...[
                 const SizedBox(width: 8),
                 OutlinedButton(
-                  onPressed: _busy ? null : () => _set({'registration': 'closed'}, done: 'Registration closed'),
-                  child: const Text('Close'),
+                  onPressed: _busy ? null : () => _set({'registration': 'closed'}, done: context.l10n.tournament_registrationClosed),
+                  child: Text(context.l10n.tournament_close),
                 ),
               ],
             ]),
             const SizedBox(height: 6),
             Text(
-                'The post includes the date, fee, who can enter, your rules and the link — paste it into WhatsApp, Instagram or X. You can still invite teams you know.',
+                context.l10n.tournament_thePostIncludesTheDate,
                 style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.35)),
           ],
         ]),
       ),
       if (pending.isNotEmpty) ...[
         const SizedBox(height: 12),
-        Text('WAITING ON YOU (${pending.length})',
+        Text(context.l10n.tournament_waitingOnYou2(pending.length),
             style: TextStyle(color: p.muted, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1)),
         const SizedBox(height: 6),
         SpListCard(children: [for (final r in pending) _pendingRow(context, r)]),
@@ -228,13 +229,13 @@ class _RegistrationCardState extends ConsumerState<RegistrationCard> {
           logoUrl: team != null ? parseStr(team['logoUrl']) : null,
           kitPrimary: team != null ? parseStr(team['kitPrimary']) : null,
           kitSecondary: team != null ? parseStr(team['kitSecondary']) : null,
-          label: team != null ? parseStr(team['name']) : 'Team',
+          label: team != null ? parseStr(team['name']) : context.l10n.tournament_team,
           size: 40,
         ),
         const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(team != null ? parseStr(team['name']) ?? 'Team' : 'Team',
+            Text(team != null ? parseStr(team['name']) ?? context.l10n.tournament_team : context.l10n.tournament_team,
                 maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
             Text(
                 '${team != null ? parseStr(team['groupName']) ?? '' : ''} · '
@@ -243,13 +244,13 @@ class _RegistrationCardState extends ConsumerState<RegistrationCard> {
           ]),
         ),
         if (unpaid)
-          Text('Awaiting payment', style: TextStyle(color: p.muted, fontSize: 11, fontWeight: FontWeight.w600))
+          Text(context.l10n.tournament_awaitingPayment, style: TextStyle(color: p.muted, fontSize: 11, fontWeight: FontWeight.w600))
         else
           FilledButton.icon(
             style: FilledButton.styleFrom(visualDensity: VisualDensity.compact, minimumSize: const Size(0, 36), padding: const EdgeInsets.symmetric(horizontal: 14), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
             onPressed: _busy ? null : () => _review(r),
             icon: Icon((r['documents'] as List? ?? const []).isNotEmpty ? Icons.description_outlined : Icons.check_rounded, size: 16),
-            label: const Text('Review'),
+            label: Text(context.l10n.tournament_review),
           ),
       ]),
     );
@@ -334,65 +335,65 @@ class _RegistrationSettingsSheetState extends ConsumerState<_RegistrationSetting
     final label = TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700);
     Widget chip(String text, bool on, VoidCallback onTap) => ChoiceChip(label: Text(text), selected: on, onSelected: (_) => onTap());
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-      const SpSheetHeader(title: 'Who can enter', icon: Icons.how_to_reg_rounded),
+      SpSheetHeader(title: context.l10n.tournament_whoCanEnter, icon: Icons.how_to_reg_rounded),
       const SizedBox(height: 12),
-      Text('Open to', style: label),
+      Text(context.l10n.tournament_openTo, style: label),
       const SizedBox(height: 6),
       Wrap(spacing: 8, children: [
-        chip('Any team', _grade == 'any', () => setState(() => _grade = 'any')),
-        chip('Adults', _grade == 'adults', () => setState(() => _grade = 'adults')),
-        chip('Kids', _grade == 'kids', () => setState(() => _grade = 'kids')),
+        chip(context.l10n.tournament_anyTeam, _grade == 'any', () => setState(() => _grade = 'any')),
+        chip(context.l10n.tournament_adults, _grade == 'adults', () => setState(() => _grade = 'adults')),
+        chip(context.l10n.tournament_kids, _grade == 'kids', () => setState(() => _grade = 'kids')),
       ]),
       if (_grade == 'kids') ...[
         const SizedBox(height: 6),
         Wrap(spacing: 8, children: [
-          for (final a in const [null, 12, 16, 18]) chip(a == null ? 'Any age' : 'U$a', _maxAge == a, () => setState(() => _maxAge = a)),
+          for (final a in const [null, 12, 16, 18]) chip(a == null ? context.l10n.tournament_anyAge : 'U$a', _maxAge == a, () => setState(() => _maxAge = a)),
         ]),
       ],
       const SizedBox(height: 4),
-      Text("Tightening this doesn't remove teams already in — you decide on them.", style: TextStyle(color: p.muted, fontSize: 11.5)),
+      Text(context.l10n.tournament_tighteningThisDoesntRemoveTeams, style: TextStyle(color: p.muted, fontSize: 11.5)),
       const SizedBox(height: 14),
       DocumentPicker(categoryId: widget.categoryId, value: _docIds, onChanged: (v) => setState(() => _docIds = v)),
       if (_docIds.isNotEmpty) const SizedBox(height: 14),
-      Text('Approval', style: label),
+      Text(context.l10n.tournament_approval, style: label),
       const SizedBox(height: 6),
       if (_docIds.isNotEmpty)
-        Text('Required documents mean you review each team, so approval is manual.', style: TextStyle(color: p.muted, fontSize: 11.5))
+        Text(context.l10n.tournament_requiredDocumentsMeanYouReview, style: TextStyle(color: p.muted, fontSize: 11.5))
       else ...[
         Wrap(spacing: 8, children: [
-          chip('Automatic', _approval == 'auto', () => setState(() => _approval = 'auto')),
-          chip('I approve each team', _approval == 'manual', () => setState(() => _approval = 'manual')),
+          chip(context.l10n.tournament_automatic, _approval == 'auto', () => setState(() => _approval = 'auto')),
+          chip(context.l10n.tournament_iApproveEachTeam, _approval == 'manual', () => setState(() => _approval = 'manual')),
         ]),
         const SizedBox(height: 4),
         Text(
             _approval == 'auto'
-                ? 'A team is in as soon as it registers (and pays).'
-                : 'Registrations wait for you. Turning a paid team down refunds it in full.',
+                ? context.l10n.tournament_aTeamIsInAs
+                : context.l10n.tournament_registrationsWaitForYouTurning,
             style: TextStyle(color: p.muted, fontSize: 11.5)),
       ],
       const SizedBox(height: 14),
-      Text('Registration closes (optional)', style: label),
+      Text(context.l10n.tournament_registrationClosesOptional, style: label),
       const SizedBox(height: 6),
       Row(children: [
         Expanded(
           child: OutlinedButton.icon(
             onPressed: _pickCloses,
             icon: const Icon(Icons.schedule_rounded, size: 16),
-            label: Text(_closes == null ? 'No deadline' : _closes.toString().substring(0, 16)),
+            label: Text(_closes == null ? context.l10n.tournament_noDeadline : _closes.toString().substring(0, 16)),
           ),
         ),
         if (_closes != null)
           IconButton(onPressed: () => setState(() => _closes = null), icon: const Icon(Icons.close_rounded, size: 18)),
       ]),
       const SizedBox(height: 14),
-      Text('Rules & what teams should know (optional)', style: label),
+      Text(context.l10n.tournament_rulesWhatTeamsShouldKnow2, style: label),
       const SizedBox(height: 6),
       TextField(
         controller: _rules,
         minLines: 3,
         maxLines: 6,
         maxLength: 2000,
-        decoration: const InputDecoration(hintText: 'Format, squad size, kit, kick-off, refund policy…', counterText: ''),
+        decoration: InputDecoration(hintText: context.l10n.tournament_formatSquadSizeKitKick, counterText: ''),
       ),
       if (widget.reg['mode'] == 'open') ...[
         const SizedBox(height: 6),
@@ -403,23 +404,23 @@ class _RegistrationSettingsSheetState extends ConsumerState<_RegistrationSetting
                   final sure = await showDialog<bool>(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      title: const Text('Make a new link?'),
-                      content: const Text('The old link will stop working.'),
+                      title: Text(l10n.tournament_makeANewLink),
+                      content: Text(l10n.tournament_theOldLinkWillStop),
                       actions: [
-                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Replace')),
+                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.tournament_cancel)),
+                        TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.tournament_replace)),
                       ],
                     ),
                   );
                   if (sure == true) await _save(rotate: true);
                 },
           icon: const Icon(Icons.refresh_rounded, size: 16),
-          label: const Text('Replace the link'),
+          label: Text(context.l10n.tournament_replaceTheLink),
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact, foregroundColor: p.muted),
         ),
       ],
       const SizedBox(height: 12),
-      SpButton(label: _busy ? 'Saving…' : 'Save', expand: true, tone: SpButtonTone.brand, onTap: _busy ? null : () => _save()),
+      SpButton(label: _busy ? context.l10n.tournament_saving : context.l10n.tournament_save, expand: true, tone: SpButtonTone.brand, onTap: _busy ? null : () => _save()),
     ]);
   }
 }
@@ -456,10 +457,10 @@ Future<String> respondRegistration(WidgetRef ref,
     });
   }
   return approve
-      ? 'Team approved'
+      ? l10n.tournament_teamApproved
       : r['refunded'] == true
-          ? 'Turned down — entry fee refunded in full'
-          : 'Turned down';
+          ? l10n.tournament_turnedDownEntryFeeRefunded
+          : l10n.tournament_turnedDown;
 }
 
 /// The organiser's decision on one registration: the team, what it paid,
@@ -500,11 +501,11 @@ class _ReviewSheetState extends State<_ReviewSheet> {
       final sure = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text('Turn down $name?'),
-          content: Text('${paid ? 'Their entry fee will be refunded in full. ' : ''}They can fix things and apply again.'),
+          title: Text(l10n.tournament_turnDown2(name)),
+          content: Text(l10n.tournament_theyCanFixThingsAnd((paid ? l10n.tournament_theirEntryFeeWillBe2 : ''))),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Turn down')),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.tournament_keep)),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.tournament_turnDown)),
           ],
         ),
       );
@@ -537,19 +538,19 @@ class _ReviewSheetState extends State<_ReviewSheet> {
     final missing = widget.required.where((r) => !docs.any((d) => d['documentTypeId'] == r['id'] || d['name'] == r['name'])).toList();
     final label = TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-      const SpSheetHeader(title: 'Review registration', icon: Icons.fact_check_outlined),
+      SpSheetHeader(title: context.l10n.tournament_reviewRegistration, icon: Icons.fact_check_outlined),
       const SizedBox(height: 12),
       Row(children: [
         Crest(
             logoUrl: team != null ? parseStr(team['logoUrl']) : null,
             kitPrimary: team != null ? parseStr(team['kitPrimary']) : null,
             kitSecondary: team != null ? parseStr(team['kitSecondary']) : null,
-            label: team != null ? parseStr(team['name']) : 'Team',
+            label: team != null ? parseStr(team['name']) : context.l10n.tournament_team,
             size: 44),
         const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(team != null ? parseStr(team['name']) ?? 'Team' : 'Team', style: TextStyle(color: p.ink, fontSize: 15, fontWeight: FontWeight.w800)),
+            Text(team != null ? parseStr(team['name']) ?? context.l10n.tournament_team : context.l10n.tournament_team, style: TextStyle(color: p.ink, fontSize: 15, fontWeight: FontWeight.w800)),
             Text(
                 '${team != null ? parseStr(team['groupName']) ?? '' : ''}'
                 '${fee != null ? ' · ${row['feeStatus'] == 'paid' ? 'paid' : 'unpaid'} $fee' : ' · free entry'}',
@@ -559,43 +560,43 @@ class _ReviewSheetState extends State<_ReviewSheet> {
       ]),
       if (widget.required.isNotEmpty || docs.isNotEmpty) ...[
         const SizedBox(height: 14),
-        Text('Documents on file when they registered', style: label),
+        Text(context.l10n.tournament_documentsOnFileWhenThey, style: label),
         const SizedBox(height: 6),
-        if (docs.isEmpty) Text('None attached.', style: TextStyle(color: p.muted, fontSize: 12.5)),
+        if (docs.isEmpty) Text(context.l10n.tournament_noneAttached, style: TextStyle(color: p.muted, fontSize: 12.5)),
         for (final d in docs)
           Container(
             margin: const EdgeInsets.only(bottom: 6),
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(color: p.surface2, borderRadius: BorderRadius.circular(14)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(d['name'] as String? ?? 'Document', style: TextStyle(color: p.ink, fontSize: 13, fontWeight: FontWeight.w700)),
+              Text(d['name'] as String? ?? context.l10n.tournament_document2, style: TextStyle(color: p.ink, fontSize: 13, fontWeight: FontWeight.w700)),
               if (d['fileUrl'] is String)
                 GestureDetector(
                   onTap: () => launchUrl(Uri.parse(d['fileUrl'] as String), mode: LaunchMode.inAppBrowserView),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(Icons.open_in_new_rounded, size: 12, color: p.greenText),
                     const SizedBox(width: 4),
-                    Flexible(child: Text(d['fileName'] as String? ?? 'Open file', overflow: TextOverflow.ellipsis, style: TextStyle(color: p.greenText, fontSize: 12.5, fontWeight: FontWeight.w600))),
+                    Flexible(child: Text(d['fileName'] as String? ?? context.l10n.tournament_openFile, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.greenText, fontSize: 12.5, fontWeight: FontWeight.w600))),
                   ]),
                 ),
               if (d['textValue'] is String) Text(d['textValue'] as String, style: TextStyle(color: p.ink, fontSize: 12.5)),
-              if (d['note'] is String) Text("Team's note: ${d['note']}", style: TextStyle(color: p.muted, fontSize: 11.5)),
+              if (d['note'] is String) Text(context.l10n.tournament_teamsNote2(d['note']), style: TextStyle(color: p.muted, fontSize: 11.5)),
             ]),
           ),
         if (missing.isNotEmpty)
-          Text('Not on file: ${missing.map((m) => m['name']).join(', ')}', style: TextStyle(color: p.orangeInk, fontSize: 12)),
-        Text('Check dates and validity yourself — SportPadi keeps the copy, not the judgement.', style: TextStyle(color: p.muted, fontSize: 11)),
+          Text(context.l10n.tournament_notOnFile2(missing.map((m) => m['name']).join(', ')), style: TextStyle(color: p.orangeInk, fontSize: 12)),
+        Text(context.l10n.tournament_checkDatesAndValidityYourself, style: TextStyle(color: p.muted, fontSize: 11)),
       ],
       const SizedBox(height: 14),
-      Text('Note to the team (optional)', style: label),
+      Text(context.l10n.tournament_noteToTheTeamOptional, style: label),
       const SizedBox(height: 6),
       TextField(
         controller: _note,
         minLines: 2,
         maxLines: 5,
         maxLength: 1000,
-        decoration: const InputDecoration(
-          hintText: 'e.g. Insurance certificate has expired — upload the current one and apply again.',
+        decoration: InputDecoration(
+          hintText: context.l10n.tournament_eGInsuranceCertificateHas,
           counterText: '',
         ),
       ),
@@ -604,7 +605,7 @@ class _ReviewSheetState extends State<_ReviewSheet> {
         OutlinedButton.icon(
           onPressed: _busy ? null : () => _go(false),
           icon: const Icon(Icons.close_rounded, size: 16),
-          label: const Text('Turn down'),
+          label: Text(context.l10n.tournament_turnDown),
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -613,7 +614,7 @@ class _ReviewSheetState extends State<_ReviewSheet> {
             icon: _busy
                 ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.check_rounded, size: 18),
-            label: const Text('Approve'),
+            label: Text(context.l10n.tournament_approve),
           ),
         ),
       ]),

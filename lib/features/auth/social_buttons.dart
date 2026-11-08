@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/auth/social_sign_in.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// "Continue with Google / Apple" — a row of outline pills above the email
 /// form. Google everywhere the build has a client id; Apple on iOS only.
@@ -50,7 +51,7 @@ class _SocialSignInRowState extends ConsumerState<SocialSignInRow> {
     } on ApiException catch (e) {
       widget.onError(e.message);
     } catch (_) {
-      widget.onError('Something went wrong. Please try again.');
+      widget.onError(l10n.auth_somethingWentWrongPleaseTry);
     } finally {
       if (mounted) setState(() => _busy = null);
     }

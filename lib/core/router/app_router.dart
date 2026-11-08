@@ -54,6 +54,7 @@ import 'package:sportpadi_mobile/features/profile/my_qr_screen.dart';
 import 'package:sportpadi_mobile/features/profile/my_sports_screen.dart';
 import 'package:sportpadi_mobile/features/sports/my_records_screen.dart';
 import 'package:sportpadi_mobile/features/sports/sport_record_screen.dart';
+import 'package:sportpadi_mobile/features/settings/language_screen.dart';
 import 'package:sportpadi_mobile/features/settings/settings_screen.dart';
 import 'package:sportpadi_mobile/features/payments/my_tickets_screen.dart';
 import 'package:sportpadi_mobile/features/scan/scan_screen.dart';
@@ -482,6 +483,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/fines', builder: (_, __) => const MyFinesScreen()),
       GoRoute(path: '/my-qr', builder: (_, __) => const MyQrScreen()),
       GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+      GoRoute(
+          path: '/settings/language',
+          builder: (_, __) => const LanguageScreen()),
       // Activity & stats (profile menu): the sports I play, and my records
       // sport by sport. The own record page is the public one plus the
       // owner's actions.

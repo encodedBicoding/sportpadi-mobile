@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/features/leagues/league_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Tournament modes (web `components/tournaments/TournamentModes.tsx`): the
 /// group Tournaments tab shows one card per mode — New tournament, 1v1
@@ -20,17 +21,36 @@ const _mint = Color(0xFF6EDC9E);
 const _warm = Color(0xFFFFB57D);
 
 enum TMode {
-  friendly('1v1', '1v1 Friendly', '1v1 friendlies', 'One match between two teams — yours against a rival, or two teams you bring together.', 'New friendly'),
-  multi('multi-team', 'Multi-team', 'Multi-team tournaments',
-      'Several invited teams, match games between any of them — with or without a team of your own.', 'New multi-team'),
-  league('league', 'League', 'Leagues', 'A season of fixtures — live table, registered rosters, player rankings and match MVPs.', 'New league');
+  friendly('1v1'),
+  multi('multi-team'),
+  league('league');
 
-  const TMode(this.slug, this.title, this.plural, this.blurb, this.newLabel);
+  const TMode(this.slug);
   final String slug;
-  final String title;
-  final String plural;
-  final String blurb;
-  final String newLabel;
+
+  String get title => switch (this) {
+        TMode.friendly => l10n.tournament_t1v1Friendly,
+        TMode.multi => l10n.tournament_multiTeam,
+        TMode.league => l10n.tournament_league,
+      };
+
+  String get plural => switch (this) {
+        TMode.friendly => l10n.tournament_friendlies1v1,
+        TMode.multi => l10n.tournament_multiTeamTournaments,
+        TMode.league => l10n.tournament_leagues,
+      };
+
+  String get blurb => switch (this) {
+        TMode.friendly => l10n.tournament_friendlyModeBlurb,
+        TMode.multi => l10n.tournament_multiTeamModeBlurb,
+        TMode.league => l10n.tournament_leagueModeBlurb,
+      };
+
+  String get newLabel => switch (this) {
+        TMode.friendly => l10n.tournament_newFriendly,
+        TMode.multi => l10n.tournament_newMultiTeam,
+        TMode.league => l10n.tournament_newLeague,
+      };
 
   static TMode? fromSlug(String? s) => TMode.values.where((m) => m.slug == s).firstOrNull;
 }
@@ -72,8 +92,8 @@ List<TournamentSummary> sortTournaments(Iterable<TournamentSummary> list) {
     });
 }
 
-String _pair(TournamentSummary t) => '${t.hostTeamName ?? 'TBC'} vs ${t.guestTeamName ?? 'TBC'}';
-String _plural(int n, String one, String many) => '$n ${n == 1 ? one : many}';
+String _pair(TournamentSummary t) => l10n.tournament_hostVsGuest(
+    t.hostTeamName ?? l10n.tournament_tbc, t.guestTeamName ?? l10n.tournament_tbc);
 
 /* ── Artwork (painted on a 124 × 56 canvas, like the web SVGs) ─────────── */
 
@@ -239,10 +259,10 @@ class LiveTag extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
         decoration: BoxDecoration(color: context.palette.danger, borderRadius: BorderRadius.circular(99)),
-        child: const Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.circle, size: 6, color: Colors.white),
-          SizedBox(width: 4),
-          Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.circle, size: 6, color: Colors.white),
+          const SizedBox(width: 4),
+          Text(context.l10n.tournament_live4, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
         ]),
       );
 }
@@ -359,19 +379,19 @@ class TournamentModeCards extends ConsumerWidget {
             decoration: BoxDecoration(color: p.ink, borderRadius: BorderRadius.circular(16)),
             child: Icon(Icons.add_rounded, color: p.bg, size: 28),
           ),
-          title: 'New tournament',
-          line: 'Friendly, multi-team or league',
-          foot: 'Start one',
+          title: context.l10n.tournament_newTournament,
+          line: context.l10n.tournament_friendlyMultiTeamOrLeague,
+          foot: context.l10n.tournament_startOne,
         ),
       if (onNew != null && locked)
         _ModeCard(
           color: p.orangeTint,
           onTap: onNew!,
           top: SpIconTile(Icons.lock_outline_rounded, size: 48, iconSize: 22, bg: p.surface, fg: p.orangeInk),
-          title: 'Host tournaments',
-          line: 'A plan feature',
+          title: context.l10n.tournament_hostTournaments,
+          line: context.l10n.tournament_aPlanFeature,
           lineColor: p.orangeInk,
-          foot: 'See what you get',
+          foot: context.l10n.tournament_seeWhatYouGet,
           footColor: p.orangeInk,
         ),
       _ModeCard(
@@ -379,30 +399,30 @@ class TournamentModeCards extends ConsumerWidget {
         onTap: () => context.push(modePath(groupId, TMode.friendly)),
         top: const ModeArt(TMode.friendly),
         badge: fLive != null ? const LiveTag() : null,
-        title: '1v1 Friendly',
-        line: loading ? '…' : (friendlies.isEmpty ? 'One match, two teams' : _plural(friendlies.length, 'friendly', 'friendlies')),
+        title: context.l10n.tournament_t1v1Friendly,
+        line: loading ? '…' : (friendlies.isEmpty ? context.l10n.tournament_oneMatchTwoTeams : context.l10n.tournament_friendlyCount(friendlies.length)),
         lineColor: p.greenText,
         foot: fLive != null
-            ? 'Now: ${_pair(fLive)}'
+            ? context.l10n.tournament_now(_pair(fLive))
             : fNext != null
-                ? '${fNext.eventDate != null ? formatDay(fNext.eventDate) : 'Next'} · ${_pair(fNext)}'
+                ? '${fNext.eventDate != null ? formatDay(fNext.eventDate) : context.l10n.tournament_next} · ${_pair(fNext)}'
                 : friendlies.isEmpty
-                    ? 'Challenge a rival'
-                    : 'See all friendlies',
+                    ? context.l10n.tournament_challengeARival
+                    : context.l10n.tournament_seeAllFriendlies,
       ),
       _ModeCard(
         color: p.orangeTint,
         onTap: () => context.push(modePath(groupId, TMode.multi)),
         top: const ModeArt(TMode.multi),
         badge: mLive ? const LiveTag() : null,
-        title: 'Multi-team',
-        line: loading ? '…' : (multis.isEmpty ? 'Many teams, one draw' : _plural(multis.length, 'tournament', 'tournaments')),
+        title: context.l10n.tournament_multiTeam,
+        line: loading ? '…' : (multis.isEmpty ? context.l10n.tournament_manyTeamsOneDraw : context.l10n.tournament_tournamentCount(multis.length)),
         lineColor: p.orangeInk,
         foot: mNext != null
-            ? '${mNext.title} · ${mNext.teamsIn}/${mNext.maxTeams} teams'
+            ? context.l10n.tournament_teams2(mNext.title, mNext.teamsIn, mNext.maxTeams)
             : multis.isEmpty
-                ? 'Bring teams together'
-                : 'See all tournaments',
+                ? context.l10n.tournament_bringTeamsTogether
+                : context.l10n.tournament_seeAllTournaments,
       ),
       _ModeCard(
         color: p.hero,
@@ -412,7 +432,7 @@ class TournamentModeCards extends ConsumerWidget {
             ? Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(color: p.orange, borderRadius: BorderRadius.circular(99)),
-                child: Text('${invited.length} INVITE${invited.length == 1 ? '' : 'S'}',
+                child: Text(context.l10n.tournament_invites3(invited.length),
                     style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
               )
             : runningN == 0
@@ -420,22 +440,26 @@ class TournamentModeCards extends ConsumerWidget {
                 : Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(color: _mint.withAlpha(50), borderRadius: BorderRadius.circular(99)),
-                    child: Text('$runningN RUNNING',
+                    child: Text(context.l10n.tournament_running2(runningN),
                         style: const TextStyle(color: _mint, fontSize: 10, fontWeight: FontWeight.w800)),
                   ),
-        title: 'League',
+        title: context.l10n.tournament_league,
         titleColor: p.onHero,
-        line: seasons == 0 ? 'A season with a live table' : _plural(seasons, 'season', 'seasons'),
+        line: seasons == 0 ? context.l10n.tournament_aSeasonWithALive : context.l10n.tournament_seasonCount(seasons),
         lineColor: _mint,
         foot: invited.isNotEmpty
-            ? 'Invited: ${invited.first.o('league')?.str('competitionName')}'
+            ? context.l10n.tournament_invited('${invited.first.o('league')?.str('competitionName')}')
             : lead != null
-                ? '${lead.str('competitionName')}${lead.i('fixtures') > 0 ? ' · ${lead.i('played')}/${lead.i('fixtures')} played' : lead.s('status') == 'draft' ? ' · setting up' : ''}'
+                ? (lead.i('fixtures') > 0
+                    ? context.l10n.tournament_leagueFootPlayed(lead.str('competitionName'), lead.i('played'), lead.i('fixtures'))
+                    : lead.s('status') == 'draft'
+                        ? context.l10n.tournament_leagueFootSettingUp(lead.str('competitionName'))
+                        : lead.str('competitionName'))
                 : playing.isNotEmpty
-                    ? 'Playing in ${playing.first.o('league')?.str('competitionName')}'
+                    ? context.l10n.tournament_playingIn('${playing.first.o('league')?.str('competitionName')}')
                     : entries.isNotEmpty
-                        ? entries.first.o('league')?.str('competitionName') ?? 'Fixtures, table, MVPs'
-                        : 'Fixtures, table, MVPs',
+                        ? entries.first.o('league')?.str('competitionName') ?? context.l10n.tournament_fixturesTableMVPs
+                        : context.l10n.tournament_fixturesTableMVPs,
         footColor: p.heroMuted,
       ),
     ];
@@ -472,13 +496,13 @@ class TournamentSummaryCard extends StatelessWidget {
             child: Wrap(spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
               if (t.categoryName != null) SpBadge('${t.categoryEmoji ?? ''} ${t.categoryName}'.trim()),
               if (t.eventDate != null) Text(formatDay(t.eventDate), style: TextStyle(color: p.muted, fontSize: 11)),
-              SpBadge(t.isHost ? 'Host' : 'Away', tone: t.isHost ? p.accent : p.muted),
+              SpBadge(t.isHost ? context.l10n.tournament_host : context.l10n.tournament_away, tone: t.isHost ? p.accent : p.muted),
             ]),
           ),
           if (phase == TPhase.live)
             const LiveTag()
           else if (phase == TPhase.past)
-            Text(t.status == 'cancelled' ? 'Cancelled' : 'Finished',
+            Text(t.status == 'cancelled' ? context.l10n.tournament_cancelled : context.l10n.tournament_finished,
                 style: TextStyle(color: p.muted, fontSize: 11, fontWeight: FontWeight.w600)),
         ]),
         const SizedBox(height: 6),
@@ -492,15 +516,15 @@ class TournamentSummaryCard extends StatelessWidget {
             Expanded(
               child: Text.rich(
                   TextSpan(children: [
-                    TextSpan(text: '${t.teamsIn} of ${t.maxTeams} teams'),
+                    TextSpan(text: context.l10n.tournament_ofTeams(t.teamsIn, t.maxTeams)),
                     if (t.teamsInvited > 0)
-                      TextSpan(text: ' · ${t.teamsInvited} invited', style: TextStyle(color: p.muted, fontWeight: FontWeight.w500)),
+                      TextSpan(text: context.l10n.tournament_invited2(t.teamsInvited), style: TextStyle(color: p.muted, fontWeight: FontWeight.w500)),
                   ]),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: nameStyle),
             ),
-            if (t.organiserOnly && t.isHost) const SpBadge('Organiser'),
+            if (t.organiserOnly && t.isHost) SpBadge(context.l10n.tournament_organiser),
           ])
         else
           Row(children: [
@@ -544,7 +568,7 @@ class LeagueSummaryCard extends StatelessWidget {
       onTap: () => context.push(canManage ? '/groups/$groupId/leagues/${l.str('id')}' : '/leagues/${l.str('slug')}'),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Wrap(spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
-          SpBadge('League', icon: Icons.format_list_numbered_rounded, tone: p.ink),
+          SpBadge(context.l10n.tournament_league, icon: Icons.format_list_numbered_rounded, tone: p.ink),
           Text(l.str('season'), style: TextStyle(color: p.muted, fontSize: 11)),
           if (l.s('division') != null) SpBadge(l.str('division')),
           SpBadge(leagueStatusLabel[l.s('status')] ?? l.str('status'), tone: l.s('status') == 'draft' ? p.orangeInk : p.greenText),
@@ -558,8 +582,7 @@ class LeagueSummaryCard extends StatelessWidget {
           const SizedBox(width: 6),
           Expanded(
             child: Text(
-                '${l.i('teamsIn')} team${l.i('teamsIn') == 1 ? '' : 's'}'
-                '${l.i('teamsInvited') > 0 ? ' · ${l.i('teamsInvited')} invited' : ''}',
+                context.l10n.tournament_countPluralOneTeamOther(l.i('teamsIn'), (l.i('teamsInvited') > 0 ? ' · ${l.i('teamsInvited')} invited' : '')),
                 style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w600)),
           ),
           if (fixtures > 0) ...[

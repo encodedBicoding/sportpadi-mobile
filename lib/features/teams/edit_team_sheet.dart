@@ -12,6 +12,7 @@ import 'package:sportpadi_mobile/features/manage/create_team_screen.dart' show K
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Pick a team logo from the gallery, upload it and save it on the team —
 /// the crest's camera button (web twin: pickTeamLogo). Returns true when
@@ -29,12 +30,12 @@ Future<bool> pickAndSaveTeamLogo(BuildContext context, WidgetRef ref, TeamDetail
     await ref.read(manageRepositoryProvider).updateTeam(team.id, {'logoUrl': url});
     ref.invalidate(teamDetailProvider(team.id));
     if (team.groupId != null) ref.invalidate(groupTeamsProvider(team.groupId!));
-    messenger.showSnackBar(const SnackBar(content: Text('Team logo updated')));
+    messenger.showSnackBar(SnackBar(content: Text(l10n.team_teamLogoUpdated)));
     return true;
   } on ApiException catch (e) {
     messenger.showSnackBar(SnackBar(content: Text(e.message)));
   } catch (_) {
-    messenger.showSnackBar(const SnackBar(content: Text('Logo upload failed')));
+    messenger.showSnackBar(SnackBar(content: Text(l10n.team_logoUploadFailed)));
   }
   return false;
 }
@@ -86,7 +87,7 @@ class _EditTeamSheetState extends ConsumerState<_EditTeamSheet> {
           .uploadImage(bytes, picked.mimeType ?? 'image/jpeg', assetType: 'groupImage', scopeId: widget.team.groupId);
       setState(() => _logoUrl = url);
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logo upload failed')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.team_logoUploadFailed)));
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -95,9 +96,9 @@ class _EditTeamSheetState extends ConsumerState<_EditTeamSheet> {
   Future<void> _save() async {
     final name = _name.text.trim();
     final handle = _username.text.trim().toLowerCase();
-    if (name.isEmpty) return setState(() => _error = 'Name the team');
+    if (name.isEmpty) return setState(() => _error = l10n.team_nameTheTeam);
     if (handle.isNotEmpty && !RegExp(r'^[a-z0-9]{2,24}$').hasMatch(handle)) {
-      return setState(() => _error = 'Handle: 2–24 lowercase letters and numbers');
+      return setState(() => _error = l10n.team_handle224LowercaseLetters);
     }
     setState(() {
       _busy = true;
@@ -118,7 +119,7 @@ class _EditTeamSheetState extends ConsumerState<_EditTeamSheet> {
       ref.invalidate(teamDetailProvider(widget.team.id));
       if (widget.team.groupId != null) ref.invalidate(groupTeamsProvider(widget.team.groupId!));
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Team updated')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.team_teamUpdated)));
       Navigator.of(context).pop();
     } on ApiException catch (e) {
       setState(() => _error = e.message);
@@ -132,7 +133,7 @@ class _EditTeamSheetState extends ConsumerState<_EditTeamSheet> {
     final p = context.palette;
     final label = TextStyle(color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w700);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-      const SpSheetHeader(title: 'Edit team', icon: Icons.edit_outlined),
+      SpSheetHeader(title: context.l10n.team_editTeam, icon: Icons.edit_outlined),
       // Logo + kit preview
       Row(children: [
         Stack(clipBehavior: Clip.none, children: [
@@ -160,28 +161,28 @@ class _EditTeamSheetState extends ConsumerState<_EditTeamSheet> {
         const SizedBox(width: 14),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Team logo', style: label),
+            Text(context.l10n.team_teamLogo, style: label),
             const SizedBox(height: 2),
-            Text('Tap the camera to change it. Without one, the crest shows the kit colours.', style: TextStyle(color: p.muted, fontSize: 11.5)),
+            Text(context.l10n.team_tapTheCameraToChange, style: TextStyle(color: p.muted, fontSize: 11.5)),
             if (_logoUrl != null)
               TextButton(
                 onPressed: () => setState(() => _logoUrl = null),
                 style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact, foregroundColor: p.muted),
-                child: const Text('Remove logo', style: TextStyle(fontSize: 12)),
+                child: Text(context.l10n.team_removeLogo, style: const TextStyle(fontSize: 12)),
               ),
           ]),
         ),
       ]),
       const SizedBox(height: 16),
-      TextField(controller: _name, maxLength: 80, decoration: const InputDecoration(labelText: 'Team name', counterText: ''), onChanged: (_) => setState(() {})),
+      TextField(controller: _name, maxLength: 80, decoration: InputDecoration(labelText: context.l10n.team_teamName, counterText: ''), onChanged: (_) => setState(() {})),
       const SizedBox(height: 12),
       TextField(
         controller: _username,
         maxLength: 24,
-        decoration: const InputDecoration(labelText: 'Handle', prefixText: '@', counterText: '', helperText: 'Lowercase letters and numbers — how people find the team'),
+        decoration: InputDecoration(labelText: context.l10n.team_handle, prefixText: '@', counterText: '', helperText: context.l10n.team_lowercaseLettersAndNumbersHow),
       ),
       const SizedBox(height: 16),
-      Text('Grade', style: label),
+      Text(context.l10n.team_grade, style: label),
       const SizedBox(height: 6),
       SpSegmented(
         options: const ['Adults', 'Kids'],
@@ -193,30 +194,30 @@ class _EditTeamSheetState extends ConsumerState<_EditTeamSheet> {
       ),
       if (_grade == 'kids') ...[
         const SizedBox(height: 12),
-        Text('Age group', style: label),
+        Text(context.l10n.team_ageGroup, style: label),
         const SizedBox(height: 6),
         SpSegmented(
-          options: ['Any age', for (final n in teamAgeLimits) 'Under $n'],
+          options: [context.l10n.team_anyAge, for (final n in teamAgeLimits) context.l10n.team_underAge(n)],
           index: _ageLimit == null ? 0 : teamAgeLimits.indexOf(_ageLimit!) + 1,
           onChanged: (i) => setState(() => _ageLimit = i == 0 ? null : teamAgeLimits[i - 1]),
         ),
       ],
       const SizedBox(height: 16),
-      Text('Kit colours', style: label),
+      Text(context.l10n.team_kitColours, style: label),
       const SizedBox(height: 8),
-      KitPicker(label: 'Primary', value: _kitPrimary, onChanged: (v) => setState(() => _kitPrimary = v)),
+      KitPicker(label: context.l10n.team_primary, value: _kitPrimary, onChanged: (v) => setState(() => _kitPrimary = v)),
       const SizedBox(height: 8),
-      KitPicker(label: 'Secondary', value: _kitSecondary, onChanged: (v) => setState(() => _kitSecondary = v)),
+      KitPicker(label: context.l10n.team_secondary, value: _kitSecondary, onChanged: (v) => setState(() => _kitSecondary = v)),
       const SizedBox(height: 16),
-      TextField(controller: _venue, maxLength: 120, decoration: const InputDecoration(labelText: 'Home venue (optional)', counterText: '')),
+      TextField(controller: _venue, maxLength: 120, decoration: InputDecoration(labelText: context.l10n.team_homeVenueOptional, counterText: '')),
       const SizedBox(height: 12),
-      TextField(controller: _description, maxLines: 3, maxLength: 500, decoration: const InputDecoration(labelText: 'Description (optional)', counterText: '')),
+      TextField(controller: _description, maxLines: 3, maxLength: 500, decoration: InputDecoration(labelText: context.l10n.team_descriptionOptional, counterText: '')),
       if (_error != null) ...[
         const SizedBox(height: 10),
         Text(_error!, style: TextStyle(color: p.danger, fontSize: 12.5)),
       ],
       const SizedBox(height: 16),
-      SpButton(label: _busy ? 'Saving…' : 'Save changes', expand: true, tone: SpButtonTone.brand, onTap: _busy ? null : _save),
+      SpButton(label: _busy ? context.l10n.team_saving : context.l10n.team_saveChanges, expand: true, tone: SpButtonTone.brand, onTap: _busy ? null : _save),
     ]);
   }
 }

@@ -17,6 +17,7 @@ import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The organiser's league console (web `/groups/[id]/leagues/[leagueId]`):
 /// Overview · Teams · Fixtures · Table · MVPs · Eligibility & penalties.
@@ -31,15 +32,15 @@ class LeagueManageScreen extends ConsumerStatefulWidget {
   ConsumerState<LeagueManageScreen> createState() => _LeagueManageScreenState();
 }
 
-const _tabs = [
-  ('overview', 'Overview'),
-  ('teams', 'Teams'),
-  ('fixtures', 'Fixtures'),
-  ('venues', 'Venues'),
-  ('table', 'Table'),
-  ('mvps', 'MVPs'),
-  ('integrity', 'Eligibility'),
-];
+List<(String, String)> get _tabs => [
+      ('overview', l10n.league_overview),
+      ('teams', l10n.league_teams),
+      ('fixtures', l10n.league_fixtures),
+      ('venues', l10n.league_venuesTab),
+      ('table', l10n.league_table),
+      ('mvps', l10n.league_mvps),
+      ('integrity', l10n.league_p5EligibilityTab),
+    ];
 
 class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
   late String _tab;
@@ -61,7 +62,7 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
     final d = q.valueOrNull;
     final l = d?.o('league');
     return SpSubPage(
-      title: l?.str('competitionName', 'League') ?? 'League',
+      title: l?.str('competitionName', context.l10n.league_league) ?? context.l10n.league_league,
       subtitle: l == null
           ? null
           : [l.s('season'), l.s('division')].whereType<String>().join(' · '),
@@ -69,7 +70,7 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
         if (l != null && l.s('status') != 'draft')
           SpRoundButton(
               icon: Icons.open_in_new_rounded,
-              tooltip: 'Public page',
+              tooltip: context.l10n.league_publicPage,
               onTap: () => context.push('/leagues/${l.str('slug')}')),
       ],
       body: AsyncView(
@@ -145,28 +146,30 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
           const SizedBox(height: 4),
           Text(
               lock == null
-                  ? 'No roster cutoff (no league pass)'
-                  : 'Roster cutoff ${MaterialLocalizations.of(context).formatMediumDate(lock)}${l.b('rosterLocked') ? ' — locked' : ''}',
+                  ? context.l10n.league_noRosterCutoffNoLeague
+                  : l.b('rosterLocked')
+                      ? context.l10n.league_p5RosterCutoffLocked(MaterialLocalizations.of(context).formatMediumDate(lock))
+                      : context.l10n.league_p5RosterCutoffOn(MaterialLocalizations.of(context).formatMediumDate(lock)),
               style: TextStyle(color: p.heroMuted, fontSize: 12.5)),
           const SizedBox(height: 14),
           Wrap(spacing: 8, runSpacing: 8, children: [
             if (status == 'draft')
               _heroBtn(
-                  'Publish fixtures',
+                  context.l10n.league_publishFixtures,
                   Icons.check_circle_rounded,
                   d.b('canPublish'),
                   () => leagueAction(context, ref, 'publish', {'leagueId': id},
-                      success: 'Published — teams and players have been told',
+                      success: context.l10n.league_publishedTeamsAndPlayersHaveBeenTold,
                       refresh: [_prov]),
                   primary: true),
-            _heroBtn('Settings', Icons.tune_rounded, true,
+            _heroBtn(context.l10n.league_settings, Icons.tune_rounded, true,
                 () => _settingsSheet(d)),
             _heroBtn(
-                'Recalculate',
+                context.l10n.league_recalculate,
                 Icons.refresh_rounded,
                 true,
                 () => leagueAction(context, ref, 'recompute', {'leagueId': id},
-                    success: 'Table recalculated', refresh: [_prov])),
+                    success: context.l10n.league_tableRecalculated, refresh: [_prov])),
           ]),
         ]),
       ),
@@ -174,7 +177,7 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
         const SizedBox(height: 14),
         GlassCard(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const SpSectionTitle('Before you publish'),
+            SpSectionTitle(context.l10n.league_beforeYouPublish),
             const SizedBox(height: 8),
             for (final c in d.list('checklist'))
               Padding(
@@ -214,12 +217,12 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
         const SizedBox(height: 14),
         GlassCard(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            SpSectionTitle('${l.str('season')} divisions'),
+            SpSectionTitle(context.l10n.league_divisions2(l.str('season'))),
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: [
               for (final dv in d.list('divisions'))
                 SpPill(
-                    label: dv.str('division', 'Main'),
+                    label: dv.str('division', context.l10n.league_main),
                     tone: dv.s('id') == id ? SpPillTone.ink : SpPillTone.soft,
                     onTap: dv.s('id') == id
                         ? null
@@ -236,11 +239,11 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
         child: Column(children: [
           ListTile(
             leading: SpIconTile(Icons.handshake_rounded, size: 38, iconSize: 19, bg: p.surface2, fg: p.ink),
-            title: Text('Sponsors', style: TextStyle(color: p.ink, fontWeight: FontWeight.w800)),
+            title: Text(context.l10n.league_sponsors, style: TextStyle(color: p.ink, fontWeight: FontWeight.w800)),
             subtitle: Text([
-              if (d.o('sponsorTerms')?.b('accepted') != true) 'Accept the Sponsorship Terms to start',
+              if (d.o('sponsorTerms')?.b('accepted') != true) context.l10n.league_acceptTheSponsorshipTermsToStart,
               if (d.o('sponsorTerms')?.b('accepted') == true)
-                '${d.list('sponsors').length} of ${d.o('spots')?.i('owned') ?? 0} spots used',
+                context.l10n.league_p5SpotsUsed(d.o('spots')?.i('owned') ?? 0, d.list('sponsors').length),
               if (d.list('sponsors').isNotEmpty) d.list('sponsors').map((x) => x.str('name')).join(', '),
             ].join(' · '), maxLines: 2, overflow: TextOverflow.ellipsis),
             trailing: Icon(Icons.chevron_right_rounded, color: p.muted),
@@ -249,10 +252,10 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
           Divider(height: 1, color: p.surface2),
           ListTile(
             leading: SpIconTile(Icons.confirmation_number_outlined, size: 38, iconSize: 19, bg: p.surface2, fg: p.ink),
-            title: Text('Match tickets', style: TextStyle(color: p.ink, fontWeight: FontWeight.w800)),
+            title: Text(context.l10n.league_matchTickets, style: TextStyle(color: p.ink, fontWeight: FontWeight.w800)),
             subtitle: Text(d.o('ticketing')?.b('enabled') == true
-                ? 'On · ${d.o('tickets')?.i('withTicket') ?? 0} on sale'
-                : 'Off — sell spectator tickets for each match'),
+                ? context.l10n.league_onOnSale(d.o('tickets')?.i('withTicket') ?? 0)
+                : context.l10n.league_offSellSpectatorTicketsFor),
             trailing: Icon(Icons.chevron_right_rounded, color: p.muted),
             onTap: () => showTicketsSheet(context, ref, data: d),
           ),
@@ -300,7 +303,7 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
       const SizedBox(height: 14),
       GlassCard(
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const SpSectionTitle('Season awards'),
+          SpSectionTitle(context.l10n.league_seasonAwards),
           if (champion?.o('team') != null)
             Padding(
               padding: const EdgeInsets.only(top: 10),
@@ -308,7 +311,7 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                 Icon(Icons.emoji_events_rounded, color: p.greenText),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text('Champions: ${champion!.o('team')!.str('name')}',
+                  child: Text(context.l10n.league_champions3(champion!.o('team')!.str('name')),
                       style: TextStyle(
                           color: p.ink, fontWeight: FontWeight.w800)),
                 ),
@@ -333,18 +336,18 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
         const SizedBox(height: 12),
         GlassCard(
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            SpSectionTitle('Player of the Season',
+            SpSectionTitle(context.l10n.league_playerOfTheSeason,
                 trailing: SpBadge(
                     pos.s('status') == 'published'
-                        ? 'Published'
+                        ? context.l10n.league_published
                         : pos.s('status') == 'none'
-                            ? 'None'
-                            : 'Your call',
+                            ? context.l10n.league_none
+                            : context.l10n.league_yourCall,
                     tone: pos.s('status') == 'published'
                         ? p.greenText
                         : p.orangeInk)),
             const SizedBox(height: 4),
-            Text('Recommended from published match MVPs, then match MVP scores.',
+            Text(context.l10n.league_recommendedFromPublishedMatchMVPs2,
                 style: TextStyle(color: p.muted, fontSize: 12)),
             const SizedBox(height: 8),
             for (final c in pos.list('candidates'))
@@ -355,9 +358,9 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                 title: Text(c.str('name'),
                     style: const TextStyle(fontWeight: FontWeight.w700)),
                 subtitle: Text(
-                    '${c.str('teamName')} · ${c.i('mvps')} MVPs · score ${c.d('score') ?? 0}'),
+                    context.l10n.league_mVPsScore(c.str('teamName'), c.i('mvps'), c.d('score') ?? 0)),
                 trailing: SpPill(
-                  label: 'Publish',
+                  label: context.l10n.league_publish,
                   height: 32,
                   onTap: () => leagueAction(
                       context,
@@ -368,7 +371,7 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                         'playerId': c.str('playerId'),
                         'publish': true
                       },
-                      success: 'Player of the Season published',
+                      success: context.l10n.league_playerOfTheSeasonPublished,
                       refresh: [_prov]),
                 ),
               ),
@@ -380,14 +383,14 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
         child: Row(children: [
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Next season',
+              Text(context.l10n.league_nextSeason,
                   style: TextStyle(color: p.ink, fontWeight: FontWeight.w800)),
-              Text('Start ${l.str('competitionName')} again with these teams.',
+              Text(context.l10n.league_startAgainWithTheseTeams(l.str('competitionName')),
                   style: TextStyle(color: p.muted, fontSize: 12)),
             ]),
           ),
           SpPill(
-            label: 'Start',
+            label: context.l10n.league_start,
             onTap: () async {
               // The season planner (placements per division) is on the web for now.
               final url = await signedInWebUriFor(
@@ -401,18 +404,10 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
   }
 
   // What each league setting means (the ⓘ beside its label; same copy as the web).
-  static const _tipTier =
-      'Where this division sits in the competition: 1 is the top division, 2 the one below, and so on. '
-      'Promotion and relegation move teams between neighbouring tiers.';
-  static const _tipGoUp =
-      "How many teams at the top of the final table go up to the division above next season. They're marked as a "
-      'promotion zone on the table — nothing moves until you start the next season.';
-  static const _tipGoDown =
-      'How many teams at the bottom of the final table go down to the division below next season. They\'re marked as a '
-      'relegation zone — you confirm the moves when you start the next season.';
-  static const _tipRosterCutoff =
-      "After this, only you can change registered players — coaches can't add or remove anyone. Players get their "
-      'league pass once it passes. Leave it empty to keep rosters open all season (no league passes).';
+  static String get _tipTier => l10n.league_settingTipTier;
+  static String get _tipGoUp => l10n.league_settingTipGoUp;
+  static String get _tipGoDown => l10n.league_settingTipGoDown;
+  static String get _tipRosterCutoff => l10n.league_settingTipRosterCutoff;
 
   Future<void> _settingsSheet(J d) async {
     final l = d.o('league')!;
@@ -451,13 +446,13 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SpSheetHeader(
-                  title: 'League settings', icon: Icons.tune_rounded),
+              SpSheetHeader(
+                  title: l10n.league_leagueSettings, icon: Icons.tune_rounded),
               if (l.b('usesDivisions')) ...[
-                const FieldLabel('Division'),
+                FieldLabel(l10n.league_division),
                 TextField(
                     controller: division,
-                    decoration: fieldDeco(ctx, 'Division 1')),
+                    decoration: fieldDeco(ctx, l10n.league_division1)),
               ],
               if (l.b('usesPromotionRelegation'))
                 Row(children: [
@@ -465,7 +460,7 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const FieldLabel('Tier', tip: _tipTier),
+                          FieldLabel(l10n.league_tier, tip: _tipTier),
                           TextField(
                               controller: tier,
                               keyboardType: TextInputType.number,
@@ -477,7 +472,7 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const FieldLabel('Go up', tip: _tipGoUp),
+                          FieldLabel(l10n.league_goUp, tip: _tipGoUp),
                           TextField(
                               controller: promote,
                               keyboardType: TextInputType.number,
@@ -489,7 +484,7 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const FieldLabel('Go down', tip: _tipGoDown),
+                          FieldLabel(l10n.league_goDown, tip: _tipGoDown),
                           TextField(
                               controller: relegate,
                               keyboardType: TextInputType.number,
@@ -497,10 +492,10 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                         ]),
                   ),
                 ]),
-              const FieldLabel('Roster cutoff', tip: _tipRosterCutoff),
+              FieldLabel(l10n.league_rosterCutoff2, tip: _tipRosterCutoff),
               PickField(
                 text: lock == null
-                    ? 'No cutoff'
+                    ? l10n.league_noCutoff
                     : '${MaterialLocalizations.of(ctx).formatFullDate(lock!)}, '
                         '${MaterialLocalizations.of(ctx).formatTimeOfDay(TimeOfDay.fromDateTime(lock!))}',
                 onClear: lock == null ? null : () => setS(() => lock = null),
@@ -517,45 +512,44 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                       int.parse(hm[0]), int.parse(hm[1])));
                 },
               ),
-              const FieldLabel('Entry fee per team'),
+              FieldLabel(l10n.league_entryFeePerTeam),
               if (feeCur != null)
                 TextField(
                     controller: fee,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: fieldDeco(ctx, 'Free').copyWith(prefixText: '$feeCur  '))
+                    decoration: fieldDeco(ctx, l10n.league_free).copyWith(prefixText: '$feeCur  '))
               else
-                Text('Activate your group wallet to charge an entry fee.',
+                Text(l10n.league_activateYourGroupWalletTo,
                     style: TextStyle(color: ctx.palette.muted, fontSize: 12)),
               const SizedBox(height: 6),
               Text(
-                  "Invited teams pay it to accept, by card, into your group wallet. Teams from your own group don't pay. "
-                  'A team you remove before the season starts gets the fee back.',
+                  l10n.league_invitedTeamsPayItTo,
                   style: TextStyle(color: ctx.palette.muted, fontSize: 11.5)),
               if (l.b('mvpEnabled')) ...[
                 const SizedBox(height: 10),
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
-                  title: Text('MVP poll', style: TextStyle(color: ctx.palette.ink, fontWeight: FontWeight.w700)),
+                  title: Text(l10n.league_mvpPoll, style: TextStyle(color: ctx.palette.ink, fontWeight: FontWeight.w700)),
                   subtitle: Text(
-                      'After each result, a vote on the match MVP. It feeds your recommendation — you still pick and publish.',
+                      l10n.league_afterEachResultAVote,
                       style: TextStyle(color: ctx.palette.muted, fontSize: 11.5)),
                   value: pollOn,
                   onChanged: (v) => setS(() => pollOn = v),
                 ),
                 if (pollOn) ...[
-                  const FieldLabel('Who votes'),
+                  FieldLabel(l10n.league_whoVotes),
                   Wrap(spacing: 6, children: [
-                    for (final (v, t) in const [('players', 'League players'), ('everyone', 'Anyone signed in')])
+                    for (final (v, t) in [('players', l10n.league_leaguePlayers), ('everyone', l10n.league_anyoneSignedIn)])
                       ChoiceChip(label: Text(t), selected: pollAudience == v, onSelected: (_) => setS(() => pollAudience = v)),
                   ]),
-                  const FieldLabel('Counts for'),
+                  FieldLabel(l10n.league_countsFor),
                   Wrap(spacing: 6, children: [
                     for (final w in const [0.1, 0.25, 0.5])
                       ChoiceChip(label: Text('${(w * 100).round()}%'), selected: pollWeight == w, onSelected: (_) => setS(() => pollWeight = w)),
                   ]),
-                  const FieldLabel('Open for'),
+                  FieldLabel(l10n.league_openFor),
                   Wrap(spacing: 6, children: [
-                    for (final (h, t) in const [(24, '24 hours'), (48, '48 hours'), (72, '3 days')])
+                    for (final (h, t) in [(24, l10n.league_t24Hours), (48, l10n.league_t48Hours), (72, l10n.league_t3Days)])
                       ChoiceChip(label: Text(t), selected: pollHours == h, onSelected: (_) => setS(() => pollHours = h)),
                   ]),
                 ],
@@ -564,12 +558,12 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                 const SizedBox(height: 10),
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
-                  title: Text('Away goals rule',
+                  title: Text(l10n.league_awayGoalsRule,
                       style: TextStyle(color: ctx.palette.ink, fontWeight: FontWeight.w700)),
                   subtitle: Text(
                       secondLegPlayed
-                          ? 'Fixed for this season — a second leg has been played.'
-                          : 'Two-leg ties level on aggregate go to the side that scored more away; still level → extra time / penalties.',
+                          ? l10n.league_fixedForThisSeasonA
+                          : l10n.league_twoLegTiesLevelOn2,
                       style: TextStyle(color: ctx.palette.muted, fontSize: 11.5)),
                   value: awayGoals,
                   onChanged: secondLegPlayed ? null : (v) => setS(() => awayGoals = v),
@@ -577,7 +571,7 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
               ],
               const SizedBox(height: 16),
               SpButton(
-                label: 'Save',
+                label: l10n.league_save,
                 expand: true,
                 onTap: () async {
                   final ok = await leagueAction(ctx, ref, 'update', {
@@ -598,7 +592,7 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                       'entryFeeMinor': fee.text.trim().isEmpty ? null : ((double.tryParse(fee.text.trim()) ?? 0) * feeDiv).round(),
                     if (l.b('mvpEnabled'))
                       'mvpPoll': {'enabled': pollOn, 'audience': pollAudience, 'weight': pollWeight, 'hours': pollHours},
-                  }, success: 'Saved', refresh: [_prov]);
+                  }, success: l10n.league_saved, refresh: [_prov]);
                   if (ok && ctx.mounted) Navigator.of(ctx).pop();
                 },
               ),
@@ -609,15 +603,15 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
 
   /* ── Teams ─────────────────────────────────────────────────────────── */
 
-  /// " · Paid CAD 50" / " · Fee CAD 50 due" for an invited team's entry fee.
-  String _feeText(J? f) {
-    if (f == null) return '';
+  /// "Paid CAD 50" / "Fee CAD 50 due" for an invited team's entry fee.
+  String? _feeText(J? f) {
+    if (f == null) return null;
     final amount = spotMoney(f.i('amountMinor'), f.str('currency'), f.i('exponent', 2));
     return switch (f.str('status')) {
-      'paid' => ' · Paid $amount',
-      'refunded' => ' · Fee refunded',
-      'pending' => ' · Paying…',
-      _ => ' · Fee $amount due',
+      'paid' => l10n.league_p5FeePaid(amount),
+      'refunded' => l10n.league_p5FeeRefunded,
+      'pending' => l10n.league_p5FeePaying,
+      _ => l10n.league_p5FeeDue(amount),
     };
   }
 
@@ -672,18 +666,18 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
       ],
       if (status != 'completed' && status != 'cancelled')
         SpButton(
-            label: 'Invite teams',
+            label: context.l10n.league_inviteTeams,
             icon: Icons.group_add_rounded,
             expand: true,
             onTap: () => showInviteTeamSheet(context, ref, leagueId: id)),
       const SizedBox(height: 12),
-      SpSectionTitle('In this league',
+      SpSectionTitle(context.l10n.league_inThisLeague,
           count: live.where((t) => t.s('status') == 'approved').length),
       const SizedBox(height: 8),
       if (live.isEmpty)
-        const SpEmpty(
+        SpEmpty(
             icon: Icons.groups_rounded,
-            text: 'Invite teams — your own teams join straight away.')
+            text: context.l10n.league_inviteTeamsYourOwnTeams)
       else
         SpListCard(children: [
           for (final t in live)
@@ -704,16 +698,20 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                             style: TextStyle(
                                 color: p.ink, fontWeight: FontWeight.w700)),
                         Text(
-                            '${t.str('groupName')}${t.s('status') == 'approved' ? ' · ${t.i('registered')} registered' : ''}${_feeText(t.o('fee'))}',
+                            [
+                              t.str('groupName'),
+                              if (t.s('status') == 'approved') context.l10n.league_p5RegisteredCount(t.i('registered')),
+                              _feeText(t.o('fee')),
+                            ].whereType<String>().join(' · '),
                             style: TextStyle(color: p.muted, fontSize: 11.5)),
                       ]),
                 ),
                 SpBadge(
                     t.s('status') == 'approved'
-                        ? 'In'
+                        ? context.l10n.league_inLabel
                         : t.s('source') == 'registration'
-                            ? 'Awaiting approval'
-                            : 'Invited',
+                            ? context.l10n.league_awaitingApproval
+                            : context.l10n.league_invited,
                     tone: t.s('status') == 'approved'
                         ? p.greenText
                         : p.orangeInk),
@@ -728,12 +726,12 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                         final yes = await showDialog<bool>(
                           context: context,
                           builder: (c) => AlertDialog(
-                            title: const Text('Remove this team?'),
+                            title: Text(l10n.league_removeThisTeam),
                             content: Text(
-                                "Their entry fee (${spotMoney(fee!.i('amountMinor'), fee.str('currency'), fee.i('exponent', 2))}) is refunded — SportPadi's processing fee isn't."),
+                                l10n.league_theirEntryFeeIsRefunded(spotMoney(fee!.i('amountMinor'), fee.str('currency'), fee.i('exponent', 2)))),
                             actions: [
-                              TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Keep')),
-                              TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Remove & refund')),
+                              TextButton(onPressed: () => Navigator.pop(c, false), child: Text(l10n.league_keep)),
+                              TextButton(onPressed: () => Navigator.pop(c, true), child: Text(l10n.league_removeRefund)),
                             ],
                           ),
                         );
@@ -742,27 +740,27 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                       if (!mounted) return;
                       await leagueAction(context, ref, 'removeTeam',
                           {'entryId': t.str('id')},
-                          success: fee?.str('status') == 'paid' ? 'Removed — entry fee refunded' : 'Removed', refresh: [_prov]);
+                          success: fee?.str('status') == 'paid' ? l10n.league_removedEntryFeeRefunded : l10n.league_removed, refresh: [_prov]);
                     } else if (v.startsWith('move:')) {
                       await leagueAction(context, ref, 'moveTeam',
                           {'entryId': t.str('id'), 'toLeagueId': v.substring(5)},
-                          success: 'Team moved', refresh: [_prov]);
+                          success: l10n.league_teamMoved(''), refresh: [_prov]);
                     }
                   },
                   itemBuilder: (_) => [
                     if (t.s('status') == 'approved')
-                      const PopupMenuItem(value: 'roster', child: Text('Roster')),
+                      PopupMenuItem(value: 'roster', child: Text(context.l10n.league_roster)),
                     if (t.s('status') == 'approved')
                       for (final dv in otherDivs)
                         PopupMenuItem(
                             value: 'move:${dv.str('id')}',
-                            child: Text('Move to ${dv.str('division', 'Main')}')),
+                            child: Text(context.l10n.league_moveTo(dv.str('division', context.l10n.league_main)))),
                     if (t.s('status') == 'pending' || status == 'draft')
                       PopupMenuItem(
                           value: 'remove',
                           child: Text(t.s('status') == 'pending'
-                              ? 'Cancel invite'
-                              : 'Remove')),
+                              ? context.l10n.league_cancelInvite
+                              : context.l10n.league_remove)),
                   ],
                 ),
               ]),
@@ -772,7 +770,7 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
         Padding(
           padding: const EdgeInsets.only(top: 10),
           child: Text(
-              'Teams changed since the fixtures were drawn — redraw them on Fixtures.',
+              context.l10n.league_teamsChangedSinceTheFixtures2,
               style: TextStyle(color: p.orangeInk, fontSize: 12.5)),
         ),
     ];
@@ -811,7 +809,7 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
               visualDensity: VisualDensity.compact,
               icon: Icon(Icons.delete_outline_rounded, size: 17, color: p.danger),
               onPressed: () => leagueAction(context, ref, 'removeFixture', {'fixtureId': f.str('id')},
-                  success: 'Fixture removed', refresh: [_prov])),
+                  success: context.l10n.league_fixtureRemoved, refresh: [_prov])),
       ]);
     }
 
@@ -843,11 +841,11 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                 trailing: actions),
         ],
       if (fixtures.isEmpty)
-        const Padding(
-            padding: EdgeInsets.only(top: 12),
+        Padding(
+            padding: const EdgeInsets.only(top: 12),
             child: SpEmpty(
                 icon: Icons.calendar_month_rounded,
-                text: 'No fixtures yet — draw the first stage above.')),
+                text: context.l10n.league_noFixturesYetDrawThe)),
     ];
   }
 
@@ -864,7 +862,7 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
     final pills = <Widget>[
       if (drawing && manualTables)
         SpPill(
-          label: 'Add fixture',
+          label: context.l10n.league_addFixture,
           icon: Icons.add_rounded,
           height: 34,
           onTap: () => showAddFixtureSheet(context, ref, data: d, stage: st),
@@ -872,26 +870,26 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
       if (drawing && !manualTables)
         SpPill(
           label: st.b('manual')
-              ? (st.s('kind') == 'table' ? 'Set up the table' : 'Set up the tables')
+              ? (st.s('kind') == 'table' ? context.l10n.league_setUpTheTable : context.l10n.league_setUpTheTables)
               : st.i('fixtures') > 0
-              ? 'Redraw'
+              ? context.l10n.league_redraw
               : st.s('kind') == 'knockout'
-                  ? 'Make the bracket'
+                  ? context.l10n.league_makeTheBracket
                   : st.s('kind') == 'groups'
-                      ? 'Draw the groups'
+                      ? context.l10n.league_drawTheGroups
                       : st.s('kind') == 'split'
-                          ? 'Draw the tables'
-                          : 'Draw fixtures',
+                          ? context.l10n.league_drawTheTables
+                          : context.l10n.league_drawFixtures,
           icon: Icons.casino_rounded,
           tone: st.i('fixtures') > 0 ? SpPillTone.soft : SpPillTone.ink,
           height: 34,
           onTap: () => leagueAction(context, ref, 'generateFixtures',
               {'leagueId': id, 'stageId': st.str('id')},
-              success: 'Drawn', refresh: [_prov]),
+              success: context.l10n.league_p5Drawn, refresh: [_prov]),
         ),
       if (firstDraft && st.s('kind') != 'table')
         SpPill(
-            label: st.s('kind') == 'split' ? 'Pick tables & seeds' : 'Seeding',
+            label: st.s('kind') == 'split' ? context.l10n.league_pickTablesSeeds : context.l10n.league_seeding,
             icon: Icons.format_list_numbered_rounded,
             tone: SpPillTone.soft,
             height: 34,
@@ -901,7 +899,7 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                 teams: d.list('teams').where((t) => t.s('status') == 'approved').toList())),
       if (drawing && manualTables)
         SpPill(
-            label: 'Redo tables',
+            label: context.l10n.league_redoTables,
             icon: Icons.shuffle_rounded,
             tone: SpPillTone.soft,
             height: 34,
@@ -910,11 +908,11 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                 final ok = await showDialog<bool>(
                   context: context,
                   builder: (c) => AlertDialog(
-                    title: const Text('Set the tables up again?'),
-                    content: const Text('The fixtures you added to this stage are removed.'),
+                    title: Text(l10n.league_setTheTablesUpAgain2),
+                    content: Text(l10n.league_theFixturesYouAddedTo),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-                      TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Redo')),
+                      TextButton(onPressed: () => Navigator.pop(c, false), child: Text(l10n.league_cancel)),
+                      TextButton(onPressed: () => Navigator.pop(c, true), child: Text(l10n.league_redo)),
                     ],
                   ),
                 );
@@ -923,19 +921,19 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
               if (!mounted) return;
               await leagueAction(context, ref, 'generateFixtures',
                   {'leagueId': id, 'stageId': st.str('id'), 'reshuffle': true},
-                  success: 'Tables set up', refresh: [_prov]);
+                  success: l10n.league_tablesSetUp, refresh: [_prov]);
             }),
       if (drawing && st.i('fixtures') > 0 && !st.b('manual')) ...[
         SpPill(
-            label: 'New draw',
+            label: context.l10n.league_newDraw,
             icon: Icons.shuffle_rounded,
             tone: SpPillTone.soft,
             height: 34,
             onTap: () => leagueAction(context, ref, 'generateFixtures',
                 {'leagueId': id, 'stageId': st.str('id'), 'reshuffle': true},
-                success: 'Redrawn', refresh: [_prov])),
+                success: context.l10n.league_p5Redrawn, refresh: [_prov])),
         SpPill(
-            label: 'Set dates',
+            label: context.l10n.league_setDates,
             icon: Icons.calendar_month_rounded,
             tone: SpPillTone.soft,
             height: 34,
@@ -946,16 +944,16 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
       ],
       if (action == 'open')
         SpPill(
-            label: 'Open ${st.str('name').toLowerCase()}',
+            label: context.l10n.league_open2(st.str('name').toLowerCase()),
             icon: Icons.check_circle_rounded,
             height: 34,
             onTap: () => leagueAction(
                 context, ref, 'openStage', {'stageId': st.str('id')},
-                success: 'Stage opened — teams have been told',
+                success: context.l10n.league_stageOpenedTeamsHaveBeen,
                 refresh: [_prov])),
       if (action == 'confirm_round' && cr != null)
         SpPill(
-          label: 'Confirm ${cr.str('name').toLowerCase()} winners',
+          label: context.l10n.league_confirmWinners(cr.str('name').toLowerCase()),
           icon: Icons.account_tree_rounded,
           height: 34,
           onTap: () => showConfirmRoundSheet(context, ref,
@@ -973,45 +971,45 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
         ),
       if (action == 'close')
         SpPill(
-            label: 'Close ${st.str('name').toLowerCase()}',
+            label: context.l10n.league_close(st.str('name').toLowerCase()),
             tone: st.b('allDone') ? SpPillTone.ink : SpPillTone.soft,
             height: 34,
             onTap: st.b('allDone')
                 ? () => leagueAction(
                     context, ref, 'closeStage', {'stageId': st.str('id')},
-                    success: 'Stage closed', refresh: [_prov])
+                    success: context.l10n.league_stageClosed, refresh: [_prov])
                 : null),
       if (action == 'advance')
         SpPill(
-            label: 'Choose who goes through',
+            label: context.l10n.league_chooseWhoGoesThrough,
             icon: Icons.swap_vert_rounded,
             height: 34,
             onTap: () => showAdvanceSheet(context, ref, leagueId: id)),
       if (action == 'finish')
         SpPill(
-            label: 'Close the season',
+            label: context.l10n.league_closeTheSeason,
             icon: Icons.emoji_events_rounded,
             height: 34,
             onTap: () async {
               final yes = await showDialog<bool>(
                   context: context,
                   builder: (c) => AlertDialog(
-                        title: const Text('Close the season?'),
-                        content: const Text(
-                            'Awards are worked out from the final results.'),
+                        title: Text(l10n.league_closeTheSeason2),
+                        content: Text(
+                            l10n.league_awardsAreWorkedOutFrom),
                         actions: [
                           TextButton(
                               onPressed: () => Navigator.pop(c, false),
-                              child: const Text('Not yet')),
+                              child: Text(l10n.league_notYet)),
                           TextButton(
                               onPressed: () => Navigator.pop(c, true),
-                              child: const Text('Close it')),
+                              child: Text(l10n.league_closeIt)),
                         ],
                       ));
               if (yes == true && mounted) {
                 await leagueAction(
                     context, ref, 'complete', {'leagueId': id},
-                    success: 'Season closed — awards are in',
+                    success: l10n.league_seasonClosedAwardsAreIn,
                     refresh: [_prov]);
               }
             }),
@@ -1026,11 +1024,11 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
             .firstOrNull
         : null;
     final hint = action == 'publish'
-        ? "Publish from Overview when you're ready."
+        ? context.l10n.league_publishFromOverviewWhenYoure
         : waitingRound != null
-            ? '${waitingRound.str('name')}: ${waitingRound.i('decided')}/${waitingRound.i('ties')} decided — you confirm who goes through once all are in.'
+            ? context.l10n.league_p5RoundDecidedHint(waitingRound.str('name'), waitingRound.i('decided'), waitingRound.i('ties'))
             : action == 'close' && !st.b('allDone')
-                ? 'Closes once every match is played, forfeited or cancelled.'
+                ? context.l10n.league_closesOnceEveryMatchIs
                 : null;
     return Padding(
       padding: const EdgeInsets.all(14),
@@ -1052,18 +1050,18 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                     stageKindLabel(st.s('kind')),
                     if (st.s('kind') == 'split')
                       st.list('splits').map((x) => x.str('name')).join(' v '),
-                    if (st.s('pairingRule') == 'cross') '${st.iOrNull('matchesPerTeam') ?? 3} games each',
-                    if (i == 0 && st.o('setup')?.b('seeded') == true) 'seeded',
+                    if (st.s('pairingRule') == 'cross') context.l10n.league_p5GamesEach(st.iOrNull('matchesPerTeam') ?? 3),
+                    if (i == 0 && st.o('setup')?.b('seeded') == true) context.l10n.league_p5Seeded,
                     if (st.i('fixtures') > 0)
-                      '${st.i('done')}/${st.i('fixtures')} played',
+                      context.l10n.league_p5PlayedOfTotal(st.i('done'), st.i('fixtures')),
                     if (st.o('advance')?.s('rule') == 'top_n_per_table')
-                      'top ${st.o('advance')!.i('n')} go through',
+                      context.l10n.league_p5TopGoThrough(st.o('advance')!.i('n')),
                   ].join(' · '),
                   style: TextStyle(color: p.muted, fontSize: 11.5)),
             ]),
           ),
           SpBadge(firstDraft
-              ? 'Draft'
+              ? context.l10n.league_draft
               : stageStatusLabel[st.s('status')] ?? st.str('status')),
         ]),
         if (pills.isNotEmpty) ...[
@@ -1084,9 +1082,9 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
     final tables = d.list('standings');
     if (tables.isEmpty) {
       return [
-        const SpEmpty(
+        SpEmpty(
             icon: Icons.leaderboard_rounded,
-            text: 'The table appears once teams are in.')
+            text: context.l10n.league_theTableAppearsOnceTeams)
       ];
     }
     return [
@@ -1108,9 +1106,9 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
     final l = d.o('league')!;
     if (!l.b('mvpEnabled')) {
       return [
-        const SpEmpty(
+        SpEmpty(
             icon: Icons.military_tech_rounded,
-            text: "This league format doesn't pick match MVPs.")
+            text: context.l10n.league_thisLeagueFormatDoesntPick)
       ];
     }
     final list = [...d.list('mvps')]..sort((a, b) =>
@@ -1118,16 +1116,16 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
         (a.s('status') == 'recommended' ? 1 : 0));
     if (list.isEmpty) {
       return [
-        const SpEmpty(
+        SpEmpty(
             icon: Icons.military_tech_rounded,
             text:
-                'Once a match finishes, its recommended MVP shows up here for you to confirm.')
+                context.l10n.league_onceAMatchFinishesIts)
       ];
     }
     final byId = {for (final f in d.list('fixtures')) f.str('id'): f};
     return [
       Text(
-          "Recommendations come from each player's match stats. Nothing is public until you publish it.",
+          context.l10n.league_recommendationsComeFromEachPlayers2,
           style: TextStyle(color: p.muted, fontSize: 12.5)),
       const SizedBox(height: 10),
       for (final m in list) ...[
@@ -1147,59 +1145,59 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
     final sanctions = d.list('sanctions');
     return [
       if (l.date('rosterLockAt') == null)
-        const GlassCard(
+        GlassCard(
             child: Text(
-                'Set a roster cutoff (Overview → Settings) to give every registered player a league pass you can scan here.'))
+                context.l10n.league_setARosterCutoffOverview))
       else
         GlassCard(
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const SpSectionTitle('Check a player'),
+            SpSectionTitle(context.l10n.league_checkAPlayer),
             const SizedBox(height: 6),
             Text(
-                "Scan the player's league pass, then check the photo matches the person in front of you.",
+                context.l10n.league_scanThePlayersLeaguePass,
                 style: TextStyle(color: p.muted, fontSize: 12.5)),
             const SizedBox(height: 12),
             SpButton(
-                label: 'Scan league pass',
+                label: context.l10n.league_scanLeaguePass,
                 icon: Icons.qr_code_scanner_rounded,
                 expand: true,
                 onTap: () => _scan(d)),
           ]),
         ),
       const SizedBox(height: 16),
-      SpSectionTitle('Forfeits',
+      SpSectionTitle(context.l10n.league_forfeits,
           count: sanctions.where((s) => s.s('status') == 'active').length),
       const SizedBox(height: 8),
       if (sanctions.isEmpty)
-        const SpEmpty(
+        SpEmpty(
             icon: Icons.gavel_rounded,
-            text: 'No penalties. Use the gavel on a fixture to forfeit a match.')
+            text: context.l10n.league_noPenaltiesUseTheGavel)
       else
         SpListCard(children: [
           for (final s in sanctions)
             ListTile(
               title: Text(
-                  '${s.str('teamName')} forfeited · ${s.str('publicReason')}',
+                  context.l10n.league_forfeited2(s.str('teamName'), s.str('publicReason')),
                   style: TextStyle(color: p.ink, fontSize: 13.5)),
               subtitle: Text(s.s('status') == 'revoked'
-                  ? 'Revoked'
+                  ? context.l10n.league_revoked2
                   : (s.s('privateNote') ?? '')),
               trailing: s.s('status') == 'active'
                   ? TextButton(
                       onPressed: () => leagueAction(context, ref,
                           'revokeSanction', {'sanctionId': s.str('id')},
-                          success: 'Forfeit revoked', refresh: [_prov]),
-                      child: const Text('Revoke'))
+                          success: context.l10n.league_forfeitRevoked, refresh: [_prov]),
+                      child: Text(context.l10n.league_revoke))
                   : null,
             ),
         ]),
       const SizedBox(height: 16),
-      const SpSectionTitle('Recent checks'),
+      SpSectionTitle(context.l10n.league_recentChecks),
       const SizedBox(height: 8),
       AsyncView(
         value: checks,
         data: (list) => list.isEmpty
-            ? Text('No checks yet.', style: TextStyle(color: p.muted))
+            ? Text(context.l10n.league_noChecksYet, style: TextStyle(color: p.muted))
             : SpListCard(children: [
                 for (final c in list.take(30))
                   ListTile(
@@ -1211,13 +1209,26 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                         color:
                             c.s('result') == 'valid' ? p.greenText : p.danger),
                     title: Text(
-                        '${c.str('playerName', 'Unknown player')}${c.s('teamName') != null ? ' · ${c.str('teamName')}' : ''}'),
-                    subtitle: Text(c.str('result').replaceAll('_', ' ')),
+                        '${c.str('playerName', context.l10n.league_unknownPlayer)}${c.s('teamName') != null ? ' · ${c.str('teamName')}' : ''}'),
+                    subtitle: Text(_checkResultLabel(c.str('result'))),
                   ),
               ]),
       ),
     ];
   }
+
+  /// A recent pass check's result, in words (the same titles as the scan sheet).
+  String _checkResultLabel(String result) => switch (result) {
+        'valid' => l10n.league_eligible,
+        'not_registered' => l10n.league_notRegistered,
+        'wrong_league' => l10n.league_differentLeague,
+        'wrong_team' => l10n.league_notInThisMatch,
+        'not_live' => l10n.league_passNotLiveYet,
+        'expired' => l10n.league_expiredCode,
+        'invalid' => l10n.league_invalid,
+        'not_a_pass' => l10n.league_notALeaguePass,
+        _ => result.replaceAll('_', ' '),
+      };
 
   Future<void> _scan(J d) async {
     final raw = await Navigator.of(context).push<String>(
@@ -1239,27 +1250,27 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
     ref.invalidate(leagueChecksProvider(l.str('id')));
     if (!mounted) return;
     final p = context.palette;
-    const titles = {
-      'valid': ('Eligible', 'Registered for this league and live.'),
+    final titles = {
+      'valid': (context.l10n.league_eligible, context.l10n.league_passValidHint),
       'not_registered': (
-        'Not registered',
-        "This pass isn't on a current roster for this league."
+        context.l10n.league_notRegistered,
+        context.l10n.league_passNotRegisteredHint
       ),
-      'wrong_league': ('Different league', 'This is a pass for another league.'),
+      'wrong_league': (context.l10n.league_differentLeague, context.l10n.league_passWrongLeagueHint),
       'wrong_team': (
-        'Not in this match',
-        'Registered, but not with either team in this match.'
+        context.l10n.league_notInThisMatch,
+        context.l10n.league_passWrongTeamHint
       ),
       'not_live': (
-        'Pass not live yet',
-        'Passes go live when the roster cutoff passes.'
+        context.l10n.league_passNotLiveYet,
+        context.l10n.league_passNotLiveHint
       ),
       'expired': (
-        'Expired code',
-        'Ask the player to open their pass again — screenshots stop working.'
+        context.l10n.league_expiredCode,
+        context.l10n.league_passExpiredHint
       ),
-      'invalid': ('Invalid', "This code wasn't issued by SportPadi."),
-      'not_a_pass': ('Not a league pass', "That QR isn't a league pass."),
+      'invalid': (context.l10n.league_invalid, context.l10n.league_passInvalidHint),
+      'not_a_pass': (context.l10n.league_notALeaguePass, context.l10n.league_passNotAPassHint),
     };
     final ok = res.s('result') == 'valid';
     final t = titles[res.s('result')] ?? titles['invalid']!;
@@ -1302,7 +1313,7 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
                               ].whereType<String>().join(' · '),
                               style: TextStyle(color: p.muted, fontSize: 12.5)),
                           if (player.b('afterLock'))
-                            Text('Added after the cutoff',
+                            Text(l10n.league_addedAfterTheCutoff,
                                 style: TextStyle(
                                     color: p.orangeInk, fontSize: 11.5)),
                         ]),
@@ -1312,12 +1323,12 @@ class _LeagueManageScreenState extends ConsumerState<LeagueManageScreen> {
             if (!ok) ...[
               const SizedBox(height: 12),
               Text(
-                  'Need to penalise a team? Use the gavel on the match in Fixtures — this scan is logged as evidence.',
+                  l10n.league_needToPenaliseATeam,
                   style: TextStyle(color: p.muted, fontSize: 12)),
             ],
             const SizedBox(height: 14),
             SpButton(
-                label: 'Scan another',
+                label: l10n.league_scanAnother,
                 icon: Icons.qr_code_scanner_rounded,
                 expand: true,
                 onTap: () {
@@ -1363,9 +1374,13 @@ class _MvpCardState extends ConsumerState<_MvpCard> {
       decoration: BoxDecoration(color: p.surface2, borderRadius: BorderRadius.circular(16)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text(
-            'MVP poll · $total vote${total == 1 ? '' : 's'}'
-            '${poll.b('open') && closes != null ? ' · closes ${MaterialLocalizations.of(context).formatShortMonthDay(closes)} ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(closes))}' : ' · closed'}'
-            '${poll.b('counts') ? '' : ' · too few votes to count yet'}',
+            [
+              context.l10n.league_mvpPollVotes(total),
+              poll.b('open') && closes != null
+                  ? context.l10n.league_p5PollCloses(MaterialLocalizations.of(context).formatShortMonthDay(closes), MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(closes)))
+                  : context.l10n.league_p5PollClosed,
+              if (!poll.b('counts')) context.l10n.league_p5TooFewVotes,
+            ].join(' · '),
             style: TextStyle(color: p.ink, fontWeight: FontWeight.w700, fontSize: 12)),
         for (final r in rows)
           InkWell(
@@ -1379,7 +1394,7 @@ class _MvpCardState extends ConsumerState<_MvpCard> {
                     TextSpan(children: [
                       TextSpan(text: r.str('name')),
                       if (r.s('playerId') == suggested)
-                        TextSpan(text: '  Suggested', style: TextStyle(color: p.greenText, fontWeight: FontWeight.w800, fontSize: 11)),
+                        TextSpan(text: context.l10n.league_suggested, style: TextStyle(color: p.greenText, fontWeight: FontWeight.w800, fontSize: 11)),
                     ]),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1412,10 +1427,10 @@ class _MvpCardState extends ConsumerState<_MvpCard> {
         'setMvp',
         {'fixtureId': m.str('fixtureId'), 'playerId': player, 'publish': publish},
         success: publish
-            ? 'MVP published'
+            ? context.l10n.league_mvpPublished
             : player == null
-                ? 'No MVP for this match'
-                : 'Saved (not public)',
+                ? context.l10n.league_noMvpForThisMatch
+                : context.l10n.league_savedNotPublic,
         refresh: [leagueManageProvider(widget.leagueId)]);
     return GlassCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -1430,19 +1445,19 @@ class _MvpCardState extends ConsumerState<_MvpCard> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(
                   f == null
-                      ? 'Match'
+                      ? context.l10n.league_match
                       : '${f.o('home')?.str('name')} ${f.i('homeScore')}–${f.i('awayScore')} ${f.o('away')?.str('name')}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
               Text(
                   (status == 'published'
-                          ? 'Published: ${m.o('player')?.str('displayName') ?? '—'}'
+                          ? context.l10n.league_published2(m.o('player')?.str('displayName') ?? '—')
                           : status == 'none'
-                              ? 'No MVP'
-                              : 'Waiting for you') +
+                              ? context.l10n.league_noMvp
+                              : context.l10n.league_waitingForYou) +
                       (m.b('statsChanged')
-                          ? ' · stats changed since — check the pick'
+                          ? context.l10n.league_statsChangedSinceCheckThe
                           : ''),
                   style: TextStyle(color: p.muted, fontSize: 12)),
             ]),
@@ -1500,17 +1515,17 @@ class _MvpCardState extends ConsumerState<_MvpCard> {
         const SizedBox(height: 10),
         Wrap(spacing: 8, runSpacing: 8, children: [
           SpPill(
-              label: 'Publish MVP',
+              label: context.l10n.league_publishMvp,
               height: 34,
               onTap: _pick == null ? null : () => set(_pick, true)),
           if (status == 'published')
             SpPill(
-                label: 'Unpublish',
+                label: context.l10n.league_unpublish,
                 tone: SpPillTone.soft,
                 height: 34,
                 onTap: () => set(_pick, false)),
           SpPill(
-              label: 'No MVP',
+              label: context.l10n.league_noMvp,
               tone: SpPillTone.outline,
               height: 34,
               onTap: () => set(null, false)),

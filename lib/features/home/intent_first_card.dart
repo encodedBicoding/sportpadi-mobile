@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/features/onboarding/intent_cards.dart';
 import 'package:sportpadi_mobile/features/onboarding/intents.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Which intent's "do the thing" card should lead Home right now (null =
 /// the normal quick actions): a guardian with no wards, a coach or host
@@ -40,19 +41,19 @@ class IntentFirstCard extends ConsumerWidget {
     final (bg, fg) = intentTint(p, i.key);
     final (title, body, cta) = switch (i.key) {
       'guardian' => (
-          'Add your child to get going',
-          'Their RSVPs, tickets and QR check-in all come to you.',
-          'Add my child'
+          context.l10n.home_addYourChildToGet,
+          context.l10n.home_theirRsvpsTicketsAndQr,
+          context.l10n.home_addMyChild
         ),
       'coach' => (
-          'Set up your team',
-          'Create your group, add the roster — squads for tournaments follow.',
-          'Create my group & team'
+          context.l10n.home_setUpYourTeam,
+          context.l10n.home_createYourGroupAddTheRoster,
+          context.l10n.home_createMyGroupTeam
         ),
       _ => (
-          'Create your group',
-          'Then add your first event — tickets, check-in and teams are built in.',
-          'Create my group'
+          context.l10n.home_createYourGroup,
+          context.l10n.home_thenAddYourFirstEvent,
+          context.l10n.home_createMyGroup
         ),
     };
     return GlassCard(

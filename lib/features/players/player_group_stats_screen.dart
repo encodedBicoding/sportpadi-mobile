@@ -12,6 +12,7 @@ import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// One player's record inside ONE group, per sport.
 ///
@@ -27,11 +28,11 @@ final playerGroupStatsProvider = FutureProvider.autoDispose
         .watch(dioProvider)
         .get('/api/mobile/players/${key.userId}/groups/${key.groupId}');
     if (res.data is! Map) {
-      throw ApiException('Nothing to show here.', statusCode: 404);
+      throw ApiException(l10n.profile_nothingToShowHere, statusCode: 404);
     }
     return Map<String, dynamic>.from(res.data as Map);
   } catch (e) {
-    throw apiError(e, fallback: 'Could not load their record.');
+    throw apiError(e, fallback: l10n.profile_couldNotLoadTheirRecord);
   }
 });
 
@@ -73,7 +74,7 @@ class _PlayerGroupStatsScreenState
             ? RefreshIndicator(
                 onRefresh: refresh,
                 child: _alwaysPullable(context,
-                    const PlayerPrivateView(title: 'Record in group')),
+                    PlayerPrivateView(title: context.l10n.profile_recordInGroup)),
               )
             : _pullableUnlessData(
                 data,
@@ -128,7 +129,7 @@ class _PlayerGroupStatsScreenState
                       physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
                       children: [
-                        SpHeader(title: 'Record in group', subtitle: groupName),
+                        SpHeader(title: context.l10n.profile_recordInGroup, subtitle: groupName),
                         const SizedBox(height: 16),
 
                         // Who, which group, and the local-games headline for the
@@ -144,8 +145,8 @@ class _PlayerGroupStatsScreenState
                           onPlayerTap: () =>
                               context.push('/players/${widget.userId}'),
                           eyebrow: cat == null
-                              ? 'Group record'
-                              : '${parseStr(cat['name']) ?? 'Sport'} · local games',
+                              ? context.l10n.profile_groupRecord
+                              : context.l10n.profile_localGames2(parseStr(cat['name']) ?? 'Sport'),
                           title: groupName,
                           stats: statInt(local['games']) > 0
                               ? recordHeroStats(local, fields)
@@ -167,13 +168,13 @@ class _PlayerGroupStatsScreenState
                         const SizedBox(height: 12),
                         recordActions([
                           RecordAction(
-                              label: 'Open group',
+                              label: context.l10n.profile_openGroup,
                               icon: Icons.north_east_rounded,
                               onTap: () =>
                                   context.push('/groups/${widget.groupId}')),
                           if (rank.isNotEmpty)
                             RecordAction(
-                                label: 'Leaderboard',
+                                label: context.l10n.profile_leaderboard,
                                 icon: Icons.leaderboard_outlined,
                                 onTap: () => context.push(
                                     '/groups/${widget.groupId}/leaderboard')),
@@ -201,9 +202,9 @@ class _PlayerGroupStatsScreenState
                           const SizedBox(height: 14),
                           RecordEmpty(
                             icon: Icons.emoji_events_outlined,
-                            title: 'No completed games with this group',
+                            title: context.l10n.profile_noCompletedGamesWithThis,
                             body:
-                                "${parseStr(player['displayName']) ?? 'They'} are a member, but haven't finished a game here yet.",
+                                context.l10n.profile_areAMemberButHavent(parseStr(player['displayName']) ?? 'They'),
                           ),
                         ] else ...[
                           const SizedBox(height: 14),
@@ -215,29 +216,29 @@ class _PlayerGroupStatsScreenState
                             SportSetup(category: cat),
                             const SizedBox(height: 12),
                             ScopeBlock(
-                              title: 'Local group games',
+                              title: context.l10n.profile_localGroupGames3,
                               family: family ?? SportFamily.generic,
                               tally: local,
                               fields: fields,
                               empty:
-                                  'No completed local games in this sport yet.',
+                                  context.l10n.profile_noCompletedLocalGamesIn,
                               rank: rank,
                             ),
                             const SizedBox(height: 12),
                             ScopeBlock(
-                              title: 'Tournaments',
+                              title: context.l10n.profile_tournaments,
                               family: family ?? SportFamily.generic,
                               tally: mapOf(cat['tournament']),
                               fields: fields,
                               accent: true,
-                              empty: 'No tournament games in this sport yet.',
+                              empty: context.l10n.profile_noTournamentGamesInThis,
                             ),
                           ],
                           if (catTournaments.isNotEmpty) ...[
                             const SizedBox(height: 22),
                             TournamentList(
                                 rows: catTournaments,
-                                title: 'Tournaments with this group',
+                                title: context.l10n.profile_tournamentsWithThisGroup,
                                 playerId: widget.userId),
                           ],
                         ],

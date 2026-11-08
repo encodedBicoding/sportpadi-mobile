@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/features/sports/sport_artwork.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// A sport card (design §6): the sport's artwork, its name, the record line
 /// and the three headline numbers. Used by My records and the public
@@ -25,7 +26,7 @@ class SportRecordCard extends StatelessWidget {
     final family = familyOf(category);
     final t = sportTheme(family);
     final emoji = parseStr(category['emoji']) ?? t.emoji;
-    final name = parseStr(category['name']) ?? 'Sport';
+    final name = parseStr(category['name']) ?? context.l10n.profile_sport;
     final tally = mapOf(category['overall']);
     final games = gamesOf(tally);
     final att = attendanceOf(category);
@@ -42,7 +43,7 @@ class SportRecordCard extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: '$name record',
+      label: context.l10n.profile_record2(name),
       child: SizedBox(
         height: 132,
         child: ClipRRect(
@@ -130,8 +131,8 @@ class SportRecordCard extends StatelessWidget {
                           setup.isNotEmpty
                               ? setup.join(' · ')
                               : checkIns > 0
-                                  ? 'No games yet'
-                                  : 'Nothing on record yet',
+                                  ? context.l10n.profile_noGamesYet2
+                                  : context.l10n.profile_nothingOnRecordYet,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -180,14 +181,14 @@ class OtherSportRow extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(parseStr(category['name']) ?? 'Sport',
+            child: Text(parseStr(category['name']) ?? context.l10n.profile_sport,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                     color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w600)),
           ),
           const SizedBox(width: 8),
-          Text('Not played yet',
+          Text(context.l10n.profile_notPlayedYet,
               style: TextStyle(color: p.muted, fontSize: 12)),
           Icon(Icons.chevron_right_rounded, size: 20, color: p.muted),
         ]),
@@ -204,12 +205,20 @@ class PlayerRecordsSection extends StatelessWidget {
     required this.userId,
     required this.categories,
     required this.loaded,
+    this.mine = false,
+    this.trailing,
   });
   final String userId;
   final List<Map<String, dynamic>> categories;
 
   /// False while the stats are still on their way.
   final bool loaded;
+
+  /// Your own profile: cards open /profile/records/<sport>, copy says "your".
+  final bool mine;
+
+  /// e.g. an "All records" pill on your own profile.
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -219,11 +228,12 @@ class PlayerRecordsSection extends StatelessWidget {
         if (hasPlayed(c) && parseStr(c['categoryId']) != null) c
     ];
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      SpSectionTitle('Records', count: played.isEmpty ? null : played.length),
+      SpSectionTitle(context.l10n.profile_records,
+          count: played.isEmpty ? null : played.length, trailing: trailing),
       const SizedBox(height: 10),
       if (!loaded)
         GlassCard(
-          child: Text('Loading their record…',
+          child: Text(mine ? context.l10n.profile_loadingYourRecord : context.l10n.profile_loadingTheirRecord,
               style: TextStyle(color: p.muted, fontSize: 13)),
         )
       else if (played.isEmpty)
@@ -237,14 +247,16 @@ class PlayerRecordsSection extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('No games on record yet',
+                    Text(context.l10n.profile_noGamesOnRecordYet2,
                         style: TextStyle(
                             color: p.ink,
                             fontSize: 14.5,
                             fontWeight: FontWeight.w700)),
                     const SizedBox(height: 2),
                     Text(
-                        "Their sports appear here once they've finished a game.",
+                        mine
+                            ? context.l10n.profile_playAGameThatFinishes
+                            : context.l10n.profile_theirSportsAppearHereOnce,
                         style: TextStyle(
                             color: p.muted, fontSize: 12.5, height: 1.35)),
                   ]),
@@ -256,8 +268,9 @@ class PlayerRecordsSection extends StatelessWidget {
           if (i > 0) const SizedBox(height: 10),
           SportRecordCard(
             category: played[i],
-            onTap: () => context.push(
-                '/players/$userId/records/${parseStr(played[i]['categoryId'])}'),
+            onTap: () => context.push(mine
+                ? '/profile/records/${parseStr(played[i]['categoryId'])}'
+                : '/players/$userId/records/${parseStr(played[i]['categoryId'])}'),
           ),
         ],
     ]);

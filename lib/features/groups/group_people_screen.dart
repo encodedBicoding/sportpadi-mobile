@@ -21,6 +21,7 @@ import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Members / followers of a group (2026, the web /groups/[id]/members and
 /// /followers pages): the round-back header with "Group · N members", a
@@ -46,13 +47,13 @@ class GroupPeopleScreen extends ConsumerWidget {
             group?.followerCount;
     final noun = isMembers ? 'member' : 'follower';
     return SpSubPage(
-      title: isMembers ? 'Members' : 'Followers',
+      title: isMembers ? context.l10n.group_members : context.l10n.group_followers,
       subtitle:
-          count != null ? '$name · $count $noun${count == 1 ? '' : 's'}' : name,
+          count != null ? context.l10n.group_countPluralOneOtherS(count, name, noun) : name,
       actions: [
         if (isMembers && canManage)
           SpPill(
-            label: 'Invite',
+            label: context.l10n.group_invite,
             icon: Icons.person_add_alt_1_rounded,
             onTap: () => showGroupInviteSheet(context, groupId),
           ),
@@ -211,8 +212,8 @@ class _MembersListState extends ConsumerState<_MembersList> {
           .setRole(widget.groupId, m.userId, role);
       messenger.showSnackBar(SnackBar(
           content: Text(role == 'admin'
-              ? '${m.displayName} is now an admin — they can check you in and run events.'
-              : '${m.displayName} is a member again.')));
+              ? l10n.group_isNowAnAdminThey(m.displayName)
+              : l10n.group_isAMemberAgain(m.displayName))));
       if (!mounted) return;
       ref.invalidate(groupMembersProvider(widget.groupId));
       ref.invalidate(groupProvider(widget.groupId));
@@ -231,20 +232,19 @@ class _MembersListState extends ConsumerState<_MembersList> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Remove ${m.displayName}?'),
+        title: Text(l10n.group_remove2(m.displayName)),
         content: Text(m.isWard
-            ? 'They leave the group and its teams.'
-            : 'They leave the group, along with any wards who joined through '
-                'them (unless another guardian is still a member).'),
+            ? l10n.group_theyLeaveTheGroupAnd
+            : l10n.group_theyLeaveTheGroupAlong),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(l10n.group_cancel)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: TextButton.styleFrom(
                   foregroundColor: context.palette.danger),
-              child: const Text('Remove')),
+              child: Text(l10n.group_remove)),
         ],
       ),
     );
@@ -256,8 +256,8 @@ class _MembersListState extends ConsumerState<_MembersList> {
           .removeMember(widget.groupId, m.userId);
       messenger.showSnackBar(SnackBar(
           content: Text(wards > 0
-              ? 'Member removed, with $wards ward${wards == 1 ? '' : 's'} who joined through them'
-              : 'Member removed')));
+              ? l10n.group_memberRemovedWithWardsWho(wards)
+              : l10n.group_memberRemoved)));
       if (!mounted) return;
       ref.invalidate(groupMembersProvider(widget.groupId));
       ref.invalidate(groupProvider(widget.groupId));
@@ -290,7 +290,7 @@ class _MembersListState extends ConsumerState<_MembersList> {
       if (!m.isWard || isAdmin) ...[
         _RoundAction(
           icon: isAdmin ? Icons.remove_moderator_outlined : Icons.shield_outlined,
-          tooltip: isAdmin ? 'Demote to member' : 'Promote to admin',
+          tooltip: isAdmin ? context.l10n.group_demoteToMember : context.l10n.group_promoteToAdmin,
           bg: p.surface2,
           fg: p.ink,
           onTap: () => _setRole(m, isAdmin ? 'member' : 'admin'),
@@ -299,7 +299,7 @@ class _MembersListState extends ConsumerState<_MembersList> {
       ],
       _RoundAction(
         icon: Icons.delete_outline_rounded,
-        tooltip: 'Remove from group',
+        tooltip: context.l10n.group_removeFromGroup,
         bg: p.liveTint,
         fg: p.danger,
         onTap: () => _remove(m),
@@ -335,13 +335,13 @@ class _MembersListState extends ConsumerState<_MembersList> {
           Text('$_error',
               textAlign: TextAlign.center,
               style: TextStyle(color: p.muted, fontSize: 13)),
-          TextButton(onPressed: _reload, child: const Text('Try again')),
+          TextButton(onPressed: _reload, child: Text(context.l10n.group_tryAgain)),
         ]),
       );
     } else if (_items.isEmpty) {
       content = SpEmpty(
         icon: _term.isEmpty ? Icons.people_outline_rounded : Icons.search_rounded,
-        text: _term.isEmpty ? 'No members yet.' : 'No members match “$_term”.',
+        text: _term.isEmpty ? context.l10n.group_noMembersYet : context.l10n.group_noMembersMatch(_term),
       );
     } else {
       content = Column(children: [
@@ -378,17 +378,17 @@ class _MembersListState extends ConsumerState<_MembersList> {
           // The tip's slot is always here so the search card below keeps its
           // place (and focus) when the tip comes and goes.
           showTip
-              ? const Padding(
-                  padding: EdgeInsets.only(bottom: 12),
+              ? Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
                   child: SpTipCard(
-                    "You're the only admin. Nobody can check themselves in — so make a trusted member an admin (tap the shield on their row) and they can check you in on match day, and run things when you're away.",
+                    context.l10n.group_youreTheOnlyAdminNobody,
                     icon: Icons.admin_panel_settings_outlined,
                   ),
                 )
               : const SizedBox.shrink(),
           SpSearchCard(
             controller: _search,
-            hint: 'Search members',
+            hint: context.l10n.group_searchMembers,
             onChanged: _onSearch,
           ),
           const SizedBox(height: 12),
@@ -432,8 +432,8 @@ class _FollowersListState extends ConsumerState<_FollowersList> {
           .promoteFollowers(widget.groupId, userIds);
       messenger.showSnackBar(SnackBar(
           content: Text(userIds.length == 1
-              ? 'Added as member!'
-              : 'Added ${userIds.length} members!')));
+              ? l10n.group_addedAsMember2
+              : l10n.group_addedMembers2(userIds.length))));
       if (!mounted) return;
       setState(() => _selected.removeAll(userIds));
       ref.invalidate(groupFollowersProvider(widget.groupId));
@@ -503,16 +503,16 @@ class _FollowersListState extends ConsumerState<_FollowersList> {
                   // Fixed slot, judged on the whole list (not the search
                   // results), so the search card never moves while typing.
                   canManage && items.any((f) => !f.isMember)
-                      ? const Padding(
-                          padding: EdgeInsets.only(bottom: 12),
+                      ? Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
                           child: SpTipCard(
-                              'Promote followers into group members so they can access member-only features. Add any follower on their row, or select several and use the bar at the bottom.'),
+                              context.l10n.group_promoteFollowersIntoGroupMembers),
                         )
                       : const SizedBox.shrink(),
                   SpSearchCard(
                     key: const ValueKey('followers-search'),
                     controller: _search,
-                    hint: 'Search followers',
+                    hint: context.l10n.group_searchFollowers,
                     onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 12),
@@ -534,7 +534,7 @@ class _FollowersListState extends ConsumerState<_FollowersList> {
                               Row(mainAxisSize: MainAxisSize.min, children: [
                             _Check(checked: allSelected, size: 18),
                             const SizedBox(width: 8),
-                            Text('Select all eligible',
+                            Text(context.l10n.group_selectAllEligible,
                                 style: TextStyle(
                                     color: p.muted,
                                     fontSize: 12,
@@ -543,7 +543,7 @@ class _FollowersListState extends ConsumerState<_FollowersList> {
                         ),
                       ),
                       const Spacer(),
-                      Text('${_selected.length} selected',
+                      Text(context.l10n.group_selected2(_selected.length),
                           style: TextStyle(color: p.muted, fontSize: 12)),
                       const SizedBox(width: 4),
                     ]),
@@ -551,17 +551,17 @@ class _FollowersListState extends ConsumerState<_FollowersList> {
                   ],
                 ],
                 if (items.isEmpty)
-                  const SpEmpty(
+                  SpEmpty(
                     icon: Icons.how_to_reg_rounded,
-                    title: 'No followers yet',
+                    title: context.l10n.group_noFollowersYet,
                     text:
-                        "When people follow your group or check into events, they'll appear here.",
+                        context.l10n.group_whenPeopleFollowYourGroup,
                   )
                 else if (filtered.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 32),
                     child: Center(
-                      child: Text('No followers match “${_search.text.trim()}”',
+                      child: Text(context.l10n.group_noFollowersMatch2(_search.text.trim()),
                           style: TextStyle(color: p.muted, fontSize: 13.5)),
                     ),
                   )
@@ -592,7 +592,7 @@ class _FollowersListState extends ConsumerState<_FollowersList> {
                 color: p.bg.withAlpha(235),
                 child: Row(children: [
                   SpPill(
-                    label: 'Cancel',
+                    label: context.l10n.group_cancel,
                     tone: SpPillTone.soft,
                     height: 46,
                     onTap: _promoting
@@ -603,8 +603,8 @@ class _FollowersListState extends ConsumerState<_FollowersList> {
                   Expanded(
                     child: SpPill(
                       label: _promoting
-                          ? 'Adding…'
-                          : 'Make ${_selected.length} member${_selected.length == 1 ? '' : 's'}',
+                          ? context.l10n.group_adding
+                          : context.l10n.group_makeMembers(_selected.length),
                       icon: Icons.person_add_alt_1_rounded,
                       expand: true,
                       height: 46,
@@ -737,17 +737,17 @@ class _FollowerRow extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             if (f.isMember)
-              SpTag('Member', bg: p.accentTint, fg: p.greenText)
+              SpTag(context.l10n.group_member, bg: p.accentTint, fg: p.greenText)
             else if (eligible && !selecting)
               SpPill(
-                label: 'Add',
+                label: context.l10n.group_add,
                 icon: Icons.person_add_alt_1_rounded,
                 tone: SpPillTone.outline,
                 height: 34,
                 onTap: promoting ? null : onPromote,
               )
             else
-              Text('FOLLOWER',
+              Text(context.l10n.group_follower2,
                   style: TextStyle(
                       color: p.muted,
                       fontSize: 10,
@@ -780,7 +780,7 @@ class _MemberRow extends ConsumerWidget {
     final m = person;
     final sub = [
       if (m.username != null && m.username!.isNotEmpty) '@${m.username}',
-      if (m.isWard && m.wardOf != null) 'Ward of ${m.wardOf}',
+      if (m.isWard && m.wardOf != null) context.l10n.group_wardOf(m.wardOf!),
     ].join(' · ');
     // Transparent material so the ripple shows on the card's white.
     return Material(
@@ -809,10 +809,10 @@ class _MemberRow extends ConsumerWidget {
                   ),
                   if (isCreator) ...[
                     const SizedBox(width: 6),
-                    SpTag('Creator', bg: p.orangeTint, fg: p.orangeInk),
+                    SpTag(context.l10n.group_creator, bg: p.orangeTint, fg: p.orangeInk),
                   ] else if (m.role == 'admin') ...[
                     const SizedBox(width: 6),
-                    SpTag('Admin', bg: p.accentTint, fg: p.greenText),
+                    SpTag(context.l10n.group_admin2, bg: p.accentTint, fg: p.greenText),
                   ],
                   if (m.isWard) ...[
                     const SizedBox(width: 6),

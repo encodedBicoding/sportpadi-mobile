@@ -15,6 +15,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The Inbox's tabs (docs B6): Announcements (Messaging 1) and Messages —
 /// conversations with a group's staff (Messaging 2). Each has its own badge.
@@ -41,8 +42,8 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
       : InboxTab.announcements;
 
   String _label(InboxTab t) => switch (t) {
-        InboxTab.announcements => 'Announcements',
-        InboxTab.messages => 'Messages',
+        InboxTab.announcements => context.l10n.inbox_announcements,
+        InboxTab.messages => context.l10n.inbox_messages,
       };
 
   void _select(InboxTab t) {
@@ -79,9 +80,9 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: SpHeader(
-              title: 'Inbox',
+              title: context.l10n.inbox_inbox,
               subtitle: unread > 0
-                  ? '${_label(_tab)} · $unread unread'
+                  ? context.l10n.inbox_unread5(_label(_tab), unread)
                   : _label(_tab),
               actions: [
                 if (_tab == InboxTab.announcements && unread > 0)
@@ -91,12 +92,12 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                         foregroundColor: p.greenText,
                         textStyle: const TextStyle(
                             fontSize: 13, fontWeight: FontWeight.w700)),
-                    child: const Text('Mark all read'),
+                    child: Text(context.l10n.inbox_markAllRead),
                   ),
                 if (_tab == InboxTab.messages)
                   SpRoundButton(
                     icon: Icons.edit_outlined,
-                    tooltip: 'New message',
+                    tooltip: context.l10n.inbox_newMessage,
                     onTap: () => startNewMessage(context),
                   ),
               ],
@@ -168,7 +169,7 @@ class _AnnouncementsList extends ConsumerWidget {
                       size: 60, iconSize: 28),
                 ),
                 const SizedBox(height: 14),
-                Text('No announcements yet',
+                Text(context.l10n.inbox_noAnnouncementsYet,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: p.ink,
@@ -176,8 +177,7 @@ class _AnnouncementsList extends ConsumerWidget {
                         fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 Text(
-                    'News from your groups, coaches and event organisers '
-                    'will land here.',
+                    context.l10n.inbox_newsFromYourGroupsCoaches,
                     textAlign: TextAlign.center,
                     style: TextStyle(color: p.muted, fontSize: 13)),
               ],
@@ -352,7 +352,7 @@ class _MessagesListState extends ConsumerState<_MessagesList> {
         child: Row(children: [
           for (final unread in const [false, true]) ...[
             ChoiceChip(
-              label: Text(unread ? 'Unread' : 'All'),
+              label: Text(unread ? context.l10n.inbox_unread2 : context.l10n.inbox_all),
               selected: _unreadOnly == unread,
               showCheckmark: false,
               onSelected: (_) => setState(() => _unreadOnly = unread),
@@ -397,8 +397,8 @@ class _MessagesListState extends ConsumerState<_MessagesList> {
                     const SizedBox(height: 14),
                     Text(
                         _unreadOnly
-                            ? "You're all caught up"
-                            : 'No messages yet',
+                            ? context.l10n.inbox_youreAllCaughtUp
+                            : context.l10n.inbox_noMessagesYet2,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             color: p.ink,
@@ -406,15 +406,14 @@ class _MessagesListState extends ConsumerState<_MessagesList> {
                             fontWeight: FontWeight.w700)),
                     const SizedBox(height: 4),
                     Text(
-                        'Conversations with your group admins and coaches '
-                        'land here. Members never message each other.',
+                        context.l10n.inbox_conversationsWithYourGroupAdmins,
                         textAlign: TextAlign.center,
                         style: TextStyle(color: p.muted, fontSize: 13)),
                     if (!_unreadOnly) ...[
                       const SizedBox(height: 18),
                       Center(
                         child: SpButton(
-                          label: 'New message',
+                          label: context.l10n.inbox_newMessage,
                           icon: Icons.edit_outlined,
                           onTap: () => startNewMessage(context),
                         ),

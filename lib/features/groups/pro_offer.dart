@@ -20,6 +20,7 @@ import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 const _mint = Color(0xFF6EDC9E);
 
@@ -67,7 +68,7 @@ class ProOfferCard extends ConsumerWidget {
             Row(children: [
               const Icon(Icons.auto_awesome_rounded, size: 13, color: _mint),
               const SizedBox(width: 4),
-              Text(on ? 'PRO FEATURES · FREE' : 'FREE PLAN OFFER',
+              Text(on ? context.l10n.group_proFeaturesFree2 : context.l10n.group_freePlanOffer2,
                   style: const TextStyle(
                       color: _mint, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.4)),
               const Spacer(),
@@ -77,25 +78,25 @@ class ProOfferCard extends ConsumerWidget {
                   decoration: BoxDecoration(
                       color: Colors.white.withAlpha(26), borderRadius: BorderRadius.circular(99)),
                   child: Text(
-                      o.renewsOn != null ? 'Renews ${_day(o.renewsOn!)}' : 'Until ${_day(o.endsAt!)}',
+                      o.renewsOn != null ? context.l10n.group_renews3(_day(o.renewsOn!)) : context.l10n.group_until2(_day(o.endsAt!)),
                       style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600)),
                 ),
             ]),
             const SizedBox(height: 6),
             Text(
                 on
-                    ? 'Pro features are on for your group'
+                    ? context.l10n.group_proFeaturesAreOnFor2
                     : o.status == 'opted_out'
-                        ? 'Want Pro features back?'
-                        : 'Try Pro features for free',
+                        ? context.l10n.group_wantProFeaturesBack
+                        : context.l10n.group_tryProFeaturesForFree,
                 style: const TextStyle(
                     color: Colors.white, fontSize: 20, height: 1.15, fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
             Text(
                 on
-                    ? 'It renews automatically while SportPadi runs the offer — it can end at any time.'
+                    ? context.l10n.group_itRenewsAutomaticallyWhileSportPadi
                     : o.description ??
-                        'Unlock Pro features for your group at no subscription cost — for as long as SportPadi runs the offer.',
+                        context.l10n.group_unlockProFeaturesForYour,
                 style: TextStyle(color: Colors.white.withAlpha(190), fontSize: 12.5, height: 1.4)),
             if (o.features.isNotEmpty) ...[
               const SizedBox(height: 10),
@@ -122,8 +123,8 @@ class ProOfferCard extends ConsumerWidget {
           padding: const EdgeInsets.all(14),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Text.rich(TextSpan(style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.4), children: [
-              TextSpan(text: 'Fees still apply. ', style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
-              TextSpan(text: "Payments your group collects pay the ${o.feeTierName ?? o.planName} plan's fee — "),
+              TextSpan(text: context.l10n.group_feesStillApply, style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
+              TextSpan(text: context.l10n.group_paymentsYourGroupCollectsPay2(o.feeTierName ?? o.planName)),
               TextSpan(text: o.feePhrase, style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
               const TextSpan(text: '.'),
             ])),
@@ -135,17 +136,17 @@ class ProOfferCard extends ConsumerWidget {
                       child: TextButton(
                         onPressed: () => _confirmOptOut(context, ref, groupId, groupName, o),
                         style: TextButton.styleFrom(foregroundColor: p.danger, padding: EdgeInsets.zero),
-                        child: const Text('Opt out of the offer'),
+                        child: Text(context.l10n.group_optOutOfTheOffer),
                       ),
                     )
-                  : Text("Only the group's owner can opt out.",
+                  : Text(context.l10n.group_onlyTheGroupsOwnerCan,
                       style: TextStyle(color: p.muted, fontSize: 12))
             else if (o.isOwner)
               SpButton(
                 expand: true,
                 tone: SpButtonTone.brand,
                 icon: Icons.auto_awesome_rounded,
-                label: o.status == 'opted_out' ? 'Review terms & switch back on' : 'Review terms & switch on',
+                label: o.status == 'opted_out' ? context.l10n.group_reviewTermsSwitchBackOn : context.l10n.group_reviewTermsSwitchOn,
                 onTap: () => showProOfferTermsSheet(context, groupId: groupId, groupName: groupName, offer: o),
               )
             else
@@ -153,7 +154,7 @@ class ProOfferCard extends ConsumerWidget {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(color: p.surface2, borderRadius: BorderRadius.circular(14)),
                 child: Text(
-                    "Only the group's owner can accept the offer terms — ask them to switch it on.",
+                    context.l10n.group_onlyTheGroupsOwnerCan3,
                     style: TextStyle(color: p.ink, fontSize: 12.5)),
               ),
           ]),
@@ -168,15 +169,15 @@ Future<void> _confirmOptOut(
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Opt out of free Pro features?'),
+      title: Text(l10n.group_optOutOfFreePro),
       content: Text(
-          "The offer's features stop for $groupName straight away; your events, members and records stay. You can switch it back on later by accepting the terms again, while SportPadi still runs the offer."),
+          l10n.group_theOffersFeaturesStopFor(groupName)),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep it')),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.group_keepIt)),
         FilledButton(
           style: FilledButton.styleFrom(backgroundColor: Colors.red),
           onPressed: () => Navigator.pop(ctx, true),
-          child: const Text('Opt out'),
+          child: Text(l10n.group_optOut),
         ),
       ],
     ),
@@ -186,7 +187,7 @@ Future<void> _confirmOptOut(
   try {
     await ref.read(groupAdminRepositoryProvider).optOutPromo(groupId, o.promoId);
     _refresh(ref, groupId);
-    messenger.showSnackBar(const SnackBar(content: Text("You've opted out — Pro features are off.")));
+    messenger.showSnackBar(SnackBar(content: Text(l10n.group_youveOptedOutProFeatures)));
   } catch (e) {
     messenger.showSnackBar(SnackBar(content: Text('$e')));
   }
@@ -227,7 +228,7 @@ class _TermsSheetState extends ConsumerState<_TermsSheet> {
       await ref.read(groupAdminRepositoryProvider).acceptFreeOffer(widget.groupId, widget.offer.terms.version);
       _refresh(ref, widget.groupId);
       nav.pop();
-      messenger.showSnackBar(const SnackBar(content: Text('Pro features are on for your group 🎉')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.group_proFeaturesAreOnFor)));
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
       // Terms changed under us: reload so the sheet shows the new version next time.
@@ -260,14 +261,14 @@ class _TermsSheetState extends ConsumerState<_TermsSheet> {
       SpSheetHeader(
         icon: Icons.auto_awesome_rounded,
         title: t.title,
-        subtitle: 'Accept on behalf of ${widget.groupName} to switch on free Pro features.',
+        subtitle: context.l10n.group_acceptOnBehalfOfTo(widget.groupName),
       ),
       Container(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
         decoration: BoxDecoration(color: p.surface2, borderRadius: BorderRadius.circular(16)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           for (final k in t.keyPoints) point(k),
-          point("Your group's fee today: ${o.feePhrase} on each payment (${o.feeTierName ?? o.planName} plan)."),
+          point(context.l10n.group_yourGroupsFeeTodayOn(o.feePhrase, o.feeTierName ?? o.planName)),
         ]),
       ),
       const SizedBox(height: 12),
@@ -296,7 +297,7 @@ class _TermsSheetState extends ConsumerState<_TermsSheet> {
             const SizedBox(height: 10),
             GestureDetector(
               onTap: () => launchUrl(Uri.parse('$base${t.url}'), mode: LaunchMode.inAppBrowserView),
-              child: Text('Version ${t.version} · updated ${t.updated} · open on the web',
+              child: Text(context.l10n.group_versionUpdatedOpenOnThe(t.version, t.updated),
                   style: TextStyle(
                       color: p.muted, fontSize: 11, decoration: TextDecoration.underline)),
             ),
@@ -316,7 +317,7 @@ class _TermsSheetState extends ConsumerState<_TermsSheet> {
             child: Padding(
               padding: const EdgeInsets.only(top: 12),
               child: Text(
-                  'I own ${widget.groupName} on SportPadi and agree to the ${t.title} on its behalf — including that fees still apply and the offer can end at any time.',
+                  context.l10n.group_iOwnOnSportPadiAnd(widget.groupName, t.title),
                   style: TextStyle(color: p.ink, fontSize: 12.5, height: 1.4)),
             ),
           ),
@@ -331,7 +332,7 @@ class _TermsSheetState extends ConsumerState<_TermsSheet> {
         expand: true,
         tone: SpButtonTone.brand,
         icon: Icons.auto_awesome_rounded,
-        label: _busy ? 'Switching on…' : 'Accept & switch on',
+        label: _busy ? context.l10n.group_switchingOn : context.l10n.group_acceptSwitchOn,
         onTap: _agree && !_busy ? _accept : null,
       ),
     ]);
@@ -399,23 +400,21 @@ class _ProOfferScreenState extends ConsumerState<ProOfferScreen> {
       body = _failed
           ? Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const _ProOfferNote(
-                    title: "Couldn't open the offer",
-                    text: 'Check your connection and try again.'),
-                SpButton(label: 'Open the offer', onTap: () => _openOnWeb(popAfter: true)),
+                _ProOfferNote(
+                    title: context.l10n.group_couldntOpenTheOffer,
+                    text: context.l10n.group_checkYourConnectionAndTry),
+                SpButton(label: context.l10n.group_openTheOffer, onTap: () => _openOnWeb(popAfter: true)),
               ]),
             )
-          : const _ProOfferNote(title: 'Opening the offer…', text: 'It opens in a browser window, already signed in.');
+          : _ProOfferNote(title: context.l10n.group_openingTheOffer, text: context.l10n.group_itOpensInABrowser);
     } else {
       final offer = ref.watch(freeOfferProvider(groupId));
       if (offer.isLoading && !offer.hasValue) {
         body = const Center(child: CircularProgressIndicator());
       } else if (offer.valueOrNull == null) {
-        body = const _ProOfferNote(
-            title: 'Nothing to switch on',
-            text: "This group can't take the free Pro features offer right now — "
-                "it's for groups on the Free plan, while the offer is running, "
-                'and only the group\'s admins can see it.');
+        body = _ProOfferNote(
+            title: context.l10n.group_nothingToSwitchOn,
+            text: context.l10n.group_thisGroupCantTakeThe);
       } else {
         body = ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
@@ -430,7 +429,7 @@ class _ProOfferScreenState extends ConsumerState<ProOfferScreen> {
         child: Column(children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: SpHeader(title: 'Pro features', subtitle: group?.name),
+            child: SpHeader(title: context.l10n.group_proFeatures, subtitle: group?.name),
           ),
           Expanded(child: body),
         ]),
