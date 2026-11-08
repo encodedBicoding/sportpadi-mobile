@@ -53,12 +53,15 @@ class GroupsRepository {
   }
 
   /// Create a group (creator becomes admin). Returns the new group id.
-  Future<String> createGroup(String name, String? description) async {
+  /// [classification]: optional group type (`school`, `faith`… — group_class.dart).
+  Future<String> createGroup(String name, String? description,
+      {String? classification}) async {
     try {
       final res = await _dio.post('/api/mobile/groups', data: {
         'name': name,
         if (description != null && description.isNotEmpty)
           'description': description,
+        if (classification != null) 'classification': classification,
       });
       final data = res.data;
       return (data is Map ? data['id'] : null) as String? ?? '';
