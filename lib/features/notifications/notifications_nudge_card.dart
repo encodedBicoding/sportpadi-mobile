@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/notifications/notification_permission_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The always-there reminder on Home when this device can't receive pushes
 /// for the signed-in user. The soft-ask sheet (NotificationPermissionSheet)
@@ -85,19 +86,19 @@ class _NotificationsNudgeCardState extends ConsumerState<NotificationsNudgeCard>
     final String body;
     final String cta;
     if (status == AuthorizationStatus.notDetermined) {
-      title = 'Turn on notifications';
-      body = "Game reminders, team news and updates for your groups can't reach this phone yet.";
-      cta = 'Turn on';
+      title = context.l10n.inbox_turnOnNotifications;
+      body = context.l10n.inbox_gameRemindersTeamNewsAnd;
+      cta = context.l10n.inbox_turnOn;
     } else if (status == AuthorizationStatus.denied) {
-      title = 'Notifications are off';
-      body = 'This phone has notifications switched off for SportPadi, so game reminders and updates can\'t reach you here.';
-      cta = 'Settings';
+      title = context.l10n.inbox_notificationsAreOff;
+      body = context.l10n.inbox_thisPhoneHasNotificationsSwitched;
+      cta = context.l10n.inbox_settings;
     } else {
-      title = "Notifications aren't connected";
+      title = context.l10n.inbox_notificationsArentConnected;
       body = push.lastRegisterError != null
-          ? "Notifications are allowed, but this phone couldn't be registered — try again."
-          : 'Notifications are allowed, but this phone isn\'t registered for your account yet.';
-      cta = 'Connect';
+          ? context.l10n.inbox_notificationsAreAllowedButThis
+          : context.l10n.inbox_notificationsAreAllowedButThis2;
+      cta = context.l10n.inbox_connect;
     }
 
     return Padding(
@@ -137,7 +138,7 @@ class _NotificationsNudgeCardState extends ConsumerState<NotificationsNudgeCard>
                   onPressed: () => ref.read(_nudgeHiddenProvider.notifier).state = true,
                   style: TextButton.styleFrom(
                       foregroundColor: p.muted, padding: const EdgeInsets.symmetric(horizontal: 10)),
-                  child: const Text('Later', style: TextStyle(fontSize: 12.5)),
+                  child: Text(context.l10n.inbox_later, style: const TextStyle(fontSize: 12.5)),
                 ),
               ]),
             ]),

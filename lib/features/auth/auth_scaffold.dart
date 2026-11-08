@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 const _mint = Color(0xFF6EDC9E);
 
@@ -66,7 +67,7 @@ class AuthScaffold extends StatelessWidget {
                             if (onClose != null)
                               SpRoundButton(
                                 icon: Icons.close_rounded,
-                                tooltip: 'Not now',
+                                tooltip: context.l10n.auth_notNow,
                                 onTap: onClose!,
                               ),
                           ]),

@@ -1,13 +1,14 @@
 import 'package:intl/intl.dart';
+import 'package:sportpadi_mobile/core/i18n/date_locale.dart';
 
 import 'instant.dart';
 import 'parse.dart';
 
-final _day = DateFormat('EEE, d MMM');
-final _dayYear = DateFormat('d MMM yyyy');
+DateFormat get _day => DateFormat('EEE, d MMM');
+DateFormat get _dayYear => DateFormat('d MMM yyyy');
 // The web's event page form (EventHero formatDate: weekday long, month long,
 // day, year) — "Sunday, October 18, 2026".
-final _dayLong = DateFormat('EEEE, MMMM d, yyyy');
+DateFormat get _dayLong => DateFormat('EEEE, MMMM d, yyyy');
 
 /// Event dates are UTC wall-clock values (the web renders them with
 /// timeZone: "UTC") — format the UTC face, never the device-local shift.
@@ -91,7 +92,7 @@ String capitalizeFirst(String? s) {
   return first.toUpperCase() + s.substring(first.length);
 }
 
-final _ymdDate = DateFormat('MMM d, y', 'en_US');
+DateFormat get _ymdDate => DateFormat('MMM d, y', spDateLocale);
 
 /// A plain calendar date ("2028-06-01" → "Jun 1, 2028"): a birthday, an
 /// "until" date. Not an instant, so no zone conversion — the digits are the

@@ -1,4 +1,5 @@
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Messages (Messaging 2): conversations between a group's STAFF (admins,
 /// team coaches) and ONE member — or a ward's guardians, "About Tobi".
@@ -145,7 +146,7 @@ class ConversationItem {
           _ => 'open',
         },
         mySide: j['mySide'] == 'staff' ? 'staff' : 'member',
-        title: parseStr(j['title']) ?? 'Conversation',
+        title: parseStr(j['title']) ?? l10n.common_conversation,
         avatarUrl: parseStr(j['avatarUrl']),
         subtitle: parseStr(j['subtitle']) ?? '',
         aboutWard: MessageWardRef.fromJson(j['aboutWard']),
@@ -286,7 +287,7 @@ class ConversationInfo {
           'locked' => 'locked',
           _ => 'open',
         },
-        title: parseStr(j['title']) ?? 'Conversation',
+        title: parseStr(j['title']) ?? l10n.common_conversation,
         avatarUrl: parseStr(j['avatarUrl']),
         aboutWard: MessageWardRef.fromJson(j['aboutWard']),
         guardians: [

@@ -1,0 +1,10 @@
+# Translations (docs/design/i18n.md). ARB files are generated from the web's
+# messages/*.json by scripts/i18n/sync.mjs in the workspace — edit the JSON,
+# not the ARB. `flutter gen-l10n` (or any build) writes the Dart class.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+output-dir: lib/l10n/generated
+nullable-getter: false
+untranslated-messages-file: build/untranslated.json

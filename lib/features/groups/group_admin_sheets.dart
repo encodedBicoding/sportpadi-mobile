@@ -16,6 +16,7 @@ import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/features/groups/pro_offer.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Transfer group ownership — the web dialog.
 ///
@@ -82,18 +83,16 @@ class _TransferOwnershipSheetState
     final ok = await showDialog<bool>(
       context: context,
       builder: (d) => AlertDialog(
-        title: const Text('Transfer ownership?'),
+        title: Text(l10n.group_transferOwnership2),
         content: Text(
-            '${who.displayName} will become the owner of ${group?.name ?? 'this group'}. '
-            'You\'ll stay on as an admin, but only they can transfer it again or '
-            'delete the group.'),
+            l10n.group_willBecomeTheOwnerOf2(who.displayName, group?.name ?? 'this group')),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(d, false),
-              child: const Text('Cancel')),
+              child: Text(l10n.group_cancel)),
           FilledButton(
               onPressed: () => Navigator.pop(d, true),
-              child: const Text('Transfer')),
+              child: Text(l10n.group_transfer)),
         ],
       ),
     );
@@ -110,7 +109,7 @@ class _TransferOwnershipSheetState
       if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${who.displayName} now owns this group.')));
+          SnackBar(content: Text(l10n.group_nowOwnsThisGroup(who.displayName))));
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -128,11 +127,11 @@ class _TransferOwnershipSheetState
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SpSheetHeader(
+          SpSheetHeader(
             icon: Icons.swap_horiz_rounded,
-            title: 'Transfer ownership',
+            title: context.l10n.group_transferOwnership,
             subtitle:
-                'Hand this group to someone else. You stay on as an admin.',
+                context.l10n.group_handThisGroupToSomeone,
           ),
           if (_selected != null)
             GlassCard(
@@ -177,7 +176,7 @@ class _TransferOwnershipSheetState
               autofocus: true,
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
-                hintText: 'Search by name or @username',
+                hintText: context.l10n.group_searchByNameOrUsername2,
                 prefixIcon: const Icon(Icons.search_rounded),
                 suffixIcon: _searching
                     ? const Padding(
@@ -233,10 +232,10 @@ class _TransferOwnershipSheetState
           SpButton(
             expand: true,
             label: _busy
-                ? 'Transferring…'
+                ? context.l10n.group_transferring
                 : _selected == null
-                    ? 'Pick the new owner'
-                    : 'Transfer to ${_selected!.displayName.split(' ').first}',
+                    ? context.l10n.group_pickTheNewOwner
+                    : context.l10n.group_transferTo(_selected!.displayName.split(' ').first),
             onTap: _selected == null || _busy ? null : _confirm,
           ),
         ]);
@@ -300,8 +299,8 @@ class _PromoCodesSheetState extends ConsumerState<_PromoCodesSheet> {
       }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(promo.active
-              ? 'Code ${promo.code} applied.'
-              : 'Code ${promo.code} saved — it starts on ${_day(promo.startsAt)}.')));
+              ? l10n.group_codeApplied(promo.code)
+              : l10n.group_codeSavedItStartsOn(promo.code, _day(promo.startsAt)))));
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
     } finally {
@@ -320,10 +319,10 @@ class _PromoCodesSheetState extends ConsumerState<_PromoCodesSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SpSheetHeader(
+          SpSheetHeader(
             icon: Icons.confirmation_number_outlined,
-            title: 'Promo codes',
-            subtitle: 'Got a code from SportPadi? Apply it to this group.',
+            title: context.l10n.group_promoCodes,
+            subtitle: context.l10n.group_gotACodeFromSportPadi,
           ),
           // The Free plan's "Try Pro features for free" (Android; renders
           // nothing when there's no offer for this group).
@@ -336,9 +335,9 @@ class _PromoCodesSheetState extends ConsumerState<_PromoCodesSheet> {
             onSubmitted: (_) => _redeem(),
             style: TextStyle(
                 color: p.ink, fontWeight: FontWeight.w700, letterSpacing: 1),
-            decoration: const InputDecoration(
-              hintText: 'Enter code',
-              prefixIcon: Icon(Icons.local_offer_outlined, size: 20),
+            decoration: InputDecoration(
+              hintText: context.l10n.group_enterCode,
+              prefixIcon: const Icon(Icons.local_offer_outlined, size: 20),
             ),
           ),
           if (_error != null) ...[
@@ -350,7 +349,7 @@ class _PromoCodesSheetState extends ConsumerState<_PromoCodesSheet> {
             expand: true,
             tone: SpButtonTone.brand,
             icon: Icons.check_rounded,
-            label: _busy ? 'Applying…' : 'Apply code',
+            label: _busy ? context.l10n.group_applying : context.l10n.group_applyCode,
             onTap: _busy ? null : _redeem,
           ),
           if (_unlocked != null) ...[
@@ -362,21 +361,19 @@ class _PromoCodesSheetState extends ConsumerState<_PromoCodesSheet> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('You can now collect payments.',
+                    Text(context.l10n.group_youCanNowCollectPayments,
                         style: TextStyle(
                             color: p.ink, fontWeight: FontWeight.w800, fontSize: 13)),
                     const SizedBox(height: 4),
                     Text(
-                      'On the ${_unlocked!.feeTierName ?? 'current'} plan, SportPadi keeps ${feePhrase(_unlocked!.feeNetBps!)} of each payment '
-                      '(${feeSourcePhrase(_unlocked!.feeSource ?? 'default', _unlocked!.feeTierName)}). The fee follows your plan, not the promo code — '
-                      'every payment shows it, and your wallet statement adds it up each month.',
+                      context.l10n.group_onThePlanSportPadiKeeps(_unlocked!.feeTierName ?? 'current', feePhrase(_unlocked!.feeNetBps!), feeSourcePhrase(_unlocked!.feeSource ?? 'default', _unlocked!.feeTierName)),
                       style: TextStyle(color: p.ink, fontSize: 12.5, height: 1.4),
                     ),
                   ]),
             ),
           ],
           const SizedBox(height: 22),
-          const Eyebrow('Applied to this group'),
+          Eyebrow(context.l10n.group_appliedToThisGroup),
           const SizedBox(height: 8),
           promos.when(
             loading: () => const Padding(
@@ -403,7 +400,7 @@ class _PromoCodesSheetState extends ConsumerState<_PromoCodesSheet> {
                           size: 36, iconSize: 18),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text('No codes applied yet.',
+                        child: Text(context.l10n.group_noCodesAppliedYet,
                             style: TextStyle(color: p.muted, fontSize: 13)),
                       ),
                     ]),
@@ -436,9 +433,9 @@ class _PromoCodesSheetState extends ConsumerState<_PromoCodesSheet> {
                                             color: p.muted, fontSize: 12)),
                                   Text(
                                       pr.active && pr.renewsOn != null
-                                          ? 'Renews ${_day(pr.renewsOn)}'
+                                          ? context.l10n.group_renews3(_day(pr.renewsOn))
                                           : pr.autoRenew
-                                              ? 'From ${_day(pr.startsAt)} · auto-renews'
+                                              ? context.l10n.group_fromDateAutoRenews(_day(pr.startsAt))
                                               : '${_day(pr.startsAt)} – ${_day(pr.endsAt)}',
                                       style: TextStyle(
                                           color: p.muted, fontSize: 11)),
@@ -446,10 +443,10 @@ class _PromoCodesSheetState extends ConsumerState<_PromoCodesSheet> {
                           ),
                           SpBadge(
                               pr.active
-                                  ? 'Active'
+                                  ? context.l10n.group_active
                                   : pr.optedOut
-                                      ? 'Opted out'
-                                      : 'Ended',
+                                      ? context.l10n.group_optedOut
+                                      : context.l10n.group_ended2,
                               tone: pr.active
                                   ? p.greenText
                                   : pr.optedOut
@@ -472,17 +469,17 @@ Future<bool> confirmLeaveGroup(
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text('Leave $groupName?'),
-      content: const Text(
-          "You'll come off its teams and stop getting its updates. Your past games, stats and XP stay on your profile. To come back, you'll need an invite or the group's join link."),
+      title: Text(l10n.group_leave(groupName)),
+      content: Text(
+          l10n.group_youllComeOffItsTeams),
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Stay')),
+            child: Text(l10n.group_stay)),
         FilledButton(
           style: FilledButton.styleFrom(backgroundColor: Colors.red),
           onPressed: () => Navigator.pop(ctx, true),
-          child: const Text('Leave group'),
+          child: Text(l10n.group_leaveGroup),
         ),
       ],
     ),
@@ -495,8 +492,8 @@ Future<bool> confirmLeaveGroup(
     ref.invalidate(myGroupsProvider);
     messenger.showSnackBar(SnackBar(
         content: Text(wards > 0
-            ? "You've left $groupName — $wards ${wards == 1 ? 'ward' : 'wards'} who joined with you left too."
-            : "You've left $groupName.")));
+            ? l10n.group_countPluralOneYouveLeft(wards, groupName)
+            : l10n.group_youveLeft2(groupName))));
     return true;
   } catch (e) {
     messenger.showSnackBar(SnackBar(content: Text('$e')));

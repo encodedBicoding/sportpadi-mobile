@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// A user-facing error surfaced from the API layer.
 class ApiException implements Exception {
@@ -36,11 +37,11 @@ ApiException apiError(Object e, {String fallback = 'Something went wrong.'}) {
     final parts = <String>[e.type.name];
     if (status != null) {
       final ct = e.response?.headers.value('content-type');
-      parts.add('HTTP $status${ct != null ? ' · ${ct.split(';').first}' : ''}');
+      parts.add(l10n.common_http(status, (ct != null ? ' · ${ct.split(';').first}' : '')));
       // A firewall / CDN challenge page instead of our JSON: the request
       // reached the edge but was refused before the app server saw it.
       if (e.response?.headers.value('cf-mitigated') != null ||
-          (data is String && data.contains('Cloudflare'))) {
+          (data is String && data.contains(l10n.common_cloudflare))) {
         parts.add('blocked by the site firewall (Cloudflare)');
       }
     }

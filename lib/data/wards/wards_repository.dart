@@ -5,6 +5,7 @@ import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/data/wards/ward_models.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Wards REST bridge (`/api/mobile/wards`). A guardian creates, edits and
 /// shares the running of player accounts that have no login of their own.
@@ -30,7 +31,7 @@ class WardsRepository {
       final res =
           await _dio.get('/api/mobile/wards', queryParameters: {'id': wardId});
       if (res.data is! Map) {
-        throw ApiException('Ward not found.', statusCode: 404);
+        throw ApiException(l10n.common_wardNotFound, statusCode: 404);
       }
       return WardDetail.fromJson(Map<String, dynamic>.from(res.data as Map));
     } catch (e) {
@@ -69,7 +70,7 @@ class WardsRepository {
       'relationship': relationship,
       if (avatarUrl != null) 'avatarUrl': avatarUrl,
       'consent': true,
-    }, "Couldn't add the ward.");
+    }, l10n.common_couldntAddTheWard);
     return parseStr(r['wardId']) ?? '';
   }
 
@@ -77,7 +78,7 @@ class WardsRepository {
   /// keys in [patch] change (`gender`/`avatarUrl` may be null to clear).
   Future<void> update(String wardId, Map<String, dynamic> patch) async {
     await _post({'action': 'update', 'wardId': wardId, ...patch},
-        "Couldn't save the changes.");
+        l10n.common_couldntSaveTheChanges);
   }
 
   /// Invite another SportPadi user to co-guardian. Returns true when they'd
@@ -88,25 +89,25 @@ class WardsRepository {
       'wardId': wardId,
       'userId': userId,
       'relationship': relationship,
-    }, "Couldn't send the invitation.");
+    }, l10n.common_couldntSendTheInvitation);
     return r['alreadyInvited'] == true;
   }
 
   /// Accept (which is my consent) or decline a co-guardian invitation.
   Future<void> respond(String wardId, {required bool accept}) async {
     await _post({'action': 'respond', 'wardId': wardId, 'accept': accept},
-        "Couldn't answer the invitation.");
+        l10n.common_couldntAnswerTheInvitation);
   }
 
   Future<void> cancelInvite(String wardId, String userId) async {
     await _post({'action': 'cancel-invite', 'wardId': wardId, 'userId': userId},
-        "Couldn't cancel the invitation.");
+        l10n.common_couldntCancelTheInvitation);
   }
 
   /// Stop being a guardian. The server refuses when I'm the only one.
   Future<void> leave(String wardId) async {
     await _post({'action': 'leave', 'wardId': wardId},
-        "Couldn't remove you as a guardian.");
+        l10n.common_couldntRemoveYouAsA);
   }
 
   /// The ward's groups (with their teams there) and mine they could join.
@@ -127,14 +128,14 @@ class WardsRepository {
   Future<bool> joinGroup(String wardId, String groupId) async {
     final r = await _post(
         {'action': 'join-group', 'wardId': wardId, 'groupId': groupId},
-        "Couldn't add them to the group.");
+        l10n.common_couldntAddThemToThe);
     return r['alreadyMember'] == true;
   }
 
   /// Take the ward out of a group (and its teams there).
   Future<void> leaveGroup(String wardId, String groupId) async {
     await _post({'action': 'leave-group', 'wardId': wardId, 'groupId': groupId},
-        "Couldn't remove them from the group.");
+        l10n.common_couldntRemoveThemFromThe);
   }
 
   /// Team invitations waiting on me — for every ward, or just [wardId].
@@ -162,7 +163,7 @@ class WardsRepository {
       'action': 'respond-team-invite',
       'inviteId': inviteId,
       'accept': accept
-    }, "Couldn't answer the invitation.");
+    }, l10n.common_couldntAnswerTheInvitation);
     return WardTeamInviteResult.fromJson(r);
   }
 
@@ -174,14 +175,14 @@ class WardsRepository {
   Future<WardClaim?> startClaim(String wardId, String email) async {
     final r = await _post(
         {'action': 'start-claim', 'wardId': wardId, 'email': email.trim()},
-        "Couldn't send the link.");
+        l10n.common_couldntSendTheLink);
     return WardClaim.fromJson(r);
   }
 
   /// Withdraw the pending hand-over link.
   Future<void> cancelClaim(String wardId) async {
     await _post({'action': 'cancel-claim', 'wardId': wardId},
-        "Couldn't cancel the link.");
+        l10n.common_couldntCancelTheLink);
   }
 
   /// PUBLIC: what the emailed `/claim/<token>` link is for (no sign-in — the
@@ -225,7 +226,7 @@ class WardsRepository {
   Future<void> delete(String wardId, String confirmName) async {
     await _post(
         {'action': 'delete', 'wardId': wardId, 'confirmName': confirmName},
-        "Couldn't delete the ward.");
+        l10n.common_couldntDeleteTheWard);
   }
 }
 

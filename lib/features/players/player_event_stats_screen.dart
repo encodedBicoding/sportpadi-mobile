@@ -13,6 +13,7 @@ import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// One player's record inside ONE event.
 ///
@@ -28,12 +29,12 @@ final playerEventStatsProvider = FutureProvider.autoDispose
         .watch(dioProvider)
         .get('/api/mobile/players/${key.userId}/events/${key.eventId}');
     if (res.data is! Map) {
-      throw ApiException('The server returned an empty record.',
+      throw ApiException(l10n.profile_theServerReturnedAnEmptyRecord,
           statusCode: 502);
     }
     return Map<String, dynamic>.from(res.data as Map);
   } catch (e) {
-    throw apiError(e, fallback: 'Could not load their record.');
+    throw apiError(e, fallback: l10n.profile_couldNotLoadTheirRecord);
   }
 });
 
@@ -66,7 +67,7 @@ class PlayerEventStatsScreen extends ConsumerWidget {
             ? RefreshIndicator(
                 onRefresh: refresh,
                 child: _alwaysPullable(context,
-                    const PlayerPrivateView(title: 'Record in event')),
+                    PlayerPrivateView(title: context.l10n.profile_recordInEvent)),
               )
             : _pullableUnlessData(
                 data,
@@ -110,9 +111,9 @@ class PlayerEventStatsScreen extends ConsumerWidget {
                   final games = statInt(record['games']);
 
                   final statusLabel = status == 'completed'
-                      ? 'Finished'
+                      ? context.l10n.profile_finished
                       : status == 'kicked_off'
-                          ? 'Live'
+                          ? context.l10n.profile_live
                           : status.isEmpty
                               ? null
                               : '${status[0].toUpperCase()}${status.substring(1).replaceAll('_', ' ')}';
@@ -124,7 +125,7 @@ class PlayerEventStatsScreen extends ConsumerWidget {
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
                       children: [
                         SpHeader(
-                          title: 'Record in event',
+                          title: context.l10n.profile_recordInEvent,
                           subtitle: parseStr(event['title']),
                         ),
                         const SizedBox(height: 16),
@@ -142,7 +143,7 @@ class PlayerEventStatsScreen extends ConsumerWidget {
                           status: statusLabel,
                           statusLive: status == 'kicked_off',
                           eyebrow: parseStr(cat['name']),
-                          title: parseStr(event['title']) ?? 'Event',
+                          title: parseStr(event['title']) ?? context.l10n.profile_event,
                           meta: [
                             when.line,
                             if (parseStr(event['locationName']) != null)
@@ -157,8 +158,8 @@ class PlayerEventStatsScreen extends ConsumerWidget {
                             if (attended)
                               recordHeroPill(
                                 checkedInAt != null
-                                    ? 'Checked in · ${formatDayYear(checkedInAt)}'
-                                    : 'Checked in',
+                                    ? context.l10n.profile_checkedIn2(formatDayYear(checkedInAt))
+                                    : context.l10n.profile_checkedIn,
                                 const Color(0x296EDC9E),
                                 recordMint,
                                 icon: Icons.check_circle_rounded,
@@ -170,12 +171,12 @@ class PlayerEventStatsScreen extends ConsumerWidget {
                         const SizedBox(height: 12),
                         recordActions([
                           RecordAction(
-                              label: 'Open event',
+                              label: context.l10n.profile_openEvent,
                               icon: Icons.north_east_rounded,
                               onTap: () => context.push('/events/$slug')),
                           if (groupId != null)
                             RecordAction(
-                                label: 'In this group',
+                                label: context.l10n.profile_inThisGroup,
                                 icon: Icons.bar_chart_rounded,
                                 onTap: () => context
                                     .push('/players/$userId/groups/$groupId')),
@@ -195,14 +196,14 @@ class PlayerEventStatsScreen extends ConsumerWidget {
                         if (!hasGames)
                           RecordEmpty(
                             icon: Icons.emoji_events_outlined,
-                            title: 'No games recorded',
+                            title: context.l10n.profile_noGamesRecorded,
                             body: attended
-                                ? '$first was there, but no game with stats was played or recorded at this event.'
-                                : "$first didn't feature in any recorded game here.",
+                                ? context.l10n.profile_wasThereButNoGame(first)
+                                : context.l10n.profile_didntFeatureInAnyRecorded(first),
                           )
                         else
                           ScopeBlock(
-                            title: "$first's record in this event",
+                            title: context.l10n.profile_sRecordInThisEvent(first),
                             family: family ?? SportFamily.generic,
                             collapseKey: 'event-record',
                             tally: record,
@@ -210,14 +211,14 @@ class PlayerEventStatsScreen extends ConsumerWidget {
                             accent: true,
                             empty: matches
                                     .any((x) => parseStr(x['status']) == 'live')
-                                ? 'No completed games yet — one is live now.'
-                                : 'No completed games yet.',
+                                ? context.l10n.profile_noCompletedGamesYetOne
+                                : context.l10n.profile_noCompletedGamesYet,
                           ),
 
                         // Game by game.
                         if (hasGames) ...[
                           const SizedBox(height: 22),
-                          RecordSectionTitle('Games', count: matches.length),
+                          RecordSectionTitle(context.l10n.profile_games, count: matches.length),
                           const SizedBox(height: 10),
                           RecordList(children: [
                             for (final x in matches)

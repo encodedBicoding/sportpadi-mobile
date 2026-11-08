@@ -17,13 +17,14 @@ import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/team_tile.dart'
     show kitGradient;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
-const _tabs = <(String, String)>[
-  ('all', 'All'),
-  ('live', 'Live'),
-  ('upcoming', 'Upcoming'),
-  ('invited', 'Invites'),
-  ('past', 'Past'),
+List<(String, String)> get _tabs => <(String, String)>[
+  ('all', l10n.tournament_all),
+  ('live', l10n.tournament_live),
+  ('upcoming', l10n.tournament_upcoming),
+  ('invited', l10n.tournament_invitesLabel),
+  ('past', l10n.tournament_pastLabel),
 ];
 
 const _months = [
@@ -100,7 +101,7 @@ class _MyTeamTournamentsScreenState
               child: SpRoundButton(
                 icon: Icons.arrow_back_ios_new_rounded,
                 iconSize: 18,
-                tooltip: 'Back',
+                tooltip: context.l10n.tournament_back,
                 onTap: _back,
               ),
             ),
@@ -122,11 +123,11 @@ class _MyTeamTournamentsScreenState
     if (shown.isEmpty) {
       body.add(_Empty(tab: _tab));
     } else if (_tab == 'all') {
-      for (final (bucket, title) in const [
-        ('live', 'Live now'),
-        ('invited', 'Invitations'),
-        ('upcoming', 'Upcoming'),
-        ('past', 'Past'),
+      for (final (bucket, title) in [
+        ('live', context.l10n.tournament_liveNow),
+        ('invited', context.l10n.tournament_invitations),
+        ('upcoming', context.l10n.tournament_upcoming),
+        ('past', context.l10n.tournament_pastLabel),
       ]) {
         final list = shown.where((e) => e.bucket == bucket).toList();
         if (list.isEmpty) continue;
@@ -255,19 +256,19 @@ class _Hero extends StatelessWidget {
                       SpRoundButton(
                         icon: Icons.arrow_back_ios_new_rounded,
                         iconSize: 18,
-                        tooltip: 'Back',
+                        tooltip: context.l10n.tournament_back,
                         onTap: onBack,
                       ),
                       const Spacer(),
                       SpRoundButton(
                         icon: Icons.shield_outlined,
-                        tooltip: 'Team page',
+                        tooltip: context.l10n.tournament_teamPage,
                         onTap: () => context.push('/teams/${t.teamId}'),
                       ),
                     ]),
                     const SizedBox(height: 18),
-                    const Text('TOURNAMENTS',
-                        style: TextStyle(
+                    Text(context.l10n.tournament_tournaments2,
+                        style: const TextStyle(
                             color: Color(0xD9FFFFFF),
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
@@ -315,27 +316,27 @@ class _Hero extends StatelessWidget {
               if (t.isAdmin || t.isMember) ...[
                 const SizedBox(height: 10),
                 Wrap(spacing: 6, runSpacing: 6, children: [
-                  tournamentPill(t.isAdmin ? 'You manage' : 'You play',
+                  tournamentPill(t.isAdmin ? context.l10n.tournament_youManage : context.l10n.tournament_youPlay,
                       p.accentTint, p.greenText),
                   if (t.live > 0)
                     tournamentPill('${t.live} live', p.liveTint, p.danger,
                         dot: true),
                   if (t.callUps > 0)
                     tournamentPill(
-                        'Call-up waiting', p.orangeTint, p.orangeInk),
+                        context.l10n.tournament_callUpWaiting, p.orangeTint, p.orangeInk),
                 ]),
               ],
               const SizedBox(height: 14),
               Row(children: [
-                _Stat(value: '$tournaments', label: 'Tournaments'),
+                _Stat(value: '$tournaments', label: context.l10n.tournament_tournaments),
                 const SizedBox(width: 8),
-                _Stat(value: '${t.played}', label: 'Played'),
+                _Stat(value: '${t.played}', label: context.l10n.tournament_played),
                 const SizedBox(width: 8),
                 _Stat(
                     value: t.played > 0 ? '${t.won}-${t.drawn}-${t.lost}' : '—',
-                    label: 'W-D-L'),
+                    label: context.l10n.tournament_wDL2),
                 const SizedBox(width: 8),
-                _Stat(value: winRate, label: 'Win rate', accent: true),
+                _Stat(value: winRate, label: context.l10n.tournament_winRate, accent: true),
               ]),
             ],
           ),
@@ -475,13 +476,13 @@ class _Empty extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final (icon, text) = switch (tab) {
-      'live' => (Icons.sensors_rounded, 'Nothing live right now.'),
-      'upcoming' => (Icons.event_outlined, 'No upcoming tournaments.'),
-      'invited' => (Icons.mail_outline_rounded, 'No invitations waiting.'),
-      'past' => (Icons.history_rounded, 'No past tournaments yet.'),
+      'live' => (Icons.sensors_rounded, context.l10n.tournament_nothingLiveRightNow),
+      'upcoming' => (Icons.event_outlined, context.l10n.tournament_noUpcomingTournaments),
+      'invited' => (Icons.mail_outline_rounded, context.l10n.tournament_noInvitationsWaiting),
+      'past' => (Icons.history_rounded, context.l10n.tournament_noPastTournamentsYet),
       _ => (
           Icons.emoji_events_outlined,
-          "This team hasn't played in a tournament yet."
+          context.l10n.tournament_thisTeamHasntPlayedIn
         ),
     };
     return Padding(
@@ -516,19 +517,19 @@ class _EntryCard extends StatelessWidget {
     final vs = e.opponents.isEmpty
         ? null
         : e.opponents.length == 1
-            ? 'vs ${e.opponents.first}'
-            : '${e.opponents.length + 1} teams';
+            ? context.l10n.tournament_vs(e.opponents.first)
+            : context.l10n.tournament_teamCount(e.opponents.length + 1);
     final meta = [
       if (e.locationName != null && e.locationName!.isNotEmpty) e.locationName!,
       if (vs != null) vs,
       if (e.role != 'host' && e.hostGroupName != null)
-        'Hosted by ${e.hostGroupName}',
+        context.l10n.tournament_hostedByName(e.hostGroupName!),
     ].join(' · ');
     final (pill, pillBg, pillFg) = switch (e.bucket) {
-      'live' => ('Live', p.liveTint, p.danger),
-      'upcoming' => ('Upcoming', p.accentTint, p.greenText),
-      'invited' => ('Invite', p.orangeTint, p.orangeInk),
-      _ => ('Past', p.surface2, p.muted),
+      'live' => (context.l10n.tournament_live, p.liveTint, p.danger),
+      'upcoming' => (context.l10n.tournament_upcoming, p.accentTint, p.greenText),
+      'invited' => (context.l10n.tournament_inviteLabel, p.orangeTint, p.orangeInk),
+      _ => (context.l10n.tournament_pastLabel, p.surface2, p.muted),
     };
 
     return GlassCard(
@@ -552,7 +553,7 @@ class _EntryCard extends StatelessWidget {
               child: Column(children: [
                 Text(
                     date == null
-                        ? 'TBC'
+                        ? context.l10n.tournament_tbc
                         : _months[date.month - 1].toUpperCase(),
                     style: TextStyle(
                         color: live
@@ -579,9 +580,9 @@ class _EntryCard extends StatelessWidget {
                   Wrap(spacing: 6, runSpacing: 4, children: [
                     tournamentPill(pill, pillBg, pillFg, dot: live),
                     if (e.role == 'host')
-                      tournamentPill('Your team hosts', p.surface2, p.ink),
+                      tournamentPill(context.l10n.tournament_yourTeamHosts, p.surface2, p.ink),
                     if (cancelled)
-                      tournamentPill('Cancelled', p.liveTint, p.danger),
+                      tournamentPill(context.l10n.tournament_cancelled, p.liveTint, p.danger),
                   ]),
                   const SizedBox(height: 6),
                   Text(e.title,
@@ -624,7 +625,7 @@ class _EntryCard extends StatelessWidget {
                 if (e.games.length > 4)
                   Padding(
                     padding: const EdgeInsets.only(top: 2, bottom: 4),
-                    child: Text('+${e.games.length - 4} more games',
+                    child: Text(context.l10n.tournament_moreGames2(e.games.length - 4),
                         style: TextStyle(
                             color: p.muted,
                             fontSize: 11.5,
@@ -639,7 +640,7 @@ class _EntryCard extends StatelessWidget {
               Expanded(
                 child: _ActionPill(
                   icon: Icons.groups_2_outlined,
-                  label: 'Squad',
+                  label: context.l10n.tournament_squad,
                   onTap: () => context.push(
                       '/groups/${e.hostGroupId}/tournaments/${e.eventId}/teams/${e.teamId}'),
                 ),
@@ -648,7 +649,7 @@ class _EntryCard extends StatelessWidget {
               Expanded(
                 child: _ActionPill(
                   icon: Icons.grid_view_rounded,
-                  label: 'Formation',
+                  label: context.l10n.tournament_formation,
                   onTap: () => context.push(
                       '/groups/${e.hostGroupId}/tournaments/${e.eventId}/teams/${e.teamId}/formation'),
                 ),
@@ -709,7 +710,7 @@ class _GameRow extends StatelessWidget {
                   fontSize: 13.5,
                   fontWeight: FontWeight.w800))
         else
-          Text(g.scheduledDate ?? 'Not scheduled',
+          Text(g.scheduledDate ?? context.l10n.tournament_notScheduled,
               style: TextStyle(color: p.muted, fontSize: 12)),
       ]),
     );

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/event_models.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The web events-feed card: cover image with overlaid badges + title, then a
 /// detail block (date/time, venue, host group, interest count, action button).
@@ -126,15 +127,15 @@ class EventFeedCard extends StatelessWidget {
                       tone: p.accent),
                 if (e.isPrivate) ...[
                   const SizedBox(width: 6),
-                  _chip(context, 'Private',
+                  _chip(context, context.l10n.common_private,
                       icon: Icons.lock_outline, tone: p.amber),
                 ],
                 const Spacer(),
                 if (e.isTournament)
-                  _chip(context, 'Tournament',
+                  _chip(context, context.l10n.common_tournament,
                       icon: Icons.emoji_events_outlined, tone: p.amber)
                 else if (live)
-                  _chip(context, 'Live',
+                  _chip(context, context.l10n.common_live,
                       icon: Icons.bolt_rounded, tone: p.danger),
               ],
             ),
@@ -264,7 +265,7 @@ class EventFeedCard extends StatelessWidget {
           style: TextStyle(
               color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700),
         ),
-        Text(' RSVPs', style: TextStyle(color: p.muted, fontSize: 12.5)),
+        Text(context.l10n.common_rSVPs, style: TextStyle(color: p.muted, fontSize: 12.5)),
         const Spacer(),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -276,7 +277,7 @@ class EventFeedCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                e.isTournament ? 'Spectate' : 'View',
+                e.isTournament ? context.l10n.common_spectate : context.l10n.common_view,
                 style: TextStyle(
                     color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w600),
               ),

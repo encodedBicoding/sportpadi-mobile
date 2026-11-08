@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/documents/documents_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// One document row: what's on file, upload / enter / replace / remove (web
 /// twin: components/teams/TeamDocuments.tsx TeamDocumentRow). On the phone a
@@ -56,7 +57,7 @@ class _TeamDocumentRowState extends ConsumerState<TeamDocumentRow> {
           fileUrl: url,
           fileName: picked.name,
           textValue: _text.text.trim().isEmpty ? widget.item.document?.textValue : _text.text.trim());
-      _snack('${widget.item.type.name} saved');
+      _snack(l10n.manage_saved(widget.item.type.name));
       widget.onChanged();
     } on ApiException catch (e) {
       _snack(e.message);
@@ -70,9 +71,9 @@ class _TeamDocumentRowState extends ConsumerState<TeamDocumentRow> {
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(leading: const Icon(Icons.photo_library_outlined), title: const Text('Choose from gallery'), onTap: () => Navigator.pop(ctx, ImageSource.gallery)),
-          ListTile(leading: const Icon(Icons.photo_camera_outlined), title: const Text('Take a photo'), onTap: () => Navigator.pop(ctx, ImageSource.camera)),
-          const ListTile(dense: true, title: Text('PDFs can be uploaded on sportpadi.com', style: TextStyle(fontSize: 12))),
+          ListTile(leading: const Icon(Icons.photo_library_outlined), title: Text(l10n.manage_chooseFromGallery), onTap: () => Navigator.pop(ctx, ImageSource.gallery)),
+          ListTile(leading: const Icon(Icons.photo_camera_outlined), title: Text(l10n.manage_takeAPhoto), onTap: () => Navigator.pop(ctx, ImageSource.camera)),
+          ListTile(dense: true, title: Text(l10n.manage_pDFsCanBeUploadedOn, style: const TextStyle(fontSize: 12))),
         ]),
       ),
     );
@@ -86,7 +87,7 @@ class _TeamDocumentRowState extends ConsumerState<TeamDocumentRow> {
     try {
       await ref.read(documentsRepositoryProvider).save(widget.teamId, widget.item.type.id,
           fileUrl: widget.item.document?.fileUrl, fileName: widget.item.document?.fileName, textValue: v);
-      _snack('${widget.item.type.name} saved');
+      _snack(l10n.manage_saved(widget.item.type.name));
       widget.onChanged();
     } on ApiException catch (e) {
       _snack(e.message);
@@ -99,10 +100,10 @@ class _TeamDocumentRowState extends ConsumerState<TeamDocumentRow> {
     final sure = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Remove ${widget.item.type.name}?'),
+        title: Text(l10n.manage_remove2(widget.item.type.name)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Remove')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.manage_keep)),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.manage_remove3)),
         ],
       ),
     );
@@ -143,7 +144,7 @@ class _TeamDocumentRowState extends ConsumerState<TeamDocumentRow> {
                 Flexible(child: Text(t.name, style: TextStyle(color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w700))),
                 if (widget.required && !ok) ...[
                   const SizedBox(width: 6),
-                  Text('required', style: TextStyle(color: p.orangeInk, fontSize: 11, fontWeight: FontWeight.w600)),
+                  Text(context.l10n.manage_requiredLabel, style: TextStyle(color: p.orangeInk, fontSize: 11, fontWeight: FontWeight.w600)),
                 ],
               ]),
               if (t.description != null) Text(t.description!, style: TextStyle(color: p.muted, fontSize: 12)),
@@ -155,13 +156,13 @@ class _TeamDocumentRowState extends ConsumerState<TeamDocumentRow> {
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Icon(Icons.open_in_new_rounded, size: 12, color: p.greenText),
                       const SizedBox(width: 4),
-                      Flexible(child: Text(d?.fileName ?? 'View file', overflow: TextOverflow.ellipsis, style: TextStyle(color: p.greenText, fontSize: 12, fontWeight: FontWeight.w600))),
+                      Flexible(child: Text(d?.fileName ?? context.l10n.manage_viewFile, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.greenText, fontSize: 12, fontWeight: FontWeight.w600))),
                     ]),
                   ),
                 ),
               if (d?.textValue != null && !t.wantsText) Text(d!.textValue!, style: TextStyle(color: p.ink, fontSize: 12)),
               if (d?.updatedAt != null)
-                Text('Updated ${d!.updatedAt!.toLocal().toString().substring(0, 10)}', style: TextStyle(color: p.muted, fontSize: 11)),
+                Text(context.l10n.manage_updated2(d!.updatedAt!.toLocal().toString().substring(0, 10)), style: TextStyle(color: p.muted, fontSize: 11)),
             ]),
           ),
           const SizedBox(width: 6),
@@ -171,7 +172,7 @@ class _TeamDocumentRowState extends ConsumerState<TeamDocumentRow> {
               onPressed: _busy ? null : _chooseSource,
               child: _busy
                   ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text(d?.fileUrl != null ? 'Replace' : 'Upload'),
+                  : Text(d?.fileUrl != null ? context.l10n.manage_replace : context.l10n.manage_upload),
             ),
         ]),
         if (t.wantsText) ...[
@@ -182,12 +183,12 @@ class _TeamDocumentRowState extends ConsumerState<TeamDocumentRow> {
                 controller: _text,
                 decoration: InputDecoration(
                   isDense: true,
-                  hintText: t.kind == 'text' ? 'Enter the details (e.g. affiliation number)' : 'Reference / number (optional with a file)',
+                  hintText: t.kind == 'text' ? context.l10n.manage_enterTheDetailsEG : context.l10n.manage_referenceNumberOptionalWithA,
                 ),
               ),
             ),
             const SizedBox(width: 8),
-            TextButton(onPressed: _busy ? null : _saveText, child: const Text('Save')),
+            TextButton(onPressed: _busy ? null : _saveText, child: Text(context.l10n.manage_save)),
           ]),
         ],
         if (d != null)
@@ -196,7 +197,7 @@ class _TeamDocumentRowState extends ConsumerState<TeamDocumentRow> {
             child: TextButton(
               onPressed: _remove,
               style: TextButton.styleFrom(visualDensity: VisualDensity.compact, foregroundColor: p.muted),
-              child: const Text('Remove', style: TextStyle(fontSize: 11.5)),
+              child: Text(context.l10n.manage_remove3, style: const TextStyle(fontSize: 11.5)),
             ),
           ),
       ]),
@@ -218,26 +219,26 @@ class TeamDocumentsTab extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
       child: docs.when(
         loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
-        error: (e, _) => Text(e is ApiException ? e.message : 'Could not load documents.', style: TextStyle(color: p.danger)),
+        error: (e, _) => Text(e is ApiException ? e.message : context.l10n.manage_couldNotLoadDocuments, style: TextStyle(color: p.danger)),
         data: (items) => items.isEmpty
             ? GlassCard(
                 child: Text(
-                    "No documents are asked of $teamName's sport yet. When a tournament or league requires some, they'll be listed here.",
+                    context.l10n.manage_noDocumentsAreAskedOf(teamName),
                     style: TextStyle(color: p.muted, fontSize: 13)),
               )
             : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  const Expanded(child: Eyebrow('Team documents')),
+                  Expanded(child: Eyebrow(context.l10n.manage_teamDocuments)),
                   SpBadge('${items.where((i) => i.ok).length}/${items.length}'),
                 ]),
                 const SizedBox(height: 4),
-                Text('Keep these on file once; tournaments and leagues that require them take a copy when you register.',
+                Text(context.l10n.manage_keepTheseOnFileOnce,
                     style: TextStyle(color: p.muted, fontSize: 12.5)),
                 const SizedBox(height: 10),
                 for (final i in items)
                   TeamDocumentRow(teamId: teamId, item: i, onChanged: () => ref.invalidate(teamDocumentsProvider(teamId))),
                 Text(
-                    "Organisers see exactly what's on file when they review your registration; keep documents current yourself — SportPadi doesn't track expiry.",
+                    context.l10n.manage_organisersSeeExactlyWhatsOn,
                     style: TextStyle(color: p.muted, fontSize: 11)),
               ]),
       ),
@@ -259,7 +260,7 @@ class DocumentPicker extends ConsumerWidget {
     final types = ref.watch(documentTypesProvider(categoryId ?? '')).valueOrNull ?? const <DocumentType>[];
     if (types.isEmpty) return const SizedBox.shrink();
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Required documents (optional)', style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
+      Text(context.l10n.manage_requiredDocumentsOptional, style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
       const SizedBox(height: 6),
       for (final t in types)
         GestureDetector(
@@ -286,7 +287,7 @@ class DocumentPicker extends ConsumerWidget {
             ]),
           ),
         ),
-      Text("Teams upload these once on their team page. You see a snapshot with each registration and decide; SportPadi doesn't check expiry.",
+      Text(context.l10n.manage_teamsUploadTheseOnceOn,
           style: TextStyle(color: p.muted, fontSize: 11)),
     ]);
   }

@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/features/inbox/announcement_card.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Where announcements surface outside the Inbox: pinned ones at the top of
 /// group and team pages, and the staff entry points (Announce, Sent, "Message
@@ -93,7 +94,7 @@ class GroupPinnedAnnouncementsSection extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SpSectionTitle(
-            'Pinned',
+            context.l10n.inbox_pinned,
             count: list.length > 1 ? list.length : null,
             trailing: more
                 ? TextButton(
@@ -101,7 +102,7 @@ class GroupPinnedAnnouncementsSection extends ConsumerWidget {
                     style: TextButton.styleFrom(
                         foregroundColor: p.greenText,
                         visualDensity: VisualDensity.compact),
-                    child: const Text('See all'),
+                    child: Text(context.l10n.inbox_seeAll),
                   )
                 : null,
           ),
@@ -120,10 +121,10 @@ class GroupPinnedAnnouncementsSection extends ConsumerWidget {
       builder: (sheet) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SpSheetHeader(
+          SpSheetHeader(
             icon: Icons.push_pin_outlined,
-            title: 'Pinned',
-            subtitle: 'Urgent and unread first',
+            title: context.l10n.inbox_pinned,
+            subtitle: context.l10n.inbox_urgentAndUnreadFirst,
           ),
           PinnedAnnouncements(
             groupId: groupId,
@@ -167,12 +168,12 @@ class EventAnnounceCard extends ConsumerWidget {
           Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Message participants',
+              Text(context.l10n.inbox_messageParticipants,
                   style: TextStyle(
                       color: p.ink,
                       fontSize: 14.5,
                       fontWeight: FontWeight.w700)),
-              Text("An announcement to who's going or checked in",
+              Text(context.l10n.inbox_anAnnouncementToWhosGoing,
                   style: TextStyle(color: p.muted, fontSize: 12)),
             ]),
           ),
@@ -200,7 +201,7 @@ class GroupAnnouncementsButton extends ConsumerWidget {
         false;
     return SpRoundButton(
       icon: muted ? Icons.notifications_off_outlined : Icons.campaign_outlined,
-      tooltip: 'Announcements',
+      tooltip: context.l10n.inbox_announcements,
       onTap: () => showGroupAnnouncementsSheet(context,
           groupId: groupId, groupName: groupName),
     );
@@ -314,15 +315,15 @@ class _GroupAnnouncementsSheetState
           icon: Icons.campaign_outlined,
           iconBg: widget.urgent ? p.liveTint : p.orangeTint,
           iconFg: widget.urgent ? p.danger : p.orangeInk,
-          title: 'Announcements',
+          title: context.l10n.inbox_announcements,
           subtitle: widget.subtitle ?? widget.groupName,
         ),
         if (widget.withInbox) ...[
           SpListCard(children: [
             ListTile(
               leading: const Icon(Icons.inbox_outlined),
-              title: const Text('Open Inbox'),
-              subtitle: Text("Every announcement you've received",
+              title: Text(context.l10n.inbox_openInbox),
+              subtitle: Text(context.l10n.inbox_everyAnnouncementYouveReceived,
                   style: TextStyle(color: p.muted, fontSize: 12)),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => _go('/inbox'),
@@ -335,8 +336,8 @@ class _GroupAnnouncementsSheetState
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
             child: SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Mute announcements'),
-              subtitle: Text('Urgent ones still come through',
+              title: Text(context.l10n.inbox_muteAnnouncements),
+              subtitle: Text(context.l10n.inbox_urgentOnesStillComeThrough,
                   style: TextStyle(color: p.muted, fontSize: 12)),
               value: muted,
               onChanged:
@@ -350,7 +351,7 @@ class _GroupAnnouncementsSheetState
             ListTile(
               leading: const Icon(Icons.edit_outlined),
               title: Text(
-                  teamId == null ? 'New announcement' : 'Announce to team'),
+                  teamId == null ? context.l10n.inbox_newAnnouncement : context.l10n.inbox_announceToTeam),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => _go(teamId == null
                   ? '/groups/${widget.groupId}/announcements/new'
@@ -358,7 +359,7 @@ class _GroupAnnouncementsSheetState
             ),
             ListTile(
               leading: const Icon(Icons.outbox_outlined),
-              title: const Text('Sent announcements'),
+              title: Text(context.l10n.inbox_sentAnnouncements),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => _go('/groups/${widget.groupId}/announcements'),
             ),
@@ -380,18 +381,19 @@ class AnnouncementPreferencesCard extends ConsumerStatefulWidget {
 
 class _AnnouncementPreferencesCardState
     extends ConsumerState<AnnouncementPreferencesCard> {
-  static const _rows = [
-    (
-      category: 'announcements',
-      title: 'Announcements',
-      subtitle: 'News from your groups, teams and event organisers',
-    ),
-    (
-      category: 'announcements_urgent',
-      title: 'Urgent announcements',
-      subtitle: 'Time-critical news — comes through even for muted groups',
-    ),
-  ];
+  static List<({String category, String title, String subtitle})> get _rows =>
+      [
+        (
+          category: 'announcements',
+          title: l10n.inbox_announcements,
+          subtitle: l10n.inbox_newsFromYourGroupsTeamsAndEvent,
+        ),
+        (
+          category: 'announcements_urgent',
+          title: l10n.inbox_urgentAnnouncements,
+          subtitle: l10n.inbox_timeCriticalNewsComesThrough,
+        ),
+      ];
 
   /// Values being saved, shown before the server confirms them.
   final Map<String, NotificationPreference> _pending = {};
@@ -423,16 +425,16 @@ class _AnnouncementPreferencesCardState
         child: prefs.hasError
             ? Row(children: [
                 Expanded(
-                  child: Text("Couldn't load these settings.",
+                  child: Text(context.l10n.inbox_couldntLoadTheseSettings,
                       style: TextStyle(color: p.muted, fontSize: 13)),
                 ),
                 TextButton(
                   onPressed: () =>
                       ref.invalidate(notificationPreferencesProvider),
-                  child: const Text('Retry'),
+                  child: Text(context.l10n.inbox_retry),
                 ),
               ])
-            : Text('Loading…', style: TextStyle(color: p.muted, fontSize: 13)),
+            : Text(context.l10n.inbox_loading, style: TextStyle(color: p.muted, fontSize: 13)),
       );
     }
     NotificationPreference prefFor(String c) =>
@@ -457,14 +459,14 @@ class _AnnouncementPreferencesCardState
                 SwitchListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Push notifications'),
+                  title: Text(context.l10n.inbox_pushNotifications),
                   value: cur.push,
                   onChanged: (v) => _set(cur, push: v),
                 ),
                 SwitchListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Email'),
+                  title: Text(context.l10n.inbox_email),
                   value: cur.email,
                   onChanged: (v) => _set(cur, email: v),
                 ),
@@ -520,12 +522,11 @@ class _EventNotificationsCardState
       padding: const EdgeInsets.fromLTRB(16, 4, 12, 4),
       child: SwitchListTile(
         contentPadding: EdgeInsets.zero,
-        title: Text('New events',
+        title: Text(context.l10n.inbox_newEvents,
             style: TextStyle(
                 color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700)),
         subtitle: Text(
-            'When your groups or teams create an event, and when groups you '
-            'follow post a public one. Includes events for your wards.',
+            context.l10n.inbox_whenYourGroupsOrTeams,
             style: TextStyle(color: p.muted, fontSize: 12)),
         value: _pending ?? saved,
         onChanged: list == null ? null : _set,

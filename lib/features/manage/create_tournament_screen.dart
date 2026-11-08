@@ -14,6 +14,7 @@ import 'package:sportpadi_mobile/shared/format/instant.dart' show deviceTimezone
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// New tournament (2026 design — web twin: groups/TournamentsTab
 /// CreateTournamentDialog). One page, four cards: format, the basics, who's
@@ -132,9 +133,8 @@ class _CreateTournamentScreenState
             _guests.add(r);
           } else {
             _error = _isMulti
-                ? 'This tournament holds $_maxTeams teams'
-                    '${_organiserOnly ? '' : ' (including yours)'}.'
-                : 'A friendly is two teams — remove one to swap it.';
+                ? context.l10n.manage_thisTournamentHoldsTeams(_maxTeams, (_organiserOnly ? '' : context.l10n.manage_includingYours))
+                : context.l10n.manage_aFriendlyIsTwoTeams;
           }
         } else {
           _guests
@@ -163,20 +163,20 @@ class _CreateTournamentScreenState
 
   Future<void> _submit() async {
     if (_title.text.trim().isEmpty) {
-      return setState(() => _error = 'Add a title');
+      return setState(() => _error = l10n.manage_addATitle);
     }
-    if (_categoryId == null) return setState(() => _error = 'Pick a sport');
-    if (_date == null) return setState(() => _error = 'Pick a date');
+    if (_categoryId == null) return setState(() => _error = l10n.manage_pickASport);
+    if (_date == null) return setState(() => _error = l10n.manage_pickADate);
     final noOwnTeam = _organiserOnly;
     if (!noOwnTeam && _hostTeamId == null) {
       return setState(
-          () => _error = "Choose your team, or say you're just organizing");
+          () => _error = l10n.manage_chooseYourTeamOrSay);
     }
     if (!_isMulti && !noOwnTeam && _guests.isEmpty) {
-      return setState(() => _error = 'Invite an opponent');
+      return setState(() => _error = l10n.manage_inviteAnOpponent);
     }
     if (_neutralFriendly && _guests.length != 2) {
-      return setState(() => _error = 'Pick the two teams that will play');
+      return setState(() => _error = l10n.manage_pickTheTwoTeamsThat);
     }
     setState(() {
       _busy = true;
@@ -237,10 +237,10 @@ class _CreateTournamentScreenState
     final wallet = ref.watch(groupWalletProvider(widget.groupId)).valueOrNull;
 
     return SpSubPage(
-      title: 'New tournament',
+      title: context.l10n.manage_newTournament,
       subtitle: _isMulti
-          ? 'A draw of up to $_maxTeams teams'
-          : 'One match between two teams — either can be yours',
+          ? context.l10n.manage_aDrawOfUpTo(_maxTeams)
+          : context.l10n.manage_oneMatchBetweenTwoTeams,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         children: [
@@ -249,8 +249,8 @@ class _CreateTournamentScreenState
             Expanded(
               child: _ChoiceCard(
                 icon: Icons.sports_soccer_rounded,
-                title: '1 v 1 (Friendly)',
-                sub: 'One match — yours vs a rival, or two teams you host',
+                title: context.l10n.manage_t1V1Friendly,
+                sub: context.l10n.manage_oneMatchYoursVsA,
                 selected: !_isMulti,
                 onTap: () => setState(() {
                   _mode = 'friendly';
@@ -263,8 +263,8 @@ class _CreateTournamentScreenState
             Expanded(
               child: _ChoiceCard(
                 icon: Icons.emoji_events_rounded,
-                title: 'Multi-team',
-                sub: 'Several teams, a draw — with or without yours',
+                title: context.l10n.manage_multiTeam,
+                sub: context.l10n.manage_severalTeamsADrawWith,
                 selected: _isMulti,
                 onTap: () => setState(() {
                   _mode = 'multi_team';
@@ -278,8 +278,8 @@ class _CreateTournamentScreenState
           // League: a season of fixtures with a table — its own flow.
           _ChoiceCard(
             icon: Icons.format_list_numbered_rounded,
-            title: 'League',
-            sub: 'A season of fixtures — live table, rosters, rankings and MVPs',
+            title: context.l10n.manage_league,
+            sub: context.l10n.manage_aSeasonOfFixturesLive,
             selected: false,
             onTap: () => context.pushReplacement('/groups/${widget.groupId}/new-league'),
           ),
@@ -290,32 +290,32 @@ class _CreateTournamentScreenState
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Eyebrow('The basics'),
+                  Eyebrow(context.l10n.manage_theBasics),
                   const SizedBox(height: 10),
-                  const _FieldLabel('Title'),
+                  _FieldLabel(context.l10n.manage_title),
                   TextField(
                     controller: _title,
                     textCapitalization: TextCapitalization.sentences,
                     decoration: InputDecoration(
                         hintText: _isMulti
-                            ? 'e.g. Summer Cup 2026'
-                            : 'e.g. Sunday friendly'),
+                            ? context.l10n.manage_eGSummerCup2026
+                            : context.l10n.manage_eGSundayFriendly),
                   ),
                   if (_isMulti) ...[
                     const SizedBox(height: 14),
-                    const _FieldLabel('Main venue (optional)'),
+                    _FieldLabel(context.l10n.manage_mainVenueOptional),
                     TextField(
                       controller: _venue,
-                      decoration: const InputDecoration(hintText: 'Street/park and city — e.g. Burnaby Lake Sports Complex'),
+                      decoration: InputDecoration(hintText: context.l10n.manage_streetParkAndCityE),
                     ),
                     const SizedBox(height: 4),
-                    Text('Becomes the first venue — add more on the tournament page and place each match in one.',
+                    Text(context.l10n.manage_becomesTheFirstVenueAdd,
                         style: TextStyle(color: p.muted, fontSize: 11.5)),
                   ],
                   const SizedBox(height: 14),
-                  const _FieldLabel('Sport'),
+                  _FieldLabel(context.l10n.manage_sport),
                   if (cats.isEmpty)
-                    Text('Loading sports…',
+                    Text(context.l10n.manage_loadingSports,
                         style: TextStyle(color: p.muted, fontSize: 13))
                   else
                     Wrap(
@@ -337,11 +337,11 @@ class _CreateTournamentScreenState
                       ],
                     ),
                   const SizedBox(height: 14),
-                  const _FieldLabel('Date'),
+                  _FieldLabel(context.l10n.manage_date),
                   _TapRow(
                     icon: Icons.calendar_today_rounded,
                     text: _date == null
-                        ? 'Choose a date'
+                        ? context.l10n.manage_chooseADate
                         : DateFormat('EEE, d MMM yyyy').format(_date!),
                     placeholder: _date == null,
                     onTap: _pickDate,
@@ -355,9 +355,9 @@ class _CreateTournamentScreenState
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Eyebrow("Who's playing"),
+                  Eyebrow(context.l10n.manage_whosPlaying),
                   const SizedBox(height: 4),
-                  Text('Is one of your teams playing?',
+                  Text(context.l10n.manage_isOneOfYourTeams,
                       style: TextStyle(
                           color: p.ink,
                           fontSize: 15,
@@ -366,10 +366,10 @@ class _CreateTournamentScreenState
                   Row(children: [
                     Expanded(
                       child: _ChoiceCard(
-                        title: 'Yes, our team plays',
+                        title: context.l10n.manage_yesOurTeamPlays,
                         sub: _isMulti
-                            ? 'Pick which one below'
-                            : 'Pick it below, then the opponent',
+                            ? context.l10n.manage_pickWhichOneBelow
+                            : context.l10n.manage_pickItBelowThenThe,
                         selected: !_organiserOnly,
                         onTap: () => setState(() {
                           _organiserOnly = false;
@@ -381,10 +381,10 @@ class _CreateTournamentScreenState
                     const SizedBox(width: 8),
                     Expanded(
                       child: _ChoiceCard(
-                        title: 'No, just organizing',
+                        title: context.l10n.manage_noJustOrganizing,
                         sub: _isMulti
-                            ? 'Invite teams; none of ours play'
-                            : 'Pick the two teams that play',
+                            ? context.l10n.manage_inviteTeamsNoneOfOurs
+                            : context.l10n.manage_pickTheTwoTeamsThat2,
                         selected: _organiserOnly,
                         onTap: () => setState(() {
                           _organiserOnly = true;
@@ -398,23 +398,20 @@ class _CreateTournamentScreenState
                   if (_organiserOnly)
                     SpTipCard(
                       _isMulti
-                          ? "You'll run the fixtures, officials and tickets; "
-                              'every team in the draw is one you invite.'
-                          : 'You host the match — venue, officials, tickets, '
-                              'live scoring — and both teams get an invite.',
+                          ? context.l10n.manage_youllRunTheFixturesOfficials
+                          : context.l10n.manage_youHostTheMatchVenue,
                       icon: Icons.campaign_rounded,
                     )
                   else if (_categoryId == null)
-                    Text('Pick a sport first.',
+                    Text(context.l10n.manage_pickASportFirst,
                         style: TextStyle(color: p.muted, fontSize: 13))
                   else if (hostTeams.isEmpty)
-                    const SpTipCard(
-                      "You have no team for this sport yet — build one, or "
-                      "say you're just organizing.",
+                    SpTipCard(
+                      context.l10n.manage_youHaveNoTeamFor,
                       icon: Icons.shield_outlined,
                     )
                   else ...[
-                    const _FieldLabel('Your team'),
+                    _FieldLabel(context.l10n.manage_yourTeam),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -440,16 +437,16 @@ class _CreateTournamentScreenState
                   Row(children: [
                     Expanded(
                       child: Eyebrow(_isMulti
-                          ? 'Invite teams'
+                          ? context.l10n.manage_inviteTeams
                           : _organiserOnly
-                              ? 'The two teams'
-                              : 'Opponent'),
+                              ? context.l10n.manage_theTwoTeams
+                              : context.l10n.manage_opponent),
                     ),
                     if (_pickMany)
                       SpBadge(
                           _isMulti
-                              ? '${_guests.length} invited · add more later'
-                              : '${_guests.length} of 2 picked',
+                              ? context.l10n.manage_invitedAddMoreLater(_guests.length)
+                              : context.l10n.manage_of2Picked(_guests.length),
                           tone: _neutralFriendly && _guests.length == 2
                               ? p.accent
                               : null),
@@ -463,9 +460,9 @@ class _CreateTournamentScreenState
                         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                           if (_neutralFriendly && _guests.length == 2)
                             _homeIdEffective == g.id
-                                ? SpBadge('Home', tone: p.accent)
+                                ? SpBadge(context.l10n.manage_home, tone: p.accent)
                                 : SpPill(
-                                    label: 'Make home',
+                                    label: context.l10n.manage_makeHome,
                                     tone: SpPillTone.soft,
                                     height: 30,
                                     onTap: () =>
@@ -482,8 +479,7 @@ class _CreateTournamentScreenState
                     if (_neutralFriendly && _guests.length == 2) ...[
                       const SizedBox(height: 4),
                       Text(
-                          'Home is listed first and takes the home colours. '
-                          "Either team can be one you don't run.",
+                          context.l10n.manage_homeIsListedFirstAnd,
                           style: TextStyle(color: p.muted, fontSize: 11.5)),
                     ],
                   ],
@@ -491,8 +487,8 @@ class _CreateTournamentScreenState
                   SpSearchCard(
                     controller: _search,
                     hint: _categoryId == null
-                        ? 'Pick a sport first'
-                        : 'Search team @handle or name',
+                        ? context.l10n.manage_pickASportFirst2
+                        : context.l10n.manage_searchTeamHandleOrName,
                     onChanged: _runSearch,
                     onClear: () => setState(() => _results = const []),
                   ),
@@ -506,7 +502,7 @@ class _CreateTournamentScreenState
                     _TeamRow(
                       team: r,
                       trailing: SpPill(
-                          label: 'Add',
+                          label: context.l10n.manage_add,
                           icon: Icons.add_rounded,
                           height: 30,
                           onTap: () => _addTeam(r)),
@@ -521,16 +517,15 @@ class _CreateTournamentScreenState
                         child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Max teams',
+                              Text(context.l10n.manage_maxTeams,
                                   style: TextStyle(
                                       color: p.ink,
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700)),
                               Text(
                                   _organiserOnly
-                                      ? 'You can invite up to $_maxTeams.'
-                                      : 'Including yours — invite up to '
-                                          '${_maxTeams - 1} more.',
+                                      ? context.l10n.manage_youCanInviteUpTo(_maxTeams)
+                                      : context.l10n.manage_includingYoursInviteUpTo(_maxTeams - 1),
                                   style: TextStyle(
                                       color: p.muted, fontSize: 11.5)),
                             ]),
@@ -551,15 +546,15 @@ class _CreateTournamentScreenState
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Eyebrow('Who can enter'),
+                  Eyebrow(context.l10n.manage_whoCanEnter),
                   const SizedBox(height: 10),
-                  const _FieldLabel('Open to'),
+                  _FieldLabel(context.l10n.manage_openTo),
                   const SizedBox(height: 6),
                   Wrap(spacing: 8, runSpacing: 8, children: [
-                    for (final g in const [
-                      ('any', 'Any team'),
-                      ('adults', 'Adults'),
-                      ('kids', 'Kids'),
+                    for (final g in [
+                      ('any', context.l10n.manage_anyTeam),
+                      ('adults', context.l10n.manage_adults),
+                      ('kids', context.l10n.manage_kids),
                     ])
                       _Chip(
                           label: g.$2,
@@ -571,7 +566,7 @@ class _CreateTournamentScreenState
                     Wrap(spacing: 8, runSpacing: 8, children: [
                       for (final a in const [null, 12, 16, 18])
                         _Chip(
-                            label: a == null ? 'Any age' : 'U$a',
+                            label: a == null ? context.l10n.manage_anyAge : context.l10n.manage_u(a),
                             selected: _maxAge == a,
                             onTap: () => setState(() => _maxAge = a)),
                     ]),
@@ -579,22 +574,20 @@ class _CreateTournamentScreenState
                   const SizedBox(height: 4),
                   Text(
                       _grade == 'any'
-                          ? 'Adults and kids teams can enter.'
+                          ? context.l10n.manage_adultsAndKidsTeamsCan
                           : _grade == 'adults'
-                              ? "Kids teams can't enter or be invited."
-                              : 'Only kids teams'
-                                  '${_maxAge != null ? ' up to under-$_maxAge' : ''}'
-                                  ' can enter or be invited.',
+                              ? context.l10n.manage_kidsTeamsCantEnterOr
+                              : context.l10n.manage_onlyKidsTeamsCanEnter((_maxAge != null ? ' up to under-$_maxAge' : '')),
                       style: TextStyle(color: p.muted, fontSize: 11.5)),
                   if (_mode == 'multi_team') ...[
                     const SizedBox(height: 12),
-                    const _FieldLabel('How do teams get in?'),
+                    _FieldLabel(context.l10n.manage_howDoTeamsGetIn),
                     const SizedBox(height: 6),
                     Row(children: [
                       Expanded(
                         child: _ChoiceCard(
-                          title: 'Teams I invite',
-                          sub: 'Only teams you add take part.',
+                          title: context.l10n.manage_teamsIInvite,
+                          sub: context.l10n.manage_onlyTeamsYouAddTake,
                           selected: !_openReg,
                           onTap: () => setState(() => _openReg = false),
                         ),
@@ -602,8 +595,8 @@ class _CreateTournamentScreenState
                       const SizedBox(width: 8),
                       Expanded(
                         child: _ChoiceCard(
-                          title: 'Open registration',
-                          sub: 'Share a link — any team can register, pay and join.',
+                          title: context.l10n.manage_openRegistration,
+                          sub: context.l10n.manage_shareALinkAnyTeam,
                           selected: _openReg,
                           onTap: () => setState(() => _openReg = true),
                         ),
@@ -612,8 +605,7 @@ class _CreateTournamentScreenState
                     if (_openReg) ...[
                       const SizedBox(height: 6),
                       Text(
-                          'You get a registration link and a ready-to-paste '
-                          '"call for teams" post. You can still invite teams you know.',
+                          context.l10n.manage_youGetARegistrationLink,
                           style: TextStyle(color: p.muted, fontSize: 11.5)),
                       const SizedBox(height: 12),
                       DocumentPicker(
@@ -621,17 +613,17 @@ class _CreateTournamentScreenState
                           value: _docIds,
                           onChanged: (v) => setState(() => _docIds = v)),
                       if (_docIds.isNotEmpty) const SizedBox(height: 12),
-                      const _FieldLabel('Approval'),
+                      _FieldLabel(context.l10n.manage_approval),
                       const SizedBox(height: 6),
                       if (_docIds.isNotEmpty)
-                        Text('Required documents mean you review each team, so approval is manual.',
+                        Text(context.l10n.manage_requiredDocumentsMeanYouReview,
                             style: TextStyle(color: p.muted, fontSize: 11.5))
                       else
                         Row(children: [
                           Expanded(
                             child: _ChoiceCard(
-                              title: 'Automatic',
-                              sub: 'A team is in as soon as it registers (and pays).',
+                              title: context.l10n.manage_automatic,
+                              sub: context.l10n.manage_aTeamIsInAs,
                               selected: _approval == 'auto',
                               onTap: () => setState(() => _approval = 'auto'),
                             ),
@@ -639,23 +631,23 @@ class _CreateTournamentScreenState
                           const SizedBox(width: 8),
                           Expanded(
                             child: _ChoiceCard(
-                              title: 'I approve each team',
-                              sub: 'Turning a paid team down refunds it in full.',
+                              title: context.l10n.manage_iApproveEachTeam,
+                              sub: context.l10n.manage_turningAPaidTeamDown,
                               selected: _approval == 'manual',
                               onTap: () => setState(() => _approval = 'manual'),
                             ),
                           ),
                         ]),
                       const SizedBox(height: 12),
-                      const _FieldLabel('Rules & what teams should know (optional)'),
+                      _FieldLabel(context.l10n.manage_rulesWhatTeamsShouldKnow),
                       const SizedBox(height: 6),
                       TextField(
                         controller: _rules,
                         maxLines: 4,
                         minLines: 2,
                         maxLength: 2000,
-                        decoration: const InputDecoration(
-                          hintText: 'Format, squad size, kit, kick-off, refund policy…',
+                        decoration: InputDecoration(
+                          hintText: context.l10n.manage_formatSquadSizeKitKick,
                           counterText: '',
                         ),
                       ),
@@ -671,7 +663,7 @@ class _CreateTournamentScreenState
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Eyebrow('Entry fee'),
+                    Eyebrow(context.l10n.manage_entryFee),
                     const SizedBox(height: 10),
                     TextField(
                       controller: _fee,
@@ -685,13 +677,10 @@ class _CreateTournamentScreenState
                     const SizedBox(height: 6),
                     Text(
                         _openReg
-                            ? 'Optional. Each team pays this into your group '
-                                'wallet when it registers.'
+                            ? context.l10n.manage_optionalEachTeamPaysThis
                             : _pickMany
-                                ? 'Optional. Each invited team pays this into your '
-                                    'group wallet when they accept.'
-                                : 'Optional. The invited team pays this into your '
-                                    'group wallet when they accept.',
+                                ? context.l10n.manage_optionalEachInvitedTeamPays
+                                : context.l10n.manage_optionalTheInvitedTeamPays,
                         style: TextStyle(color: p.muted, fontSize: 11.5)),
                   ]),
             ),
@@ -719,13 +708,12 @@ class _CreateTournamentScreenState
           ],
           SpButton(
             label: _busy
-                ? 'Creating…'
+                ? context.l10n.manage_creating
                 : _openReg && _mode == 'multi_team'
-                    ? 'Create & get link'
+                    ? context.l10n.manage_createGetLink
                     : _pickMany
-                        ? 'Create & invite ${_guests.length} '
-                            '${_guests.length == 1 ? 'team' : 'teams'}'
-                        : 'Create & invite',
+                        ? context.l10n.manage_createInviteTeams(_guests.length)
+                        : context.l10n.manage_createInvite,
             icon: Icons.arrow_forward_rounded,
             expand: true,
             tone: SpButtonTone.brand,

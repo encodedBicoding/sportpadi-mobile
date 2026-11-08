@@ -15,6 +15,7 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// One player's record inside ONE tournament.
 ///
@@ -32,12 +33,12 @@ final playerTournamentStatsProvider = FutureProvider.autoDispose
     if (res.data is! Map) {
       // A 200 that isn't an object means the bridge route didn't run this
       // procedure — say so distinctly rather than looking like a 404.
-      throw ApiException('The server returned an empty record.',
+      throw ApiException(l10n.profile_theServerReturnedAnEmptyRecord,
           statusCode: 502);
     }
     return Map<String, dynamic>.from(res.data as Map);
   } catch (e) {
-    throw apiError(e, fallback: 'Could not load their record.');
+    throw apiError(e, fallback: l10n.profile_couldNotLoadTheirRecord);
   }
 });
 
@@ -70,7 +71,7 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
             ? RefreshIndicator(
                 onRefresh: refresh,
                 child: _alwaysPullable(
-                    context, const PlayerPrivateView(title: 'Record')),
+                    context, PlayerPrivateView(title: context.l10n.profile_record)),
               )
             : _pullableUnlessData(
                 data,
@@ -87,22 +88,26 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
                   final fields = listOf(m['fields']);
                   final record = mapOf(m['record']);
                   final matches = listOf(m['matches']);
-                  final first = (parseStr(player['displayName']) ?? 'Player')
+                  final first = (parseStr(player['displayName']) ?? context.l10n.profile_player)
                       .split(' ')
                       .first;
                   final mode = parseStr(event['mode']);
                   final kind = mode == 'league'
-                      ? 'league'
+                      ? context.l10n.profile_kindLeagueLower
                       : mode == 'multi_team'
-                          ? 'tournament'
-                          : 'friendly';
+                          ? context.l10n.profile_tournament3
+                          : context.l10n.profile_kindFriendlyLower;
                   final hostGroupId = parseStr(event['hostGroupId']);
                   final when = formatEventTimeJson(event);
                   final cat = mapOf(event['category']);
                   // The tournament's sport picks the design (artwork + stats block).
                   final family = cat.isEmpty ? null : familyOf(cat);
 
-                  final kindTitle = kind[0].toUpperCase() + kind.substring(1);
+                  final kindTitle = mode == 'league'
+                      ? context.l10n.profile_kindLeague
+                      : mode == 'multi_team'
+                          ? context.l10n.profile_tournament
+                          : context.l10n.profile_kindFriendly;
                   final jersey =
                       squad == null ? null : parseInt(squad['jerseyNumber']);
 
@@ -110,7 +115,7 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
                               x['scheduledDate']) !=
                           null
                       ? '${x['scheduledDate']}${parseStr(x['scheduledTime']) != null ? ' · ${formatTime12(x['scheduledTime'] as String)}' : ''}'
-                      : 'Not scheduled';
+                      : context.l10n.profile_notScheduled;
 
                   return RefreshIndicator(
                     onRefresh: refresh,
@@ -119,7 +124,7 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
                       children: [
                         SpHeader(
-                          title: 'Record in $kind',
+                          title: context.l10n.profile_recordIn2(kind),
                           subtitle: parseStr(event['title']),
                         ),
                         const SizedBox(height: 16),
@@ -136,7 +141,7 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
                             if (parseStr(cat['name']) != null)
                               parseStr(cat['name'])!,
                           ].join(' · '),
-                          title: parseStr(event['title']) ?? 'Tournament',
+                          title: parseStr(event['title']) ?? context.l10n.profile_tournament,
                           meta: [
                             when.line,
                             if (when.viewerTime != null)
@@ -157,7 +162,7 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
                                   const Color(0xFFFFB57D),
                                   icon: Icons.shield_outlined),
                             if (squad != null && squad['isStarter'] == true)
-                              recordHeroPill('Starting line-up',
+                              recordHeroPill(context.l10n.profile_startingLineUp,
                                   const Color(0x296EDC9E), recordMint,
                                   icon: Icons.check_circle_rounded),
                           ],
@@ -168,13 +173,13 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
                           const SizedBox(height: 12),
                           recordActions([
                             RecordAction(
-                                label: 'Open $kind',
+                                label: context.l10n.profile_open4(kind),
                                 icon: Icons.north_east_rounded,
                                 onTap: () => context.push(
                                     '/groups/$hostGroupId/tournaments/$eventId')),
                             if (team != null)
                               RecordAction(
-                                  label: 'Squad',
+                                  label: context.l10n.profile_squad,
                                   icon: Icons.groups_2_outlined,
                                   onTap: () => context.push(
                                       '/groups/$hostGroupId/tournaments/$eventId/teams/${team['id']}')),
@@ -183,7 +188,7 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
 
                         // Their place in the squad.
                         const SizedBox(height: 22),
-                        const RecordSectionTitle('Squad place'),
+                        RecordSectionTitle(context.l10n.profile_squadPlace),
                         const SizedBox(height: 10),
                         if (squad != null && team != null)
                           GlassCard(
@@ -208,7 +213,7 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
                                           children: [
                                             Text(
                                                 parseStr(team['name']) ??
-                                                    'Team',
+                                                    context.l10n.profile_team,
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
                                                 style: TextStyle(
@@ -240,7 +245,7 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
                                             children: [
-                                              Text('SHIRT',
+                                              Text(context.l10n.profile_shirt,
                                                   style: TextStyle(
                                                       color: p.muted,
                                                       fontSize: 8.5,
@@ -265,12 +270,11 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
                                         parseStr(squad['status']) ==
                                             'accepted'),
                                     if (squad['isStarter'] == true)
-                                      _tag(p, 'Starter', true),
+                                      _tag(p, context.l10n.profile_starter, true),
                                     if (parseDate(squad['acceptedAt']) != null)
                                       _tag(
                                           p,
-                                          'Joined ${formatDayYear(squad['acceptedAt'])}'
-                                          '${squad['joinedAfterKickoff'] == true ? ' · after kick-off' : ''}',
+                                          context.l10n.profile_joined2(formatDayYear(squad['acceptedAt']), (squad['joinedAfterKickoff'] == true ? context.l10n.profile_afterKickOff2 : '')),
                                           false),
                                   ]),
                                 ]),
@@ -278,15 +282,14 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
                         else
                           RecordEmpty(
                             icon: Icons.groups_2_outlined,
-                            title: 'Not in a squad',
-                            body: "$first isn't in a squad for this $kind"
-                                "${matches.isNotEmpty ? ', but appeared in its games.' : '.'}",
+                            title: context.l10n.profile_notInASquad,
+                            body: context.l10n.profile_isntInASquadFor2(first, kind, matches.isNotEmpty ? context.l10n.profile_butAppearedInItsGames : '.'),
                           ),
 
                         // The tally.
                         const SizedBox(height: 14),
                         ScopeBlock(
-                          title: "$first's record in this $kind",
+                          title: context.l10n.profile_sRecordInThis2(first, kind),
                           family: family ?? SportFamily.generic,
                           collapseKey: 'tournament-record',
                           tally: record,
@@ -294,14 +297,14 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
                           accent: true,
                           empty: matches
                                   .any((x) => parseStr(x['status']) == 'live')
-                              ? 'No completed games yet — one is live now.'
-                              : 'No completed games yet.',
+                              ? context.l10n.profile_noCompletedGamesYetOne
+                              : context.l10n.profile_noCompletedGamesYet,
                         ),
 
                         // Match by match.
                         if (matches.isNotEmpty) ...[
                           const SizedBox(height: 22),
-                          RecordSectionTitle('Matches', count: matches.length),
+                          RecordSectionTitle(context.l10n.profile_matches, count: matches.length),
                           const SizedBox(height: 10),
                           RecordList(children: [
                             for (final x in matches)
@@ -309,7 +312,7 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
                                 match: x,
                                 fields: fields,
                                 pendingLabel: pendingLabel(x),
-                                opponentFallback: 'TBD',
+                                opponentFallback: context.l10n.profile_tbd,
                               ),
                           ]),
                         ],
@@ -326,11 +329,11 @@ class PlayerTournamentStatsScreen extends ConsumerWidget {
   static String _statusLabel(String? status) {
     final s = status ?? '';
     return switch (s) {
-      'accepted' => 'In the squad',
-      'pending' || 'invited' => 'Call-up pending',
-      'declined' => 'Declined',
-      'removed' => 'Removed',
-      '' => 'Squad',
+      'accepted' => l10n.profile_inTheSquad,
+      'pending' || 'invited' => l10n.profile_callUpPending,
+      'declined' => l10n.profile_declined,
+      'removed' => l10n.profile_removed2,
+      '' => l10n.profile_squad,
       _ => '${s[0].toUpperCase()}${s.substring(1).replaceAll('_', ' ')}',
     };
   }

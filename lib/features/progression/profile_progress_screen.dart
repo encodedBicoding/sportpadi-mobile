@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Progress & achievements (web /profile/progress twin): level and XP, weekly
 /// streak, per-sport levels, "Your game" strengths and the achievements grid —
@@ -34,9 +35,9 @@ class ProfileProgressScreen extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: Column(children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: SpHeader(title: 'Progress & achievements'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: SpHeader(title: context.l10n.profile_progressAchievements),
           ),
           Expanded(
             child: RefreshIndicator(

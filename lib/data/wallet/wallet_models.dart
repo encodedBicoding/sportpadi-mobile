@@ -1,4 +1,5 @@
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// A group's settlement (bank) account at a payment provider.
 class PaymentAccount {
@@ -32,8 +33,8 @@ class PaymentAccount {
   bool get isStripe => provider == 'stripe';
   String get providerLabel => switch (provider) {
         'stripe' => 'Stripe',
-        'paystack' => 'Paystack',
-        'flutterwave' => 'Flutterwave',
+        'paystack' => l10n.common_paystack,
+        'flutterwave' => l10n.common_flutterwave,
         _ => provider,
       };
 
@@ -165,9 +166,9 @@ class WithdrawalPolicy {
       case 'stripe':
         return 'Stripe';
       case 'paystack':
-        return 'Paystack';
+        return l10n.common_paystack;
       case 'flutterwave':
-        return 'Flutterwave';
+        return l10n.common_flutterwave;
       default:
         return 'your payment provider';
     }
@@ -312,7 +313,7 @@ class Person {
   final String? displayName;
   final String? username;
   final String? avatarUrl;
-  String get name => displayName ?? username ?? 'Unknown';
+  String get name => displayName ?? username ?? l10n.common_unknown;
   static Person? fromJson(dynamic j) => j is Map
       ? Person(
           id: parseStr(j['userId']) ?? parseStr(j['id']) ?? '',

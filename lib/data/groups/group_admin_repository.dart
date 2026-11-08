@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Group ADMIN tools that live in the group menu on the web: fines,
 /// promo codes and ownership transfer. (A member's own fines are in
@@ -192,7 +193,7 @@ class GroupFine {
     return GroupFine(
       id: parseStr(j['id']) ?? '',
       userId: parseStr(j['userId']) ?? '',
-      title: parseStr(j['title']) ?? 'Fine',
+      title: parseStr(j['title']) ?? l10n.common_fine,
       amountMinor: parseInt(j['amountMinor']) ?? 0,
       currency: parseStr(j['currency']) ?? '',
       currencyExponent: parseInt(j['currencyExponent']) ?? 2,
@@ -350,7 +351,7 @@ class ProOfferTerms {
     List<String> strs(dynamic v) => [for (final x in (v as List? ?? const [])) '$x'];
     return ProOfferTerms(
       version: parseStr(j['version']) ?? '',
-      title: parseStr(j['title']) ?? 'Pro Features Offer Terms',
+      title: parseStr(j['title']) ?? l10n.common_proFeaturesOfferTerms,
       updated: parseStr(j['updated']) ?? '',
       intro: parseStr(j['intro']) ?? '',
       keyPoints: strs(j['keyPoints']),

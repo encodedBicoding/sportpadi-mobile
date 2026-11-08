@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/data/messages/message_models.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Messages REST bridge (`/api/mobile/messages`, Messaging 2). Errors carry
 /// the server's readable message (reach rules, closed threads, rate limits)
@@ -52,7 +53,7 @@ class MessagesRepository {
   String _conversationId(Map<String, dynamic> r) {
     final id = parseStr(r['conversationId']);
     if (id == null) {
-      throw ApiException("Couldn't start the conversation. Try again.");
+      throw ApiException(l10n.common_couldntStartTheConversationTry);
     }
     return id;
   }
@@ -67,7 +68,7 @@ class MessagesRepository {
       if (cursor != null) 'cursor': cursor,
       if (groupId != null) 'groupId': groupId,
       if (unreadOnly) 'unread': '1',
-    }, "Couldn't load your messages.");
+    }, l10n.common_couldntLoadYourMessages);
     return ConversationPage.fromJson(_asMap(d));
   }
 
@@ -88,9 +89,9 @@ class MessagesRepository {
   Future<ConversationThread> thread(String id, {String? before}) async {
     final d = await _get({
       if (before != null) 'before': before,
-    }, "Couldn't load this conversation.", path: '$_path/$id');
+    }, l10n.common_couldntLoadThisConversation, path: '$_path/$id');
     if (d is! Map) {
-      throw ApiException('This conversation is no longer available.',
+      throw ApiException(l10n.common_thisConversationIsNoLonger,
           statusCode: 404);
     }
     return ConversationThread.fromJson(Map<String, dynamic>.from(d));
@@ -99,7 +100,7 @@ class MessagesRepository {
   /// What I can start in [groupId].
   Future<StartOptions> startOptions(String groupId) async {
     final d = await _get({'view': 'start-options', 'groupId': groupId},
-        "Couldn't load who you can message.");
+        l10n.common_couldntLoadWhoYouCan);
     return StartOptions.fromJson(_asMap(d));
   }
 
@@ -109,7 +110,7 @@ class MessagesRepository {
       'view': 'reachable',
       'groupId': groupId,
       if (q != null && q.trim().isNotEmpty) 'q': q.trim(),
-    }, "Couldn't load members.");
+    }, l10n.common_couldntLoadMembers);
     return [for (final p in _asList(d)) ReachablePerson.fromJson(p)]
         .where((p) => p.userId.isNotEmpty)
         .toList();
@@ -122,7 +123,7 @@ class MessagesRepository {
       'view': 'group',
       'groupId': groupId,
       if (cursor != null) 'cursor': cursor,
-    }, "Couldn't load the group's conversations.");
+    }, l10n.common_couldntLoadTheGroupsConversations);
     return ConversationPage.fromJson(_asMap(d));
   }
 
@@ -132,7 +133,7 @@ class MessagesRepository {
       {String status = 'open'}) async {
     final d = await _get(
         {'view': 'reports', 'groupId': groupId, 'status': status},
-        "Couldn't load reports.");
+        l10n.common_couldntLoadReports);
     return [for (final r in _asList(d)) MessageReport.fromJson(r)]
         .where((r) => r.id.isNotEmpty)
         .toList();
@@ -157,7 +158,7 @@ class MessagesRepository {
       'memberId': memberId,
       'body': body,
       if (att != null) 'attachments': att,
-    }, "Couldn't send your message.");
+    }, l10n.common_couldntSendYourMessage);
     return _conversationId(r);
   }
 
@@ -175,7 +176,7 @@ class MessagesRepository {
       if (aboutWardId != null) 'aboutWardId': aboutWardId,
       'body': body,
       if (att != null) 'attachments': att,
-    }, "Couldn't send your message.");
+    }, l10n.common_couldntSendYourMessage);
     return _conversationId(r);
   }
 
@@ -195,7 +196,7 @@ class MessagesRepository {
       if (aboutWardId != null) 'aboutWardId': aboutWardId,
       'body': body,
       if (att != null) 'attachments': att,
-    }, "Couldn't send your message.");
+    }, l10n.common_couldntSendYourMessage);
     return _conversationId(r);
   }
 
@@ -213,16 +214,16 @@ class MessagesRepository {
       'body': body,
       if (att != null) 'attachments': att,
       if (replyToId != null) 'replyToId': replyToId,
-    }, "Couldn't send your message.", path: '$_path/$conversationId');
+    }, l10n.common_couldntSendYourMessage, path: '$_path/$conversationId');
   }
 
   Future<void> markRead(String conversationId) async {
-    await _post({'action': 'read'}, "Couldn't update.",
+    await _post({'action': 'read'}, l10n.common_couldntUpdate,
         path: '$_path/$conversationId');
   }
 
   Future<void> close(String conversationId) async {
-    await _post({'action': 'close'}, "Couldn't close the conversation.",
+    await _post({'action': 'close'}, l10n.common_couldntCloseTheConversation,
         path: '$_path/$conversationId');
   }
 
@@ -230,7 +231,7 @@ class MessagesRepository {
     await _post({
       'action': 'delete',
       'messageId': messageId
-    }, "Couldn't delete the message.", path: '$_path/$conversationId');
+    }, l10n.common_couldntDeleteTheMessage, path: '$_path/$conversationId');
   }
 
   /// Mute pushes for [hours], or [forever]; neither unmutes.
@@ -240,7 +241,7 @@ class MessagesRepository {
       'action': 'mute',
       if (hours != null) 'hours': hours,
       if (forever) 'forever': true,
-    }, "Couldn't change the setting.", path: '$_path/$conversationId');
+    }, l10n.common_couldntChangeTheSetting, path: '$_path/$conversationId');
   }
 
   // ── moderation ───────────────────────────────────────────────────────────
@@ -260,14 +261,14 @@ class MessagesRepository {
       'reason': reason,
       if (details != null && details.trim().isNotEmpty)
         'details': details.trim(),
-    }, "Couldn't send the report.");
+    }, l10n.common_couldntSendTheReport);
     return r['alreadyReported'] == true;
   }
 
   /// Admins: mark a report `reviewed` or `dismissed`.
   Future<void> resolveReport(String id, String status) async {
     await _post({'action': 'resolve-report', 'id': id, 'status': status},
-        "Couldn't update the report.");
+        l10n.common_couldntUpdateTheReport);
   }
 }
 

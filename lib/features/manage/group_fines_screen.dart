@@ -19,6 +19,7 @@ import 'package:sportpadi_mobile/features/groups/groups_providers.dart'
     show groupProvider;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Fines, for group admins — the web page (`/groups/:id/fines`).
 ///
@@ -65,7 +66,7 @@ class _GroupFinesScreenState extends ConsumerState<GroupFinesScreen> {
           .read(groupAdminRepositoryProvider)
           .pardonFine(widget.groupId, f.id);
       _refetch();
-      _snack('Fine pardoned');
+      _snack(l10n.manage_finePardoned);
     } catch (e) {
       _snack('$e');
     } finally {
@@ -86,7 +87,7 @@ class _GroupFinesScreenState extends ConsumerState<GroupFinesScreen> {
     );
     if (issued != null && issued > 0) {
       _refetch();
-      _snack('Issued $issued fine${issued == 1 ? '' : 's'}.');
+      _snack(l10n.manage_issuedFines(issued));
     }
   }
 
@@ -104,7 +105,7 @@ class _GroupFinesScreenState extends ConsumerState<GroupFinesScreen> {
         child: Column(children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: SpHeader(title: 'Fines', subtitle: groupName),
+            child: SpHeader(title: context.l10n.manage_fines, subtitle: groupName),
           ),
           Expanded(
             // Loading / error are pullable too (the list has its own
@@ -188,15 +189,14 @@ class _GroupFinesScreenState extends ConsumerState<GroupFinesScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text('Fines need the wallet feature',
+                                        Text(context.l10n.manage_finesNeedTheWalletFeature,
                                             style: TextStyle(
                                                 color: p.ink,
                                                 fontSize: 14.5,
                                                 fontWeight: FontWeight.w700)),
                                         const SizedBox(height: 2),
                                         Text(
-                                            'Fines are collected into the group wallet, so they come '
-                                            'with the plans that include it.',
+                                            context.l10n.manage_finesAreCollectedIntoThe,
                                             style: TextStyle(
                                                 color: p.orangeInk,
                                                 fontSize: 12.5,
@@ -216,11 +216,11 @@ class _GroupFinesScreenState extends ConsumerState<GroupFinesScreen> {
                           child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Outstanding',
+                                Text(context.l10n.manage_outstanding,
                                     style: TextStyle(
                                         color: p.heroMuted, fontSize: 12.5)),
                                 const SizedBox(height: 2),
-                                Text(owed ?? 'Nothing owed',
+                                Text(owed ?? context.l10n.manage_nothingOwed,
                                     style: TextStyle(
                                         color: p.onHero,
                                         fontSize: 28,
@@ -228,13 +228,13 @@ class _GroupFinesScreenState extends ConsumerState<GroupFinesScreen> {
                                         fontWeight: FontWeight.w800)),
                                 const SizedBox(height: 12),
                                 Row(children: [
-                                  _heroStat(p, '${count('active')}', 'Unpaid',
+                                  _heroStat(p, '${count('active')}', context.l10n.manage_unpaid,
                                       warm: count('active') > 0),
                                   const SizedBox(width: 8),
-                                  _heroStat(p, '${count('paid')}', 'Paid'),
+                                  _heroStat(p, '${count('paid')}', context.l10n.manage_paid),
                                   const SizedBox(width: 8),
                                   _heroStat(
-                                      p, '${count('pardoned')}', 'Pardoned'),
+                                      p, '${count('pardoned')}', context.l10n.manage_pardoned),
                                 ]),
                                 const SizedBox(height: 14),
                                 Material(
@@ -243,18 +243,18 @@ class _GroupFinesScreenState extends ConsumerState<GroupFinesScreen> {
                                   child: InkWell(
                                     customBorder: const StadiumBorder(),
                                     onTap: _issue,
-                                    child: const SizedBox(
+                                    child: SizedBox(
                                       height: 50,
                                       child: Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
                                           children: [
-                                            Icon(Icons.gavel_rounded,
+                                            const Icon(Icons.gavel_rounded,
                                                 size: 18,
                                                 color: Color(0xFF0E1411)),
-                                            SizedBox(width: 7),
-                                            Text('Issue a fine',
-                                                style: TextStyle(
+                                            const SizedBox(width: 7),
+                                            Text(context.l10n.manage_issueAFine,
+                                                style: const TextStyle(
                                                     color: Color(0xFF0E1411),
                                                     fontSize: 14,
                                                     fontWeight:
@@ -271,9 +271,9 @@ class _GroupFinesScreenState extends ConsumerState<GroupFinesScreen> {
                           child: ListView(
                             scrollDirection: Axis.horizontal,
                             children: [
-                              chip('active', 'Unpaid', count('active')),
-                              chip('paid', 'Paid', count('paid')),
-                              chip('pardoned', 'Pardoned', count('pardoned')),
+                              chip('active', context.l10n.manage_unpaid, count('active')),
+                              chip('paid', context.l10n.manage_paid, count('paid')),
+                              chip('pardoned', context.l10n.manage_pardoned, count('pardoned')),
                             ],
                           ),
                         ),
@@ -287,10 +287,10 @@ class _GroupFinesScreenState extends ConsumerState<GroupFinesScreen> {
                               const SizedBox(height: 10),
                               Text(
                                   all.isEmpty
-                                      ? 'No fines issued yet.'
+                                      ? context.l10n.manage_noFinesIssuedYet
                                       : _filter == 'active'
-                                          ? 'Nobody owes anything.'
-                                          : 'None here.',
+                                          ? context.l10n.manage_nobodyOwesAnything
+                                          : context.l10n.manage_noneHere,
                                   textAlign: TextAlign.center,
                                   style:
                                       TextStyle(color: p.muted, fontSize: 13)),
@@ -400,14 +400,14 @@ class _FineRow extends StatelessWidget {
                     color: p.ink, fontSize: 14, fontWeight: FontWeight.w800)),
             const SizedBox(height: 3),
             if (f.status == 'paid')
-              Text('PAID',
+              Text(context.l10n.manage_paid2,
                   style: TextStyle(
                       color: p.greenText,
                       fontSize: 10.5,
                       letterSpacing: 0.5,
                       fontWeight: FontWeight.w800))
             else if (f.status == 'pardoned')
-              Text('PARDONED',
+              Text(context.l10n.manage_pardoned2,
                   style: TextStyle(
                       color: p.muted,
                       fontSize: 10.5,
@@ -421,7 +421,7 @@ class _FineRow extends StatelessWidget {
                         width: 14,
                         height: 14,
                         child: CircularProgressIndicator(strokeWidth: 2))
-                    : Text('Pardon',
+                    : Text(context.l10n.manage_pardon,
                         style: TextStyle(
                             color: p.greenText,
                             fontSize: 12.5,
@@ -490,15 +490,15 @@ class _IssueFineSheetState extends ConsumerState<_IssueFineSheet> {
     final title = _title.text.trim();
     final amount = double.tryParse(_amount.text.trim());
     if (title.isEmpty) {
-      setState(() => _error = 'Give the fine a name.');
+      setState(() => _error = l10n.manage_giveTheFineAName);
       return;
     }
     if (amount == null || amount <= 0) {
-      setState(() => _error = 'Enter an amount greater than zero.');
+      setState(() => _error = l10n.manage_enterAnAmountGreaterThan);
       return;
     }
     if (_picked.isEmpty) {
-      setState(() => _error = 'Pick at least one person to fine.');
+      setState(() => _error = l10n.manage_pickAtLeastOnePerson);
       return;
     }
     setState(() {
@@ -533,7 +533,7 @@ class _IssueFineSheetState extends ConsumerState<_IssueFineSheet> {
           SpIconTile(Icons.gavel_rounded,
               bg: p.orangeTint, fg: p.orangeInk, size: 40, iconSize: 19),
           const SizedBox(width: 12),
-          Text('Issue a fine',
+          Text(context.l10n.manage_issueAFine,
               style: TextStyle(
                   color: p.ink, fontSize: 18, fontWeight: FontWeight.w800)),
         ]),
@@ -543,18 +543,18 @@ class _IssueFineSheetState extends ConsumerState<_IssueFineSheet> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
           children: [
-            Text('Fine name',
+            Text(context.l10n.manage_fineName,
                 style: TextStyle(
                     color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             TextField(
               controller: _title,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                  hintText: 'e.g. Missed match, Late arrival'),
+              decoration: InputDecoration(
+                  hintText: context.l10n.manage_eGMissedMatchLate),
             ),
             const SizedBox(height: 14),
-            Text('Amount (wallet currency)',
+            Text(context.l10n.manage_amountWalletCurrency,
                 style: TextStyle(
                     color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
@@ -569,7 +569,7 @@ class _IssueFineSheetState extends ConsumerState<_IssueFineSheet> {
               ),
             ),
             const SizedBox(height: 14),
-            Text('Who to fine${_picked.isEmpty ? '' : ' (${_picked.length})'}',
+            Text(context.l10n.manage_whoToFine(_picked.isEmpty ? '' : ' (${_picked.length})'),
                 style: TextStyle(
                     color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
@@ -592,7 +592,7 @@ class _IssueFineSheetState extends ConsumerState<_IssueFineSheet> {
               controller: _search,
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
-                hintText: 'Search users by name or @username',
+                hintText: context.l10n.manage_searchUsersByNameOr,
                 prefixIcon: const Icon(Icons.search_rounded),
                 suffixIcon: _searching
                     ? const Padding(
@@ -660,7 +660,7 @@ class _IssueFineSheetState extends ConsumerState<_IssueFineSheet> {
                 child: SizedBox(
                   height: 48,
                   child: Center(
-                    child: Text('Cancel',
+                    child: Text(context.l10n.manage_cancel,
                         style: TextStyle(
                             color: p.ink,
                             fontSize: 14,
@@ -675,10 +675,10 @@ class _IssueFineSheetState extends ConsumerState<_IssueFineSheet> {
             flex: 2,
             child: SpButton(
               label: _busy
-                  ? 'Issuing…'
+                  ? context.l10n.manage_issuing
                   : _picked.length > 1
-                      ? 'Issue ${_picked.length} fines'
-                      : 'Issue fine',
+                      ? context.l10n.manage_issueFines(_picked.length)
+                      : context.l10n.manage_issueFine,
               expand: true,
               onTap: _busy ? null : _submit,
             ),

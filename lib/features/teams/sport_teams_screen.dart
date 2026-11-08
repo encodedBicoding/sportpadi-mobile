@@ -12,6 +12,7 @@ import 'package:sportpadi_mobile/features/teams/sport_cards.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/team_tile.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// One sport's teams in a group (web `/groups/[id]/teams/sport/[sport]`):
 /// the sport's hero with counts, search, adults / kids, and (admins) a new
@@ -70,7 +71,7 @@ class _SportTeamsScreenState extends ConsumerState<SportTeamsScreen> {
     final loading = tq.isLoading && tq.valueOrNull == null;
 
     return SpSubPage(
-      title: '$name teams',
+      title: context.l10n.team_teams(name),
       subtitle: group?.name,
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(groupTeamsProvider(widget.groupId)),
@@ -83,13 +84,13 @@ class _SportTeamsScreenState extends ConsumerState<SportTeamsScreen> {
               child: Stack(children: [
                 Positioned(right: -4, top: 0, child: SportArt(def, emoji: bucket?.emoji, width: 128)),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('SPORT',
+                  Text(context.l10n.team_sport2,
                       style: TextStyle(color: sportInk(p, color), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.4)),
                   const SizedBox(height: 4),
                   Text(name, style: TextStyle(color: p.ink, fontSize: 24, fontWeight: FontWeight.w800, height: 1.1)),
                   const SizedBox(height: 40),
                   Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    for (final (n, label) in [(teams.length, 'Teams'), (players, 'Players'), (kids, 'Kids teams')])
+                    for (final (n, label) in [(teams.length, context.l10n.team_teamsLabel), (players, context.l10n.team_players), (kids, context.l10n.team_kidsTeams)])
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(loading ? '–' : '$n', style: TextStyle(color: p.ink, fontSize: 22, fontWeight: FontWeight.w800, height: 1)),
@@ -104,7 +105,7 @@ class _SportTeamsScreenState extends ConsumerState<SportTeamsScreen> {
                   if (canAdd) ...[
                     const SizedBox(height: 14),
                     SpPill(
-                      label: 'New ${name.toLowerCase()} team',
+                      label: context.l10n.team_newTeam2(name.toLowerCase()),
                       icon: Icons.add_rounded,
                       height: 36,
                       expand: true,
@@ -121,7 +122,7 @@ class _SportTeamsScreenState extends ConsumerState<SportTeamsScreen> {
                 onChanged: (_) => setState(() {}),
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
-                  hintText: 'Search teams by name or @handle',
+                  hintText: context.l10n.team_searchTeamsByNameOr,
                   prefixIcon: Icon(Icons.search_rounded, color: p.muted),
                   filled: true,
                   fillColor: p.surface,
@@ -152,12 +153,12 @@ class _SportTeamsScreenState extends ConsumerState<SportTeamsScreen> {
                   const SizedBox(height: 12),
                   Text(
                       teams.isNotEmpty
-                          ? 'No team matches — try another search.'
+                          ? context.l10n.team_noTeamMatchesTryAnother
                           : canAdd
-                              ? 'No ${name.toLowerCase()} teams yet — build the first one.'
+                              ? context.l10n.team_noTeamsYetBuildThe2(name.toLowerCase())
                               : canManage && categoryId == null
-                                  ? "$name isn't set up as a sport on SportPadi yet."
-                                  : 'This group has no ${name.toLowerCase()} teams yet.',
+                                  ? context.l10n.team_isntSetUpAsA(name)
+                                  : context.l10n.team_thisGroupHasNoTeams(name.toLowerCase()),
                       textAlign: TextAlign.center,
                       style: TextStyle(color: p.muted, fontSize: 13.5)),
                 ]),

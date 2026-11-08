@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/features/tournaments/invitation_rows.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Every tournament invitation waiting on this user, in one place.
 ///
@@ -25,8 +26,8 @@ class TournamentInvitationsScreen extends ConsumerWidget {
         leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
-        title: const Text('Tournament invitations',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        title: Text(context.l10n.tournament_tournamentInvitations,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
       ),
       body: RefreshIndicator(
         onRefresh: () {
@@ -47,7 +48,7 @@ class TournamentInvitationsScreen extends ConsumerWidget {
                         size: 44, color: p.muted),
                     const SizedBox(height: 12),
                     Center(
-                      child: Text('Nothing waiting',
+                      child: Text(context.l10n.tournament_nothingWaiting,
                           style: TextStyle(
                               color: p.ink,
                               fontSize: 16,
@@ -56,7 +57,7 @@ class TournamentInvitationsScreen extends ConsumerWidget {
                     const SizedBox(height: 6),
                     Center(
                       child: Text(
-                        'When another group invites one of your teams\nto a tournament, it lands here.',
+                        context.l10n.tournament_whenAnotherGroupInvitesOne2,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             color: p.muted, fontSize: 13, height: 1.4),
@@ -69,7 +70,7 @@ class TournamentInvitationsScreen extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                   children: [
                     Text(
-                      '${list.length} waiting on your answer · soonest first',
+                      context.l10n.tournament_waitingOnYourAnswerSoonest(list.length),
                       style: TextStyle(color: p.muted, fontSize: 12),
                     ),
                     const SizedBox(height: 10),

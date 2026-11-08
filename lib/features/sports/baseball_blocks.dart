@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/sports/sport_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Baseball ⚾ — a standings line and the back of a baseball card.
 
@@ -16,12 +17,12 @@ class BaseballRecord extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final cells = <(String, String, Color)>[
-      ('W', '${nums.wins}', p.ink),
-      ('L', '${nums.losses}', p.ink),
-      if (nums.draws > 0) ('T', '${nums.draws}', p.ink),
-      ('PCT', baseballPct(nums.wins, nums.games), p.ink),
+      (context.l10n.profile_w, '${nums.wins}', p.ink),
+      (context.l10n.profile_l, '${nums.losses}', p.ink),
+      if (nums.draws > 0) (context.l10n.profile_p5StatT, '${nums.draws}', p.ink),
+      (context.l10n.profile_p5StatPct, baseballPct(nums.wins, nums.games), p.ink),
       (
-        'STRK',
+        context.l10n.profile_p5StatStrk,
         streak ?? '—',
         streak == null ? p.muted : streakColor(p, streak!)
       ),
@@ -71,7 +72,7 @@ class BaseballRecord extends StatelessWidget {
         ]),
       ),
       const SizedBox(height: 8),
-      Text('${plural(nums.games, 'game')} played',
+      Text(context.l10n.profile_p5GamesPlayed(nums.games),
           textAlign: TextAlign.center,
           style: TextStyle(color: p.muted, fontSize: 12)),
     ]);
@@ -90,35 +91,35 @@ class BaseballStats extends StatelessWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final g = nums.games;
     final cols = <(String, String)>[
-      ('R', 'runs'),
-      if (nums.has('hits')) ('H', 'hits'),
-      if (nums.has('homeRuns')) ('HR', 'homeRuns'),
-      if (nums.has('strikeouts')) ('K', 'strikeouts'),
+      (context.l10n.profile_p5StatR, 'runs'),
+      if (nums.has('hits')) (context.l10n.profile_p5StatH, 'hits'),
+      if (nums.has('homeRuns')) (context.l10n.profile_p5StatHr, 'homeRuns'),
+      if (nums.has('strikeouts')) (context.l10n.profile_p5StatK, 'strikeouts'),
     ];
     final runs = nums.n('runs');
     final hr = nums.n('homeRuns');
     final stitch = dark ? const Color(0xFFF87171) : const Color(0xFFDC2626);
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const BlockHeading('Batting line'),
+      BlockHeading(context.l10n.profile_battingLine),
       const SizedBox(height: 10),
       StatTable(
-        columns: ['G', for (final c in cols) c.$1],
+        columns: [context.l10n.profile_g, for (final c in cols) c.$1],
         rows: [
-          ('Total', ['$g', for (final c in cols) '${nums.n(c.$2)}']),
-          ('Per game', ['', for (final c in cols) nums.rate(c.$2)]),
+          (context.l10n.profile_total, ['$g', for (final c in cols) '${nums.n(c.$2)}']),
+          (context.l10n.profile_perGame, ['', for (final c in cols) nums.rate(c.$2)]),
         ],
       ),
       if (runs > 0 && nums.has('homeRuns')) ...[
         const BlockDivider(),
-        const BlockHeading('Power'),
+        BlockHeading(context.l10n.profile_power),
         const SizedBox(height: 8),
         Text.rich(
           TextSpan(children: [
             TextSpan(
                 text: '${(hr * 100 / runs).round()}%',
                 style: TextStyle(color: stitch, fontWeight: FontWeight.w800)),
-            const TextSpan(text: ' of runs from home runs'),
+            TextSpan(text: context.l10n.profile_ofRunsFromHomeRuns),
           ]),
           style: TextStyle(
               color: p.ink, fontSize: 14, fontFeatures: tabularFigures),

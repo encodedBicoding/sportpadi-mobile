@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// AdMob (Google Mobile Ads), Android and iOS.
 ///
@@ -519,7 +520,7 @@ class _AdMobInlineBannerState extends State<AdMobInlineBanner> {
     return Padding(
       padding: widget.padding,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Ad',
+        Text(context.l10n.common_ad,
             style: TextStyle(
                 color: context.palette.muted,
                 fontSize: 9.5,

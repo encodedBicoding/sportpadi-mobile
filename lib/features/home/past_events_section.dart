@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/event_models.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// "Past events" on Home (2026 design): one card of compact rows — date
 /// tile, title, group — each leading to the player's own record for that
@@ -41,14 +42,14 @@ class _PastEventsSectionState extends State<PastEventsSection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Past events',
+                Text(context.l10n.home_pastEvents,
                     style: TextStyle(
                         color: p.ink,
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.2)),
                 const SizedBox(height: 2),
-                Text('Last two months · tap for your stats',
+                Text(context.l10n.home_lastTwoMonthsTapFor,
                     style: TextStyle(color: p.muted, fontSize: 12)),
               ]),
         ),
@@ -77,7 +78,7 @@ class _PastEventsSectionState extends State<PastEventsSection> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text('No past events in the last two months.',
+              child: Text(context.l10n.home_noPastEventsInThe,
                   style: TextStyle(color: p.muted, fontSize: 13)),
             ),
           ]),
@@ -111,7 +112,7 @@ class _PastEventsSectionState extends State<PastEventsSection> {
                   child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(_expanded ? 'Show less' : 'Show all ${all.length}',
+                        Text(_expanded ? context.l10n.home_showLess : context.l10n.home_showAll(all.length),
                             style: TextStyle(
                                 color: p.greenText,
                                 fontSize: 13,
@@ -231,7 +232,7 @@ class _PastRow extends StatelessWidget {
               color: p.accentTint,
               borderRadius: BorderRadius.circular(999),
             ),
-            child: Text('Your stats',
+            child: Text(context.l10n.home_yourStats,
                 style: TextStyle(
                     color: p.greenText,
                     fontSize: 11.5,

@@ -19,8 +19,9 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
-final _day = DateFormat('EEE d MMM');
+DateFormat get _day => DateFormat('EEE d MMM');
 
 const _maxImages = 4;
 
@@ -258,7 +259,7 @@ class _AnnouncementComposerScreenState
       ref.invalidate(announcementComposerProvider(widget.groupId));
       final n = r.recipientCount;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Sent to $n ${n == 1 ? 'person' : 'people'}')));
+          content: Text(l10n.inbox_sentToPeople(n))));
       context.pushReplacement('/groups/${widget.groupId}/announcements');
     } catch (e) {
       _snack('$e');
@@ -278,7 +279,7 @@ class _AnnouncementComposerScreenState
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: SpHeader(
-              title: 'New announcement',
+              title: context.l10n.inbox_newAnnouncement,
               subtitle: c?.groupName,
             ),
           ),
@@ -302,8 +303,10 @@ class _AnnouncementComposerScreenState
               ),
               child: SpButton(
                 label: _sending
-                    ? 'Sending…'
-                    : (_urgent && c.urgent.canSend ? 'Send urgent' : 'Send'),
+                    ? context.l10n.inbox_sending
+                    : (_urgent && c.urgent.canSend
+                        ? context.l10n.inbox_sendUrgent
+                        : context.l10n.inbox_send),
                 icon: Icons.send_rounded,
                 tone: SpButtonTone.brand,
                 expand: true,
@@ -317,16 +320,19 @@ class _AnnouncementComposerScreenState
 
   Widget _form(AppPalette p, ComposerInfo c) {
     final kinds = <(String, String, IconData)>[
-      if (c.canGroup) ('group', 'Whole group', Icons.groups_outlined),
-      if (c.canTeams) ('teams', 'Teams', Icons.shield_outlined),
-      if (c.canEvent) ('event', 'Event', Icons.event_outlined),
+      if (c.canGroup)
+        ('group', context.l10n.inbox_wholeGroup, Icons.groups_outlined),
+      if (c.canTeams) ('teams', context.l10n.inbox_teams, Icons.shield_outlined),
+      if (c.canEvent)
+        ('event', context.l10n.inbox_eventLabel, Icons.event_outlined),
       if (c.canMembers)
-        ('members', 'Pick members', Icons.person_search_outlined),
+        ('members', context.l10n.inbox_pickMembers,
+            Icons.person_search_outlined),
     ];
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
       children: [
-        const Eyebrow('To'),
+        Eyebrow(context.l10n.inbox_to2),
         const SizedBox(height: 10),
         Wrap(spacing: 8, runSpacing: 8, children: [
           for (final k in kinds)
@@ -344,7 +350,7 @@ class _AnnouncementComposerScreenState
         const SizedBox(height: 10),
         _reachLine(p),
         const SizedBox(height: 22),
-        const Eyebrow('Message'),
+        Eyebrow(context.l10n.inbox_message),
         const SizedBox(height: 10),
         GlassCard(
           child: Column(children: [
@@ -352,7 +358,7 @@ class _AnnouncementComposerScreenState
               controller: _title,
               maxLength: 120,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(labelText: 'Title'),
+              decoration: InputDecoration(labelText: context.l10n.inbox_title),
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 6),
@@ -363,10 +369,10 @@ class _AnnouncementComposerScreenState
               maxLines: 14,
               keyboardType: TextInputType.multiline,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Message',
+              decoration: InputDecoration(
+                labelText: context.l10n.inbox_message,
                 alignLabelWithHint: true,
-                helperText: 'Plain text. Links will be tappable.',
+                helperText: context.l10n.inbox_plainTextLinksWillBe,
               ),
               onChanged: (_) => setState(() {}),
             ),
@@ -375,7 +381,7 @@ class _AnnouncementComposerScreenState
         const SizedBox(height: 12),
         _imagesRow(p),
         const SizedBox(height: 22),
-        const Eyebrow('Options'),
+        Eyebrow(context.l10n.inbox_options),
         const SizedBox(height: 10),
         GlassCard(
           padding: const EdgeInsets.fromLTRB(16, 6, 12, 10),
@@ -387,8 +393,8 @@ class _AnnouncementComposerScreenState
               _dateTile(
                 p,
                 icon: Icons.push_pin_outlined,
-                title: 'Pin to the top',
-                empty: 'Not pinned',
+                title: context.l10n.inbox_pinToTheTop,
+                empty: context.l10n.inbox_notPinned,
                 value: _pinUntil,
                 prefix: 'Until',
                 onPick: () async {
@@ -400,8 +406,8 @@ class _AnnouncementComposerScreenState
               _dateTile(
                 p,
                 icon: Icons.timer_off_outlined,
-                title: 'Hide after',
-                empty: 'Never expires',
+                title: context.l10n.inbox_hideAfter,
+                empty: context.l10n.inbox_neverExpires,
                 value: _expires,
                 prefix: 'After',
                 onPick: () async {
@@ -423,7 +429,7 @@ class _AnnouncementComposerScreenState
 
   Widget _teamsPanel(AppPalette p, ComposerInfo c) {
     if (c.teams.isEmpty) {
-      return Text('No teams you can address yet.',
+      return Text(context.l10n.inbox_noTeamsYouCanAddress,
           style: TextStyle(color: p.muted, fontSize: 13));
     }
     return SpListCard(children: [
@@ -433,7 +439,7 @@ class _AnnouncementComposerScreenState
           multi: true,
           leading: Crest(logoUrl: t.logoUrl, label: t.name, size: 34),
           title: t.name,
-          subtitle: '${t.players} ${t.players == 1 ? 'player' : 'players'}',
+          subtitle: context.l10n.inbox_players(t.players),
           onTap: () => _setAudience(() {
             if (!_teamIds.remove(t.id)) _teamIds.add(t.id);
           }),
@@ -452,7 +458,7 @@ class _AnnouncementComposerScreenState
 
   Widget _eventPanel(AppPalette p, ComposerInfo c) {
     if (c.events.isEmpty) {
-      return Text('No recent or upcoming events you organise.',
+      return Text(context.l10n.inbox_noRecentOrUpcomingEvents,
           style: TextStyle(color: p.muted, fontSize: 13));
     }
     const scopes = ['going', 'checked_in', 'all'];
@@ -470,14 +476,18 @@ class _AnnouncementComposerScreenState
               title: e.title,
               subtitle: [
                 _eventWhen(e),
-                '${e.going} going · ${e.checkedIn} checked in',
+                context.l10n.inbox_goingCheckedIn(e.going, e.checkedIn),
               ].where((s) => s.isNotEmpty).join(' · '),
               onTap: () => _setAudience(() => _eventId = e.id),
             ),
         ]),
         const SizedBox(height: 10),
         SpSegmented(
-          options: const ['Going', 'Checked in', 'Both'],
+          options: [
+            context.l10n.inbox_going,
+            context.l10n.inbox_checkedIn,
+            context.l10n.inbox_both,
+          ],
           index: scopeIndex < 0 ? 2 : scopeIndex,
           onChanged: (i) => _setAudience(() => _scope = scopes[i]),
         ),
@@ -494,8 +504,8 @@ class _AnnouncementComposerScreenState
       children: [
         _OutlineAction(
           label: people.isEmpty
-              ? 'Choose members'
-              : 'Choose members · ${people.length} picked',
+              ? context.l10n.inbox_chooseMembers
+              : context.l10n.inbox_chooseMembersPicked(people.length),
           icon: Icons.person_search_outlined,
           onTap: _pickMembers,
         ),
@@ -507,7 +517,7 @@ class _AnnouncementComposerScreenState
                 avatar:
                     WardAvatar(name: m.displayName, url: m.avatarUrl, size: 24),
                 label:
-                    Text(m.isWard ? '${m.displayName} · Ward' : m.displayName),
+                    Text(m.isWard ? context.l10n.inbox_ward(m.displayName) : m.displayName),
                 onDeleted: () => _setAudience(() => _members.remove(m.userId)),
               ),
           ]),
@@ -521,16 +531,16 @@ class _AnnouncementComposerScreenState
     String text;
     if (!a.isComplete) {
       text = switch (_kind) {
-        'teams' => 'Pick at least one team.',
-        'event' => 'Pick an event.',
-        'members' => 'Pick at least one member.',
+        'teams' => context.l10n.inbox_pickAtLeastOneTeam,
+        'event' => context.l10n.inbox_pickAnEvent,
+        'members' => context.l10n.inbox_pickAtLeastOneMember,
         _ => '',
       };
     } else if (_previewLoading) {
-      text = 'Counting who this reaches…';
+      text = context.l10n.inbox_countingWhoThisReaches;
     } else if (_preview != null) {
       final r = _preview!;
-      text = 'Reaches ${r.people} ${r.people == 1 ? 'person' : 'people'}';
+      text = context.l10n.inbox_reachesPeople(r.people);
       if (r.wards > 0) {
         text += ' · ${r.wards} ${r.wards == 1 ? 'ward' : 'wards'} via '
             '${r.guardians} ${r.guardians == 1 ? 'guardian' : 'guardians'}';
@@ -545,7 +555,7 @@ class _AnnouncementComposerScreenState
           size: 16, color: warn ? p.danger : p.muted),
       const SizedBox(width: 6),
       Expanded(
-        child: Text(warn ? 'Nobody in that audience can receive it yet.' : text,
+        child: Text(warn ? context.l10n.inbox_nobodyInThatAudienceCan : text,
             style: TextStyle(
                 color: warn ? p.danger : p.muted,
                 fontSize: 12.5,
@@ -614,7 +624,7 @@ class _AnnouncementComposerScreenState
                           Icon(Icons.add_photo_alternate_outlined,
                               color: p.muted),
                           const SizedBox(height: 2),
-                          Text('Photo',
+                          Text(context.l10n.inbox_photo,
                               style: TextStyle(color: p.muted, fontSize: 11)),
                         ]),
             ),
@@ -626,19 +636,17 @@ class _AnnouncementComposerScreenState
   Widget _urgentTile(AppPalette p, UrgentQuota q) {
     final String note;
     if (q.unlimited) {
-      note = 'Sound and a heads-up alert, even for muted groups.';
+      note = context.l10n.inbox_soundAndAHeadsUp;
     } else if (q.canSend) {
       note = '${q.remaining} of ${q.limit} urgent left today';
     } else {
       final next = q.nextFreeAt;
-      note = 'This group has used its ${q.limit ?? 0} urgent announcements '
-          'for today${next != null ? ' — the next one frees up ${fmtInstant(next)}' : ''}. '
-          'It can still go as a normal announcement.';
+      note = context.l10n.inbox_thisGroupHasUsedIts(q.limit ?? 0, (next != null ? ' — the next one frees up ${fmtInstant(next)}' : ''));
     }
     return SwitchListTile(
       contentPadding: EdgeInsets.zero,
       title: Row(children: [
-        const Text('Urgent'),
+        Text(context.l10n.inbox_urgent),
         if (_urgent && q.canSend) ...[
           const SizedBox(width: 8),
           Icon(Icons.priority_high_rounded, size: 16, color: p.danger),
@@ -674,7 +682,7 @@ class _AnnouncementComposerScreenState
       trailing: value == null
           ? Icon(Icons.chevron_right_rounded, color: p.muted)
           : IconButton(
-              tooltip: 'Clear',
+              tooltip: context.l10n.inbox_clear,
               icon: const Icon(Icons.close_rounded),
               onPressed: onClear,
             ),
@@ -690,25 +698,25 @@ class _AnnouncementComposerScreenState
     ];
     final value = options.contains(_link) ? _link : null;
     return InputDecorator(
-      decoration: const InputDecoration(labelText: 'Link to (optional)'),
+      decoration: InputDecoration(labelText: context.l10n.inbox_linkToOptional),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String?>(
           value: value,
           isExpanded: true,
           isDense: true,
           items: [
-            const DropdownMenuItem<String?>(
-                value: null, child: Text('No link')),
+            DropdownMenuItem<String?>(
+                value: null, child: Text(context.l10n.inbox_noLink)),
             for (final e in c.events)
               DropdownMenuItem<String?>(
                 value: 'event:${e.id}',
-                child: Text('Event · ${e.title}',
+                child: Text(context.l10n.inbox_event(e.title),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
               ),
             for (final t in c.teams)
               DropdownMenuItem<String?>(
                 value: 'team:${t.id}',
-                child: Text('Team · ${t.name}',
+                child: Text(context.l10n.inbox_team(t.name),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
               ),
           ],
@@ -914,13 +922,13 @@ class _MemberPickerSheetState extends ConsumerState<_MemberPickerSheet> {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: SpSheetHeader(
           icon: Icons.person_search_outlined,
-          title: 'Pick members',
+          title: context.l10n.inbox_pickMembers,
           subtitle: _picked.isEmpty
-              ? 'Wards are reached through their guardians.'
-              : '${_picked.length} picked',
+              ? context.l10n.inbox_wardsAreReachedThroughTheir
+              : context.l10n.inbox_picked(_picked.length),
           trailing: TextButton(
             onPressed: () => Navigator.of(context).pop(_picked),
-            child: const Text('Done'),
+            child: Text(context.l10n.inbox_done),
           ),
         ),
       ),
@@ -930,9 +938,9 @@ class _MemberPickerSheetState extends ConsumerState<_MemberPickerSheet> {
           controller: _search,
           onChanged: _onSearch,
           textInputAction: TextInputAction.search,
-          decoration: const InputDecoration(
-            hintText: 'Search by name',
-            prefixIcon: Icon(Icons.search_rounded),
+          decoration: InputDecoration(
+            hintText: context.l10n.inbox_searchByName,
+            prefixIcon: const Icon(Icons.search_rounded),
           ),
         ),
       ),
@@ -950,7 +958,7 @@ class _MemberPickerSheetState extends ConsumerState<_MemberPickerSheet> {
               )
             : results.isEmpty
                 ? Center(
-                    child: Text('Nobody matches.',
+                    child: Text(context.l10n.inbox_nobodyMatches,
                         style: TextStyle(color: p.muted)))
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),

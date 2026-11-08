@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/event_models.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Instagram-style square event tile (web EventTile): cover or emoji-gradient,
 /// dark wash, title + date, LIVE badge. Used on profile + group event grids.
@@ -78,8 +79,8 @@ class EventTileSquare extends StatelessWidget {
                     color: const Color(0xFFF59E0B),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: const Text('🏆 TOURNAMENT',
-                      style: TextStyle(
+                  child: Text(context.l10n.common_tournament2,
+                      style: const TextStyle(
                           color: Colors.white,
                           fontSize: 8,
                           fontWeight: FontWeight.w800,
@@ -98,8 +99,8 @@ class EventTileSquare extends StatelessWidget {
                     color: const Color(0xFFDC2626),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: const Text('LIVE',
-                      style: TextStyle(
+                  child: Text(context.l10n.common_live2,
+                      style: const TextStyle(
                           color: Colors.white,
                           fontSize: 8.5,
                           fontWeight: FontWeight.w800,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/sports/sport_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Every other sport — a neutral record: W / D / L tiles and a grid of
 /// every field the sport tracks.
@@ -16,9 +17,9 @@ class GenericRecord extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final tiles = <(String, int, Color, Color)>[
-      ('Won', nums.wins, p.accentTint, p.greenText),
-      ('Drawn', nums.draws, p.surface2, p.muted),
-      ('Lost', nums.losses, p.liveTint, p.danger),
+      (context.l10n.profile_won, nums.wins, p.accentTint, p.greenText),
+      (context.l10n.profile_p5Drawn, nums.draws, p.surface2, p.muted),
+      (context.l10n.profile_lost, nums.losses, p.liveTint, p.danger),
     ];
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
@@ -53,9 +54,7 @@ class GenericRecord extends StatelessWidget {
       ]),
       const SizedBox(height: 10),
       Text(
-          '${plural(nums.games, 'game')} · '
-          '${nums.games > 0 ? '${nums.winRate}%' : '—'} wins · '
-          '${nums.points} pts',
+          context.l10n.profile_p5GamesWinsPts(nums.games, (nums.games > 0 ? '${nums.winRate}%' : '—'), nums.points),
           textAlign: TextAlign.center,
           style: TextStyle(
               color: p.muted, fontSize: 12, fontFeatures: tabularFigures)),
@@ -72,11 +71,11 @@ class GenericStats extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     if (nums.fields.isEmpty) {
-      return Text('This sport keeps results only — no individual stats.',
+      return Text(context.l10n.profile_thisSportKeepsResultsOnly,
           style: TextStyle(color: p.muted, fontSize: 12.5));
     }
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const BlockHeading('Stats'),
+      BlockHeading(context.l10n.profile_stats2),
       const SizedBox(height: 10),
       StatTileGrid(fields: nums.fields, counts: nums.counts, games: nums.games),
     ]);

@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// A completed event's MVP vote and awards (web `components/events/EventMvpCard.tsx`,
 /// api `events/mvp.ts`). While the vote is open: the three nominees with
@@ -64,9 +65,9 @@ class _EventMvpCardState extends ConsumerState<EventMvpCard> {
         await ref.read(eventsRepositoryProvider).voteMvp(widget.eventId, playerId);
         ref.invalidate(eventMvpProvider(widget.eventId));
       }
-      messenger.showSnackBar(const SnackBar(content: Text('Vote in — it stays anonymous.')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.event_voteInItStaysAnonymous)));
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e is ApiException ? e.message : 'Could not save your vote.')));
+      messenger.showSnackBar(SnackBar(content: Text(e is ApiException ? e.message : l10n.event_couldNotSaveYourVote)));
     } finally {
       if (mounted) setState(() => _voting = null);
     }
@@ -150,10 +151,10 @@ class _EventMvpCardState extends ConsumerState<EventMvpCard> {
         ]),
         if (open) ...[
           const SizedBox(height: 6),
-          const Text('Who was the MVP?', style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w800)),
+          Text(context.l10n.event_whoWasTheMvp, style: const TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w800)),
           const SizedBox(height: 2),
           Text(
-              '${scope == 'match' ? 'The three standouts from this match.' : "The three standouts from the event's games."} Votes are anonymous — results when voting closes.',
+              context.l10n.event_votesAreAnonymousResultsWhen2((scope == 'match' ? context.l10n.event_theThreeStandoutsFromThis : context.l10n.event_theThreeStandoutsFromThe)),
               style: TextStyle(color: Colors.white.withAlpha(178), fontSize: 12.5)),
         ] else if (mvp != null) ...[
           const SizedBox(height: 12),
@@ -184,12 +185,12 @@ class _EventMvpCardState extends ConsumerState<EventMvpCard> {
               const SizedBox(height: 2),
               Text(
                   mvp['by'] == 'votes'
-                      ? 'Voted by the players · ${mvp['votes']} of ${total ?? mvp['votes']} votes'
+                      ? context.l10n.event_votedByThePlayersOf2(mvp['votes'], total ?? mvp['votes'])
                       : mvp['by'] == 'organiser'
-                          ? 'Confirmed by the organiser'
+                          ? context.l10n.event_confirmedByTheOrganiser
                           : poll != null
-                          ? 'Picked by stats — too few votes'
-                          : 'Picked by stats',
+                          ? context.l10n.event_pickedByStatsTooFew
+                          : context.l10n.event_pickedByStats,
                   style: TextStyle(color: Colors.white.withAlpha(178), fontSize: 12)),
               const SizedBox(height: 8),
               chips(strs(mvp['summary']), dark: true),
@@ -240,7 +241,7 @@ class _EventMvpCardState extends ConsumerState<EventMvpCard> {
               onPressed: !canVote || mine || _voting != null ? null : () => _vote(id),
               child: _voting == id
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text(mine ? '✓ Voted' : (myVote != null ? 'Change' : 'Vote'),
+                  : Text(mine ? context.l10n.event_voted : (myVote != null ? context.l10n.event_change : context.l10n.event_vote2),
                       style: const TextStyle(fontWeight: FontWeight.w700)),
             ),
           ),
@@ -265,7 +266,7 @@ class _EventMvpCardState extends ConsumerState<EventMvpCard> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w700)),
                 ),
-                Text('$votes vote${votes == 1 ? '' : 's'}',
+                Text(context.l10n.event_votes(votes),
                     style: TextStyle(color: p.muted, fontSize: 12, fontWeight: FontWeight.w700)),
               ]),
               const SizedBox(height: 5),
@@ -333,11 +334,11 @@ class _EventMvpCardState extends ConsumerState<EventMvpCard> {
                       context.push('/events/${slug.isNotEmpty ? slug : ofEvent['id']}');
                     },
                     child: Text.rich(TextSpan(style: TextStyle(color: p.muted, fontSize: 12.5), children: [
-                      const TextSpan(text: 'For all of '),
+                      TextSpan(text: context.l10n.event_forAllOf),
                       TextSpan(
                           text: '${ofEvent['title'] ?? 'the event'}',
                           style: TextStyle(color: p.ink, fontWeight: FontWeight.w600)),
-                      const TextSpan(text: ', not just this game.'),
+                      TextSpan(text: context.l10n.event_notJustThisGame),
                     ])),
                   ),
                 ),

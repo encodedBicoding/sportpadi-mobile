@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/core/ads/admob.dart';
 import 'package:sportpadi_mobile/data/ads/ads_repository.dart' show AdContext;
 import 'package:sportpadi_mobile/data/ads/placements.dart';
 import 'package:sportpadi_mobile/features/ads/ad_display.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Ad anchors (web twin: components/ads/placements.tsx). A screen ships the
 /// anchor; the owner console says what fills it, if anything:
@@ -62,7 +63,7 @@ Widget _fill(AdPlacement p, String anchor, int position, EdgeInsets padding,
       child: AdDisplay(slots: [p.slotKey!], context: context),
     );
   } else if (p.isAdMob) {
-    label = 'AdMob ${p.format}';
+    label = l10n.common_adMob(p.format);
     // One ad request per position; the key keeps a disposed ad from being
     // reused when the list rebuilds. The format is the console's choice.
     final unit = p.unitForThisDevice;
@@ -116,7 +117,7 @@ class _DebugFrame extends StatelessWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
-            child: Text('ad anchor · $label',
+            child: Text(context.l10n.common_adAnchor(label),
                 style: const TextStyle(
                     color: Colors.deepOrange,
                     fontSize: 10,

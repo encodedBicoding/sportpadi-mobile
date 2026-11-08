@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// A team's squad for one league (web
 /// `/groups/[id]/leagues/[leagueId]/roster/[teamId]`).
@@ -33,7 +34,7 @@ class LeagueRosterScreen extends ConsumerWidget {
     final d = q.valueOrNull;
     final refresh = [leagueRosterProvider(key)];
     return SpSubPage(
-      title: d?.o('team')?.str('name', 'Squad') ?? 'Squad',
+      title: d?.o('team')?.str('name', context.l10n.league_squad) ?? context.l10n.league_squad,
       subtitle: d?.o('league')?.s('title'),
       body: AsyncView(
         value: q,
@@ -59,11 +60,11 @@ class LeagueRosterScreen extends ConsumerWidget {
           final dateFmt = MaterialLocalizations.of(context);
           final lockNote = d.b('locked')
               ? (d.b('isOrganiser')
-                  ? 'Rosters are locked and call-ups are closed. As the organiser you can still change it — those changes are marked as after the cutoff.'
-                  : 'Rosters are locked and call-ups are closed. Ask the organiser for any change.')
+                  ? context.l10n.league_rostersAreLockedAndCall
+                  : context.l10n.league_rostersAreLockedAndCall2)
               : lock != null
-                  ? 'Call players until ${dateFmt.formatFullDate(lock)} — they\'re registered when they accept. After that, only the organiser can change the roster.'
-                  : 'No cutoff set — call-ups stay open.';
+                  ? context.l10n.league_callPlayersUntilTheyreRegistered2(dateFmt.formatFullDate(lock))
+                  : context.l10n.league_noCutoffSetCallUps;
           final full = registered.length >= max;
 
           return RefreshIndicator(
@@ -77,7 +78,7 @@ class LeagueRosterScreen extends ConsumerWidget {
                   child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Icon(Icons.lock_clock_rounded, size: 20, color: d.b('locked') ? p.muted : p.greenText),
                     const SizedBox(width: 10),
-                    Expanded(child: Text('$lockNote $min–$max players.', style: TextStyle(color: p.ink, fontSize: 12.5))),
+                    Expanded(child: Text(context.l10n.league_players3(lockNote, min, max), style: TextStyle(color: p.ink, fontSize: 12.5))),
                   ]),
                 ),
                 const SizedBox(height: 12),
@@ -106,14 +107,14 @@ class LeagueRosterScreen extends ConsumerWidget {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              const Text('SEASON FORMATION',
-                                  style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
-                              Text(d.o('formation')?.str('name', 'Not set') ?? 'Not set',
+                              Text(context.l10n.league_seasonFormation2,
+                                  style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+                              Text(d.o('formation')?.str('name', context.l10n.league_notSet) ?? context.l10n.league_notSet,
                                   style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
                               Text(
                                   registered.isEmpty
-                                      ? 'Built from registered players — call players first'
-                                      : '$starters of $maxStarters starting · subs update it',
+                                      ? context.l10n.league_builtFromRegisteredPlayersCall
+                                      : context.l10n.league_ofStartingSubsUpdateIt(starters, maxStarters),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 12)),
@@ -134,16 +135,16 @@ class LeagueRosterScreen extends ConsumerWidget {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text('Call players', style: TextStyle(color: p.ink, fontWeight: FontWeight.w800)),
+                          Text(context.l10n.league_callPlayers, style: TextStyle(color: p.ink, fontWeight: FontWeight.w800)),
                           Text(
                               uncalled.isNotEmpty
-                                  ? '${uncalled.length} team player${uncalled.length == 1 ? '' : 's'} not called yet.'
-                                  : 'Everyone on the team has been called or is registered.',
+                                  ? context.l10n.league_teamPlayersNotCalledYet(uncalled.length)
+                                  : context.l10n.league_everyoneOnTheTeamHas,
                               style: TextStyle(color: p.muted, fontSize: 12)),
                         ]),
                       ),
                       SpPill(
-                        label: 'Call',
+                        label: context.l10n.league_call,
                         icon: Icons.campaign_rounded,
                         height: 34,
                         onTap: uncalled.isEmpty
@@ -154,23 +155,23 @@ class LeagueRosterScreen extends ConsumerWidget {
                     ]),
                   ),
                 const SizedBox(height: 14),
-                SpSectionTitle('Registered',
+                SpSectionTitle(context.l10n.league_registered2,
                     count: registered.length,
-                    trailing: registered.length < min ? SpBadge('${min - registered.length} more needed', tone: p.orangeInk) : null),
+                    trailing: registered.length < min ? SpBadge(context.l10n.league_moreNeeded2(min - registered.length), tone: p.orangeInk) : null),
                 const SizedBox(height: 8),
                 if (registered.isEmpty)
-                  SpEmpty(icon: Icons.people_alt_rounded, text: canCall ? 'Nobody registered yet — call your players.' : 'Nobody registered yet.')
+                  SpEmpty(icon: Icons.people_alt_rounded, text: canCall ? context.l10n.league_nobodyRegisteredYetCallYour : context.l10n.league_nobodyRegisteredYet)
                 else
                   SpListCard(children: [
                     for (final pl in registered)
                       ListTile(
                         leading: PersonAvatar(url: pl.s('avatarUrl'), name: pl.str('displayName', '?'), size: 38),
-                        title: Text(pl.str('displayName', 'Player'), style: TextStyle(color: p.ink, fontWeight: FontWeight.w600)),
+                        title: Text(pl.str('displayName', context.l10n.league_player), style: TextStyle(color: p.ink, fontWeight: FontWeight.w600)),
                         subtitle: Text([
                           if (pl.iOrNull('shirtNumber') != null) '#${pl.i('shirtNumber')}',
                           pl.s('position'),
-                          if (needsFormation) (placements?.o(pl.str('playerId'))?.b('isStarter') ?? false) ? 'starter' : 'bench',
-                          if (pl.b('afterLock')) 'added after cutoff',
+                          if (needsFormation) (placements?.o(pl.str('playerId'))?.b('isStarter') ?? false) ? context.l10n.league_p5StarterLower : context.l10n.league_p5BenchLower,
+                          if (pl.b('afterLock')) context.l10n.league_p5AddedAfterCutoffLower,
                         ].whereType<String>().join(' · ')),
                         trailing: canEdit
                             ? PopupMenuButton<String>(
@@ -186,12 +187,12 @@ class LeagueRosterScreen extends ConsumerWidget {
                                     }, refresh: refresh);
                                   } else if (v == 'remove') {
                                     await leagueAction(context, ref, 'removePlayer', {'entryId': pl.str('id'), 'leagueId': leagueId},
-                                        success: 'Removed from the league roster', refresh: refresh);
+                                        success: l10n.league_removedFromTheLeagueRoster, refresh: refresh);
                                   }
                                 },
-                                itemBuilder: (_) => const [
-                                  PopupMenuItem(value: 'number', child: Text('Shirt number')),
-                                  PopupMenuItem(value: 'remove', child: Text('Remove')),
+                                itemBuilder: (_) => [
+                                  PopupMenuItem(value: 'number', child: Text(context.l10n.league_shirtNumber)),
+                                  PopupMenuItem(value: 'remove', child: Text(context.l10n.league_remove)),
                                 ],
                               )
                             : null,
@@ -199,46 +200,48 @@ class LeagueRosterScreen extends ConsumerWidget {
                   ]),
                 if (open.isNotEmpty || answered.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  SpSectionTitle('Call-ups', count: open.length),
+                  SpSectionTitle(context.l10n.league_callUps, count: open.length),
                   const SizedBox(height: 8),
                   SpListCard(children: [
                     for (final c in [...open, ...answered])
                       ListTile(
                         leading: PersonAvatar(url: c.s('avatarUrl'), name: c.str('name', '?'), size: 38),
-                        title: Text(c.str('name', 'Player'), style: TextStyle(color: p.ink, fontWeight: FontWeight.w600)),
+                        title: Text(c.str('name', context.l10n.league_player), style: TextStyle(color: p.ink, fontWeight: FontWeight.w600)),
                         subtitle: Text(c.s('status') == 'called'
-                            ? 'Called${c.date('calledAt') != null ? ' ${dateFmt.formatMediumDate(c.date('calledAt')!)}' : ''} · waiting'
+                            ? (c.date('calledAt') != null
+                                ? context.l10n.league_calledWaiting(dateFmt.formatMediumDate(c.date('calledAt')!))
+                                : context.l10n.league_p5CalledWaitingNoDate)
                             : c.s('status') == 'declined'
-                                ? "Can't play"
-                                : 'Call withdrawn'),
+                                ? context.l10n.league_cantPlay
+                                : context.l10n.league_callWithdrawn),
                         trailing: !canCall
                             ? null
                             : c.s('status') == 'called'
                                 ? IconButton(
-                                    tooltip: 'Withdraw call',
+                                    tooltip: context.l10n.league_withdrawCall,
                                     icon: Icon(Icons.close_rounded, color: p.muted),
                                     onPressed: () => leagueAction(context, ref, 'cancelCall', {'callId': c.str('id')},
-                                        success: 'Call withdrawn', refresh: refresh),
+                                        success: context.l10n.league_callWithdrawn, refresh: refresh),
                                   )
                                 : IconButton(
-                                    tooltip: 'Call again',
+                                    tooltip: context.l10n.league_callAgain,
                                     icon: Icon(Icons.replay_rounded, color: p.muted),
                                     onPressed: () => leagueAction(context, ref, 'callPlayers',
                                         {'leagueId': leagueId, 'teamId': teamId, 'playerIds': [c.str('playerId')]},
-                                        success: "Called again — they've been notified.", refresh: refresh),
+                                        success: context.l10n.league_calledAgainTheyveBeenNotified, refresh: refresh),
                                   ),
                       ),
                   ]),
                 ],
                 if (canEdit) ...[
                   const SizedBox(height: 16),
-                  SpSectionTitle('Team players not registered', count: available.length),
+                  SpSectionTitle(context.l10n.league_teamPlayersNotRegistered, count: available.length),
                   const SizedBox(height: 6),
                   if (available.isEmpty)
-                    Text('Everyone on the team is registered. Add players to the team first to register more.',
+                    Text(context.l10n.league_everyoneOnTheTeamIs,
                         style: TextStyle(color: p.muted, fontSize: 12.5))
                   else ...[
-                    Text("Calling lets the player say yes. “Add” registers them straight away — use it when you've already asked.",
+                    Text(context.l10n.league_callingLetsThePlayerSay,
                         style: TextStyle(color: p.muted, fontSize: 12)),
                     const SizedBox(height: 8),
                     SpListCard(children: [
@@ -252,7 +255,7 @@ class LeagueRosterScreen extends ConsumerWidget {
                             if (a.b('called')) 'called',
                           ].whereType<String>().join(' · ')),
                           trailing: SpPill(
-                            label: 'Add',
+                            label: context.l10n.league_add,
                             icon: Icons.add_rounded,
                             tone: SpPillTone.outline,
                             height: 32,
@@ -268,13 +271,13 @@ class LeagueRosterScreen extends ConsumerWidget {
                 ],
                 if (d.b('isOrganiser') && removed.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  SpSectionTitle('Removed', count: removed.length),
+                  SpSectionTitle(context.l10n.league_removed, count: removed.length),
                   const SizedBox(height: 8),
                   SpListCard(children: [
                     for (final r in removed)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        child: Text('${r.str('displayName', 'Player')}${r.s('note') != null ? ' · ${r.str('note')}' : ''}',
+                        child: Text('${r.str('displayName', context.l10n.league_player)}${r.s('note') != null ? ' · ${r.str('note')}' : ''}',
                             style: TextStyle(color: p.muted, fontSize: 13)),
                       ),
                   ]),
@@ -293,11 +296,11 @@ class LeagueRosterScreen extends ConsumerWidget {
     final v = await showDialog<String>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Shirt number'),
+        title: Text(l10n.league_shirtNumber),
         content: TextField(controller: ctl, keyboardType: TextInputType.number, autofocus: true),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(c, ctl.text.trim()), child: const Text('Save')),
+          TextButton(onPressed: () => Navigator.pop(c), child: Text(l10n.league_cancel)),
+          TextButton(onPressed: () => Navigator.pop(c, ctl.text.trim()), child: Text(l10n.league_save)),
         ],
       ),
     );
@@ -356,7 +359,7 @@ class _CallSheetState extends ConsumerState<_CallSheet> {
         if (all) 'all': true else 'playerIds': _sel.toList(),
         if (_note.text.trim().isNotEmpty) 'note': _note.text.trim(),
       },
-      success: "Called — they've been notified.",
+      success: context.l10n.league_calledTheyveBeenNotified,
       refresh: [leagueRosterProvider('${widget.leagueId}|${widget.teamId}')],
     );
     if (!mounted) return;
@@ -370,19 +373,21 @@ class _CallSheetState extends ConsumerState<_CallSheet> {
     final n = _sel.length;
     return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       SpSheetHeader(
-        title: 'Call players',
+        title: context.l10n.league_callPlayers,
         subtitle:
-            'Each player is notified and answers; accepting registers them on the league roster${widget.lock != null ? ' (until ${MaterialLocalizations.of(context).formatMediumDate(widget.lock!)})' : ''}.',
+            widget.lock != null
+                ? context.l10n.league_p5EachPlayerNotifiedUntil(MaterialLocalizations.of(context).formatMediumDate(widget.lock!))
+                : context.l10n.league_p5EachPlayerNotified,
         icon: Icons.campaign_rounded,
       ),
       Row(children: [
-        Expanded(child: Text('$n of ${widget.candidates.length} selected', style: TextStyle(color: p.muted, fontSize: 12))),
+        Expanded(child: Text(context.l10n.league_ofSelected2(n, widget.candidates.length), style: TextStyle(color: p.muted, fontSize: 12))),
         TextButton(
             onPressed: () => setState(() => _sel
               ..clear()
               ..addAll(widget.candidates.map((c) => c.str('playerId')))),
-            child: const Text('Select all')),
-        TextButton(onPressed: () => setState(_sel.clear), child: const Text('Clear')),
+            child: Text(context.l10n.league_selectAll)),
+        TextButton(onPressed: () => setState(_sel.clear), child: Text(context.l10n.league_clear)),
       ]),
       for (final c in widget.candidates)
         CheckboxListTile(
@@ -391,9 +396,9 @@ class _CallSheetState extends ConsumerState<_CallSheet> {
           value: _sel.contains(c.str('playerId')),
           onChanged: (v) => setState(() => v == true ? _sel.add(c.str('playerId')) : _sel.remove(c.str('playerId'))),
           secondary: PersonAvatar(url: c.s('avatarUrl'), name: c.str('name', '?'), size: 34),
-          title: Text(c.str('name', 'Player'), style: TextStyle(color: p.ink, fontWeight: FontWeight.w600)),
+          title: Text(c.str('name', context.l10n.league_player), style: TextStyle(color: p.ink, fontWeight: FontWeight.w600)),
           subtitle: Text(
-              [c.s('position'), if (_declined(c.str('playerId'))) 'declined before — call again'].whereType<String>().join(' · '),
+              [c.s('position'), if (_declined(c.str('playerId'))) context.l10n.league_p5DeclinedBeforeCallAgain].whereType<String>().join(' · '),
               style: TextStyle(color: p.muted, fontSize: 12)),
         ),
       const SizedBox(height: 8),
@@ -401,15 +406,15 @@ class _CallSheetState extends ConsumerState<_CallSheet> {
         controller: _note,
         maxLength: 300,
         maxLines: 2,
-        decoration: const InputDecoration(
-          labelText: 'Remark (optional)',
-          hintText: 'Season starts in two weeks — training Tuesdays at 7.',
+        decoration: InputDecoration(
+          labelText: context.l10n.league_remarkOptional,
+          hintText: context.l10n.league_seasonStartsInTwoWeeks,
         ),
       ),
       const SizedBox(height: 8),
-      SpButton(label: _busy ? 'Calling…' : 'Call $n player${n == 1 ? '' : 's'}', icon: Icons.campaign_rounded, expand: true, onTap: n == 0 || _busy ? null : _call),
+      SpButton(label: _busy ? context.l10n.league_calling : context.l10n.league_callPlayers2(n), icon: Icons.campaign_rounded, expand: true, onTap: n == 0 || _busy ? null : _call),
       const SizedBox(height: 8),
-      SpPill(label: 'Call everyone', icon: Icons.groups_rounded, tone: SpPillTone.outline, expand: true, onTap: _busy ? null : () => _call(all: true)),
+      SpPill(label: context.l10n.league_callEveryone, icon: Icons.groups_rounded, tone: SpPillTone.outline, expand: true, onTap: _busy ? null : () => _call(all: true)),
     ]);
   }
 }

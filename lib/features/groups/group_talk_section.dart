@@ -15,6 +15,7 @@ import 'package:sportpadi_mobile/features/discussions/discussion_entry_points.da
 import 'package:sportpadi_mobile/features/inbox/message_entry_points.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The group page's one place for talking: Announcements, Messages and
 /// Discussions as a row of tiles (icon with a notification badge, name, one
@@ -91,7 +92,7 @@ class GroupTalkSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Padding(padding: EdgeInsets.only(left: 4, bottom: 8), child: Eyebrow('Talk')),
+          Padding(padding: const EdgeInsets.only(left: 4, bottom: 8), child: Eyebrow(context.l10n.group_talk)),
           Container(
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
@@ -135,8 +136,8 @@ class GroupTalkSection extends ConsumerWidget {
     final announcementsStatus = unseen > 0
         ? (urgent ? '$unseen new · ${counts.urgent} urgent' : '$unseen new')
         : muted
-            ? 'Muted · urgent ones still come through'
-            : 'News from the group';
+            ? context.l10n.group_mutedUrgentOnesStillCome
+            : context.l10n.group_newsFromTheGroup;
 
     // ── Messages: what I can start here (start-options).
     final o = ref.watch(messageStartOptionsProvider(groupId)).valueOrNull;
@@ -156,26 +157,26 @@ class GroupTalkSection extends ConsumerWidget {
     if (counts.messages > 0) {
       messagesStatus = '${counts.messages} unread';
     } else if (staff != null) {
-      messagesStatus = staff.isAdmin ? 'Conversations' : 'Message your players';
+      messagesStatus = staff.isAdmin ? context.l10n.group_conversations : context.l10n.group_messageYourPlayers;
     } else if (selfBlocked && !canContactAdmins && !hasCoaches) {
-      messagesStatus = 'Through your guardian';
+      messagesStatus = context.l10n.group_throughYourGuardian;
     } else if (canContactAdmins && hasCoaches) {
-      messagesStatus = 'Talk to the admins or coaches';
+      messagesStatus = context.l10n.group_talkToTheAdminsOr;
     } else if (canContactAdmins) {
-      messagesStatus = 'Talk to the admins';
+      messagesStatus = context.l10n.group_talkToTheAdmins;
     } else {
-      messagesStatus = 'Message a coach';
+      messagesStatus = context.l10n.group_messageACoach;
     }
     // The Messages sheet's one-line explainer (web's msgExplainer).
     final String messagesExplainer;
     if (staff != null && staff.isAdmin) {
-      messagesExplainer = 'Every conversation in the group, and reports.';
+      messagesExplainer = context.l10n.group_everyConversationInTheGroup;
     } else if (staff != null) {
-      messagesExplainer = 'Message the players on your teams.';
+      messagesExplainer = context.l10n.group_messageThePlayersOnYour;
     } else if (selfBlocked && !canContactAdmins && !hasCoaches) {
-      messagesExplainer = 'Messages with admins and coaches go through your guardian.';
+      messagesExplainer = context.l10n.group_messagesWithAdminsAndCoaches;
     } else {
-      messagesExplainer = "Message the group's admins — every admin sees it and can answer.";
+      messagesExplainer = context.l10n.group_messageTheGroupsAdminsEvery;
     }
 
     // ── Discussions: only for people in a space here (members, or a
@@ -192,7 +193,7 @@ class GroupTalkSection extends ConsumerWidget {
     final discussionsStatus = counts.discussions > 0
         ? '${counts.discussions} with new activity'
         : topTitle.isEmpty
-            ? (hot == null ? 'Questions, issues and ideas' : 'Start a discussion')
+            ? (hot == null ? context.l10n.group_questionsIssuesAndIdeas : context.l10n.group_startADiscussion)
             : topTitle;
 
     return <Widget>[
@@ -200,7 +201,7 @@ class GroupTalkSection extends ConsumerWidget {
         _TalkTile(
           icon: Icons.campaign_outlined,
           tint: _Tint.orange,
-          label: 'Announcements',
+          label: context.l10n.group_announcements,
           status: announcementsStatus,
           badge: unseen,
           urgent: urgent,
@@ -210,7 +211,7 @@ class GroupTalkSection extends ConsumerWidget {
               context,
               groupId: groupId,
               groupName: groupName,
-              subtitle: "News and updates from the group's admins and coaches.",
+              subtitle: context.l10n.group_newsAndUpdatesFromThe,
               urgent: urgent,
               withInbox: true,
               canMute: isMember,
@@ -221,7 +222,7 @@ class GroupTalkSection extends ConsumerWidget {
         _TalkTile(
           icon: Icons.chat_bubble_outline_rounded,
           tint: _Tint.green,
-          label: 'Messages',
+          label: context.l10n.group_messages,
           status: messagesStatus,
           badge: counts.messages,
           onTap: () => _afterSheet(context, _openMessages(context, messagesExplainer)),
@@ -230,7 +231,7 @@ class GroupTalkSection extends ConsumerWidget {
         _TalkTile(
           icon: Icons.forum_outlined,
           tint: _Tint.green,
-          label: 'Discussions',
+          label: context.l10n.group_discussions,
           status: discussionsStatus,
           badge: counts.discussions,
           onTap: () => _afterSheet(context, _openDiscussions(context)),
@@ -262,7 +263,7 @@ class GroupTalkSection extends ConsumerWidget {
     final showAnnouncements = inTeam || canAnnounce || unseen > 0;
     final announcementsStatus = unseen > 0
         ? (urgent ? '$unseen new · ${counts.urgent} urgent' : '$unseen new')
-        : 'News from the team';
+        : context.l10n.group_newsFromTheTeam;
 
     // ── Messages: this team's coaches; its players for staff.
     final o = ref.watch(messageStartOptionsProvider(groupId)).valueOrNull;
@@ -277,19 +278,19 @@ class GroupTalkSection extends ConsumerWidget {
     if (counts.messages > 0) {
       messagesStatus = '${counts.messages} unread';
     } else if (toPlayers) {
-      messagesStatus = 'Message a player on this team';
+      messagesStatus = context.l10n.group_messageAPlayerOnThis;
     } else if (coachNames.isNotEmpty) {
-      messagesStatus = 'Message ${coachNames.join(', ')}';
+      messagesStatus = context.l10n.group_message2(coachNames.join(', '));
     } else {
-      messagesStatus = 'Through your guardian';
+      messagesStatus = context.l10n.group_throughYourGuardian;
     }
     final String messagesExplainer;
     if (toPlayers) {
-      messagesExplainer = 'Message a player on this team — for a ward, their guardians.';
+      messagesExplainer = context.l10n.group_messageAPlayerOnThis2;
     } else if (selfBlocked && coaches.isEmpty) {
-      messagesExplainer = 'Messages with admins and coaches go through your guardian.';
+      messagesExplainer = context.l10n.group_messagesWithAdminsAndCoaches;
     } else {
-      messagesExplainer = "Message this team's coaches. The group's admins can see every conversation.";
+      messagesExplainer = context.l10n.group_messageThisTeamsCoachesThe;
     }
 
     // ── Discussions: the team's, for the people in its space.
@@ -303,7 +304,7 @@ class GroupTalkSection extends ConsumerWidget {
     final discussionsStatus = counts.discussions > 0
         ? '${counts.discussions} with new activity'
         : topTitle.isEmpty
-            ? (hot == null ? 'Questions, issues and ideas' : 'Start a discussion')
+            ? (hot == null ? context.l10n.group_questionsIssuesAndIdeas : context.l10n.group_startADiscussion)
             : topTitle;
 
     return <Widget>[
@@ -311,7 +312,7 @@ class GroupTalkSection extends ConsumerWidget {
         _TalkTile(
           icon: Icons.campaign_outlined,
           tint: _Tint.orange,
-          label: 'Announcements',
+          label: context.l10n.group_announcements,
           status: announcementsStatus,
           badge: unseen,
           urgent: urgent,
@@ -321,7 +322,7 @@ class GroupTalkSection extends ConsumerWidget {
               context,
               groupId: groupId,
               groupName: groupName,
-              subtitle: "News and updates from the team's coaches and the group's admins.",
+              subtitle: context.l10n.group_newsAndUpdatesFromThe2,
               urgent: urgent,
               withInbox: true,
               canMute: false,
@@ -333,7 +334,7 @@ class GroupTalkSection extends ConsumerWidget {
         _TalkTile(
           icon: Icons.chat_bubble_outline_rounded,
           tint: _Tint.green,
-          label: 'Messages',
+          label: context.l10n.group_messages,
           status: messagesStatus,
           badge: counts.messages,
           onTap: () => _afterSheet(context, _openTeamMessages(context, teamId, messagesExplainer)),
@@ -342,7 +343,7 @@ class GroupTalkSection extends ConsumerWidget {
         _TalkTile(
           icon: Icons.forum_outlined,
           tint: _Tint.green,
-          label: 'Discussions',
+          label: context.l10n.group_discussions,
           status: discussionsStatus,
           badge: counts.discussions,
           onTap: () => _afterSheet(context, _openDiscussions(context)),
@@ -376,7 +377,7 @@ class GroupTalkSection extends ConsumerWidget {
         children: [
           SpSheetHeader(
             icon: Icons.chat_bubble_outline_rounded,
-            title: 'Messages',
+            title: context.l10n.group_messages,
             subtitle: explainer,
           ),
           GroupMessagesSection(
@@ -399,7 +400,7 @@ class GroupTalkSection extends ConsumerWidget {
         children: [
           SpSheetHeader(
             icon: Icons.chat_bubble_outline_rounded,
-            title: 'Messages',
+            title: context.l10n.group_messages,
             subtitle: explainer,
           ),
           TeamMessagesSection(
@@ -426,14 +427,14 @@ class GroupTalkSection extends ConsumerWidget {
           children: [
             SpSheetHeader(
               icon: Icons.forum_outlined,
-              title: 'Discussions',
+              title: context.l10n.group_discussions,
               subtitle: team == null
-                  ? 'Questions, issues and ideas for the group and your teams — out in the open.'
-                  : 'Questions, issues and ideas for the team — out in the open.',
+                  ? context.l10n.group_questionsIssuesAndIdeasFor
+                  : context.l10n.group_questionsIssuesAndIdeasFor2,
               trailing: TextButton(
                 onPressed: () =>
                     launch((c) => c.push('/groups/$groupId/discussions$q')),
-                child: const Text('See all'),
+                child: Text(context.l10n.group_seeAll),
               ),
             ),
             if (team == null)
@@ -491,7 +492,7 @@ class _TalkTile extends StatelessWidget {
     final Color bg = urgent ? p.liveTint : tint == _Tint.orange ? p.orangeTint : p.accentTint;
     return Semantics(
       button: true,
-      label: badge > 0 ? '$label, $badge new. $status' : '$label. $status',
+      label: badge > 0 ? context.l10n.group_newLabel3(label, badge, status) : '$label. $status',
       excludeSemantics: true,
       onTap: onTap,
       child: Material(

@@ -14,6 +14,7 @@ import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 class _MemberEdit {
   const _MemberEdit(this.positions, this.jersey, this.starter);
@@ -68,7 +69,7 @@ class ManageRosterScreen extends ConsumerWidget {
           .cancelWardInvite(teamId, i.inviteId);
       ref.invalidate(teamWardInvitesProvider(teamId));
       ref.invalidate(eligibleMembersProvider(teamId));
-      if (context.mounted) _snack(context, 'Invitation cancelled.');
+      if (context.mounted) _snack(context, l10n.manage_invitationCancelled);
     } on ApiException catch (e) {
       if (context.mounted) _snack(context, e.message);
     }
@@ -91,15 +92,15 @@ class ManageRosterScreen extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Remove player?'),
-        content: Text('Remove ${m.displayName} from the team?'),
+        title: Text(l10n.manage_removePlayer),
+        content: Text(l10n.manage_removeFromTheTeam(m.displayName)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
+              child: Text(l10n.manage_cancel)),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Remove')),
+              child: Text(l10n.manage_remove3)),
         ],
       ),
     );
@@ -122,12 +123,12 @@ class ManageRosterScreen extends ConsumerWidget {
     final p = context.palette;
     return Scaffold(
       appBar:
-          AppBar(leading: const SpLeading(), title: const Text('Manage squad')),
+          AppBar(leading: const SpLeading(), title: Text(context.l10n.manage_manageSquad)),
       floatingActionButton: team.maybeWhen(
         data: (t) => FloatingActionButton.extended(
           onPressed: () => _add(context, ref, t),
           icon: const Icon(Icons.person_add_alt_1_rounded),
-          label: const Text('Add'),
+          label: Text(context.l10n.manage_add),
         ),
         orElse: () => null,
       ),
@@ -136,16 +137,16 @@ class ManageRosterScreen extends ConsumerWidget {
         onRetry: () => ref.invalidate(teamDetailProvider(teamId)),
         data: (t) {
           if (t.members.isEmpty && waiting.isEmpty) {
-            return const Center(child: Text('No players yet. Add your squad.'));
+            return Center(child: Text(context.l10n.manage_noPlayersYetAddYour));
           }
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
             children: [
               if (waiting.isNotEmpty) ...[
-                SpSectionTitle('Waiting for a guardian', count: waiting.length),
+                SpSectionTitle(context.l10n.manage_waitingForAGuardian, count: waiting.length),
                 const SizedBox(height: 4),
                 Text(
-                  'Wards join once one of their guardians accepts.',
+                  context.l10n.manage_wardsJoinOnceOneOf,
                   style: TextStyle(color: p.muted, fontSize: 12),
                 ),
                 const SizedBox(height: 10),
@@ -158,7 +159,7 @@ class ManageRosterScreen extends ConsumerWidget {
                 ]),
                 const SizedBox(height: 20),
                 if (t.members.isNotEmpty) ...[
-                  SpSectionTitle('Squad', count: t.members.length),
+                  SpSectionTitle(context.l10n.manage_squad, count: t.members.length),
                   const SizedBox(height: 10),
                 ],
               ],
@@ -218,11 +219,11 @@ class ManageRosterScreen extends ConsumerWidget {
             if (v == 'remove') _remove(context, ref, m);
           },
           itemBuilder: (_) => [
-            const PopupMenuItem(value: 'edit', child: Text('Edit')),
+            PopupMenuItem(value: 'edit', child: Text(context.l10n.manage_edit)),
             PopupMenuItem(
                 value: 'captain',
-                child: Text(m.isCaptain ? 'Remove captain' : 'Make captain')),
-            const PopupMenuItem(value: 'remove', child: Text('Remove')),
+                child: Text(m.isCaptain ? context.l10n.manage_removeCaptain : context.l10n.manage_makeCaptain)),
+            PopupMenuItem(value: 'remove', child: Text(context.l10n.manage_remove3)),
           ],
         ),
       ]),
@@ -242,7 +243,7 @@ class _WaitingRow extends StatelessWidget {
     final sub = [
       if (invite.positions.isNotEmpty) invite.positions.join(' · '),
       if (invite.jerseyNumber != null) '#${invite.jerseyNumber}',
-      'Invited — waiting for a guardian',
+      context.l10n.manage_invitedWaitingForAGuardian,
     ].join('  ·  ');
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -274,7 +275,7 @@ class _WaitingRow extends StatelessWidget {
                 style: TextStyle(color: p.orangeInk, fontSize: 12)),
           ]),
         ),
-        TextButton(onPressed: onCancel, child: const Text('Cancel')),
+        TextButton(onPressed: onCancel, child: Text(context.l10n.manage_cancel)),
       ]),
     );
   }
@@ -329,11 +330,11 @@ class _MemberSheetState extends State<_MemberSheet> {
         SpSheetHeader(
           icon: Icons.badge_outlined,
           title: widget.title,
-          subtitle: 'Position, shirt number and starting spot.',
+          subtitle: context.l10n.manage_positionShirtNumberAndStarting,
         ),
         if (widget.options.isNotEmpty) ...[
-          const Text('Positions (up to 3)',
-              style: TextStyle(fontWeight: FontWeight.w600)),
+          Text(context.l10n.manage_positionsUpTo3,
+              style: const TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -353,12 +354,12 @@ class _MemberSheetState extends State<_MemberSheet> {
           controller: _jersey,
           keyboardType: TextInputType.number,
           decoration:
-              const InputDecoration(labelText: 'Jersey number (optional)'),
+              InputDecoration(labelText: context.l10n.manage_jerseyNumberOptional),
         ),
         const SizedBox(height: 4),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text('Starter'),
+          title: Text(context.l10n.manage_starter),
           value: _starter,
           onChanged: (v) => setState(() => _starter = v),
         ),
@@ -374,7 +375,7 @@ class _MemberSheetState extends State<_MemberSheet> {
                 _starter,
               ),
             ),
-            child: const Text('Save'),
+            child: Text(context.l10n.manage_save),
           ),
         ),
       ],

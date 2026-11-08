@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/shared/format/event_time.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// "2026-11-01" → "Sun, 1 Nov" (a calendar date — no zone shift).
 String fixtureDay(String? ymd) {
@@ -59,25 +60,25 @@ Future<bool> leagueAction(
     return true;
   } catch (e) {
     messenger.showSnackBar(SnackBar(
-        content: Text(e is ApiException ? e.message : 'Something went wrong.')));
+        content: Text(e is ApiException ? e.message : l10n.league_somethingWentWrong)));
     return false;
   }
 }
 
-const stageStatusLabel = {
-  'pending': 'Waiting',
-  'drafting': 'Drafting',
-  'open': 'In play',
-  'closed': 'Closed',
-  'advanced': 'Done',
-};
-const leagueStatusLabel = {
-  'draft': 'Draft',
-  'published': 'Fixtures out',
-  'in_progress': 'In progress',
-  'completed': 'Finished',
-  'cancelled': 'Cancelled',
-};
+Map<String, String> get stageStatusLabel => {
+      'pending': l10n.league_waiting,
+      'drafting': l10n.league_drafting,
+      'open': l10n.league_inPlay,
+      'closed': l10n.league_closed2,
+      'advanced': l10n.league_done,
+    };
+Map<String, String> get leagueStatusLabel => {
+      'draft': l10n.league_draft,
+      'published': l10n.league_fixturesOut,
+      'in_progress': l10n.league_inProgress,
+      'completed': l10n.league_finished,
+      'cancelled': l10n.league_cancelled,
+    };
 
 /* ─── Standings ────────────────────────────────────────────────────────── */
 
@@ -109,10 +110,10 @@ class StandingsTableView extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 4, 12, 6),
           child: Row(children: [
             SizedBox(width: 26, child: Text('#', style: head())),
-            Expanded(child: Text('TEAM', style: head())),
-            for (final h in ['P', 'W', if (showDraws) 'D', 'L', 'GD'])
+            Expanded(child: Text(context.l10n.league_team4, style: head())),
+            for (final h in [context.l10n.league_p, context.l10n.league_w, if (showDraws) context.l10n.league_d, context.l10n.league_l, context.l10n.league_gd])
               SizedBox(width: 28, child: Text(h, textAlign: TextAlign.center, style: head())),
-            SizedBox(width: 34, child: Text('PTS', textAlign: TextAlign.center, style: head())),
+            SizedBox(width: 34, child: Text(context.l10n.league_pts2, textAlign: TextAlign.center, style: head())),
           ]),
         ),
         for (final r in rows)
@@ -150,7 +151,7 @@ class StandingsTableView extends StatelessWidget {
                     size: 24),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(r.o('team')?.str('name', 'Team') ?? 'Team',
+                  child: Text(r.o('team')?.str('name', context.l10n.league_team) ?? context.l10n.league_team,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: p.ink, fontSize: 13, fontWeight: FontWeight.w600)),
@@ -168,9 +169,9 @@ class StandingsTableView extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 2),
             child: Row(children: [
-              _legend(p.accentDeep, 'Promotion', p),
+              _legend(p.accentDeep, context.l10n.league_promotion, p),
               const SizedBox(width: 14),
-              _legend(p.danger, 'Relegation', p),
+              _legend(p.danger, context.l10n.league_relegation, p),
             ]),
           ),
       ]),
@@ -201,24 +202,24 @@ class FixtureTile extends StatelessWidget {
         ? '${f.i('homeScore')} – ${f.i('awayScore')}'
         : st != null
             ? formatTime12(st)
-            : 'vs';
+            : context.l10n.profile_vsLabel;
     final dec = f.s('decision');
     final sub = dec == 'forfeit'
-        ? 'Forfeit'
+        ? context.l10n.league_forfeit
         : dec == 'shootout'
-            ? 'Pens ${f.i('homeSo')}–${f.i('awaySo')}'
+            ? context.l10n.league_pens2(f.i('homeSo'), f.i('awaySo'))
             : dec == 'extra_time'
-                ? 'AET'
+                ? context.l10n.league_p5Aet
                 : live
-                    ? 'LIVE'
+                    ? context.l10n.league_live2
                     : switch (f.s('status')) {
-                        'postponed' => 'Postponed',
-                        'cancelled' => 'Cancelled',
-                        'unscheduled' => 'No date',
+                        'postponed' => context.l10n.league_postponed,
+                        'cancelled' => context.l10n.league_cancelled,
+                        'unscheduled' => context.l10n.league_noDate,
                         _ => null,
                       };
     Widget side(J? team, String? slot, bool home) {
-      final name = Text(team?.str('name') ?? slot ?? 'TBC',
+      final name = Text(team?.str('name') ?? slot ?? context.l10n.league_tbc,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           textAlign: home ? TextAlign.right : TextAlign.left,
@@ -245,11 +246,14 @@ class FixtureTile extends StatelessWidget {
     final when = done ? null : fixtureTime(f);
     final meta = [
       f.s('label'),
-      if (agg != null) 'agg ${agg.i('home')}–${agg.i('away')}${agg.s('decidedBy') == 'away_goals' ? ' (away goals)' : ''}',
+      if (agg != null)
+        agg.s('decidedBy') == 'away_goals'
+            ? context.l10n.league_p5AggAwayGoals(agg.i('home'), agg.i('away'))
+            : context.l10n.league_p5Agg(agg.i('home'), agg.i('away')),
       f.s('scheduledDate') != null ? fixtureDay(f.s('scheduledDate')) : null,
       if (when?.venueZone != null) '${when!.venueTime} ${when.venueZone}',
-      if (when?.viewerTime != null) '${when!.viewerTime} your time',
-      f.s('venue') ?? (f.s('scheduledDate') != null && !done ? 'Venue TBC' : null),
+      if (when?.viewerTime != null) context.l10n.common_yourTime(when!.viewerTime!),
+      f.s('venue') ?? (f.s('scheduledDate') != null && !done ? context.l10n.league_p5VenueTbc : null),
     ]
         .whereType<String>()
         .join(' · ');
@@ -282,7 +286,7 @@ class FixtureTile extends StatelessWidget {
                 side(f.o('away'), f.s('awaySlot'), false),
               ]),
               const SizedBox(height: 4),
-              Text(meta.isEmpty ? 'Date to be confirmed' : meta,
+              Text(meta.isEmpty ? context.l10n.league_dateToBeConfirmed : meta,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: p.muted, fontSize: 11.5)),
@@ -313,7 +317,7 @@ class RoundsView extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(2, 12, 2, 8),
           child: SpSectionTitle(
-              rounds[r]!.first.s('label')?.replaceAll(RegExp(r'\s\d+$'), '') ?? 'Round $r'),
+              rounds[r]!.first.s('label')?.replaceAll(RegExp(r'\s\d+$'), '') ?? context.l10n.league_round3(r)),
         ),
         SpListCard(children: [
           for (final f in rounds[r]!) FixtureTile(f: f, trailing: trailing?.call(f)),
@@ -352,7 +356,7 @@ class BracketView extends StatelessWidget {
     bool third(List<J> t) => deciding(t).s('bracketKey') == '3P';
     final rounds = ties.where((t) => !third(t)).map((t) => deciding(t).i('round')).toSet().toList()..sort();
     if (rounds.isEmpty) return const SizedBox.shrink();
-    String nameOf(J f) => f.s('tieName') ?? f.s('label')?.replaceAll(RegExp(r'\s\d+$'), '') ?? 'Round ${f.i('round')}';
+    String nameOf(J f) => f.s('tieName') ?? f.s('label')?.replaceAll(RegExp(r'\s\d+$'), '') ?? context.l10n.league_round4(f.i('round'));
     Widget tie(List<J> t) {
       final d = deciding(t);
       if (t.length < 2) {
@@ -367,16 +371,14 @@ class BracketView extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 5),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           for (final f in t) ...[
-            _BracketMatch(f: f, action: actions?.call(f), p: p, legLabel: f.i('leg') == 1 ? '1st leg' : '2nd leg', quiet: true),
+            _BracketMatch(f: f, action: actions?.call(f), p: p, legLabel: f.i('leg') == 1 ? context.l10n.league_t1stLeg : context.l10n.league_t2ndLeg, quiet: true),
             const SizedBox(height: 4),
           ],
           if (agg != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(
-                  'Agg ${d.o('home')?.str('name', 'Home')} ${agg.i('home')}–${agg.i('away')} ${d.o('away')?.str('name', 'Away')}'
-                  '${w == null ? '' : ' · ${w == d.o('home')?.s('id') ? d.o('home')?.str('name') : d.o('away')?.str('name')} through'}'
-                  '${w != null && agg.s('decidedBy') == 'away_goals' ? ' on away goals' : w != null && agg.s('decidedBy') == 'shootout' ? ' on penalties' : ''}',
+                  _aggLine(context, d, agg, w),
                   style: TextStyle(color: p.muted, fontSize: 11, fontWeight: FontWeight.w600)),
             ),
         ]),
@@ -403,7 +405,7 @@ class BracketView extends StatelessWidget {
                       for (final t in ties.where((t) => !third(t) && deciding(t).i('round') == r)) tie(t),
                       if (r == rounds.last)
                         for (final t in ties.where(third)) ...[
-                          const Padding(padding: EdgeInsets.fromLTRB(4, 8, 4, 2), child: Eyebrow('Third place')),
+                          Padding(padding: const EdgeInsets.fromLTRB(4, 8, 4, 2), child: Eyebrow(context.l10n.league_thirdPlace)),
                           tie(t),
                         ],
                     ],
@@ -443,7 +445,7 @@ class _BracketMatch extends StatelessWidget {
           Crest(logoUrl: team?.s('logoUrl'), label: team?.s('name') ?? '?', kitPrimary: team?.s('kitPrimary'), size: 20),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(team?.str('name') ?? slot ?? 'TBC',
+            child: Text(team?.str('name') ?? slot ?? context.l10n.league_tbc,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -476,10 +478,10 @@ class _BracketMatch extends StatelessWidget {
                   [
                     if (legLabel != null) legLabel!,
                     f.s('decision') == 'forfeit'
-                        ? 'Forfeit'
+                        ? context.l10n.league_forfeit
                         : f.s('scheduledDate') != null
                             ? fixtureDay(f.s('scheduledDate'))
-                            : 'Date TBC',
+                            : context.l10n.tournament_dateTbc,
                   ].join(' · '),
                   style: TextStyle(color: p.muted, fontSize: 10.5)),
             ),
@@ -491,10 +493,27 @@ class _BracketMatch extends StatelessWidget {
   }
 }
 
+/// A two-leg tie's aggregate line — one whole sentence per outcome:
+/// "Agg Lions 3–2 Tigers · Lions through on away goals".
+String _aggLine(BuildContext context, J d, J agg, String? winnerId) {
+  final l = context.l10n;
+  final home = d.o('home')?.str('name', l.league_home) ?? l.league_home;
+  final away = d.o('away')?.str('name', l.league_away) ?? l.league_away;
+  final hg = agg.i('home');
+  final ag = agg.i('away');
+  if (winnerId == null) return l.league_p5AggTie(home, hg, ag, away);
+  final winner = (winnerId == d.o('home')?.s('id') ? d.o('home')?.str('name') : d.o('away')?.str('name')) ?? '';
+  return switch (agg.s('decidedBy')) {
+    'away_goals' => l.league_p5AggTieThroughAwayGoals(home, hg, ag, away, winner),
+    'shootout' => l.league_p5AggTieThroughPenalties(home, hg, ag, away, winner),
+    _ => l.league_p5AggTieThrough(home, hg, ag, away, winner),
+  };
+}
+
 /// A rotating-ish label for the league/stage kind.
 String stageKindLabel(String? k) => switch (k) {
-      'groups' => 'Groups',
-      'split' => 'Split tables',
-      'knockout' => 'Knockout',
-      _ => 'League table',
+      'groups' => l10n.league_groups,
+      'split' => l10n.league_splitTables,
+      'knockout' => l10n.league_knockout,
+      _ => l10n.league_leagueTable,
     };

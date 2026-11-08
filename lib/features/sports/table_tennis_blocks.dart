@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/sports/generic_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/sport_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Ping pong 🏓 (design §8) — W–L with the last ten results as little bats,
 /// then the rally numbers: points, service aces, faults.
@@ -58,11 +59,11 @@ class TableTennisRecord extends StatelessWidget {
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                   fontFeatures: tabularFigures)),
-          Text('win rate', style: TextStyle(color: p.muted, fontSize: 11)),
+          Text(context.l10n.profile_winRate2, style: TextStyle(color: p.muted, fontSize: 11)),
         ]),
       ]),
       const SizedBox(height: 4),
-      Text('WON – LOST',
+      Text(context.l10n.profile_wonLost3,
           style: TextStyle(
               color: p.muted,
               fontSize: 10.5,
@@ -71,7 +72,7 @@ class TableTennisRecord extends StatelessWidget {
       if (last.isNotEmpty) ...[
         const SizedBox(height: 16),
         Row(children: [
-          Text('LAST ${last.length}',
+          Text(context.l10n.profile_last3(last.length),
               style: TextStyle(
                   color: p.muted,
                   fontSize: 10.5,
@@ -79,7 +80,7 @@ class TableTennisRecord extends StatelessWidget {
                   fontWeight: FontWeight.w800)),
           const Spacer(),
           if (streak != null)
-            MiniChip('Streak $streak', color: streakColor(p, streak!)),
+            MiniChip(context.l10n.profile_streak2(streak ?? ''), color: streakColor(p, streak!)),
         ]),
         const SizedBox(height: 10),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -99,14 +100,14 @@ class TableTennisRecord extends StatelessWidget {
         const SizedBox(height: 12),
         Align(
           alignment: Alignment.centerLeft,
-          child: MiniChip('Streak $streak', color: streakColor(p, streak!)),
+          child: MiniChip(context.l10n.profile_streak2(streak ?? ''), color: streakColor(p, streak!)),
         ),
       ],
       if (nums.draws > 0) ...[
         const SizedBox(height: 10),
         Align(
             alignment: Alignment.centerLeft,
-            child: MiniChip('D ${nums.draws}')),
+            child: MiniChip(context.l10n.profile_d2(nums.draws))),
       ],
     ]);
   }
@@ -174,7 +175,7 @@ class TableTennisStats extends StatelessWidget {
     final acesLabel = nums.field('aces').label;
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const BlockHeading('Rally'),
+      BlockHeading(context.l10n.profile_rally),
       const SizedBox(height: 12),
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (hasPoints)
@@ -182,22 +183,22 @@ class TableTennisStats extends StatelessWidget {
             child: StatFigure(
                 value: '${nums.n('points')}',
                 label: nums.field('points').label,
-                sub: '${nums.rate('points')} / game',
+                sub: context.l10n.profile_game(nums.rate('points')),
                 color: ink),
           ),
         if (hasAces)
           Expanded(
             child: StatFigure(
                 value: '${nums.n('aces')}',
-                label: acesLabel == 'Aces' ? 'Service aces' : acesLabel,
-                sub: '${nums.rate('aces')} / game'),
+                label: acesLabel == 'Aces' ? context.l10n.profile_serviceAces : acesLabel,
+                sub: context.l10n.profile_game(nums.rate('aces'))),
           ),
         if (hasFaults)
           Expanded(
             child: StatFigure(
                 value: '${nums.n('faults')}',
                 label: nums.field('faults').label,
-                sub: '${nums.rate('faults')} / game',
+                sub: context.l10n.profile_game(nums.rate('faults')),
                 color: p.danger),
           ),
       ]),

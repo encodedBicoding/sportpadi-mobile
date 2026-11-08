@@ -4,6 +4,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/sports/soccer_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/sport_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Chess ♟️ (design §8) — chess notation everywhere: wins 1–0, draws ½–½,
 /// losses 0–1, and a score of W + ½D.
@@ -25,9 +26,9 @@ class ChessRecord extends StatelessWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final w = nums.wins, d = nums.draws, l = nums.losses, g = nums.games;
     final squares = <(int, String, String, bool)>[
-      (w, '1–0', 'Wins', true),
-      (d, '½–½', 'Draws', false),
-      (l, '0–1', 'Losses', true),
+      (w, '1–0', context.l10n.profile_wins2, true),
+      (d, '½–½', context.l10n.profile_draws, false),
+      (l, '0–1', context.l10n.profile_losses, true),
     ];
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -59,7 +60,7 @@ class ChessRecord extends StatelessWidget {
       const SizedBox(height: 12),
       Text.rich(
         TextSpan(children: [
-          const TextSpan(text: 'Score '),
+          TextSpan(text: context.l10n.profile_score),
           TextSpan(
               text: g > 0 ? '${chessScore(w, d)} / $g' : '—',
               style: TextStyle(color: p.ink, fontWeight: FontWeight.w800)),
@@ -153,8 +154,8 @@ class ChessStats extends StatelessWidget {
     final total = w + d + l;
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      BlockHeading('Performance',
-          trailing: Text(plural(nums.games, 'game'),
+      BlockHeading(context.l10n.profile_performance,
+          trailing: Text(gamesCount(SportFamily.chess, nums.games),
               style: TextStyle(
                   color: p.muted,
                   fontSize: 12,
@@ -163,9 +164,9 @@ class ChessStats extends StatelessWidget {
       const SizedBox(height: 12),
       SegmentBar(height: 14, parts: [(w, gold), (d, drawn), (l, p.danger)]),
       const SizedBox(height: 10),
-      LegendLine(color: gold, label: 'Wins  1–0', value: w, total: total),
-      LegendLine(color: drawn, label: 'Draws  ½–½', value: d, total: total),
-      LegendLine(color: p.danger, label: 'Losses  0–1', value: l, total: total),
+      LegendLine(color: gold, label: context.l10n.profile_wins10, value: w, total: total),
+      LegendLine(color: drawn, label: context.l10n.profile_draws2, value: d, total: total),
+      LegendLine(color: p.danger, label: context.l10n.profile_losses01, value: l, total: total),
       if (showMore) MoreStats(nums: nums, placed: const {}),
     ]);
   }

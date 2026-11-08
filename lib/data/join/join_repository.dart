@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/data/join/join_models.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 class JoinRepository {
   JoinRepository(this._dio);
@@ -13,7 +14,7 @@ class JoinRepository {
     try {
       final res = await _dio.get('/api/mobile/join/group/$id');
       if (res.data == null || res.data is! Map) {
-        throw ApiException('Group not found.', statusCode: 404);
+        throw ApiException(l10n.common_groupNotFound, statusCode: 404);
       }
       return GroupJoinInfo.fromJson(Map<String, dynamic>.from(res.data as Map));
     } catch (e) {
@@ -33,7 +34,7 @@ class JoinRepository {
     try {
       final res = await _dio.get('/api/mobile/join/team/$id');
       if (res.data == null || res.data is! Map) {
-        throw ApiException('Team not found.', statusCode: 404);
+        throw ApiException(l10n.common_teamNotFound, statusCode: 404);
       }
       return TeamJoinInfo.fromJson(Map<String, dynamic>.from(res.data as Map));
     } catch (e) {

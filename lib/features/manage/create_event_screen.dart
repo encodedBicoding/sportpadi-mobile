@@ -15,6 +15,7 @@ import 'package:sportpadi_mobile/shared/widgets/event_audience.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_reminders.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_spots.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 class CreateEventScreen extends ConsumerStatefulWidget {
   const CreateEventScreen(
@@ -67,17 +68,17 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
     if (_categoryId == null) {
-      setState(() => _error = 'Pick a sport');
+      setState(() => _error = l10n.manage_pickASport);
       return;
     }
     if (_date == null) {
-      setState(() => _error = 'Pick a date');
+      setState(() => _error = l10n.manage_pickADate);
       return;
     }
     // The venue pins the event to its own timezone — required.
     if (_location.text.trim().isEmpty) {
       setState(() => _error =
-          'Add the venue (street/park and city) so players can find it.');
+          l10n.manage_addTheVenueStreetPark);
       return;
     }
     final options =
@@ -91,7 +92,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
           ]
         : const <String>[];
     if (forTeams && teamIds.isEmpty) {
-      setState(() => _error = 'Pick the team this event is for');
+      setState(() => _error = l10n.manage_pickTheTeamThisEvent);
       return;
     }
     // The screen can be popped mid-save: invalidate through the container,
@@ -131,7 +132,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       if (!mounted) return;
       if (teamIds.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('The team has been notified')));
+            SnackBar(content: Text(l10n.manage_theTeamHasBeenNotified)));
       }
       if (slug is String && slug.isNotEmpty) {
         context.pushReplacement('/events/$slug');
@@ -183,7 +184,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     final forTeams = _isForTeams(o);
     return Scaffold(
       appBar:
-          AppBar(leading: const SpLeading(), title: const Text('New event')),
+          AppBar(leading: const SpLeading(), title: Text(context.l10n.manage_newEvent)),
       body: Form(
         key: _form,
         child: ListView(
@@ -209,9 +210,9 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             ],
             TextFormField(
               controller: _title,
-              decoration: const InputDecoration(labelText: 'Title'),
+              decoration: InputDecoration(labelText: context.l10n.manage_title),
               validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Add a title' : null,
+                  (v == null || v.trim().isEmpty) ? context.l10n.manage_addATitle : null,
             ),
             const SizedBox(height: 14),
             CategoryDropdown(
@@ -219,7 +220,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                 onChanged: (v) => setState(() => _categoryId = v)),
             const SizedBox(height: 14),
             _PickerTile(
-              label: 'Date',
+              label: context.l10n.manage_date,
               value: _date == null
                   ? 'Choose'
                   : DateFormat('EEE, d MMM yyyy').format(_date!),
@@ -237,7 +238,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             Row(children: [
               Expanded(
                 child: _PickerTile(
-                  label: 'Start',
+                  label: context.l10n.manage_start,
                   value: _start == null ? 'Optional' : _start!.format(context),
                   onTap: () async {
                     final t = await showTimePicker(
@@ -250,7 +251,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: _PickerTile(
-                  label: 'End',
+                  label: context.l10n.manage_end,
                   value: _end == null ? 'Optional' : _end!.format(context),
                   onTap: () async {
                     final t = await showTimePicker(
@@ -264,32 +265,32 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             TextFormField(
               controller: _location,
               decoration:
-                  const InputDecoration(labelText: 'Location (optional)'),
+                  InputDecoration(labelText: context.l10n.manage_locationOptional),
             ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _description,
               maxLines: 3,
               decoration:
-                  const InputDecoration(labelText: 'Description (optional)'),
+                  InputDecoration(labelText: context.l10n.manage_descriptionOptional),
             ),
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Private event'),
+              title: Text(context.l10n.manage_privateEvent),
               subtitle: Text(
                   forTeams
                       ? teamEventHint(isPrivate: true)
-                      : 'Only your group can see it',
+                      : context.l10n.manage_onlyYourGroupCanSee,
                   style: TextStyle(color: p.muted, fontSize: 12)),
               value: _private,
               onChanged: (v) => setState(() => _private = v),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('MVP vote after the event'),
+              title: Text(context.l10n.manage_mvpVoteAfterTheEvent),
               subtitle: Text(
-                  'The 3 standout players go to a 24-hour anonymous vote among everyone who checked in.',
+                  context.l10n.manage_the3StandoutPlayersGo,
                   style: TextStyle(color: p.muted, fontSize: 12)),
               value: _mvpVote,
               onChanged: (v) => setState(() => _mvpVote = v),
@@ -321,7 +322,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                       width: 20,
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white))
-                  : const Text('Create event'),
+                  : Text(context.l10n.manage_createEvent),
             ),
           ],
         ),

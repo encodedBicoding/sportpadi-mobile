@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// My fines (2026) — what's owed up top, then the list by state; active
 /// ones are settled via hosted checkout. My wards' fines are listed too
@@ -68,9 +69,9 @@ class _MyFinesScreenState extends ConsumerState<MyFinesScreen> {
       body: SafeArea(
         bottom: false,
         child: Column(children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: SpHeader(title: 'My fines'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: SpHeader(title: context.l10n.wallet_myFines),
           ),
           Expanded(
             child: RefreshIndicator(
@@ -105,7 +106,7 @@ class _MyFinesScreenState extends ConsumerState<MyFinesScreen> {
                             child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(open.isEmpty ? 'All clear' : 'You owe',
+                                  Text(open.isEmpty ? context.l10n.wallet_allClear : context.l10n.wallet_youOwe,
                                       style: TextStyle(
                                           color: open.isEmpty
                                               ? p.greenText
@@ -115,9 +116,9 @@ class _MyFinesScreenState extends ConsumerState<MyFinesScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                       open.isEmpty
-                                          ? 'No unpaid fines'
+                                          ? context.l10n.wallet_noUnpaidFines
                                           : owed ??
-                                              '${open.length} unpaid fines',
+                                              context.l10n.wallet_unpaidFines(open.length),
                                       style: TextStyle(
                                           color:
                                               open.isEmpty ? p.ink : p.onHero,
@@ -126,13 +127,13 @@ class _MyFinesScreenState extends ConsumerState<MyFinesScreen> {
                                           fontWeight: FontWeight.w800)),
                                   if (open.isNotEmpty)
                                     Text(
-                                        '${open.length} unpaid fine${open.length == 1 ? '' : 's'}',
+                                        context.l10n.wallet_unpaidFines2(open.length),
                                         style: const TextStyle(
                                             color: Color(0xFFFFB57D),
                                             fontSize: 12.5,
                                             fontWeight: FontWeight.w600)),
                                   if (open.isEmpty)
-                                    Text('Keep it that way.',
+                                    Text(context.l10n.wallet_keepItThatWay,
                                         style: TextStyle(
                                             color: p.muted, fontSize: 12.5)),
                                 ]),
@@ -158,9 +159,9 @@ class _MyFinesScreenState extends ConsumerState<MyFinesScreen> {
                         child: ListView(
                           scrollDirection: Axis.horizontal,
                           children: [
-                            chip('active', 'Unpaid', count('active')),
-                            chip('paid', 'Paid', count('paid')),
-                            chip('pardoned', 'Pardoned', count('pardoned')),
+                            chip('active', context.l10n.wallet_unpaid, count('active')),
+                            chip('paid', context.l10n.wallet_paid, count('paid')),
+                            chip('pardoned', context.l10n.wallet_pardoned, count('pardoned')),
                           ],
                         ),
                       ),
@@ -174,10 +175,10 @@ class _MyFinesScreenState extends ConsumerState<MyFinesScreen> {
                             const SizedBox(height: 10),
                             Text(
                                 _filter == 'active'
-                                    ? 'Nothing to pay.'
+                                    ? context.l10n.wallet_nothingToPay
                                     : _filter == 'paid'
-                                        ? 'No paid fines yet.'
-                                        : 'No pardoned fines.',
+                                        ? context.l10n.wallet_noPaidFinesYet
+                                        : context.l10n.wallet_noPardonedFines,
                                 style: TextStyle(color: p.muted, fontSize: 13)),
                           ]),
                         )
@@ -284,7 +285,7 @@ class _FineRowState extends ConsumerState<_FineRow> {
                 style: TextStyle(
                     color: p.ink, fontWeight: FontWeight.w800, fontSize: 15)),
             if (!f.isActive)
-              Text(f.status == 'paid' ? 'PAID' : 'PARDONED',
+              Text(f.status == 'paid' ? context.l10n.wallet_paid2 : context.l10n.wallet_pardoned2,
                   style: TextStyle(
                       color: f.status == 'paid' ? p.greenText : p.muted,
                       fontSize: 10.5,
@@ -296,10 +297,10 @@ class _FineRowState extends ConsumerState<_FineRow> {
           const SizedBox(height: 14),
           SpButton(
             label: _busy
-                ? 'Opening checkout…'
+                ? context.l10n.wallet_openingCheckout
                 : f.forWard == null
-                    ? 'Pay fine'
-                    : 'Pay for ${f.forWard!.firstName}',
+                    ? context.l10n.wallet_payFine
+                    : context.l10n.wallet_payFor2(f.forWard!.firstName),
             icon: Icons.lock_outline_rounded,
             expand: true,
             onTap: _busy ? null : _pay,

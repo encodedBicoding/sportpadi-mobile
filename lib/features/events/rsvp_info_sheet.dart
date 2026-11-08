@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/data/payments/payment_models.dart';
 import 'package:sportpadi_mobile/data/payments/payments_repository.dart';
 import 'package:sportpadi_mobile/features/payments/checkout_flow.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Shown right after an RSVP.
 ///
@@ -106,8 +107,8 @@ class _RsvpInfoSheetState extends ConsumerState<RsvpInfoSheet> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(status == 'paid'
-                ? 'Paid ✅ — your spot is locked in.'
-                : 'Payment $status — pull to refresh in a moment.')));
+                ? l10n.event_paidYourSpotIsLocked
+                : l10n.event_paymentPullToRefreshIn(status))));
       }
       ref.invalidate(eventTicketsProvider(widget.eventId));
       if (mounted) Navigator.of(context).pop();
@@ -162,23 +163,23 @@ class _RsvpInfoSheetState extends ConsumerState<RsvpInfoSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SpSheetHeader(
+            SpSheetHeader(
               icon: Icons.event_available_rounded,
-              title: "You're holding a spot",
+              title: context.l10n.event_youreHoldingASpot,
               subtitle:
-                  'This event needs a paid ticket. Your RSVP holds the spot for now — paying puts you first.',
+                  context.l10n.event_thisEventNeedsAPaid2,
             ),
             const SizedBox(height: 10),
             row(
                 Icons.verified_user_outlined,
-                rich('Paying puts you first. ',
-                    'When the organiser needs room, unpaid RSVPs go first. If a paid spot ever has to be released, your ticket price is refunded straight away.')),
+                rich(context.l10n.event_payingPutsYouFirst,
+                    context.l10n.event_whenTheOrganiserNeedsRoom)),
             row(
                 Icons.undo_rounded,
-                rich("Can't make it after paying? ",
-                    "The ticket price is refunded automatically once the event completes. Service fees aren't refundable.")),
+                rich(context.l10n.event_cantMakeItAfterPaying,
+                    context.l10n.event_theTicketPriceIsRefunded)),
             row(Icons.lock_outline,
-                plain('No ticket at the gate, no check-in — pay now or before you scan.')),
+                plain(context.l10n.event_noTicketAtTheGate)),
             const SizedBox(height: 12),
             FilledButton.icon(
               onPressed: _busy ? null : _payNow,
@@ -188,15 +189,15 @@ class _RsvpInfoSheetState extends ConsumerState<RsvpInfoSheet> {
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.lock_outline, size: 18),
-              label: Text('Pay $label and secure it'),
+              label: Text(context.l10n.event_payAndSecureIt(label)),
             ),
             const SizedBox(height: 6),
             OutlinedButton(
                 onPressed: _busy ? null : _close,
-                child: const Text('Pay later')),
+                child: Text(context.l10n.event_payLater)),
             const SizedBox(height: 6),
             Text(
-                'Until you pay, an organiser may release your spot to someone who has.',
+                context.l10n.event_untilYouPayAnOrganiser2,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 11.5)),
           ]);
@@ -208,30 +209,29 @@ class _RsvpInfoSheetState extends ConsumerState<RsvpInfoSheet> {
         children: [
           SpSheetHeader(
             icon: Icons.event_available_rounded,
-            title: "You've RSVP'd",
+            title: context.l10n.event_youveRSVPd,
             subtitle: widget.rsvpRequired
-                ? "Your spot is held. If you can't make it, take your RSVP back so someone else can have it — organisers can release no-shows."
-                : "This lets the organiser know you're planning to come — it doesn't lock in your spot. "
-                    'Your place is confirmed when you check in at the venue.',
+                ? context.l10n.event_yourSpotIsHeldIf2
+                : context.l10n.event_thisLetsTheOrganiserKnow2,
           ),
           const SizedBox(height: 14),
-          Text('SHOW UP AND EARN',
+          Text(context.l10n.event_showUpAndEarn2,
               style: TextStyle(
                   color: p.muted,
                   fontSize: 10.5,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1.1)),
           const SizedBox(height: 4),
-          row(Icons.auto_awesome_rounded, plain('For your RSVP'), '+10 XP'),
-          row(Icons.qr_code_scanner_rounded, plain('Check in at the venue'),
+          row(Icons.auto_awesome_rounded, plain(context.l10n.event_forYourRsvp), '+10 XP'),
+          row(Icons.qr_code_scanner_rounded, plain(context.l10n.event_checkInAtTheVenue),
               '+25 XP'),
           row(Icons.timer_outlined,
-              plain('Check in 10+ minutes before kick-off'), '+10 XP'),
+              plain(context.l10n.event_checkIn10MinutesBefore), '+10 XP'),
           row(Icons.local_fire_department_rounded,
-              plain('Keep your weekly streak going'), '🔥'),
+              plain(context.l10n.event_keepYourWeeklyStreakGoing), '🔥'),
           const SizedBox(height: 6),
           Text(
-              'RSVP\'d within 24 hours of kick-off? Showing up also earns Last-minute hero.',
+              context.l10n.event_rSVPdWithin24HoursOf,
               style: TextStyle(color: p.muted, fontSize: 11.5)),
           const SizedBox(height: 10),
           CheckboxListTile(
@@ -240,11 +240,11 @@ class _RsvpInfoSheetState extends ConsumerState<RsvpInfoSheet> {
             dense: true,
             contentPadding: EdgeInsets.zero,
             controlAffinity: ListTileControlAffinity.leading,
-            title: Text("Don't show this again",
+            title: Text(context.l10n.event_dontShowThisAgain,
                 style: TextStyle(color: p.muted, fontSize: 12.5)),
           ),
           const SizedBox(height: 4),
-          FilledButton(onPressed: _close, child: const Text('Got it')),
+          FilledButton(onPressed: _close, child: Text(context.l10n.event_gotIt)),
         ]);
   }
 }

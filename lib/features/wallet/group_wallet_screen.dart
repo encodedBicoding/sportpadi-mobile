@@ -23,6 +23,7 @@ import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart'
     show groupProvider;
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Group wallet for admins — mirrors the web wallet page: balance hero
 /// (withdrawable for Stripe, settled-to-bank for auto-settling providers),
@@ -161,7 +162,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
             .read(walletRepositoryProvider)
             .resumeOnboarding(widget.groupId);
         if (url == null) {
-          _snack('Nothing left to finish.');
+          _snack(l10n.wallet_nothingLeftToFinish);
           _refetch();
           return;
         }
@@ -170,9 +171,9 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
         await showDialog<void>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Finish in your browser'),
-            content: const Text(
-                'Complete the provider\'s form, then come back here and tap Refresh status.'),
+            title: Text(l10n.wallet_finishInYourBrowser),
+            content: Text(
+                l10n.wallet_completeTheProvidersFormThen),
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
@@ -188,18 +189,18 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
             .refreshStatus(widget.groupId);
         _refetch();
         if (r.walletStatus == 'active') {
-          _snack('Wallet activated 🎉');
+          _snack(l10n.wallet_walletActivated2);
         } else if (r.actionNeeded) {
           final what = r.due.isNotEmpty
               ? r.due.first.label.toLowerCase()
               : 'the next step';
-          _snack('Not done yet — the provider still needs $what.');
+          _snack(l10n.wallet_notDoneYetTheProvider(what));
         } else if (r.step == 'under_review') {
-          _snack('Everything is submitted — the provider is reviewing it now.');
+          _snack(l10n.wallet_everythingIsSubmittedTheProvider);
         } else if (r.step == 'rejected') {
-          _snack('The provider declined this account. Contact support.');
+          _snack(l10n.wallet_theProviderDeclinedThisAccount);
         } else {
-          _snack("Setup isn't finished yet — continue when you're ready.");
+          _snack(l10n.wallet_setupIsntFinishedYetContinue);
         }
       });
 
@@ -217,7 +218,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
       await ref.read(walletRepositoryProvider).requestWithdrawal(widget.groupId,
           paymentAccountId: acct.id, amountMinor: amountMinor);
       _snack(
-          'Withdrawal requested — every group admin has been notified. The money is locked until it\'s approved or rejected.');
+          l10n.wallet_withdrawalRequestedEveryGroupAdmin2);
       _refetch();
       if (mounted) context.push('/groups/${widget.groupId}/wallet/withdrawals');
     });
@@ -237,7 +238,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
             child: SpHeader(
-              title: 'Wallet',
+              title: context.l10n.wallet_wallet,
               subtitle: groupName,
               actions: [
                 if (ov.valueOrNull != null) _statusBadge(ov.valueOrNull!, p),
@@ -303,10 +304,9 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
           p,
           icon: Icons.lock_outline_rounded,
           tone: p.muted,
-          title: "The wallet isn't enabled for this group",
-          body: 'Ticket sales, a group balance and withdrawals to your bank '
-              "aren't switched on for this group yet.",
-          cta: _planCta('See plans'),
+          title: context.l10n.wallet_theWalletIsntEnabledFor,
+          body: context.l10n.wallet_ticketSalesAGroupBalance,
+          cta: _planCta(context.l10n.wallet_seePlans),
         ),
       ];
     }
@@ -320,17 +320,17 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
             p,
             icon: Icons.account_balance_rounded,
             tone: p.accent,
-            title: 'Set up payment collection',
+            title: context.l10n.wallet_setUpPaymentCollection,
             body:
-                "Connect your group's bank once. Ticket money collects in your wallet, matures briefly so refunds stay covered, and you withdraw it to that bank — SportPadi takes its fee at checkout (your plan's rate plus card processing, shown on every payment).",
+                context.l10n.wallet_connectYourGroupsBankOnce,
             cta: SpButton(
-              label: 'Connect bank (opens browser)',
+              label: context.l10n.wallet_connectBankOpensBrowser,
               icon: Icons.open_in_new_rounded,
               onTap: () =>
                   _openWeb('/groups/${widget.groupId}/wallet/activate'),
             ),
             footnote:
-                'Bank details are entered on a secure web form. Come back here when done.',
+                context.l10n.wallet_bankDetailsAreEnteredOn,
           ),
         ];
       }
@@ -346,7 +346,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            SpBadge('🧪 Test mode — no real money moves', tone: p.amber),
+            SpBadge(context.l10n.wallet_testModeNoRealMoney2, tone: p.amber),
             SpInfoTip(_tips(o).testMode, color: p.amber),
           ]),
         ),
@@ -365,23 +365,23 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
       // One-time: who covers the fees on tickets, fines and tournament fees.
       FeeBearerCard(groupId: widget.groupId, disabled: o.paused),
       const SizedBox(height: 14),
-      _sectionTitle('Settlement account', p,
+      _sectionTitle(context.l10n.wallet_settlementAccount, p,
           tip: _tips(o).settlementAccount,
           trailing: !o.paused
               ? TextButton(
                   onPressed: () =>
                       _openWeb('/groups/${widget.groupId}/wallet/activate'),
-                  child: const Text('Replace'),
+                  child: Text(context.l10n.wallet_replace),
                 )
               : null),
       if (acct == null)
         GlassCard(
           child: Column(children: [
-            Text('No bank connected yet.',
+            Text(context.l10n.wallet_noBankConnectedYet,
                 style: TextStyle(color: p.muted, fontSize: 13)),
             const SizedBox(height: 10),
             SpButton(
-              label: 'Connect bank',
+              label: context.l10n.wallet_connectBank,
               icon: Icons.account_balance_rounded,
               onTap: () =>
                   _openWeb('/groups/${widget.groupId}/wallet/activate'),
@@ -393,7 +393,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
       const SizedBox(height: 14),
       _withdrawalsSection(p),
       const SizedBox(height: 14),
-      _sectionTitle('Activity', p, tip: _tips(o).activity),
+      _sectionTitle(context.l10n.wallet_activity, p, tip: _tips(o).activity),
       _ledgerSection(o, p),
     ];
   }
@@ -457,21 +457,18 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const SizedBox(height: 2),
-            Text('Payments paused', style: TextStyle(color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700)),
+            Text(context.l10n.wallet_paymentsPaused, style: TextStyle(color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700)),
             const SizedBox(height: 2),
             Text(
               byPlan
-                  ? "Your group's plan has ended, so it's on the Free plan and new ticket payments, fines and "
-                      'withdrawals are on hold. Everything already settled is in your bank and your records are '
-                      'safe — resume the plan to start collecting again.'
-                  : 'New payments and withdrawals are on hold for this wallet. Everything already settled is in '
-                      'your bank and your records are safe. Pull down to refresh — if it stays paused, contact support.',
+                  ? context.l10n.wallet_yourGroupsPlanHasEnded
+                  : context.l10n.wallet_newPaymentsAndWithdrawalsAre,
               style: TextStyle(color: p.orangeInk, fontSize: 12.5, height: 1.45),
             ),
             if (byPlan) ...[
               const SizedBox(height: 10),
               SpPill(
-                label: 'Resume',
+                label: context.l10n.wallet_resume,
                 icon: Icons.workspace_premium_outlined,
                 height: 34,
                 onTap: _resume,
@@ -509,26 +506,26 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
     final pending = prog?.pending ?? const <OnboardingItem>[];
 
     final headline = switch (step) {
-      'rejected' => '$provider declined this account',
-      'under_review' => '$provider is reviewing your details',
-      'verify_identity' => '$provider is waiting on you — one more step',
-      _ => 'Finish setting up with $provider',
+      'rejected' => context.l10n.wallet_declinedThisAccount(provider),
+      'under_review' => context.l10n.wallet_isReviewingYourDetails(provider),
+      'verify_identity' => context.l10n.wallet_isWaitingOnYouOneMoreStep(provider),
+      _ => context.l10n.wallet_finishSettingUpWith(provider),
     };
     final blurb = switch (step) {
       'rejected' => prog?.disabledReason != null
-          ? 'Reason: ${prog!.disabledReason!.replaceFirst(RegExp(r'^rejected\.'), '').replaceAll('_', ' ')}. Contact support to sort this out.'
-          : 'Contact support to sort this out.',
+          ? context.l10n.wallet_reasonContactSupportToSort(prog!.disabledReason!.replaceFirst(RegExp(r'^rejected\.'), '').replaceAll('_', ' '))
+          : context.l10n.wallet_contactSupportToSortThis,
       'under_review' =>
-        'Everything is submitted. This usually takes a few minutes, sometimes up to a day. Pull to refresh to check.',
+        context.l10n.wallet_everythingIsSubmittedThisUsually2,
       'verify_identity' =>
-        "Your first form went through, but $provider still needs to verify who you are before it can pay out. This step isn't optional.",
+        context.l10n.wallet_yourFirstFormWentThrough2(provider),
       _ =>
-        "You started setup but didn't finish $provider's form. Pick up where you left off — nothing needs re-entering.",
+        context.l10n.wallet_youStartedSetupButDidnt2(provider),
     };
     final steps = <(String, String)>[
-      ('Account details', step == 'provide_details' ? 'now' : 'done'),
+      (context.l10n.wallet_accountDetails, step == 'provide_details' ? 'now' : 'done'),
       (
-        'Identity check',
+        context.l10n.wallet_identityCheck,
         step == 'verify_identity'
             ? 'now'
             : step == 'provide_details'
@@ -536,14 +533,14 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
                 : 'done'
       ),
       (
-        '$provider review',
+        context.l10n.wallet_review(provider),
         step == 'under_review'
             ? 'now'
             : step == 'ready'
                 ? 'done'
                 : 'todo'
       ),
-      ('Payouts on', step == 'ready' ? 'done' : 'todo'),
+      (context.l10n.wallet_payoutsOn, step == 'ready' ? 'done' : 'todo'),
     ];
 
     return GlassCard(
@@ -597,7 +594,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
           ),
         if (due.isNotEmpty) ...[
           const SizedBox(height: 10),
-          Text('$provider still needs:',
+          Text(context.l10n.wallet_stillNeeds(provider),
               style: TextStyle(
                   color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w700)),
           for (final d in due)
@@ -606,15 +603,15 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
         ],
         if (pending.isNotEmpty) ...[
           const SizedBox(height: 6),
-          Text('Being verified: ${pending.map((x) => x.label).join(', ')}',
+          Text(context.l10n.wallet_beingVerified(pending.map((x) => x.label).join(', ')),
               style: TextStyle(color: p.muted, fontSize: 12)),
         ],
         const SizedBox(height: 16),
         if (step != 'rejected' && actionNeeded)
           SpButton(
             label: step == 'verify_identity'
-                ? 'Verify identity with $provider'
-                : 'Continue with $provider',
+                ? context.l10n.wallet_verifyIdentityWith(provider)
+                : context.l10n.wallet_continueWith(provider),
             icon: Icons.open_in_new_rounded,
             expand: true,
             onTap: _busy ? null : _continueOnboarding,
@@ -632,7 +629,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Icon(Icons.refresh_rounded, size: 18, color: p.ink),
                 const SizedBox(width: 6),
-                Text('Refresh status',
+                Text(context.l10n.wallet_refreshStatus,
                     style: TextStyle(
                         color: p.ink,
                         fontSize: 14,
@@ -663,14 +660,14 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
         !(policy?.dayBlocked ?? false);
 
     final providerKnown = appControlled && (policy?.hasProviderFigure ?? false);
-    final providerLabel = policy?.providerLabel ?? 'your payment provider';
+    final providerLabel = policy?.providerLabel ?? context.l10n.wallet_yourPaymentProvider;
     final matured = policy?.withdrawableMinor ?? 0;
     final settling = policy?.settlingAtProviderMinor ?? 0;
     final eyebrow = !appControlled
-        ? 'COLLECTED'
+        ? context.l10n.wallet_collected2
         : providerKnown
-            ? 'AVAILABLE AT ${providerLabel.toUpperCase()} NOW'
-            : 'AVAILABLE TO WITHDRAW';
+            ? context.l10n.wallet_availableAtNow2(providerLabel.toUpperCase())
+            : context.l10n.wallet_availableToWithdraw2;
     final tips = _tips(o);
     final eyebrowTip = !appControlled
         ? tips.settledDirect
@@ -709,7 +706,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
         ),
         if (appControlled && policy?.providerName != null) ...[
           const SizedBox(height: 6),
-          TipText('Matured on SportPadi: ${formatMoney(matured, cur, exp)}',
+          TipText(context.l10n.wallet_maturedOnSportPadi3(formatMoney(matured, cur, exp)),
               tip: tips.maturedOnSportPadi,
               style: TextStyle(
                   color: p.onHero,
@@ -718,10 +715,10 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
           const SizedBox(height: 2),
           TipText(
             !providerKnown
-                ? 'Couldn\'t read your $providerLabel balance just now — showing the SportPadi figure. Pull to refresh to try again.'
+                ? context.l10n.wallet_couldntReadYourBalanceJust2(providerLabel)
                 : settling > 0
-                    ? '${formatMoney(settling, cur, exp)} is still settling with $providerLabel and becomes payable as it clears.'
-                    : 'Fully settled with $providerLabel.',
+                    ? context.l10n.wallet_isStillSettlingWithAnd(formatMoney(settling, cur, exp), providerLabel)
+                    : context.l10n.wallet_fullySettledWith(providerLabel),
             tip: providerKnown && settling > 0 ? tips.settlingAtProvider : null,
             style: TextStyle(
                 color: providerKnown && settling > 0 ? warm : p.heroMuted,
@@ -732,7 +729,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
         if (appControlled && (policy?.pendingApprovalMinor ?? 0) > 0) ...[
           const SizedBox(height: 6),
           TipText(
-            '${formatMoney(policy!.pendingApprovalMinor, cur, exp)} is locked by a withdrawal awaiting approval — excluded from the balance above.',
+            context.l10n.wallet_isLockedByAWithdrawal2(formatMoney(policy!.pendingApprovalMinor, cur, exp)),
             tip: tips.lockedByApproval,
             style: const TextStyle(color: warm, fontSize: 12, height: 1.4),
           ),
@@ -742,11 +739,11 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
           if (policy != null &&
               policy.dayBlocked &&
               policy.nextPayoutDate != null)
-            Text('Withdrawals open on ${formatDayYear(policy.nextPayoutDate)}.',
+            Text(context.l10n.wallet_withdrawalsOpenOn2(formatDayYear(policy.nextPayoutDate)),
                 style: const TextStyle(color: warm, fontSize: 12))
           else if (policy != null && !policy.withdrawalsEnabled)
-            const Text('Withdrawals are paused for this group.',
-                style: TextStyle(color: warm, fontSize: 12)),
+            Text(context.l10n.wallet_withdrawalsArePausedForThis,
+                style: const TextStyle(color: warm, fontSize: 12)),
           const SizedBox(height: 10),
           Material(
             color:
@@ -765,7 +762,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
                           ? const Color(0xFF0E1411)
                           : p.heroMuted),
                   const SizedBox(width: 7),
-                  Text('Withdraw to bank',
+                  Text(context.l10n.wallet_withdrawToBank,
                       style: TextStyle(
                           color: canWithdraw && !_busy
                               ? const Color(0xFF0E1411)
@@ -779,21 +776,20 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
         ],
         const SizedBox(height: 16),
         Row(children: [
-          _stat('Settled to bank', formatMoney(settled, cur, exp), p,
+          _stat(context.l10n.wallet_settledToBank, formatMoney(settled, cur, exp), p,
               tip: tips.settledToBank),
           const SizedBox(width: 8),
-          _stat('Maturing', formatMoney(held, cur, exp), p,
+          _stat(context.l10n.wallet_maturing, formatMoney(held, cur, exp), p,
               muted: held <= 0, tip: tips.maturing),
           const SizedBox(width: 8),
-          _stat('Collected', formatMoney(o.collectedMinor, cur, exp), p,
+          _stat(context.l10n.wallet_collected, formatMoney(o.collectedMinor, cur, exp), p,
               tip: tips.collected),
         ]),
         const SizedBox(height: 14),
         Text(
           appControlled
-              ? 'Ticket revenue collects in your wallet at the full price you set — buyers pay the fees on top, and card-processing costs come out of those fees, never out of your balance.'
-                  '${policy != null && policy.maturationDays > 0 ? ' Recent revenue matures over ${policy.maturationDays} days so refunds stay covered.' : ''}'
-              : "Ticket money settles straight to your connected bank on the provider's schedule — the fee is your plan's rate plus card processing, shown on every payment.",
+              ? context.l10n.wallet_ticketRevenueCollectsInYour2(policy != null && policy.maturationDays > 0 ? ' ${context.l10n.wallet_recentRevenueMaturesOverDays(policy.maturationDays)}' : '')
+              : context.l10n.wallet_ticketMoneySettlesStraightTo3,
           style: TextStyle(color: p.heroMuted, fontSize: 11.5, height: 1.5),
         ),
         const SizedBox(height: 8),
@@ -801,7 +797,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
           Icon(Icons.receipt_long_rounded, size: 14, color: p.heroMuted),
           const SizedBox(width: 6),
           Text(
-              '${o.ticketCount} ticket payment${o.ticketCount == 1 ? '' : 's'} to date',
+              context.l10n.wallet_ticketPaymentsToDate(o.ticketCount),
               style: TextStyle(color: p.heroMuted, fontSize: 12)),
         ]),
       ]),
@@ -859,7 +855,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
             ),
           ]),
         ),
-        SpBadge(a.payoutEnabled ? 'Ready' : a.status,
+        SpBadge(a.payoutEnabled ? context.l10n.wallet_ready : a.status,
             tone: a.payoutEnabled ? p.accent : p.muted),
         SpInfoTip(
             WalletTips(provider: a.providerLabel).accountStatus(
@@ -887,15 +883,15 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
         Expanded(
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            TipText('Withdrawal requests',
+            TipText(context.l10n.wallet_withdrawalRequests,
                 tip: WalletTips().withdrawalRequests,
                 style: TextStyle(
                     color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
             const SizedBox(height: 2),
             Text(
               pending > 0
-                  ? '$pending awaiting approval'
-                  : 'Who requested, who approved or rejected, and when each payout reached the bank.',
+                  ? context.l10n.wallet_awaitingApproval2(pending)
+                  : context.l10n.wallet_whoRequestedWhoApprovedOr,
               style: TextStyle(
                   color: pending > 0 ? p.orangeInk : p.muted,
                   fontSize: 11.5,
@@ -927,7 +923,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
     return led.when(
       loading: () => GlassCard(
           child: Center(
-              child: Text('Loading activity…',
+              child: Text(context.l10n.wallet_loadingActivity,
                   style: TextStyle(color: p.muted, fontSize: 13)))),
       error: (e, _) => GlassCard(
           child: Center(
@@ -938,10 +934,10 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
           return GlassCard(
             padding: const EdgeInsets.all(24),
             child: Column(children: [
-              Text('No activity yet.',
+              Text(context.l10n.wallet_noActivityYet,
                   style: TextStyle(color: p.muted, fontSize: 13)),
               const SizedBox(height: 2),
-              Text('Ticket payments will appear here as they settle.',
+              Text(context.l10n.wallet_ticketPaymentsWillAppearHere2,
                   style: TextStyle(color: p.muted, fontSize: 11.5)),
             ]),
           );
@@ -968,7 +964,7 @@ class _GroupWalletScreenState extends ConsumerState<GroupWalletScreen>
                         Text(
                           e.description ??
                               e.type?.replaceAll('_', ' ') ??
-                              'Transaction',
+                              context.l10n.wallet_transaction,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -1036,7 +1032,7 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
 
   void _submit() {
     final v = double.tryParse(_amount.text.trim());
-    if (v == null || v <= 0) return setState(() => _error = 'Enter an amount');
+    if (v == null || v <= 0) return setState(() => _error = context.l10n.wallet_enterAnAmount);
     final minor = (v * _pow10(widget.exponent)).round();
     final pol = widget.policy;
     if (minor > pol.cappedWithdrawable) {
@@ -1044,8 +1040,8 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
           pol.payableNow < pol.withdrawableMinor &&
           minor <= pol.withdrawableMinor;
       return setState(() => _error = providerCapped
-          ? 'Only ${formatMoney(pol.payableNow, widget.currency, widget.exponent)} has settled with ${pol.providerLabel} so far'
-          : 'Amount exceeds what you can withdraw right now');
+          ? context.l10n.wallet_onlyHasSettledWithSo(formatMoney(pol.payableNow, widget.currency, widget.exponent), pol.providerLabel)
+          : context.l10n.wallet_amountExceedsWhatYouCan);
     }
     Navigator.pop(context, minor);
   }
@@ -1064,9 +1060,9 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SpSheetHeader(
+          SpSheetHeader(
             icon: Icons.account_balance_outlined,
-            title: 'Withdraw to bank',
+            title: context.l10n.wallet_withdrawToBank,
           ),
           Container(
             padding: const EdgeInsets.all(12),
@@ -1074,30 +1070,30 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
                 color: p.surface2, borderRadius: BorderRadius.circular(12)),
             child: Column(children: [
               if (pol.hasProviderFigure) ...[
-                _kv('Available at ${pol.providerLabel} now',
+                _kv(context.l10n.wallet_availableAtNow(pol.providerLabel),
                     formatMoney(pol.providerAvailableMinor!, cur, exp), p,
                     tip: tips.availableAtProvider),
-                _kv('Matured on SportPadi',
+                _kv(context.l10n.wallet_maturedOnSportPadi2,
                     formatMoney(pol.withdrawableMinor, cur, exp), p,
                     tip: tips.maturedOnSportPadi),
                 if (pol.settlingAtProviderMinor > 0)
-                  _kv('Still settling with ${pol.providerLabel}',
+                  _kv(context.l10n.wallet_stillSettlingWith(pol.providerLabel),
                       formatMoney(pol.settlingAtProviderMinor, cur, exp), p,
                       tip: tips.settlingAtProvider),
               ] else
-                _kv('Available now',
+                _kv(context.l10n.wallet_availableNow,
                     formatMoney(pol.withdrawableMinor, cur, exp), p,
                     tip: tips.availableToWithdraw),
               if (pol.heldMinor > 0)
-                _kv('Maturing (${pol.maturationDays} days)',
+                _kv(context.l10n.wallet_maturingDays(pol.maturationDays),
                     formatMoney(pol.heldMinor, cur, exp), p,
                     tip: tips.maturing),
               if (pol.pendingApprovalMinor > 0)
-                _kv('Locked · awaiting approval',
+                _kv(context.l10n.wallet_lockedAwaitingApproval,
                     formatMoney(pol.pendingApprovalMinor, cur, exp), p,
                     tip: tips.lockedByApproval),
               if (pol.periodRemainingMinor != null)
-                _kv('Left this ${pol.periodDays}-day period',
+                _kv(context.l10n.wallet_leftThisDayPeriod2(pol.periodDays),
                     formatMoney(pol.periodRemainingMinor!, cur, exp), p,
                     tip: tips.leftThisPeriod),
             ]),
@@ -1108,7 +1104,7 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
             autofocus: true,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
-              labelText: 'Amount',
+              labelText: context.l10n.wallet_amount2,
               helperText: tips.withdrawAmount,
               helperMaxLines: 3,
               prefixText: '$cur ',
@@ -1119,19 +1115,19 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
                       .toStringAsFixed(exp);
                   _error = null;
                 }),
-                child: const Text('Max'),
+                child: Text(context.l10n.wallet_max),
               ),
             ),
             onChanged: (_) => setState(() => _error = null),
           ),
           const SizedBox(height: 8),
           Text(
-            'Another group admin has to approve before the payout is sent. If you are the only admin it goes through automatically.',
+            context.l10n.wallet_anotherGroupAdminHasTo,
             style: TextStyle(color: p.muted, fontSize: 11.5),
           ),
           const SizedBox(height: 14),
           SpButton(
-              label: 'Request withdrawal',
+              label: context.l10n.wallet_requestWithdrawal,
               icon: Icons.arrow_outward_rounded,
               expand: true,
               onTap: _submit),

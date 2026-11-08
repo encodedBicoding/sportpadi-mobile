@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The per-sport record blocks, shared by the public player profile and the
 /// per-group breakdown so the two can never drift apart.
@@ -71,13 +72,13 @@ class CategoryControl extends StatelessWidget {
 
   String _tag(Map<String, dynamic> c) {
     final games = statInt(mapOf(c['overall'])['games']);
-    if (games > 0) return '· $games game${games == 1 ? '' : 's'}';
+    if (games > 0) return '· ${l10n.profile_p5GamesCount(games)}';
     final checkIns = statInt(mapOf(c['attendance'])['checkIns']);
     if (checkIns > 0) {
-      return '· $checkIns check-in${checkIns == 1 ? '' : 's'}';
+      return '· ${l10n.profile_p5CheckInsCount(checkIns)}';
     }
-    if (listOf(c['setup']).isNotEmpty) return '· profile only';
-    return '· no record';
+    if (listOf(c['setup']).isNotEmpty) return '· ${l10n.profile_p5ProfileOnly}';
+    return '· ${l10n.profile_p5NoRecord}';
   }
 
   @override
@@ -94,7 +95,7 @@ class CategoryControl extends StatelessWidget {
     return GlassCard(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Sport',
+        Text(context.l10n.profile_sport,
             style: TextStyle(
                 color: p.muted, fontSize: 12, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
@@ -125,7 +126,7 @@ class CategoryControl extends StatelessWidget {
                       TextSpan(children: [
                         TextSpan(
                             text:
-                                '${parseStr(c['emoji']) ?? ''}  ${parseStr(c['name']) ?? 'Sport'}  ',
+                                '${parseStr(c['emoji']) ?? ''}  ${parseStr(c['name']) ?? context.l10n.profile_sport}  ',
                             style: TextStyle(
                                 color: p.ink,
                                 fontSize: 15,
@@ -147,7 +148,7 @@ class CategoryControl extends StatelessWidget {
                       TextSpan(children: [
                         TextSpan(
                             text:
-                                '${parseStr(c['emoji']) ?? ''}  ${parseStr(c['name']) ?? 'Sport'}  ',
+                                '${parseStr(c['emoji']) ?? ''}  ${parseStr(c['name']) ?? context.l10n.profile_sport}  ',
                             style: TextStyle(
                                 color: p.ink,
                                 fontSize: 14,
@@ -166,7 +167,7 @@ class CategoryControl extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-            "Showing $first's ${parseStr(current['name']) ?? 'sport'} record — switch sport any time.",
+            context.l10n.profile_showingSRecordSwitchSport2(first, parseStr(current['name']) ?? 'sport'),
             style: TextStyle(color: p.muted, fontSize: 12, height: 1.4)),
       ]),
     );
@@ -183,9 +184,9 @@ class NothingOnRecord extends StatelessWidget {
   Widget build(BuildContext context) {
     return RecordEmpty(
       icon: Icons.sports_outlined,
-      title: 'Nothing on record for $sportName',
+      title: context.l10n.profile_nothingOnRecordFor(sportName),
       body:
-          "They haven't set up a $sportName profile or played a $sportName game on SportPadi yet.",
+          context.l10n.profile_theyHaventSetUpA(sportName),
     );
   }
 }
@@ -216,7 +217,7 @@ class SportSetup extends StatelessWidget {
     return CollapsibleStatCard(
       storageKey: 'setup',
       title:
-          '${parseStr(category['emoji']) ?? ''} ${parseStr(category['name']) ?? 'Sport'} profile',
+          context.l10n.profile_profile4(parseStr(category['emoji']) ?? '', parseStr(category['name']) ?? 'Sport'),
       summary: fields
           .map((f) => parseStr(f['value']) ?? '')
           .where((v) => v.isNotEmpty)
@@ -299,7 +300,7 @@ class ScopeBlock extends StatelessWidget {
               // Soccer ("P 23 …") and golf ("12 rounds …") already lead
               // their record line with the count.
               if (family != SportFamily.soccer && family != SportFamily.golf)
-                gamesPhrase(family, games),
+                gamesCount(family, games),
               recordLineFor(family, tally),
             ].join(' · '),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -335,7 +336,7 @@ class TournamentList extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      RecordSectionTitle(title ?? 'Tournaments', count: rows.length),
+      RecordSectionTitle(title ?? context.l10n.profile_tournaments, count: rows.length),
       const SizedBox(height: 10),
       RecordList(children: [
         for (final t in rows)
@@ -366,7 +367,7 @@ class TournamentList extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(parseStr(t['title']) ?? 'Tournament',
+                        Text(parseStr(t['title']) ?? context.l10n.profile_tournament,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -390,7 +391,7 @@ class TournamentList extends StatelessWidget {
                 Text(
                   statInt(t['games']) > 0
                       ? '${statInt(t['wins'])}-${statInt(t['draws'])}-${statInt(t['losses'])}'
-                      : 'Squad',
+                      : context.l10n.profile_squad,
                   style: TextStyle(
                       color: statInt(t['games']) > 0 ? p.ink : p.muted,
                       fontSize: 14,
@@ -625,7 +626,7 @@ class RecordHero extends StatelessWidget {
                         color: p.onHero,
                         fontSize: 15,
                         fontWeight: FontWeight.w700)),
-                Text(nameSub ?? 'View profile',
+                Text(nameSub ?? l10n.profile_viewProfile,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: p.heroMuted, fontSize: 12)),
@@ -711,11 +712,11 @@ List<(String, String)> recordHeroStats(
   return [
     (
       '${statInt(tally['wins'])}-${statInt(tally['draws'])}-${statInt(tally['losses'])}',
-      'W–D–L'
+      l10n.profile_wDL
     ),
     for (final f in fields.take(2))
       ('${statInt(counts[parseStr(f['key'])])}', parseStr(f['label']) ?? ''),
-    if (fields.isEmpty) ('${statInt(tally['winRate'])}%', 'Win rate'),
+    if (fields.isEmpty) ('${statInt(tally['winRate'])}%', l10n.profile_winRate),
   ];
 }
 
@@ -848,13 +849,17 @@ class RecordMatchRow extends StatelessWidget {
     super.key,
     required this.match,
     required this.fields,
-    this.pendingLabel = 'Not started',
-    this.opponentFallback = 'Field',
+    this.pendingLabel,
+    this.opponentFallback,
   });
   final Map<String, dynamic> match;
   final List<Map<String, dynamic>> fields;
-  final String pendingLabel;
-  final String opponentFallback;
+
+  /// Defaults to "Not started".
+  final String? pendingLabel;
+
+  /// Defaults to "Field".
+  final String? opponentFallback;
 
   @override
   Widget build(BuildContext context) {
@@ -872,17 +877,19 @@ class RecordMatchRow extends StatelessWidget {
     ].join(' · ');
     final sub = [
       status == 'completed'
-          ? (m['started'] == true ? 'Started' : 'From the bench')
+          ? (m['started'] == true
+              ? context.l10n.profile_started
+              : context.l10n.profile_fromTheBench)
           : status == 'live'
-              ? 'Live now'
-              : pendingLabel,
+              ? context.l10n.profile_liveNow
+              : (pendingLabel ?? context.l10n.profile_notStarted),
       if (contrib.isNotEmpty) contrib,
     ].join(' · ');
 
     final (tileBg, tileFg, tileText) = switch (result) {
-      'win' => (p.accentTint, p.greenText, 'W'),
-      'loss' => (p.liveTint, p.danger, 'L'),
-      'draw' => (p.surface2, p.muted, 'D'),
+      'win' => (p.accentTint, p.greenText, context.l10n.profile_w),
+      'loss' => (p.liveTint, p.danger, context.l10n.profile_l),
+      'draw' => (p.surface2, p.muted, context.l10n.profile_d),
       _ => status == 'live'
           ? (p.liveTint, p.danger, '•')
           : (p.surface2, p.muted, '–'),
@@ -911,7 +918,11 @@ class RecordMatchRow extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                      '${parseStr(us['name']) ?? 'Us'} vs ${parseStr(them?['name']) ?? opponentFallback}',
+                      context.l10n.profile_vs(
+                          parseStr(us['name']) ?? context.l10n.profile_us,
+                          parseStr(them?['name']) ??
+                              opponentFallback ??
+                              context.l10n.profile_field),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -998,12 +1009,12 @@ class PlayerPrivateView extends StatelessWidget {
               bg: p.wardTint, fg: p.wardInk, size: 56, iconSize: 26),
         ),
         const SizedBox(height: 14),
-        Text('This record is private',
+        Text(context.l10n.profile_thisRecordIsPrivate,
             textAlign: TextAlign.center,
             style: TextStyle(
                 color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
-        Text("Their guardians manage who can see this player's stats.",
+        Text(context.l10n.profile_theirGuardiansManageWhoCan,
             textAlign: TextAlign.center,
             style: TextStyle(color: p.muted, fontSize: 13, height: 1.4)),
       ],

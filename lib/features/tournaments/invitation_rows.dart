@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/features/payments/checkout_flow.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Tournament invitations as a dense list rather than a stack of cards.
 ///
@@ -44,19 +45,17 @@ class _InvitationRowState extends ConsumerState<InvitationRow> {
     final sure = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Decline ${iv.eventTitle}?'),
+        title: Text(l10n.tournament_decline3(iv.eventTitle)),
         content: Text(
-          '${iv.hostGroupName ?? 'The host'} will be told '
-          '${iv.guestTeamName ?? 'your team'} isn\'t playing. '
-          "They'd have to invite you again to reverse it.",
+          l10n.tournament_willBeToldIsntPlaying(iv.hostGroupName ?? l10n.tournament_theHost, iv.guestTeamName ?? 'your team'),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Keep it')),
+              child: Text(l10n.tournament_keepIt)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Decline'),
+            child: Text(l10n.tournament_decline),
           ),
         ],
       ),
@@ -79,8 +78,8 @@ class _InvitationRowState extends ConsumerState<InvitationRow> {
         if (!paid) return;
       } else if (mounted) {
         _snack(status == 'approved'
-            ? '${iv.guestTeamName ?? 'Your team'} is in — call your players'
-            : 'Invitation declined');
+            ? l10n.tournament_isInCallYourPlayers(iv.guestTeamName ?? l10n.tournament_yourTeam2)
+            : l10n.tournament_invitationDeclined);
       }
       ref.invalidate(myTournamentInvitesProvider);
       ref.invalidate(myTournamentsProvider);
@@ -169,7 +168,7 @@ class _InvitationRowState extends ConsumerState<InvitationRow> {
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
-                      owes ? '${iv.feeLabel} entry' : '${iv.feeLabel} · paid',
+                      owes ? context.l10n.tournament_entry2(iv.feeLabel ?? '') : context.l10n.tournament_paid5(iv.feeLabel ?? ''),
                       style: TextStyle(
                           color: owes ? p.orangeInk : p.greenText,
                           fontSize: 11,
@@ -192,7 +191,7 @@ class _InvitationRowState extends ConsumerState<InvitationRow> {
           else ...[
             // Decline: a quiet round button; accept: the ink pill.
             Tooltip(
-              message: 'Decline',
+              message: context.l10n.tournament_decline,
               child: Material(
                 color: p.surface2,
                 shape: const CircleBorder(),
@@ -217,7 +216,7 @@ class _InvitationRowState extends ConsumerState<InvitationRow> {
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  child: Text(owes ? 'Pay' : 'Accept',
+                  child: Text(owes ? context.l10n.tournament_pay2 : context.l10n.tournament_accept,
                       style: TextStyle(
                           color: p.onHero,
                           fontSize: 12.5,

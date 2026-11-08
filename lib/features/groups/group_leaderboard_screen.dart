@@ -17,6 +17,7 @@ import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/data/ads/placements.dart';
 import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Group leaderboard — rankings from completed games (web /leaderboard page):
 /// per sport category (switcher chips, soccer default), points (3/1/0),
@@ -47,12 +48,12 @@ class _GroupLeaderboardScreenState
   int _view = 0; // 0 = ranking, 1 = full table
   String _ageBand = 'all'; // all | u12 | u16 | u18 | adults
 
-  static const _ageBands = [
-    (key: 'all', label: 'All ages'),
-    (key: 'u12', label: 'Under 12'),
-    (key: 'u16', label: 'Under 16'),
-    (key: 'u18', label: 'Under 18'),
-    (key: 'adults', label: 'Adults'),
+  static List<({String key, String label})> get _ageBands => [
+    (key: 'all', label: l10n.group_allAges),
+    (key: 'u12', label: l10n.group_under12),
+    (key: 'u16', label: l10n.group_under16),
+    (key: 'u18', label: l10n.group_under18),
+    (key: 'adults', label: l10n.group_adults),
   ];
 
   ({String groupId, String? categoryId, String ageBand}) get _boardKey =>
@@ -113,7 +114,7 @@ class _GroupLeaderboardScreenState
         );
 
     final children = <Widget>[
-      SpHeader(title: 'Leaderboard', subtitle: group?.name),
+      SpHeader(title: context.l10n.group_leaderboard, subtitle: group?.name),
       const SizedBox(height: 14),
       // Five boards, so the best athlete isn't the only one who can top one.
       SizedBox(
@@ -242,7 +243,7 @@ class _GroupLeaderboardScreenState
                 style: TextStyle(color: p.muted, fontSize: 13)),
             const SizedBox(height: 10),
             SpButton(
-                label: 'Retry',
+                label: context.l10n.group_retry,
                 onTap: () =>
                     ref.invalidate(groupLeaderboardProvider(_boardKey))),
           ]),
@@ -257,8 +258,8 @@ class _GroupLeaderboardScreenState
                 const SizedBox(height: 12),
                 Text(
                     _ageBand == 'all'
-                        ? 'No completed games yet'
-                        : 'No players in this age group yet.',
+                        ? context.l10n.group_noCompletedGamesYet
+                        : context.l10n.group_noPlayersInThisAge,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: p.ink,
@@ -267,10 +268,10 @@ class _GroupLeaderboardScreenState
                 const SizedBox(height: 4),
                 Text(
                   _ageBand != 'all'
-                      ? 'Try another age group above.'
+                      ? context.l10n.group_tryAnotherAgeGroupAbove
                       : (cats ?? const []).length > 1
-                          ? 'Nothing finished in this sport yet — try another one above.'
-                          : 'Once games finish, players show up here.',
+                          ? context.l10n.group_nothingFinishedInThisSport
+                          : context.l10n.group_onceGamesFinishPlayersShow,
                   textAlign: TextAlign.center,
                   style: TextStyle(color: p.muted, fontSize: 13),
                 ),
@@ -296,7 +297,7 @@ class _GroupLeaderboardScreenState
             if (r.playerId == me) mine = r;
           }
           final toggle = SpSegmented(
-            options: const ['Ranking', 'Full table'],
+            options: [context.l10n.group_ranking, context.l10n.group_fullTable],
             icons: const [
               Icons.format_list_numbered_rounded,
               Icons.table_chart_outlined
@@ -327,7 +328,7 @@ class _GroupLeaderboardScreenState
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Tap MP, Pts, G or A to sort. MP matches · W wins · D draws · L losses · Pts points (3 a win, 1 a draw) · G goals · A assists · OG own goals · YC/RC cards. Arrows show movement since the last session.',
+                    context.l10n.group_tapMpPtsGOr,
                     style:
                         TextStyle(color: p.muted, fontSize: 11.5, height: 1.45),
                   ),
@@ -356,7 +357,7 @@ class _GroupLeaderboardScreenState
                   ]),
                 const SizedBox(height: 12),
                 Text(
-                  'Points: 3 a win, 1 a draw. Local group games only — tournaments keep their own tables. Arrows show movement since the last session.',
+                  context.l10n.group_points3AWin1,
                   textAlign: TextAlign.center,
                   style: TextStyle(color: p.muted, fontSize: 12, height: 1.4),
                 ),
@@ -432,7 +433,7 @@ class _GroupLeaderboardScreenState
               PopupMenuItem<String?>(
                 value: null,
                 child: Text(
-                    current != null ? '${current.name} (current)' : 'All time'),
+                    current != null ? context.l10n.group_current2(current.name) : context.l10n.group_allTime),
               ),
               for (final s in seasons.where((s) => s.id != current?.id))
                 PopupMenuItem<String?>(value: s.id, child: Text(s.name)),
@@ -443,7 +444,7 @@ class _GroupLeaderboardScreenState
                 children: [
                   Row(children: [
                     Flexible(
-                      child: Text(shown == null ? 'All time' : shown.name,
+                      child: Text(shown == null ? context.l10n.group_allTime : shown.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -456,7 +457,7 @@ class _GroupLeaderboardScreenState
                   ]),
                   if (shown != null)
                     Text(
-                        'Since ${fmt(shown.startsAt)}${shown.endsAt != null ? ' – ${fmt(shown.endsAt)}' : ''}',
+                        context.l10n.group_since(fmt(shown.startsAt), (shown.endsAt != null ? ' – ${fmt(shown.endsAt)}' : '')),
                         style: TextStyle(color: p.muted, fontSize: 11.5)),
                 ]),
           ),
@@ -468,34 +469,34 @@ class _GroupLeaderboardScreenState
                 foregroundColor: p.greenText,
                 textStyle: const TextStyle(
                     fontSize: 12.5, fontWeight: FontWeight.w700)),
-            child: const Text('New season'),
+            child: Text(context.l10n.group_newSeason),
           ),
       ]),
     );
   }
 
   Future<void> _newSeason(BuildContext context, int n) async {
-    final ctrl = TextEditingController(text: 'Season $n');
+    final ctrl = TextEditingController(text: l10n.group_season(n));
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Start a new season'),
+        title: Text(l10n.group_startANewSeason),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text(
-              'The boards start fresh from now. The current season is kept; nobody loses XP or level.'),
+          Text(
+              l10n.group_theBoardsStartFreshFrom),
           const SizedBox(height: 12),
           TextField(
               controller: ctrl,
               maxLength: 60,
-              decoration: const InputDecoration(labelText: 'Name')),
+              decoration: InputDecoration(labelText: l10n.group_name)),
         ]),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(l10n.group_cancel)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Start')),
+              child: Text(l10n.group_start)),
         ],
       ),
     );
@@ -506,12 +507,12 @@ class _GroupLeaderboardScreenState
     try {
       await ref
           .read(progressionRepositoryProvider)
-          .startSeason(groupId, name.isEmpty ? 'Season $n' : name);
+          .startSeason(groupId, name.isEmpty ? l10n.group_season(n) : name);
       setState(() => _seasonId = null);
       ref.invalidate(groupProgressionProvider(groupId));
       ref.invalidate(boardProvider);
       messenger.showSnackBar(SnackBar(
-          content: Text('${name.isEmpty ? 'Season $n' : name} has started')));
+          content: Text(l10n.group_hasStarted(name.isEmpty ? l10n.group_season(n) : name))));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
     }
@@ -557,7 +558,7 @@ class _GroupLeaderboardScreenState
               children: [
                 Row(children: [
                   Flexible(
-                    child: Text(mine ? 'You' : r.displayName,
+                    child: Text(mine ? context.l10n.group_you : r.displayName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -574,7 +575,7 @@ class _GroupLeaderboardScreenState
                 Text(
                   [
                     '${r.wins}-${r.draws}-${r.losses}',
-                    '${r.games} game${r.games == 1 ? '' : 's'}',
+                    context.l10n.profile_p5GamesCount(r.games),
                     ...headline,
                   ].join(' · '),
                   maxLines: 1,
@@ -589,7 +590,7 @@ class _GroupLeaderboardScreenState
             Text('${r.points}',
                 style: TextStyle(
                     color: p.ink, fontSize: 17, fontWeight: FontWeight.w800)),
-            Text('pts', style: TextStyle(color: p.muted, fontSize: 10.5)),
+            Text(context.l10n.group_pts3, style: TextStyle(color: p.muted, fontSize: 10.5)),
           ]),
         ]),
       ),
@@ -661,12 +662,12 @@ class _Podium extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text(mine ? 'You' : r.displayName.split(' ').first,
+            Text(mine ? context.l10n.group_you : r.displayName.split(' ').first,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                     color: p.ink, fontSize: 13, fontWeight: FontWeight.w700)),
-            Text(head.isNotEmpty ? head.first : '${r.games} games',
+            Text(head.isNotEmpty ? head.first : context.l10n.group_games(r.games),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: p.muted, fontSize: 11)),
@@ -692,7 +693,7 @@ class _Podium extends StatelessWidget {
                             color: first ? p.onHero : p.ink,
                             fontSize: first ? 26 : 22,
                             fontWeight: FontWeight.w800)),
-                    Text('${r.points} pts',
+                    Text(context.l10n.group_pts(r.points),
                         style: TextStyle(
                             color: first ? const Color(0xFF6EDC9E) : p.muted,
                             fontSize: 11.5,
@@ -723,7 +724,7 @@ class _Crown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-        label: 'Leader',
+        label: context.l10n.group_leader,
         child: CustomPaint(
           size: Size(width, width * 0.72),
           painter: _CrownPainter(),
@@ -777,7 +778,7 @@ class _Move extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
         decoration: BoxDecoration(
             color: p.orangeTint, borderRadius: BorderRadius.circular(999)),
-        child: Text('NEW',
+        child: Text(context.l10n.group_newLabel2,
             style: TextStyle(
                 color: p.orangeInk,
                 fontSize: 8.5,
@@ -795,7 +796,7 @@ class _Move extends StatelessWidget {
     final up = m > 0;
     final c = up ? p.greenText : p.danger;
     return Semantics(
-      label: up ? 'Up ${m.abs()}' : 'Down ${m.abs()}',
+      label: up ? context.l10n.group_up2(m.abs()) : context.l10n.group_down2(m.abs()),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(up ? Icons.arrow_drop_up_rounded : Icons.arrow_drop_down_rounded,
             size: 18, color: c),
@@ -824,27 +825,27 @@ class _MyMovement extends StatelessWidget {
             Icons.fiber_new_rounded,
             p.orangeTint,
             p.orangeInk,
-            "You're on the board"
+            context.l10n.group_youreOnTheBoard
           )
         : m > 0
             ? (
                 Icons.trending_up_rounded,
                 p.accentTint,
                 p.greenText,
-                'You moved up $m'
+                context.l10n.group_youMovedUp(m)
               )
             : m < 0
                 ? (
                     Icons.trending_down_rounded,
                     p.liveTint,
                     p.danger,
-                    'You dropped ${-m} place${m == -1 ? '' : 's'}'
+                    context.l10n.group_youDroppedPlaces(-m)
                   )
                 : (
                     Icons.trending_flat_rounded,
                     p.surface2,
                     p.ink,
-                    'You held your place'
+                    context.l10n.group_youHeldYourPlace
                   );
     return GlassCard(
       padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
@@ -859,8 +860,8 @@ class _MyMovement extends StatelessWidget {
                     color: p.ink, fontSize: 15, fontWeight: FontWeight.w800)),
             Text(
                 row.prevRank != null && !row.isNew
-                    ? 'Was #${row.prevRank} · since the last session'
-                    : 'Since the last session',
+                    ? context.l10n.group_wasSinceTheLastSession(row.prevRank!)
+                    : context.l10n.group_sinceTheLastSession,
                 style: TextStyle(color: p.muted, fontSize: 12)),
           ]),
         ),
@@ -868,7 +869,7 @@ class _MyMovement extends StatelessWidget {
           Text('#${row.rank}',
               style: TextStyle(
                   color: p.ink, fontSize: 20, fontWeight: FontWeight.w800)),
-          Text('${row.points} pts',
+          Text(context.l10n.group_pts(row.points),
               style: TextStyle(color: p.muted, fontSize: 11)),
         ]),
       ]),
@@ -911,17 +912,17 @@ class _FullTable extends StatelessWidget {
     final p = context.palette;
     // Columns: MP W D L Pts always; stat columns when someone has a value.
     final cols = <(String, String, int Function(LeaderboardRow), String?)>[
-      ('MP', 'Matches played', (r) => r.games, 'games'),
-      ('W', 'Wins', (r) => r.wins, null),
-      ('D', 'Draws', (r) => r.draws, null),
-      ('L', 'Losses', (r) => r.losses, null),
-      ('Pts', 'Points', (r) => r.points, 'points'),
-      for (final (k, l, t) in const [
-        ('goals', 'G', 'Goals'),
-        ('assists', 'A', 'Assists'),
-        ('ownGoals', 'OG', 'Own goals'),
-        ('yellows', 'YC', 'Yellow cards'),
-        ('reds', 'RC', 'Red cards'),
+      (context.l10n.group_mp, context.l10n.group_matchesPlayed, (r) => r.games, 'games'),
+      (context.l10n.group_w, context.l10n.group_wins, (r) => r.wins, null),
+      (context.l10n.group_d, context.l10n.group_draws, (r) => r.draws, null),
+      (context.l10n.group_l, context.l10n.group_losses, (r) => r.losses, null),
+      (context.l10n.group_pts2, context.l10n.group_points, (r) => r.points, 'points'),
+      for (final (k, l, t) in [
+        ('goals', context.l10n.group_g, context.l10n.group_goals),
+        ('assists', context.l10n.group_assistsAbbr, context.l10n.group_assists),
+        ('ownGoals', context.l10n.group_ownGoalsAbbr, context.l10n.group_ownGoals),
+        ('yellows', context.l10n.group_yellowCardsAbbr, context.l10n.group_yellowCards),
+        ('reds', context.l10n.group_redCardsAbbr, context.l10n.group_redCards),
       ])
         if (rows.any((r) => (r.tallies[k] ?? 0) > 0))
           (
@@ -1037,7 +1038,7 @@ class _FullTable extends StatelessWidget {
             if (header)
               Row(children: [
                 head('#', width: 42),
-                Expanded(child: head('Player', align: TextAlign.left)),
+                Expanded(child: head(context.l10n.group_player, align: TextAlign.left)),
               ]),
             for (var i = 0; i < seg.length; i++)
               PlayerTap(
@@ -1072,7 +1073,7 @@ class _FullTable extends StatelessWidget {
                         children: [
                           Text(
                               seg[i].playerId == me
-                                  ? 'You'
+                                  ? context.l10n.group_you
                                   : seg[i].displayName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -1126,7 +1127,7 @@ class _FullTable extends StatelessWidget {
                             style: TextStyle(
                                 color: p.ink,
                                 fontSize: 13.5,
-                                fontWeight: c.$1 == 'Pts'
+                                fontWeight: c.$4 == 'points'
                                     ? FontWeight.w800
                                     : FontWeight.w500,
                                 fontFeatures: const [

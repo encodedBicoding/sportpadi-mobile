@@ -5,6 +5,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/groups/group_models.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The web Groups-tab card: cover banner with the group's logo, then name
 /// (+ verification tick), description and member/follower stats.
@@ -95,7 +96,7 @@ class GroupCard extends StatelessWidget {
                             border: Border.all(color: p.accent),
                           ),
                           child: Text(
-                            'Member',
+                            context.l10n.common_member,
                             style: TextStyle(
                                 color: p.accent,
                                 fontSize: 10,

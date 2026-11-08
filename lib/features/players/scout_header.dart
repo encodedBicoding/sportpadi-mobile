@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/features/players/player_record.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The scouting half of a public profile (docs/design/scouting-profile.md) —
 /// web twin: components/players/ScoutHeader.tsx.
@@ -219,7 +220,7 @@ class FollowCounts extends ConsumerWidget {
               context.push('/players/$userId/followers?which=followers'),
           child: Text.rich(TextSpan(children: [
             TextSpan(text: '${s.followers} ', style: n),
-            TextSpan(text: 'followers', style: l),
+            TextSpan(text: context.l10n.profile_followers2, style: l),
           ])),
         ),
         Text('  ·  ', style: l),
@@ -228,7 +229,7 @@ class FollowCounts extends ConsumerWidget {
               context.push('/players/$userId/followers?which=following'),
           child: Text.rich(TextSpan(children: [
             TextSpan(text: '${s.followingCount} ', style: n),
-            TextSpan(text: 'following', style: l),
+            TextSpan(text: context.l10n.profile_following2, style: l),
           ])),
         ),
       ]),
@@ -266,7 +267,7 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
       ref.invalidate(followStateProvider(widget.userId));
     } catch (e) {
       messenger.showSnackBar(SnackBar(
-          content: Text(apiError(e, fallback: 'Could not update.').message)));
+          content: Text(apiError(e, fallback: l10n.profile_couldNotUpdate2).message)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -305,7 +306,7 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
               Icon(following ? Icons.check_rounded : Icons.person_add_alt_1,
                   size: 16, color: fg),
             const SizedBox(width: 6),
-            Text(following ? 'Following' : 'Follow',
+            Text(following ? context.l10n.profile_following : context.l10n.profile_follow,
                 style: TextStyle(
                     color: fg,
                     fontSize: widget.compact ? 13 : 14,
@@ -369,7 +370,7 @@ class MessageButton extends ConsumerWidget {
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             Icon(Icons.chat_bubble_outline_rounded, size: 16, color: p.ink),
             const SizedBox(width: 6),
-            Text('Message',
+            Text(context.l10n.profile_message,
                 style: TextStyle(
                     color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
           ]),
@@ -416,7 +417,7 @@ class _FirstMessageSheetState extends ConsumerState<_FirstMessageSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _error =
-            apiError(e, fallback: 'Could not send. Try again.').message);
+            apiError(e, fallback: l10n.profile_couldNotSendTryAgain).message);
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -442,12 +443,12 @@ class _FirstMessageSheetState extends ConsumerState<_FirstMessageSheet> {
               decoration: BoxDecoration(
                   color: p.line, borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 14),
-          Text('Message $first',
+          Text(context.l10n.profile_message3(first),
               style: TextStyle(
                   color: p.ink, fontSize: 18, fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
           Text(
-              "Say who you are and why you're getting in touch. They can reply, mute or report the thread.",
+              context.l10n.profile_sayWhoYouAreAnd,
               textAlign: TextAlign.center,
               style: TextStyle(color: p.muted, fontSize: 13)),
           const SizedBox(height: 14),
@@ -458,8 +459,8 @@ class _FirstMessageSheetState extends ConsumerState<_FirstMessageSheet> {
             maxLines: 6,
             maxLength: 2000,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-                hintText: 'Hi — I saw your record on SportPadi…',
+            decoration: InputDecoration(
+                hintText: context.l10n.profile_hiISawYourRecord,
                 counterText: ''),
           ),
           if (_error != null) ...[
@@ -469,7 +470,7 @@ class _FirstMessageSheetState extends ConsumerState<_FirstMessageSheet> {
           ],
           const SizedBox(height: 12),
           SpButton(
-            label: _sending ? 'Sending…' : 'Send',
+            label: _sending ? context.l10n.profile_sending : context.l10n.profile_send,
             icon: Icons.send_rounded,
             expand: true,
             onTap: _sending ? null : _send,
@@ -484,75 +485,110 @@ class _FirstMessageSheetState extends ConsumerState<_FirstMessageSheet> {
 
 /// Games · the sport's first two tallies · average rating (the sport they
 /// play most — stats never cross sports).
-class HeadlineTiles extends StatelessWidget {
-  const HeadlineTiles({
+/// The header's sport tiles: one per sport the player has a record in, with
+/// their average match rating there (last 10 rated games, `ratingsByCategory`
+/// from the honours read). Each opens that sport's record — the tallies live
+/// on the record cards below.
+class SportRatingTiles extends StatelessWidget {
+  const SportRatingTiles({
     super.key,
-    required this.primary,
-    required this.games,
-    required this.avgRating,
+    required this.categories,
+    required this.ratings,
+    required this.hrefFor,
     required this.loaded,
   });
-  final Map<String, dynamic>? primary;
-  final int? games;
-  final double? avgRating;
+  final List<dynamic> categories;
+  final List<dynamic> ratings;
+  final String Function(String categoryId) hrefFor;
   final bool loaded;
 
   @override
   Widget build(BuildContext context) {
-    final fields = listOf(primary?['fields']).take(2).toList();
-    final counts = mapOf(mapOf(primary?['overall'])['counts']);
-    final played = parseInt(mapOf(primary?['overall'])['games']) ?? 0;
-    String v(dynamic x) => loaded ? '${x ?? 0}' : '–';
-    return Row(children: [
-      _Tile(value: v(games ?? played), label: 'Games'),
-      for (final f in fields) ...[
-        const SizedBox(width: 8),
-        _Tile(value: v(counts[f['key']]), label: '${f['label'] ?? f['key']}'),
-      ],
-      if (fields.length < 2) ...[
-        const SizedBox(width: 8),
-        _Tile(value: v(played), label: parseStr(primary?['name']) ?? 'Played'),
-      ],
-      const SizedBox(width: 8),
-      _Tile(
-          value: avgRating == null ? '–' : avgRating!.toStringAsFixed(1),
-          label: 'Avg rating',
-          accent: true),
-    ]);
-  }
-}
-
-class _Tile extends StatelessWidget {
-  const _Tile({required this.value, required this.label, this.accent = false});
-  final String value;
-  final String label;
-  final bool accent;
-  @override
-  Widget build(BuildContext context) {
     final p = context.palette;
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-        decoration: BoxDecoration(
-          color: accent ? p.accentTint : p.surface2,
-          borderRadius: BorderRadius.circular(14),
+    if (!loaded) {
+      return Center(
+        child: Container(
+          height: 64,
+          width: 260,
+          decoration: BoxDecoration(color: p.surface2, borderRadius: BorderRadius.circular(14)),
         ),
-        child: Column(children: [
-          Text(value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  color: accent ? p.greenText : p.ink,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800)),
-          const SizedBox(height: 2),
-          Text(label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: p.muted, fontSize: 11)),
-        ]),
+      );
+    }
+    final byId = {
+      for (final r in ratings) parseStr(mapOf(r)['categoryId']) ?? '': mapOf(r),
+    };
+    final sports = categories
+        .map(mapOf)
+        .where((c) =>
+            (parseInt(mapOf(c['overall'])['games']) ?? 0) > 0 ||
+            (parseInt(mapOf(c['attendance'])['checkIns']) ?? 0) > 0)
+        .toList()
+      ..sort((a, b) => (parseInt(mapOf(b['overall'])['games']) ?? 0)
+          .compareTo(parseInt(mapOf(a['overall'])['games']) ?? 0));
+    if (sports.isEmpty) return const SizedBox.shrink();
+
+    // Small fixed-width cards that sit side by side and wrap — never a scroller.
+    Widget tile(Map<String, dynamic> c) {
+      final id = parseStr(c['categoryId']) ?? '';
+      final r = byId[id];
+      final avg = parseDouble(r?['avg']);
+      final games = parseInt(r?['games']) ?? parseInt(mapOf(c['overall'])['games']) ?? 0;
+      final name = parseStr(c['name']) ?? '';
+      final emoji = parseStr(c['emoji']);
+      final value = avg == null ? '–' : avg.toStringAsFixed(1);
+      return SizedBox(
+        width: 84,
+        child: Semantics(
+          button: true,
+          label: context.l10n.profile_ratingTileOpen(
+              name, avg == null ? context.l10n.profile_ratingTileNotRated : value),
+          child: Material(
+            color: p.surface2,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: id.isEmpty ? null : () => context.push(hrefFor(id)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
+                child: ExcludeSemantics(
+                  child: Column(children: [
+                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      if (emoji != null) ...[
+                        Text(emoji, style: const TextStyle(fontSize: 13)),
+                        const SizedBox(width: 3),
+                      ],
+                      Text(value,
+                          style: TextStyle(
+                              color: avg == null ? p.muted : p.greenText,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800)),
+                    ]),
+                    const SizedBox(height: 2),
+                    Text(name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: p.ink, fontSize: 10.5, fontWeight: FontWeight.w600)),
+                    Text(context.l10n.profile_ratingTileGames(games),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: p.muted, fontSize: 10)),
+                  ]),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(children: [
+      Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 6,
+        runSpacing: 6,
+        children: [for (final c in sports) tile(c)],
       ),
-    );
+    ]);
   }
 }
 
@@ -618,10 +654,10 @@ class HonoursSection extends StatelessWidget {
     final trimmed = total != null && total! > honours.length;
     final empty = !loading && honours.isEmpty;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      SpSectionTitle('Honours',
+      SpSectionTitle(context.l10n.profile_honours,
           count: (total ?? honours.length) == 0 ? null : (total ?? honours.length),
           trailing: trimmed && onMore != null
-              ? TextButton(onPressed: onMore, child: const Text('See all'))
+              ? TextButton(onPressed: onMore, child: Text(context.l10n.profile_seeAll))
               : null),
       const SizedBox(height: 8),
       if (loading)
@@ -643,7 +679,7 @@ class HonoursSection extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                  "No honours yet. MVP votes, tournament and league awards, personal bests and streaks land here as they're earned.",
+                  context.l10n.profile_noHonoursYetMvpVotes,
                   style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.4)),
             ),
           ]),
@@ -678,7 +714,7 @@ class HonoursSection extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(parseStr(h['title']) ?? 'Award',
+                        Text(parseStr(h['title']) ?? context.l10n.profile_award,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -733,7 +769,7 @@ class RecentMatchesSection extends StatelessWidget {
     final p = context.palette;
     if (!loading && recent.isEmpty) return const SizedBox.shrink();
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const SpSectionTitle('Recent matches'),
+      SpSectionTitle(context.l10n.profile_recentMatches),
       const SizedBox(height: 8),
       if (loading)
         Container(
@@ -832,7 +868,9 @@ class RecordFootnote extends StatelessWidget {
         const SizedBox(width: 6),
         Flexible(
           child: Text(
-              'Stats recorded by match officiants${g > 0 ? ' · $g game${g == 1 ? '' : 's'} on SportPadi' : ''}',
+              g > 0
+                  ? context.l10n.profile_p5StatsRecordedGamesOnSportPadi(g)
+                  : context.l10n.profile_statsRecordedByMatchOfficiants,
               textAlign: TextAlign.center,
               style: TextStyle(color: p.muted, fontSize: 11.5)),
         ),
@@ -894,7 +932,7 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = apiError(e, fallback: 'Could not load.').message;
+        _error = apiError(e, fallback: l10n.profile_couldNotLoad).message;
         _loading = false;
       });
     }
@@ -908,7 +946,7 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
     return Scaffold(
       backgroundColor: p.bg,
       appBar: AppBar(
-        title: Text(_which == 'followers' ? 'Followers' : 'Following'),
+        title: Text(_which == 'followers' ? context.l10n.profile_followers : context.l10n.profile_following),
         backgroundColor: p.bg,
         foregroundColor: p.ink,
         elevation: 0,
@@ -942,8 +980,8 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
                       ? Center(
                           child: Text(
                               _which == 'followers'
-                                  ? 'No followers yet.'
-                                  : 'Not following anyone yet.',
+                                  ? context.l10n.profile_noFollowersYet
+                                  : context.l10n.profile_notFollowingAnyoneYet,
                               style: TextStyle(color: p.muted)))
                       : ListView.builder(
                           padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -952,7 +990,7 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
                             if (i == _items.length) {
                               return Center(
                                 child: TextButton(
-                                    onPressed: _load, child: const Text('Show more')),
+                                    onPressed: _load, child: Text(context.l10n.profile_showMore)),
                               );
                             }
                             final u = _items[i];

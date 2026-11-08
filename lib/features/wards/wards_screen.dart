@@ -14,6 +14,7 @@ import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Wards (docs/design/wards-and-messaging.md, A6): the players I manage,
 /// co-guardian invitations waiting for my answer, and "Add a ward".
@@ -56,9 +57,9 @@ class WardsScreen extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: Column(children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: SpHeader(title: 'Wards', subtitle: 'Players you manage'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: SpHeader(title: context.l10n.ward_wards, subtitle: context.l10n.ward_playersYouManage),
           ),
           Expanded(
             child: RefreshIndicator(
@@ -79,15 +80,13 @@ class WardsScreen extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
                   children: [
                     Text(
-                      "Players you manage — children, or anyone who needs a "
-                      "carer. They can't sign in; you check them in, sign them "
-                      'up and manage their profile.',
+                      context.l10n.ward_playersYouManageChildrenOr2,
                       style: TextStyle(
                           color: p.muted, fontSize: 13.5, height: 1.45),
                     ),
                     if (o.invites.isNotEmpty) ...[
                       const SizedBox(height: 22),
-                      SpSectionTitle('Invitations', count: o.invites.length),
+                      SpSectionTitle(context.l10n.ward_invitations, count: o.invites.length),
                       const SizedBox(height: 10),
                       for (final i in o.invites) ...[
                         _InviteCard(invite: i),
@@ -96,12 +95,11 @@ class WardsScreen extends ConsumerWidget {
                     ],
                     if (teamInvites.isNotEmpty) ...[
                       const SizedBox(height: 22),
-                      SpSectionTitle('Team invitations',
+                      SpSectionTitle(context.l10n.ward_teamInvitations,
                           count: teamInvites.length),
                       const SizedBox(height: 4),
                       Text(
-                        'Coaches want your wards on their teams. Tap one for '
-                        'the details.',
+                        context.l10n.ward_coachesWantYourWardsOn,
                         style: TextStyle(color: p.muted, fontSize: 12.5),
                       ),
                       const SizedBox(height: 10),
@@ -111,7 +109,7 @@ class WardsScreen extends ConsumerWidget {
                       ]),
                     ],
                     const SizedBox(height: 22),
-                    SpSectionTitle('Your wards',
+                    SpSectionTitle(context.l10n.ward_yourWards,
                         count: o.wards.isEmpty ? null : o.wards.length),
                     const SizedBox(height: 10),
                     if (o.wards.isEmpty)
@@ -124,16 +122,14 @@ class WardsScreen extends ConsumerWidget {
                               size: 52,
                               iconSize: 24),
                           const SizedBox(height: 10),
-                          Text('No wards yet',
+                          Text(context.l10n.ward_noWardsYet,
                               style: TextStyle(
                                   color: p.ink,
                                   fontSize: 14.5,
                                   fontWeight: FontWeight.w700)),
                           const SizedBox(height: 4),
                           Text(
-                            'Add a ward to RSVP for them, check them in with '
-                            'their own QR code and follow their events on your '
-                            'Home.',
+                            context.l10n.ward_addAWardToRsvp,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                                 color: p.muted, fontSize: 12.5, height: 1.4),
@@ -146,7 +142,7 @@ class WardsScreen extends ConsumerWidget {
                       ]),
                     const SizedBox(height: 16),
                     SpButton(
-                      label: 'Add a ward',
+                      label: context.l10n.ward_addAWard,
                       icon: Icons.person_add_alt_1_rounded,
                       tone: SpButtonTone.brand,
                       expand: true,
@@ -156,12 +152,10 @@ class WardsScreen extends ConsumerWidget {
                     // 18 — I supervise them until they turn 18.
                     if (o.supervised.isNotEmpty) ...[
                       const SizedBox(height: 26),
-                      SpSectionTitle('Supervising', count: o.supervised.length),
+                      SpSectionTitle(context.l10n.ward_supervising, count: o.supervised.length),
                       const SizedBox(height: 4),
                       Text(
-                        "They run their own accounts now. You still hear "
-                        'from their coaches and group admins about them, but '
-                        "can't act for them.",
+                        context.l10n.ward_theyRunTheirOwnAccounts,
                         style: TextStyle(
                             color: p.muted, fontSize: 12.5, height: 1.4),
                       ),
@@ -196,9 +190,10 @@ class _WardRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final sub = [
-      if (ward.age != null) 'Age ${ward.age}',
+      if (ward.age != null) context.l10n.ward_age(ward.age!),
       if (ward.relationship != 'other')
-        "You're their ${relationshipLabel(ward.relationship).toLowerCase()}",
+        context.l10n.ward_youreTheir3(
+            relationshipLabel(ward.relationship).toLowerCase()),
     ].join(' · ');
     return InkWell(
       borderRadius: BorderRadius.circular(18),
@@ -261,8 +256,8 @@ class _SupervisedRow extends StatelessWidget {
                       fontWeight: FontWeight.w700)),
               Text(
                   until.isEmpty
-                      ? 'Runs their own account · supervised until 18'
-                      : 'Runs their own account · supervised until $until',
+                      ? context.l10n.ward_runsTheirOwnAccountSupervised
+                      : context.l10n.ward_runsTheirOwnAccountSupervised2(until),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: p.muted, fontSize: 12)),
@@ -297,8 +292,8 @@ class _InviteCardState extends ConsumerState<_InviteCard> {
           .respond(widget.invite.wardId, accept: accept);
       messenger.showSnackBar(SnackBar(
           content: Text(accept
-              ? "You're now ${widget.invite.wardName}'s guardian."
-              : 'Invitation declined.')));
+              ? l10n.ward_youreNowSGuardian(widget.invite.wardName)
+              : l10n.ward_invitationDeclined2)));
       if (mounted) {
         ref.invalidate(myWardsProvider);
         // A new ward's events join my Home feed ("Ward · X").
@@ -324,8 +319,7 @@ class _InviteCardState extends ConsumerState<_InviteCard> {
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(
-                  '${i.invitedByName ?? 'Someone'} invited you to be '
-                  "${i.wardName}'s guardian",
+                  context.l10n.ward_invitedYouToBeS(i.invitedByName ?? 'Someone', i.wardName),
                   style: TextStyle(
                       color: p.ink,
                       fontSize: 14,
@@ -334,16 +328,15 @@ class _InviteCardState extends ConsumerState<_InviteCard> {
               const SizedBox(height: 2),
               Text(
                   i.relationship == 'other'
-                      ? 'As a co-guardian'
-                      : 'As their ${relationshipLabel(i.relationship).toLowerCase()}',
+                      ? context.l10n.ward_asACoGuardian
+                      : context.l10n.ward_asTheir(relationshipLabel(i.relationship).toLowerCase()),
                   style: TextStyle(color: p.muted, fontSize: 12)),
             ]),
           ),
         ]),
         const SizedBox(height: 10),
         Text(
-          "As a guardian you can check them in, sign them up for events and "
-          'manage their profile. Accepting confirms you have the right to.',
+          context.l10n.ward_asAGuardianYouCan2,
           style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.4),
         ),
         const SizedBox(height: 12),
@@ -357,7 +350,7 @@ class _InviteCardState extends ConsumerState<_InviteCard> {
                 onTap: _busy ? null : () => _answer(false),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 13),
-                  child: Text('Decline',
+                  child: Text(context.l10n.ward_decline,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           color: p.ink,
@@ -370,7 +363,7 @@ class _InviteCardState extends ConsumerState<_InviteCard> {
           const SizedBox(width: 10),
           Expanded(
             child: SpButton(
-              label: 'Accept',
+              label: context.l10n.ward_accept,
               icon: Icons.check_rounded,
               tone: SpButtonTone.brand,
               expand: true,
@@ -477,11 +470,11 @@ class _AddWardSheetState extends ConsumerState<_AddWardSheet> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SpSheetHeader(
+        SpSheetHeader(
           icon: Icons.person_add_alt_1_rounded,
-          title: 'Add a ward',
+          title: context.l10n.ward_addAWard,
           subtitle:
-              "They get their own player profile and QR code — you run it for them.",
+              context.l10n.ward_theyGetTheirOwnPlayer,
         ),
         // Photo (optional).
         Row(children: [
@@ -492,13 +485,13 @@ class _AddWardSheetState extends ConsumerState<_AddWardSheet> {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text('Photo (optional)',
+            child: Text(context.l10n.ward_photoOptional,
                 style: TextStyle(color: p.muted, fontSize: 13)),
           ),
           TextButton.icon(
             onPressed: _busy ? null : _pickPhoto,
             icon: const Icon(Icons.photo_camera_outlined, size: 18),
-            label: Text(_photoPreview == null ? 'Add a photo' : 'Change'),
+            label: Text(_photoPreview == null ? context.l10n.ward_addAPhoto : context.l10n.ward_change),
           ),
         ]),
         const SizedBox(height: 14),
@@ -506,14 +499,14 @@ class _AddWardSheetState extends ConsumerState<_AddWardSheet> {
           controller: _first,
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.next,
-          decoration: const InputDecoration(labelText: 'First name'),
+          decoration: InputDecoration(labelText: context.l10n.ward_firstName),
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 10),
         TextField(
           controller: _last,
           textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(labelText: 'Last name'),
+          decoration: InputDecoration(labelText: context.l10n.ward_lastName),
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 10),
@@ -522,7 +515,7 @@ class _AddWardSheetState extends ConsumerState<_AddWardSheet> {
           onPicked: _busy ? null : (d) => setState(() => _dob = d),
         ),
         const SizedBox(height: 16),
-        const WardFieldLabel('Gender (optional)'),
+        WardFieldLabel(context.l10n.ward_genderOptional),
         WardPills<String?>(
           options: wardGenders,
           value: _gender,
@@ -530,7 +523,7 @@ class _AddWardSheetState extends ConsumerState<_AddWardSheet> {
           onChanged: _busy ? null : (g) => setState(() => _gender = g),
         ),
         const SizedBox(height: 16),
-        const WardFieldLabel("You're their…"),
+        WardFieldLabel(context.l10n.ward_youreTheir2),
         SpSegmented(
           options: [for (final r in wardRelationships) relationshipLabel(r)],
           index: wardRelationships.indexOf(_relationship),
@@ -562,9 +555,7 @@ class _AddWardSheetState extends ConsumerState<_AddWardSheet> {
                   child: Padding(
                     padding: const EdgeInsets.only(top: 12),
                     child: Text(
-                      "I'm this person's parent, guardian or carer and I "
-                      'have the right to manage their SportPadi account. '
-                      'I agree to the ward terms.',
+                      context.l10n.ward_imThisPersonsParentGuardian2,
                       style: TextStyle(color: p.ink, fontSize: 13, height: 1.4),
                     ),
                   ),
@@ -575,8 +566,7 @@ class _AddWardSheetState extends ConsumerState<_AddWardSheet> {
         ),
         const SizedBox(height: 8),
         Text(
-          "Wards are private and hidden from player search by default. You can "
-          'change that on their profile.',
+          context.l10n.ward_wardsArePrivateAndHidden,
           style: TextStyle(color: p.muted, fontSize: 12, height: 1.4),
         ),
         if (_error != null) ...[
@@ -585,7 +575,7 @@ class _AddWardSheetState extends ConsumerState<_AddWardSheet> {
         ],
         const SizedBox(height: 16),
         SpButton(
-          label: _busy ? 'Adding…' : 'Add ward',
+          label: _busy ? context.l10n.ward_adding : context.l10n.ward_addWard,
           icon: Icons.check_rounded,
           tone: SpButtonTone.brand,
           expand: true,

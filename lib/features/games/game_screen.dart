@@ -24,6 +24,7 @@ import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Live game screen — a faithful port of the web GameClient layout:
 /// scoreboard card with the clock strip, draw-resolution + shootout cards,
@@ -41,11 +42,11 @@ class GameScreen extends ConsumerWidget {
         ? null
         : g0.leagueSlug != null
             ? (g0.firstLeg.isNotEmpty && g0.teams.length == 2
-                ? 'League match · 2nd leg · agg ${g0.aggregateFor(g0.teams[0].teamId)}–${g0.aggregateFor(g0.teams[1].teamId)}'
-                : 'League match')
+                ? context.l10n.game_leagueMatch2ndLegAgg(g0.aggregateFor(g0.teams[0].teamId), g0.aggregateFor(g0.teams[1].teamId))
+                : context.l10n.game_leagueMatch)
             : g0.isTournament
-                ? 'Tournament match'
-                : 'Local game';
+                ? context.l10n.game_tournamentMatch
+                : context.l10n.game_localGame;
     return Scaffold(
       backgroundColor: p.bg,
       body: SafeArea(
@@ -56,20 +57,20 @@ class GameScreen extends ConsumerWidget {
             child: SpHeader(
               title: g0?.categoryName != null
                   ? '${g0!.categoryEmoji != null ? '${g0.categoryEmoji} ' : ''}${g0.categoryName}'
-                  : 'Match',
+                  : context.l10n.game_match,
               subtitle: kind,
               actions: [
                 if (g0?.leagueSlug != null)
                   SpRoundButton(
                     icon: Icons.format_list_numbered_rounded,
-                    tooltip: 'League table',
+                    tooltip: context.l10n.game_leagueTable,
                     onTap: () => context.push('/leagues/${g0!.leagueSlug}'),
                   ),
                 // The event this game belongs to, one tap away.
                 if (g0 != null && !g0.isTournament && g0.eventSlug != null)
                   SpRoundButton(
                     icon: Icons.event_outlined,
-                    tooltip: 'Open event',
+                    tooltip: context.l10n.game_openEvent,
                     onTap: () => context.push('/events/${g0.eventSlug}'),
                   ),
               ],
@@ -257,10 +258,10 @@ class GameScreen extends ConsumerWidget {
                     if (g.status != 'completed') ...[
                       const SizedBox(height: 20),
                       SpSectionTitle(g.isScheduled
-                          ? 'Line-ups'
+                          ? context.l10n.game_lineUps
                           : g.isBasketball || g.isVolleyball
-                              ? 'On the court'
-                              : 'On the pitch'),
+                              ? context.l10n.game_onTheCourt
+                              : context.l10n.game_onThePitch),
                       const SizedBox(height: 10),
                       _Lineups(game: g),
                     ],
@@ -320,7 +321,7 @@ class _Scoreboard extends StatelessWidget {
     final vbPts = vsMode ? currentSetPoints(g) : null;
     final unit = Text(
         (vbPts != null && vsMode
-                ? 'Set ${g.volleyball!.currentSet} · sets ${g.teams[0].score}–${g.teams[1].score}'
+                ? context.l10n.game_setSets(g.volleyball!.currentSet, g.teams[0].score, g.teams[1].score)
                 : board.unit)
             .toUpperCase(),
         style: TextStyle(
@@ -329,11 +330,11 @@ class _Scoreboard extends StatelessWidget {
             letterSpacing: 1.6,
             fontWeight: FontWeight.w700));
     final status = g.isLive
-        ? 'LIVE'
+        ? context.l10n.game_live
         : g.status == 'completed'
             ? board.finalLabel.toUpperCase()
             : g.isScheduled
-                ? 'NOT STARTED'
+                ? context.l10n.game_notStarted
                 : g.status.replaceAll('_', ' ').toUpperCase();
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -617,7 +618,7 @@ ClockInfo? clockInfo(GameDetail g) {
     final ph = lc.current;
     if (ph == null) return null;
     if (ph.kind == 'shootout') {
-      return const ClockInfo('PENS', label: 'Penalty shootout');
+      return ClockInfo(l10n.game_pens2, label: l10n.game_penaltyShootout);
     }
     if (ph.kind == 'interval' || ph.status != 'live') {
       return ClockInfo('--:--', label: ph.label, paused: true);
@@ -655,9 +656,9 @@ ClockInfo? clockInfo(GameDetail g) {
     _fmt(elapsed),
     // Untimed sports (volleyball, racket, cricket…): reference clock only.
     label: g.timer.stoppageMin > 0
-        ? "+${g.timer.stoppageMin}' stoppage"
+        ? l10n.game_stoppage3(g.timer.stoppageMin)
         : g.profile.clock == 'elapsed'
-            ? 'Elapsed'
+            ? l10n.game_elapsed
             : null,
     paused: g.timer.pausedAt != null,
   );
@@ -725,39 +726,39 @@ class _DrawCard extends ConsumerWidget {
         children: [
           Text(
             game.isBasketball
-                ? 'Tied at the buzzer'
-                : 'Level${game.firstLeg.isNotEmpty ? ' on aggregate' : ''} at ${etAdded ? 'the end of extra time' : 'full time'}',
+                ? context.l10n.game_tiedAtTheBuzzer
+                : context.l10n.game_levelAt(game.firstLeg.isNotEmpty ? context.l10n.game_onAggregate : '', (etAdded ? context.l10n.game_theEndOfExtraTime : context.l10n.game_fullTime)),
             style: TextStyle(
                 color: p.ink, fontSize: 14, fontWeight: FontWeight.w700),
           ),
           Text(
               game.isBasketball
-                  ? 'Play overtime — as many periods as it takes.'
-                  : 'Choose how to decide the tie.',
+                  ? context.l10n.game_playOvertimeAsManyPeriods
+                  : context.l10n.game_chooseHowToDecideThe,
               style: TextStyle(color: p.muted, fontSize: 12)),
           const SizedBox(height: 10),
           Wrap(spacing: 8, runSpacing: 8, children: [
             if (lc.drawResolutions.contains('overtime'))
               SpButton(
-                label: 'Overtime',
+                label: context.l10n.game_overtime,
                 icon: Icons.timelapse_rounded,
                 onTap: () => act('overtime'),
               ),
             if (lc.drawResolutions.contains('extra_time') && !etAdded)
               SpButton(
-                label: 'Extra time',
+                label: context.l10n.game_extraTime,
                 icon: Icons.timelapse_rounded,
                 onTap: () => act('extraTime'),
               ),
             if (lc.drawResolutions.contains('penalties'))
               SpButton(
-                label: 'Straight to penalties',
+                label: context.l10n.game_straightToPenalties,
                 icon: Icons.flag_outlined,
                 onTap: () => act('penalties'),
               ),
             // Always offered: accept the level scoreline and finish the match.
             SpButton(
-              label: 'End as draw',
+              label: context.l10n.game_endAsDraw,
               icon: Icons.handshake_outlined,
               onTap: () async {
                 try {
@@ -856,14 +857,14 @@ class _ShootoutCard extends ConsumerWidget {
           Row(children: [
             Icon(Icons.flag_outlined, size: 15, color: p.accent),
             const SizedBox(width: 6),
-            Text('Penalty shootout',
+            Text(context.l10n.game_penaltyShootout,
                 style: TextStyle(
                     color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
           ]),
           const SizedBox(height: 4),
           if (turnTeam == null)
             Text(
-              'Record the first penalty to set the order — then they alternate.',
+              context.l10n.game_recordTheFirstPenaltyTo,
               style: TextStyle(color: p.muted, fontSize: 11.5),
             ),
           const SizedBox(height: 8),
@@ -902,7 +903,7 @@ class _ShootoutCard extends ConsumerWidget {
                     if (turnTeam == t.teamId)
                       Padding(
                         padding: const EdgeInsets.only(left: 6),
-                        child: Text('TO TAKE',
+                        child: Text(context.l10n.game_toTake2,
                             style: TextStyle(
                                 color: p.accent,
                                 fontSize: 9,
@@ -916,25 +917,25 @@ class _ShootoutCard extends ConsumerWidget {
                         fontSize: 17,
                         fontWeight: FontWeight.w900)),
                 const SizedBox(width: 4),
-                Text('of ${tally[t.teamId]?.taken ?? 0}',
+                Text(context.l10n.game_of(tally[t.teamId]?.taken ?? 0),
                     style: TextStyle(color: p.muted, fontSize: 10.5)),
                 if (g.canScore) ...[
                   const SizedBox(width: 8),
                   mini(
-                      'Scored',
+                      context.l10n.game_scored,
                       (turnTeam == null || turnTeam == t.teamId)
                           ? () => attempt(t.teamId, 'scored')
                           : null),
                   const SizedBox(width: 4),
                   mini(
-                      'Missed',
+                      context.l10n.game_missed,
                       (turnTeam == null || turnTeam == t.teamId)
                           ? () => attempt(t.teamId, 'missed')
                           : null,
                       outline: true),
                   const SizedBox(width: 4),
                   mini(
-                      'Undo',
+                      context.l10n.game_undo,
                       lastTaker == t.teamId
                           ? () => attempt(t.teamId, 'undo')
                           : null,
@@ -967,7 +968,7 @@ class _TimelineCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(g.status == 'completed' ? 'Key moments' : 'Timeline',
+          Text(g.status == 'completed' ? context.l10n.game_keyMoments : context.l10n.game_timeline,
               style: TextStyle(
                   color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
@@ -978,8 +979,8 @@ class _TimelineCard extends ConsumerWidget {
               Expanded(
                 child: Text(
                     g.isScheduled
-                        ? "Nothing yet — it hasn't kicked off."
-                        : 'No activity yet.',
+                        ? context.l10n.game_nothingYetItHasntKicked
+                        : context.l10n.game_noActivityYet,
                     style: TextStyle(color: p.muted, fontSize: 13)),
               ),
             ])
@@ -1050,7 +1051,7 @@ class _TimelineCard extends ConsumerWidget {
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600)),
                       ),
-                      Text(' ▲ on',
+                      Text(context.l10n.game_onLabel,
                           style: TextStyle(color: p.accent, fontSize: 13)),
                       if (a.relatedPlayerName != null) ...[
                         Text(' · ',
@@ -1064,7 +1065,7 @@ class _TimelineCard extends ConsumerWidget {
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600)),
                         ),
-                        Text(' ▼ off',
+                        Text(context.l10n.game_off,
                             style: TextStyle(color: p.danger, fontSize: 13)),
                       ],
                     ],
@@ -1087,7 +1088,7 @@ class _TimelineCard extends ConsumerWidget {
                         PlayerTap(
                           userId: a.relatedPlayerId,
                           borderRadius: 6,
-                          child: Text(' (with ${a.relatedPlayerName})',
+                          child: Text(context.l10n.game_withLabel2(a.relatedPlayerName ?? ''),
                               style: TextStyle(color: p.muted, fontSize: 13)),
                         ),
                     ],
@@ -1135,16 +1136,16 @@ class _TimelineCard extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete this entry?'),
+        title: Text(l10n.game_deleteThisEntry2),
         content: Text(
-            '"${game.defFor(a.type)?.label ?? a.type} — ${a.playerName}" is removed and the score recomputed. To fix who it was, use edit instead — it keeps the minute.'),
+            l10n.game_isRemovedAndTheScore(game.defFor(a.type)?.label ?? a.type, a.playerName)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Keep')),
+              child: Text(l10n.game_keep)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete')),
+              child: Text(l10n.game_delete)),
         ],
       ),
     );
@@ -1336,7 +1337,7 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
           if (x.onField && !x.sentOff && subbedIn.contains(x.playerId))
             badge('▲ ON', p.accent)
           else if (x.sentOff)
-            badge(g.isBasketball ? 'FOULED OUT' : 'SENT OFF', p.danger)
+            badge(g.isBasketball ? context.l10n.game_fouledOut2 : context.l10n.game_sentOff2, p.danger)
           else if (!x.onField && subbedOff.contains(x.playerId))
             badge('▼ OFF', p.muted)
           else if (!x.onField && !canPick)
@@ -1349,7 +1350,7 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
                 child: Text(
-                  x.onField ? '▼ BENCH' : '▲ START',
+                  x.onField ? context.l10n.game_bench5 : context.l10n.game_start3,
                   style: TextStyle(
                       color: _busy ? p.muted : p.accent,
                       fontSize: 9,
@@ -1405,7 +1406,7 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
           Text(
               started
                   ? '${g.isBasketball || g.isVolleyball ? 'ON THE COURT' : 'ON THE PITCH'} (${onPitch.length})'
-                  : 'STARTING LINE-UP (${onPitch.length}/${g.maxPlayersPerTeam})',
+                  : context.l10n.game_startingLineUp2(onPitch.length, g.maxPlayersPerTeam),
               style: TextStyle(
                   color: p.muted,
                   fontSize: 9,
@@ -1416,10 +1417,10 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
             // Tournament sides are the SQUAD only: accepted call-ups and
             // coach adds. Nobody in it → nobody here.
             Text(
-                'No one in the squad yet — players appear here when they accept the call-up or the coach adds them.',
+                context.l10n.game_noOneInTheSquad,
                 style: TextStyle(color: p.muted, fontSize: 11, height: 1.35))
           else if (onPitch.isEmpty)
-            Text('No one on yet.',
+            Text(context.l10n.game_noOneOnYet,
                 style: TextStyle(color: p.muted, fontSize: 11))
           else
             for (final x in onPitch) row(x),
@@ -1427,8 +1428,8 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
             const SizedBox(height: 8),
             Text(
                 started
-                    ? 'BENCH & OUT (${offPitch.length})'
-                    : 'BENCH (${offPitch.length})',
+                    ? context.l10n.game_benchOut2(offPitch.length)
+                    : context.l10n.game_bench6(offPitch.length),
                 style: TextStyle(
                     color: p.muted,
                     fontSize: 9,
@@ -1440,8 +1441,7 @@ class _LineupCardState extends ConsumerState<_LineupCard> {
           if (canPick) ...[
             const SizedBox(height: 8),
             Text(
-                'Set the side before kick-off — after that, changes are logged '
-                'as substitutions.',
+                context.l10n.game_setTheSideBeforeKick,
                 style: TextStyle(color: p.muted, fontSize: 10, height: 1.35)),
           ],
         ],
@@ -1467,10 +1467,10 @@ class _SummaryCard extends StatelessWidget {
         g.lifecycle?.phases.any((ph) => ph.kind == 'shootout') ?? false;
     final wentEt = g.lifecycle?.hasExtraPhases ?? false;
     final label = wentPens
-        ? 'Penalties'
+        ? context.l10n.game_penalties2
         : wentEt
-            ? 'After extra time'
-            : 'Full time';
+            ? context.l10n.game_afterExtraTime
+            : context.l10n.game_fullTime2;
     // The recorded result first (a shootout winner can be level on goals),
     // then the score.
     GameTeam? winner;
@@ -1582,7 +1582,7 @@ class _EditActivitySheetState extends ConsumerState<_EditActivitySheet> {
           );
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Updated')));
+          .showSnackBar(SnackBar(content: Text(l10n.game_updated)));
       Navigator.pop(context, true);
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -1645,11 +1645,11 @@ class _EditActivitySheetState extends ConsumerState<_EditActivitySheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SpSheetHeader(
-          title: 'Edit ${(def?.label ?? 'entry').toLowerCase()}',
-          subtitle: 'Keeps the stat and when it happened — change who it was credited to.',
+          title: context.l10n.game_edit2((def?.label ?? 'entry').toLowerCase()),
+          subtitle: context.l10n.game_keepsTheStatAndWhen,
           icon: Icons.edit_outlined,
         ),
-        label('TEAM'),
+        label(context.l10n.game_team3),
         Wrap(spacing: 6, runSpacing: 6, children: [
           for (final t in g.teams)
             chip(t.name, _teamId == t.teamId, () => setState(() {
@@ -1660,9 +1660,9 @@ class _EditActivitySheetState extends ConsumerState<_EditActivitySheet> {
                   }
                 })),
         ]),
-        label('PLAYER'),
+        label(context.l10n.game_player2),
         if (side.isEmpty)
-          Text('No players in the game for this team.',
+          Text(context.l10n.game_noPlayersInTheGame,
               style: TextStyle(color: p.muted, fontSize: 12.5))
         else
           Wrap(spacing: 6, runSpacing: 6, children: [
@@ -1673,10 +1673,10 @@ class _EditActivitySheetState extends ConsumerState<_EditActivitySheet> {
                   })),
           ]),
         if (wantsRelated) ...[
-          label(needsRelated ? 'SECOND PLAYER' : 'ASSIST (OPTIONAL)'),
+          label(needsRelated ? context.l10n.game_secondPlayer2 : context.l10n.game_assistOptional2),
           Wrap(spacing: 6, runSpacing: 6, children: [
             if (!needsRelated)
-              chip('No assist', _relatedId == null,
+              chip(context.l10n.game_noAssist, _relatedId == null,
                   () => setState(() => _relatedId = null)),
             for (final x in relatedPool)
               if (x.playerId != _playerId)
@@ -1685,7 +1685,7 @@ class _EditActivitySheetState extends ConsumerState<_EditActivitySheet> {
           ]),
         ],
         if (_minuteEditable) ...[
-          label('MINUTE'),
+          label(context.l10n.game_minute2),
           SizedBox(
             width: 120,
             child: TextField(
@@ -1694,7 +1694,7 @@ class _EditActivitySheetState extends ConsumerState<_EditActivitySheet> {
               maxLength: 3,
               decoration: InputDecoration(
                 counterText: '',
-                hintText: 'e.g. 34',
+                hintText: context.l10n.game_eG34,
                 filled: true,
                 fillColor: p.surface2,
                 isDense: true,
@@ -1707,7 +1707,7 @@ class _EditActivitySheetState extends ConsumerState<_EditActivitySheet> {
         ],
         const SizedBox(height: 18),
         SpButton(
-          label: _busy ? 'Saving…' : 'Save',
+          label: _busy ? context.l10n.game_saving : context.l10n.game_save,
           icon: Icons.check_rounded,
           expand: true,
           onTap: _busy ||

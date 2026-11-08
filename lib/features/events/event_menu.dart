@@ -15,6 +15,7 @@ import 'package:sportpadi_mobile/shared/widgets/event_reminders.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The event page's "More" button, beside Share. Everything that isn't the
 /// page's main flow (what, when, where, RSVP / tickets / teams) lives here,
@@ -52,7 +53,7 @@ class EventMenuButton extends ConsumerWidget {
     if (!anything) return const SizedBox.shrink();
     return SpRoundButton(
       icon: Icons.more_horiz_rounded,
-      tooltip: 'More',
+      tooltip: context.l10n.event_more,
       onTap: () => _open(context, ref),
     );
   }
@@ -73,16 +74,16 @@ class EventMenuButton extends ConsumerWidget {
     final canMessage = composer?.canAddressEvent(event.id) ?? false;
     final photos = manage && event.status != 'completed' && onPhotos != null;
     final reminderHint = reminders == null || !hasReminders
-        ? 'None set — add some'
+        ? context.l10n.event_noneSetAddSome
         : !signedIn
-            ? 'Sign in to get them'
+            ? context.l10n.event_signInToGetThem
             : reminders.muted
-                ? 'Off for this event'
+                ? context.l10n.event_offForThisEvent
                 : (reminders.labels.isNotEmpty
                         ? reminders.labels
                         : [
                             for (final s in reminders.slots)
-                              '${kReminderSlots[s] ?? s} before'
+                              context.l10n.event_reminderSlotBefore(kReminderSlots[s] ?? s)
                           ])
                     .join(', ');
 
@@ -93,27 +94,27 @@ class EventMenuButton extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (manage && (canMessage || showReminders || photos)) ...[
-            const _Label('Organizer'),
+            _Label(l10n.event_organizer),
             if (canMessage)
               _Row(
                 icon: Icons.campaign_outlined,
-                title: 'Message participants',
-                hint: "An announcement to who's going or checked in",
+                title: l10n.event_messageParticipants,
+                hint: l10n.event_anAnnouncementToWhosGoing,
                 onTap: () => Navigator.of(ctx).pop('message'),
               ),
             if (showReminders)
               _Row(
                 icon: Icons.alarm_rounded,
-                title: 'Reminders',
+                title: l10n.event_reminders,
                 hint: reminderHint,
                 onTap: () => Navigator.of(ctx).pop('reminders'),
               ),
             if (photos)
               _Row(
                 icon: Icons.add_photo_alternate_outlined,
-                title: 'Event photos',
+                title: l10n.event_eventPhotos,
                 hint:
-                    '${event.images.length} photo${event.images.length == 1 ? '' : 's'} · set the cover',
+                    l10n.event_photosSetTheCover(event.images.length),
                 onTap: () => Navigator.of(ctx).pop('photos'),
               ),
             Divider(height: 18, color: p.line),
@@ -123,17 +124,17 @@ class EventMenuButton extends ConsumerWidget {
               icon: reminders?.muted == true
                   ? Icons.notifications_off_outlined
                   : Icons.alarm_rounded,
-              title: 'Reminders',
+              title: l10n.event_reminders,
               hint: reminderHint,
               onTap: () => Navigator.of(ctx).pop('reminders'),
             ),
           if (event.status != 'cancelled' && event.calendarStart != null)
             _Row(
               icon: Icons.event_available_outlined,
-              title: 'Add to calendar',
+              title: l10n.event_addToCalendar,
               hint: event.isPrivate
-                  ? 'Google Calendar'
-                  : 'Google, Apple, Outlook',
+                  ? l10n.event_googleCalendar
+                  : l10n.event_googleAppleOutlook,
               onTap: () => Navigator.of(ctx).pop('calendar'),
             ),
         ],
@@ -301,7 +302,7 @@ class _MessageSheetState extends ConsumerState<_MessageSheet> {
       nav.pop();
       messenger.showSnackBar(SnackBar(
           content: Text(
-              'Sent to ${r.recipientCount} ${r.recipientCount == 1 ? 'person' : 'people'}')));
+              l10n.event_sentToPeople(r.recipientCount))));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
       if (mounted) setState(() => _busy = false);
@@ -329,11 +330,11 @@ class _MessageSheetState extends ConsumerState<_MessageSheet> {
           icon: Icons.campaign_outlined,
           iconBg: p.accentTint,
           iconFg: p.greenText,
-          title: 'Message participants',
+          title: context.l10n.event_messageParticipants,
           subtitle: widget.eventTitle,
         ),
         SpSegmented(
-          options: const ['Going', 'Checked in', 'Both'],
+          options: [context.l10n.event_going, context.l10n.event_checkedIn, context.l10n.event_both],
           index: _scope,
           onChanged: (i) {
             setState(() => _scope = i);
@@ -343,13 +344,12 @@ class _MessageSheetState extends ConsumerState<_MessageSheet> {
         const SizedBox(height: 6),
         Text(
           _reachFailed
-              ? "Couldn't count who it reaches — you can still send it."
+              ? context.l10n.event_couldntCountWhoItReaches
               : reach == null
-                  ? 'Counting…'
+                  ? context.l10n.event_counting
                   : reach.people == 0
-                      ? 'Nobody here can receive it yet.'
-                      : 'Reaches ${reach.people} ${reach.people == 1 ? 'person' : 'people'}'
-                          '${reach.wards > 0 ? ' (${reach.wards} through their guardians)' : ''}',
+                      ? context.l10n.event_nobodyHereCanReceiveIt
+                      : context.l10n.event_countPluralOneReachesPerson2(reach.people, (reach.wards > 0 ? context.l10n.event_throughTheirGuardians(reach.wards) : '')),
           style: TextStyle(color: p.muted, fontSize: 12),
         ),
         const SizedBox(height: 12),
@@ -358,8 +358,8 @@ class _MessageSheetState extends ConsumerState<_MessageSheet> {
           enabled: !_busy,
           maxLength: 120,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-              labelText: 'Title', hintText: 'e.g. Pitch moved to field 3'),
+          decoration: InputDecoration(
+              labelText: context.l10n.event_title, hintText: context.l10n.event_eGPitchMovedTo),
         ),
         TextField(
           controller: _body,
@@ -368,8 +368,8 @@ class _MessageSheetState extends ConsumerState<_MessageSheet> {
           maxLines: 6,
           maxLength: 4000,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-              labelText: 'Message', hintText: 'What do they need to know?'),
+          decoration: InputDecoration(
+              labelText: context.l10n.event_message, hintText: context.l10n.event_whatDoTheyNeedTo),
         ),
         SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
@@ -377,16 +377,16 @@ class _MessageSheetState extends ConsumerState<_MessageSheet> {
           onChanged: _busy || !urgentAllowed
               ? null
               : (v) => setState(() => _urgent = v),
-          title: const Text('Urgent',
-              style: TextStyle(fontWeight: FontWeight.w700)),
+          title: Text(context.l10n.event_urgent,
+              style: const TextStyle(fontWeight: FontWeight.w700)),
           subtitle: Text(
               quota == null
-                  ? 'Pushes past quiet settings'
+                  ? context.l10n.event_pushesPastQuietSettings
                   : !urgentAllowed
-                      ? 'None left today'
+                      ? context.l10n.event_noneLeftToday
                       : quota.unlimited || quota.limit == null
-                          ? 'Pushes past quiet settings'
-                          : '${quota.remaining ?? 0} of ${quota.limit} urgent left today',
+                          ? context.l10n.event_pushesPastQuietSettings
+                          : context.l10n.event_urgentLeftToday(quota.remaining ?? 0, quota.limit!),
               style: TextStyle(color: p.muted, fontSize: 12)),
         ),
         const SizedBox(height: 8),
@@ -399,7 +399,7 @@ class _MessageSheetState extends ConsumerState<_MessageSheet> {
                     context.push(
                         '/groups/${widget.groupId}/announcements/new?event=${widget.eventId}');
                   },
-            child: const Text('More options'),
+            child: Text(context.l10n.event_moreOptions),
           ),
           const Spacer(),
           FilledButton.icon(
@@ -411,7 +411,7 @@ class _MessageSheetState extends ConsumerState<_MessageSheet> {
                     child: CircularProgressIndicator(
                         strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.send_rounded, size: 18),
-            label: const Text('Send'),
+            label: Text(context.l10n.event_send),
           ),
         ]),
       ],
@@ -446,8 +446,8 @@ class _RemindersSheetState extends ConsumerState<_RemindersSheet> {
       container.invalidate(eventRemindersProvider(widget.eventId));
       messenger.showSnackBar(SnackBar(
           content: Text(muted
-              ? 'Reminders off for this event'
-              : 'Reminders back on for this event')));
+              ? l10n.event_remindersOffForThisEvent
+              : l10n.event_remindersBackOnForThis)));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
     } finally {
@@ -469,7 +469,7 @@ class _RemindersSheetState extends ConsumerState<_RemindersSheet> {
       container.invalidate(eventRemindersProvider(widget.eventId));
       if (mounted) nav.pop();
       messenger.showSnackBar(
-          const SnackBar(content: Text('Reminder schedule saved')));
+          SnackBar(content: Text(l10n.event_reminderScheduleSaved)));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
       if (mounted) setState(() => _busy = false);
@@ -487,10 +487,10 @@ class _RemindersSheetState extends ConsumerState<_RemindersSheet> {
       icon: Icons.alarm_rounded,
       iconBg: p.accentTint,
       iconFg: p.greenText,
-      title: 'Reminders',
+      title: context.l10n.event_reminders,
       subtitle: widget.canEdit
-          ? 'When SportPadi reminds people about this event'
-          : 'What SportPadi sends you before this event',
+          ? context.l10n.event_whenSportPadiRemindsPeopleAbout2
+          : context.l10n.event_whatSportPadiSendsYouBefore2,
     );
     if (r == null) {
       return Column(mainAxisSize: MainAxisSize.min, children: [
@@ -498,7 +498,7 @@ class _RemindersSheetState extends ConsumerState<_RemindersSheet> {
         Padding(
           padding: const EdgeInsets.all(24),
           child: async.hasError
-              ? Text("Couldn't load the reminders.",
+              ? Text(context.l10n.event_couldntLoadTheReminders,
                   style: TextStyle(color: p.muted))
               : const CircularProgressIndicator(),
         ),
@@ -521,7 +521,7 @@ class _RemindersSheetState extends ConsumerState<_RemindersSheet> {
             onChanged: (s) => setState(() => _edit = s),
           )
         else if (r.slots.isEmpty)
-          Text('This event has no reminders.', style: TextStyle(color: p.muted))
+          Text(context.l10n.event_thisEventHasNoReminders, style: TextStyle(color: p.muted))
         else
           for (final l in labels)
             Container(
@@ -543,19 +543,19 @@ class _RemindersSheetState extends ConsumerState<_RemindersSheet> {
             contentPadding: EdgeInsets.zero,
             value: !r.muted,
             onChanged: _busy ? null : (on) => _mute(!on),
-            title: const Text('Remind me',
-                style: TextStyle(fontWeight: FontWeight.w700)),
+            title: Text(context.l10n.event_remindMe,
+                style: const TextStyle(fontWeight: FontWeight.w700)),
             subtitle: Text(
                 r.muted
-                    ? 'Off for this event — only for you'
-                    : 'On — turn off just for you',
+                    ? context.l10n.event_offForThisEventOnly
+                    : context.l10n.event_onTurnOffJustFor,
                 style: TextStyle(color: p.muted, fontSize: 12)),
           ),
         ],
         if (!signedIn) ...[
           const SizedBox(height: 14),
           SpButton(
-            label: 'Sign in to get reminders',
+            label: context.l10n.event_signInToGetReminders,
             icon: Icons.notifications_active_outlined,
             expand: true,
             onTap: () {
@@ -567,7 +567,7 @@ class _RemindersSheetState extends ConsumerState<_RemindersSheet> {
         if (widget.canEdit) ...[
           const SizedBox(height: 14),
           SpButton(
-            label: 'Save schedule',
+            label: context.l10n.event_saveSchedule,
             expand: true,
             onTap: changed && !_busy ? _save : null,
           ),
@@ -621,7 +621,7 @@ class _CalendarSheet extends ConsumerWidget {
       'text': event.title,
       'dates': '${_stamp(start, allDay)}/${_stamp(end, allDay)}',
       'details': [
-        if (event.groupName != null) 'Hosted by ${event.groupName}',
+        if (event.groupName != null) l10n.event_hostedByName(event.groupName!),
         page,
       ].join('\n'),
       if (event.locationName != null) 'location': event.locationName!,
@@ -663,13 +663,13 @@ class _CalendarSheet extends ConsumerWidget {
           icon: Icons.event_available_outlined,
           iconBg: p.accentTint,
           iconFg: p.greenText,
-          title: 'Add to calendar',
+          title: context.l10n.event_addToCalendar,
           subtitle: event.title,
         ),
-        row(Icons.event_rounded, p.accentTint, p.greenText, 'Google Calendar',
+        row(Icons.event_rounded, p.accentTint, p.greenText, context.l10n.event_googleCalendar,
             null, () => _go(context, google)),
         row(Icons.calendar_month_outlined, p.surface2, p.ink,
-            'Apple, Outlook & others', 'Includes the event\'s reminders',
+            context.l10n.event_appleOutlookOthers, context.l10n.event_includesTheEventsReminders,
             () => _goIcs(context, ref)),
       ],
     );

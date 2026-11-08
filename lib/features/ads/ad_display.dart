@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/ads/ads_repository.dart';
 import 'package:sportpadi_mobile/features/ads/promo_widgets.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Flexible ad unit — hand it slot keys; each slot shows what the server
 /// picked for this viewer (packages/api/src/ads/decide.ts) in the slot's
@@ -64,7 +65,7 @@ class _AdImage extends StatelessWidget {
         child: Container(
           color: p.surface2,
           alignment: Alignment.center,
-          child: Text(ad.advertiserName ?? ad.altText ?? 'Sponsored',
+          child: Text(ad.advertiserName ?? ad.altText ?? context.l10n.common_sponsored,
               style: TextStyle(color: p.muted, fontSize: 12)),
         ),
       ),
@@ -235,7 +236,7 @@ class _AdDisplayState extends ConsumerState<AdDisplay> {
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 110),
-                  child: Text(ad.ctaLabel ?? 'See',
+                  child: Text(ad.ctaLabel ?? context.l10n.common_see,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -250,7 +251,7 @@ class _AdDisplayState extends ConsumerState<AdDisplay> {
               onPressed: () => _close(ad),
               icon: Icon(Icons.close_rounded, size: 18, color: fg),
               visualDensity: VisualDensity.compact,
-              tooltip: 'Close',
+              tooltip: context.l10n.common_close,
             ),
           ]),
         ),

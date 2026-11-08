@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/data/discussions/discussion_models.dart';
 import 'package:sportpadi_mobile/data/messages/message_models.dart'
     show MessageAttachment;
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Discussions REST bridge (`/api/mobile/discussions`). Errors carry the
 /// server's readable message (locked threads, rate limits, who may post) —
@@ -50,7 +51,7 @@ class DiscussionsRepository {
   /// Where I can read and post in [groupId].
   Future<DiscussionSpaces> spaces(String groupId) async {
     final d = await _get(
-        {'view': 'spaces', 'groupId': groupId}, "Couldn't load discussions.");
+        {'view': 'spaces', 'groupId': groupId}, l10n.common_couldntLoadDiscussions);
     return DiscussionSpaces.fromJson(d);
   }
 
@@ -72,7 +73,7 @@ class DiscussionsRepository {
       if (flair != null) 'flair': flair,
       if (status != null) 'status': status,
       if (cursor != null && cursor > 0) 'cursor': '$cursor',
-    }, "Couldn't load discussions.");
+    }, l10n.common_couldntLoadDiscussions);
     return DiscussionPage.fromJson(d);
   }
 
@@ -85,17 +86,17 @@ class DiscussionsRepository {
       'view': 'mine',
       if (unreadOnly) 'unread': '1',
       if (cursor != null && cursor > 0) 'cursor': '$cursor',
-    }, "Couldn't load your discussions.");
+    }, l10n.common_couldntLoadYourDiscussions);
     return DiscussionPage.fromJson(d);
   }
 
   /// One discussion with its comments. [sort]: `best` · `new` · `old`.
   Future<DiscussionThread> thread(String id, {String sort = 'best'}) async {
-    final d = await _get({'sort': sort}, "Couldn't load this discussion.",
+    final d = await _get({'sort': sort}, l10n.common_couldntLoadThisDiscussion,
         path: '$_path/$id');
     final t = DiscussionThread.fromJson(d);
     if (t.discussion.id.isEmpty) {
-      throw ApiException('This discussion is no longer available.',
+      throw ApiException(l10n.common_thisDiscussionIsNoLonger,
           statusCode: 404);
     }
     return t;
@@ -123,10 +124,10 @@ class DiscussionsRepository {
       if (attachments.isNotEmpty)
         'attachments': [for (final a in attachments) a.toJson()],
       if (viaWardId != null) 'viaWardId': viaWardId,
-    }, "Couldn't post your discussion.");
+    }, l10n.common_couldntPostYourDiscussion);
     final id = parseStr(r['id']);
     if (id == null) {
-      throw ApiException("Couldn't post your discussion. Try again.");
+      throw ApiException(l10n.common_couldntPostYourDiscussionTry);
     }
     return id;
   }
@@ -142,7 +143,7 @@ class DiscussionsRepository {
           if (parentId != null) 'parentId': parentId,
           if (viaWardId != null) 'viaWardId': viaWardId,
         },
-        "Couldn't post your comment.");
+        l10n.common_couldntPostYourComment);
     return parseStr(r['id']) ?? '';
   }
 
@@ -159,18 +160,18 @@ class DiscussionsRepository {
           if (body != null) 'body': body,
           if (flair != null) 'flair': flair,
         },
-        "Couldn't save your changes.");
+        l10n.common_couldntSaveYourChanges);
   }
 
   /// OP or a moderator: remove it.
   Future<void> delete(String id) async {
-    await _act(id, {'action': 'delete'}, "Couldn't remove the discussion.");
+    await _act(id, {'action': 'delete'}, l10n.common_couldntRemoveTheDiscussion);
   }
 
   /// OP or a moderator: `open` or `resolved`.
   Future<void> setStatus(String id, String status) async {
     await _act(id, {'action': 'status', 'status': status},
-        "Couldn't update the discussion.");
+        l10n.common_couldntUpdateTheDiscussion);
   }
 
   /// Moderators: pin and / or lock.
@@ -182,7 +183,7 @@ class DiscussionsRepository {
           if (pinned != null) 'pinned': pinned,
           if (locked != null) 'locked': locked,
         },
-        "Couldn't update the discussion.");
+        l10n.common_couldntUpdateTheDiscussion);
   }
 
   /// Upvote (1) or clear (0) my vote on the discussion, or on one of
@@ -197,7 +198,7 @@ class DiscussionsRepository {
           if (commentId != null) 'targetId': commentId,
           'value': value,
         },
-        "Couldn't save your vote.");
+        l10n.common_couldntSaveYourVote);
     return (
       score: parseInt(r['score']) ?? 0,
       myVote: (parseInt(r['myVote']) ?? value).clamp(-1, 1),
@@ -211,14 +212,14 @@ class DiscussionsRepository {
     await _act(
         discussionId,
         {'action': 'edit-comment', 'commentId': commentId, 'body': body},
-        "Couldn't save your comment.");
+        l10n.common_couldntSaveYourComment);
   }
 
   Future<void> deleteComment(String discussionId, String commentId) async {
     await _act(
         discussionId,
         {'action': 'delete-comment', 'commentId': commentId},
-        "Couldn't remove the comment.");
+        l10n.common_couldntRemoveTheComment);
   }
 
   /// Report the discussion, or one of its comments ([commentId]). Returns
@@ -234,7 +235,7 @@ class DiscussionsRepository {
           if (details != null && details.trim().isNotEmpty)
             'details': details.trim(),
         },
-        "Couldn't send the report.");
+        l10n.common_couldntSendTheReport);
     return r['alreadyReported'] == true;
   }
 }

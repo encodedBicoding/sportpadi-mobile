@@ -16,6 +16,7 @@ import 'package:sportpadi_mobile/features/sports/table_tennis_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/tennis_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/ultimate_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/volleyball_blocks.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The two bespoke blocks of a sport record (design §5), and the pieces the
 /// per-sport files share.
@@ -94,19 +95,19 @@ class SportRecordBlock extends StatelessWidget {
 
 /// What a record block is called in the sport's own words.
 String recordBlockTitle(SportFamily f) => switch (f) {
-      SportFamily.soccer => 'League table',
-      SportFamily.basketball => 'Scoreboard',
-      SportFamily.volleyball => 'Won – lost',
-      SportFamily.baseball => 'Standings',
-      SportFamily.tennis => 'Match record',
-      SportFamily.padel => 'Pairs record',
-      SportFamily.tableTennis => 'Won – lost',
-      SportFamily.chess => 'Results',
-      SportFamily.ultimate => 'Won – lost',
-      SportFamily.golf => 'Scorecard',
-      SportFamily.running => 'Races',
-      SportFamily.paintball => 'Won – lost',
-      SportFamily.hiking || SportFamily.generic => 'Record',
+      SportFamily.soccer => l10n.profile_leagueTable,
+      SportFamily.basketball => l10n.profile_scoreboard,
+      SportFamily.volleyball => l10n.profile_wonLost2,
+      SportFamily.baseball => l10n.profile_standings,
+      SportFamily.tennis => l10n.profile_matchRecord,
+      SportFamily.padel => l10n.profile_pairsRecord,
+      SportFamily.tableTennis => l10n.profile_wonLost2,
+      SportFamily.chess => l10n.profile_results,
+      SportFamily.ultimate => l10n.profile_wonLost2,
+      SportFamily.golf => l10n.profile_scorecard,
+      SportFamily.running => l10n.profile_races,
+      SportFamily.paintball => l10n.profile_wonLost2,
+      SportFamily.hiking || SportFamily.generic => l10n.profile_record,
     };
 
 /// The sport's stats block for one scope (no card of its own — the caller
@@ -371,7 +372,7 @@ class StatTileGrid extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 2),
                   child: Text(
-                      '${perGame(countOf(counts, f.key), games)} / game',
+                      context.l10n.profile_game(perGame(countOf(counts, f.key), games)),
                       style: TextStyle(
                           color: p.muted,
                           fontSize: 11,
@@ -402,7 +403,7 @@ class MoreStats extends StatelessWidget {
     if (rest.isEmpty) return const SizedBox.shrink();
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       const BlockDivider(),
-      const BlockHeading('More stats'),
+      BlockHeading(context.l10n.profile_moreStats),
       const SizedBox(height: 10),
       StatTileGrid(fields: rest, counts: nums.counts, games: nums.games),
     ]);
@@ -597,7 +598,7 @@ class ResultsOnlyNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      Text('This sport keeps results only — no individual stats.',
+      Text(context.l10n.profile_thisSportKeepsResultsOnly,
           style: TextStyle(color: context.palette.muted, fontSize: 12.5));
 }
 

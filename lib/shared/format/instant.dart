@@ -1,7 +1,9 @@
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:sportpadi_mobile/core/i18n/date_locale.dart';
 import 'package:intl/intl.dart';
 import 'package:timezone/data/latest_10y.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Instants in the VIEWER's zone — the Dart half of the "Instants in the
 /// viewer's zone" block in `packages/lib/src/time.ts`.
@@ -103,7 +105,7 @@ String? zoneOffsetLabel(String? name, [DateTime? at]) {
   final sign = mins < 0 ? '-' : '+';
   final h = mins.abs() ~/ 60;
   final m = mins.abs() % 60;
-  return m == 0 ? 'GMT$sign$h' : 'GMT$sign$h:${_pad2(m)}';
+  return m == 0 ? l10n.common_gmt(sign, h) : l10n.common_gmt2(sign, h, _pad2(m));
 }
 
 /// "America/New_York" → "America/New York".
@@ -137,15 +139,15 @@ enum InstantStyle {
 }
 
 // en-US forced, as on the web: 12-hour everywhere.
-final _time = DateFormat('h:mm a', 'en_US');
-final _day = DateFormat('EEE, MMM d', 'en_US');
-final _dayTime = DateFormat('EEE, MMM d, h:mm a', 'en_US');
-final _date = DateFormat('MMM d, y', 'en_US');
-final _full = DateFormat('EEE, MMM d, y, h:mm a', 'en_US');
-final _weekdayShort = DateFormat('EEE', 'en_US');
-final _monthDay = DateFormat('MMM d', 'en_US');
-final _dayLong = DateFormat('EEEE, MMMM d', 'en_US');
-final _dayLongYear = DateFormat('EEEE, MMMM d, y', 'en_US');
+DateFormat get _time => DateFormat('h:mm a', spDateLocale);
+DateFormat get _day => DateFormat('EEE, MMM d', spDateLocale);
+DateFormat get _dayTime => DateFormat('EEE, MMM d, h:mm a', spDateLocale);
+DateFormat get _date => DateFormat('MMM d, y', spDateLocale);
+DateFormat get _full => DateFormat('EEE, MMM d, y, h:mm a', spDateLocale);
+DateFormat get _weekdayShort => DateFormat('EEE', spDateLocale);
+DateFormat get _monthDay => DateFormat('MMM d', spDateLocale);
+DateFormat get _dayLong => DateFormat('EEEE, MMMM d', spDateLocale);
+DateFormat get _dayLongYear => DateFormat('EEEE, MMMM d, y', spDateLocale);
 
 /// Format an instant in the viewer's zone. Empty for null.
 String fmtInstant(DateTime? t, {InstantStyle style = InstantStyle.dayTime}) {
@@ -197,7 +199,7 @@ String fmtRelative(DateTime? t, {DateTime? now}) {
   final today = dayKey(n);
   final day = dayKey(t);
   if (day == today) return '${min ~/ 60}h';
-  if (day == _yesterdayKey(n)) return 'Yesterday';
+  if (day == _yesterdayKey(n)) return l10n.common_yesterday;
   final z = inViewerZone(t);
   if (diff < const Duration(days: 6)) return _weekdayShort.format(z);
   final sameYear = day.substring(0, 4) == today.substring(0, 4);
@@ -211,8 +213,8 @@ String fmtDayLabel(DateTime? t, {DateTime? now}) {
   final n = now ?? DateTime.now();
   final day = dayKey(t);
   final today = dayKey(n);
-  if (day == today) return 'Today';
-  if (day == _yesterdayKey(n)) return 'Yesterday';
+  if (day == today) return l10n.common_today;
+  if (day == _yesterdayKey(n)) return l10n.common_yesterday;
   final z = inViewerZone(t);
   return day.substring(0, 4) == today.substring(0, 4)
       ? _dayLong.format(z)

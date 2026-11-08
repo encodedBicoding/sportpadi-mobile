@@ -15,20 +15,21 @@ import 'package:sportpadi_mobile/shared/widgets/info_tip.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
-final _stamp = DateFormat('d MMM, HH:mm');
+DateFormat get _stamp => DateFormat('d MMM, HH:mm');
 
-const _kEventLabels = <String, String>{
-  'requested': 'Requested',
-  'approved': 'Approved',
-  'auto_approved': 'Auto-approved (sole admin)',
-  'rejected': 'Rejected',
-  'ledger_posted': 'Wallet debited',
-  'payout_initiated': 'Payout initiated',
-  'paid': 'Paid',
-  'failed': 'Failed',
-  'cancelled': 'Cancelled',
-};
+Map<String, String> get _kEventLabels => <String, String>{
+      'requested': l10n.wallet_requested,
+      'approved': l10n.wallet_approved,
+      'auto_approved': l10n.wallet_autoApprovedSoleAdmin,
+      'rejected': l10n.wallet_rejected,
+      'ledger_posted': l10n.wallet_walletDebited,
+      'payout_initiated': l10n.wallet_payoutInitiated,
+      'paid': l10n.wallet_paid,
+      'failed': l10n.wallet_failed,
+      'cancelled': l10n.wallet_cancelled,
+    };
 
 /// The transparent withdrawal log — mirrors the web `/wallet/approvals` page:
 /// every request with who asked, who approved or rejected (and their note),
@@ -76,26 +77,25 @@ class _WalletWithdrawalsScreenState
       builder: (ctx) {
         final c = TextEditingController();
         return AlertDialog(
-          title: Text(approve ? 'Approve withdrawal' : 'Reject withdrawal'),
+          title: Text(approve ? l10n.wallet_approveWithdrawal : l10n.wallet_rejectWithdrawal),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             Text(
-              '${formatMoney(w.amount, w.currency, w.currencyExponent)} to the group\'s bank'
-              '${w.requestedBy != null ? ', requested by ${w.requestedBy!.name}' : ''}.',
+              l10n.wallet_toTheGroupsBank(formatMoney(w.amount, w.currency, w.currencyExponent), (w.requestedBy != null ? ', requested by ${w.requestedBy!.name}' : '')),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: c,
               maxLength: 280,
-              decoration: const InputDecoration(labelText: 'Note (optional)'),
+              decoration: InputDecoration(labelText: l10n.wallet_noteOptional),
             ),
           ]),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx, null),
-                child: const Text('Cancel')),
+                child: Text(l10n.wallet_cancel)),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, c.text),
-              child: Text(approve ? 'Approve' : 'Reject'),
+              child: Text(approve ? l10n.wallet_approve : l10n.wallet_reject),
             ),
           ],
         );
@@ -107,10 +107,10 @@ class _WalletWithdrawalsScreenState
       final repo = ref.read(walletRepositoryProvider);
       if (approve) {
         await repo.approve(widget.groupId, w.id, note: note);
-        _snack('Approved — processing the payout.');
+        _snack(l10n.wallet_approvedProcessingThePayout);
       } else {
         await repo.reject(widget.groupId, w.id, note: note);
-        _snack('Withdrawal rejected.');
+        _snack(l10n.wallet_withdrawalRejected);
       }
       _refetch();
     } catch (e) {
@@ -135,7 +135,7 @@ class _WalletWithdrawalsScreenState
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TipText('Withdrawals',
+            TipText(context.l10n.wallet_withdrawals,
                 tip: WalletTips().withdrawalRequests,
                 style:
                     const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
@@ -149,7 +149,7 @@ class _WalletWithdrawalsScreenState
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: Center(
-                child: SpBadge('$pendingCount pending', tone: p.amber),
+                child: SpBadge(context.l10n.wallet_pending2(pendingCount), tone: p.amber),
               ),
             ),
         ],
@@ -170,14 +170,14 @@ class _WalletWithdrawalsScreenState
                       size: 44, color: p.muted.withAlpha(120)),
                   const SizedBox(height: 10),
                   Center(
-                    child: Text('No withdrawals yet.',
+                    child: Text(context.l10n.wallet_noWithdrawalsYet2,
                         style: TextStyle(color: p.muted, fontSize: 13)),
                   ),
                   const SizedBox(height: 4),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 32),
                     child: Text(
-                      'Every request will show up here with who asked, who decided, and when the payout reached the bank.',
+                      context.l10n.wallet_everyRequestWillShowUp,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           color: p.muted.withAlpha(180), fontSize: 11.5),
@@ -220,43 +220,50 @@ class _WalletWithdrawalsScreenState
       _ => p.muted,
     };
     final label = switch (w.status) {
-      'pending_approval' => 'Awaiting approval',
-      'processing' => 'Processing',
-      'paid' => 'Paid out',
-      'approved' => 'Approved',
-      'rejected' => 'Rejected',
-      'failed' => 'Failed',
-      'cancelled' => 'Cancelled',
+      'pending_approval' => context.l10n.wallet_awaitingApproval3,
+      'processing' => context.l10n.wallet_processing2,
+      'paid' => context.l10n.wallet_paidOut,
+      'approved' => context.l10n.wallet_approved,
+      'rejected' => context.l10n.wallet_rejected,
+      'failed' => context.l10n.wallet_failed,
+      'cancelled' => context.l10n.wallet_cancelled,
       _ => w.status,
     };
     final approvedBy = w.approvals
         .where((a) => a.decision == 'approved')
-        .map((a) => a.approver?.name ?? 'an admin')
+        .map((a) => a.approver?.name ?? context.l10n.wallet_anAdmin)
         .toList();
     final rejectedBy = w.approvals
         .where((a) => a.decision == 'rejected')
-        .map((a) => a.approver?.name ?? 'an admin')
+        .map((a) => a.approver?.name ?? context.l10n.wallet_anAdmin)
         .toList();
     final at = w.resolvedAt != null ? ' · ${_stamp.format(w.resolvedAt!)}' : '';
     final (String line, Color lineColor) = switch (w.status) {
       'pending_approval' => (
-          'Awaiting approval — the ${formatMoney(w.amount, w.currency, w.currencyExponent)} is locked and can\'t be spent or re-requested until an admin decides.',
+          context.l10n.wallet_awaitingApprovalTheIsLocked(
+              formatMoney(w.amount, w.currency, w.currencyExponent)),
           p.amber
         ),
       'paid' => (
-          'Paid out to the bank$at${approvedBy.isNotEmpty ? ' · approved by ${approvedBy.first}' : ''}.',
+          approvedBy.isNotEmpty
+              ? context.l10n.wallet_paidOutToTheBankApprovedBy(at, approvedBy.first)
+              : context.l10n.wallet_paidOutToTheBankAt(at),
           p.accent
         ),
       'processing' || 'approved' => (
-          '${approvedBy.isNotEmpty ? 'Approved by ${approvedBy.first}' : 'Approved'}$at — sent to the bank, settling now.',
+          approvedBy.isNotEmpty
+              ? context.l10n.wallet_approvedBySentToTheBank(approvedBy.first, at)
+              : context.l10n.wallet_approvedSentToTheBank(at),
           sky
         ),
       'rejected' => (
-          'Denied by ${rejectedBy.isNotEmpty ? rejectedBy.first : 'an admin'}$at — the money is back in the withdrawable balance.',
+          context.l10n.wallet_deniedByTheMoneyIs(
+              rejectedBy.isNotEmpty ? rejectedBy.first : context.l10n.wallet_anAdmin,
+              at),
           p.danger
         ),
       'failed' => (
-          'The bank payout failed — contact support; the audit trail below has the details.',
+          context.l10n.wallet_theBankPayoutFailedContact,
           p.danger
         ),
       _ => ('', p.muted),
@@ -274,12 +281,12 @@ class _WalletWithdrawalsScreenState
                       color: p.ink, fontSize: 18, fontWeight: FontWeight.w800)),
               const SizedBox(height: 2),
               Text(
-                '${w.requestedBy != null ? 'Requested by ${mine ? 'you' : w.requestedBy!.name}' : 'Requested'}'
+                '${w.requestedBy != null ? (mine ? context.l10n.wallet_requestedByYou : context.l10n.wallet_requestedByName(w.requestedBy!.name)) : context.l10n.wallet_requested}'
                 '${w.createdAt != null ? ' · ${timeAgo(w.createdAt)}' : ''}',
                 style: TextStyle(color: p.muted, fontSize: 12),
               ),
               if (w.reference.isNotEmpty)
-                Text('Ref ${w.reference}',
+                Text(context.l10n.wallet_ref(w.reference),
                     style: TextStyle(color: p.muted, fontSize: 11)),
             ]),
           ),
@@ -315,18 +322,18 @@ class _WalletWithdrawalsScreenState
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                    'You requested this — another admin must approve it.',
+                    context.l10n.wallet_youRequestedThisAnotherAdmin,
                     style: TextStyle(color: p.muted, fontSize: 12)),
               ),
             ])
           else if (alreadyDecided)
-            Text('You have already responded.',
+            Text(context.l10n.wallet_youHaveAlreadyResponded,
                 style: TextStyle(color: p.muted, fontSize: 12))
           else
             Row(children: [
               Expanded(
                 child: SpButton(
-                  label: busy ? 'Working…' : 'Approve',
+                  label: busy ? context.l10n.wallet_working : context.l10n.wallet_approve,
                   icon: Icons.check_rounded,
                   expand: true,
                   onTap: busy ? null : () => _decide(w, true),
@@ -340,7 +347,7 @@ class _WalletWithdrawalsScreenState
                       foregroundColor: p.danger,
                       side: BorderSide(color: p.danger.withAlpha(110))),
                   icon: const Icon(Icons.close_rounded, size: 16),
-                  label: const Text('Reject'),
+                  label: Text(context.l10n.wallet_reject),
                 ),
               ),
             ]),
@@ -361,7 +368,7 @@ class _WalletWithdrawalsScreenState
                   size: 18,
                   color: p.muted),
               const SizedBox(width: 2),
-              Text('Audit trail (${w.events.length})',
+              Text(context.l10n.wallet_auditTrail2(w.events.length),
                   style: TextStyle(color: p.muted, fontSize: 12)),
             ]),
           ),
@@ -392,7 +399,7 @@ class _WalletWithdrawalsScreenState
                               fontSize: 13,
                               fontWeight: FontWeight.w600)),
                       Text(
-                        '${ev.actor?.name ?? 'System'}'
+                        '${ev.actor?.name ?? context.l10n.wallet_system}'
                         '${ev.createdAt != null ? ' · ${_stamp.format(ev.createdAt!)}' : ''}',
                         style: TextStyle(color: p.muted, fontSize: 11.5),
                       ),
@@ -411,7 +418,7 @@ class _WalletWithdrawalsScreenState
           if (w.approvals.isNotEmpty) ...[
             Container(height: 1, color: p.line),
             const SizedBox(height: 8),
-            Text('DECISIONS',
+            Text(context.l10n.wallet_decisions2,
                 style: TextStyle(
                     color: p.muted,
                     fontSize: 10,
@@ -427,14 +434,14 @@ class _WalletWithdrawalsScreenState
                     children: [
                       TextSpan(
                           text: a.decision == 'approved'
-                              ? 'Approved'
-                              : 'Rejected',
+                              ? context.l10n.wallet_approved
+                              : context.l10n.wallet_rejected,
                           style: TextStyle(
                               color: a.decision == 'approved'
                                   ? p.accent
                                   : p.danger,
                               fontWeight: FontWeight.w700)),
-                      TextSpan(text: ' by ${a.approver?.name ?? 'Unknown'}'),
+                      TextSpan(text: context.l10n.wallet_by2(a.approver?.name ?? context.l10n.wallet_unknown)),
                       if (a.note != null && a.note!.isNotEmpty)
                         TextSpan(text: ' — "${a.note}"'),
                     ],

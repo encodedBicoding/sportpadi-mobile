@@ -23,6 +23,7 @@ import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/core/ads/admob.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/features/teams/balance_setup_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 const _mint = Color(0xFF6EDC9E);
 
@@ -83,7 +84,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     setState(() => _handling = true);
     await _controller.stop();
     try {
-      if (raw.startsWith('TKT-')) {
+      if (raw.startsWith(l10n.checkin_tkt)) {
         // A holder's ticket QR — gate validation (organizer flow).
         final res = await ref.read(ticketsRepositoryProvider).redeem(raw);
         if (!mounted) return;
@@ -111,8 +112,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
       if (mounted) {
         await _showSheet(
           tone: _Tone.error,
-          head: raw.startsWith('TKT-') ? 'Could not verify' : 'Check-in failed',
-          body: '$e'.replaceFirst('Exception: ', ''),
+          head: raw.startsWith(l10n.checkin_tkt) ? l10n.checkin_couldNotVerify : l10n.checkin_checkInFailed,
+          body: '$e'.replaceFirst(l10n.checkin_exception, ''),
         );
       }
     }
@@ -164,7 +165,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         results.add(CheckinOutcome.failed(
             name: person.name,
             isMe: isMe,
-            message: '$e'.replaceFirst('Exception: ', '')));
+            message: '$e'.replaceFirst(l10n.checkin_exception, '')));
       }
     }
     if (!mounted) return true;
@@ -200,13 +201,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
   Future<void> _showRedeemResult(Map<String, dynamic> res) async {
     final ok = res['ok'] == true;
-    final title = res['ticketTitle'] as String? ?? 'Ticket';
+    final title = res['ticketTitle'] as String? ?? l10n.checkin_ticket;
     if (ok) {
       HapticFeedback.mediumImpact();
       await _showSheet(
         tone: _Tone.success,
-        head: 'Valid — checked in',
-        body: '$title\nThe holder is in.',
+        head: l10n.checkin_validCheckedIn,
+        body: l10n.checkin_theHolderIsIn(title),
       );
       return;
     }
@@ -216,7 +217,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
       final when = at != null ? DateTime.tryParse(at)?.toLocal() : null;
       await _showSheet(
         tone: _Tone.warning,
-        head: 'Already used',
+        head: l10n.checkin_alreadyUsed,
         body:
             '$title${when != null ? '\nScanned earlier at ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(when))}.' : ''}',
       );
@@ -227,17 +228,17 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
       final ended = parseDate(res['expiredAt']);
       await _showSheet(
         tone: _Tone.warning,
-        head: 'Expired — from a cycle that has ended',
+        head: l10n.checkin_expiredFromACycleThat,
         body: ended != null
-            ? '$title\nCycle ended ${fmtInstant(ended)} — they need the current one.'
-            : '$title\nThey need the current cycle\'s ticket.',
+            ? l10n.checkin_cycleEndedTheyNeedThe(title, fmtInstant(ended))
+            : l10n.checkin_theyNeedTheCurrentCycles(title),
       );
       return;
     }
     await _showSheet(
       tone: _Tone.error,
-      head: 'Not paid',
-      body: '$title\nThis ticket has not been paid for.',
+      head: l10n.checkin_notPaid,
+      body: l10n.checkin_thisTicketHasNotBeen(title),
     );
   }
 
@@ -260,10 +261,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         }
         final done = await _showSheet(
           tone: _Tone.success,
-          head: "You're in",
+          head: l10n.checkin_youreIn,
           body: res['letInBy'] is String
-              ? 'Checked in to $title. Let in by ${res['letInBy']}.'
-              : 'Checked in to $title.',
+              ? l10n.checkin_checkedInToLetIn2(title, res['letInBy'])
+              : l10n.checkin_checkedInTo2(title),
           reward: reward,
           doneButton: true,
         );
@@ -278,8 +279,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         ref.invalidate(eventDetailProvider);
         final done = await _showSheet(
           tone: _Tone.success,
-          head: 'Already checked in',
-          body: "You're already on the list for $title.",
+          head: l10n.checkin_alreadyCheckedIn,
+          body: l10n.checkin_youreAlreadyOnTheList(title),
           doneButton: true,
         );
         if (done && mounted) context.pop();
@@ -302,13 +303,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
             : null;
         final pay = await _showSheet(
           tone: _Tone.warning,
-          head: 'Payment required',
+          head: l10n.checkin_paymentRequired,
           body: outstanding.isNotEmpty
-              ? 'To check in to $title, settle ${outstanding.length == 1 ? 'the ticket' : '${outstanding.length} tickets'}'
-                  '${amount != null ? ' ($amount)' : ''}. After paying, scan the QR again.'
+              ? l10n.checkin_toCheckInToSettle(title, (outstanding.length == 1 ? l10n.checkin_theTicket : '${outstanding.length} tickets'), (amount != null ? ' ($amount)' : ''))
               : (res['reason'] as String? ??
-                  'This event needs a paid ticket before check-in. Open the event page to pay, then scan again.'),
-          actionLabel: outstanding.isNotEmpty ? 'Pay${amount != null ? ' $amount' : ' now'}' : null,
+                  l10n.checkin_thisEventNeedsAPaid),
+          actionLabel: outstanding.isNotEmpty ? l10n.checkin_pay2((amount != null ? ' $amount' : l10n.checkin_now)) : null,
         );
         if (pay && mounted && outstanding.isNotEmpty) await _payOutstanding(outstanding);
         return;
@@ -318,43 +318,43 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         final slug = res['eventSlug'] as String?;
         final act = await _showSheet(
           tone: _Tone.warning,
-          head: 'RSVP first',
+          head: l10n.checkin_rsvpFirst,
           body: res['reason'] as String? ??
-              'This event needs an RSVP before check-in. Open the event, RSVP, then scan again.',
-          actionLabel: slug != null ? 'Open the event to RSVP' : null,
+              l10n.checkin_thisEventNeedsAnRsvp,
+          actionLabel: slug != null ? l10n.checkin_openTheEventToRsvp : null,
         );
         if (act && mounted && slug != null) context.push('/events/$slug');
         return;
       case 'full':
         await _showSheet(
           tone: _Tone.warning,
-          head: 'This event is full',
-          body: res['reason'] as String? ?? 'Every spot is taken.',
+          head: l10n.checkin_thisEventIsFull,
+          body: res['reason'] as String? ?? l10n.checkin_everySpotIsTaken,
         );
         return;
       case 'limit_reached':
         await _showSheet(
           tone: _Tone.warning,
-          head: 'Check-ins are full',
+          head: l10n.checkin_checkInsAreFull,
           body: res['reason'] as String? ??
-              "This group's monthly check-in limit has been reached.",
+              l10n.checkin_thisGroupsMonthlyCheckIn,
         );
         return;
       case 'not_registered':
         // League fixture: only players on a registered roster check in.
         await _showSheet(
           tone: _Tone.warning,
-          head: 'Not registered for this league',
+          head: l10n.checkin_notRegisteredForThisLeague,
           body: res['reason'] as String? ??
-              'Only players on a registered roster can check in to this match.',
+              l10n.checkin_onlyPlayersOnARegistered,
         );
         return;
       case 'fined':
         await _showSheet(
           tone: _Tone.warning,
-          head: 'Outstanding fine',
+          head: l10n.checkin_outstandingFine,
           body: res['reason'] as String? ??
-              'You have an unpaid fine with this group — settle it to check in.',
+              l10n.checkin_youHaveAnUnpaidFine,
         );
         return;
       case 'self_checkin':
@@ -364,11 +364,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         final others = (res['otherAdmins'] as num?)?.toInt() ?? 0;
         final act = await _showSheet(
           tone: _Tone.warning,
-          head: "That's your own QR",
+          head: l10n.checkin_thatsYourOwnQr,
           body: res['reason'] as String? ??
-              "Organisers can't check themselves in. Make a trusted member an admin and ask them to check you in.",
+              l10n.checkin_organisersCantCheckThemselvesIn,
           actionLabel:
-              groupId != null && others == 0 ? 'Make someone an admin' : null,
+              groupId != null && others == 0 ? l10n.checkin_makeSomeoneAnAdmin : null,
         );
         if (act && mounted && groupId != null) {
           context.push('/groups/$groupId/members');
@@ -376,7 +376,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         return;
       default:
         await _showSheet(
-            tone: _Tone.error, head: 'Hmm', body: 'Unexpected result: $status');
+            tone: _Tone.error, head: l10n.checkin_hmm, body: l10n.checkin_unexpectedResult(status));
     }
   }
 
@@ -401,12 +401,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         HapticFeedback.mediumImpact();
         await _showSheet(
           tone: _Tone.success,
-          head: 'Paid',
-          body: 'Your ticket is paid. Scan the QR again to check in.',
+          head: l10n.checkin_paid,
+          body: l10n.checkin_yourTicketIsPaidScan,
         );
       } else if (status != 'cancelled') {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Payment $status — try scanning again in a moment.')));
+            SnackBar(content: Text(l10n.checkin_paymentTryScanningAgainIn(status))));
       }
     } catch (e) {
       if (mounted) {
@@ -474,26 +474,26 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
               child: Row(children: [
                 _GlassButton(
                   icon: Icons.close_rounded,
-                  tooltip: 'Close scanner',
+                  tooltip: context.l10n.checkin_closeScanner,
                   onTap: _closeScanner,
                 ),
-                const Expanded(
+                Expanded(
                   child: Column(children: [
-                    Text('Scan event QR',
-                        style: TextStyle(
+                    Text(context.l10n.checkin_scanEventQr,
+                        style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.w800)),
-                    SizedBox(height: 2),
-                    Text('Check in, or validate a ticket',
-                        style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    const SizedBox(height: 2),
+                    Text(context.l10n.checkin_checkInOrValidateA,
+                        style: const TextStyle(color: Colors.white70, fontSize: 12)),
                   ]),
                 ),
                 _GlassButton(
                   icon: _torch
                       ? Icons.flashlight_off_rounded
                       : Icons.flashlight_on_rounded,
-                  tooltip: _torch ? 'Torch off' : 'Torch on',
+                  tooltip: _torch ? context.l10n.checkin_torchOff : context.l10n.checkin_torchOn,
                   onTap: () {
                     _controller.toggleTorch();
                     setState(() => _torch = !_torch);
@@ -534,8 +534,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                 Expanded(
                   child: Text(
                     _handling
-                        ? 'Checking the code…'
-                        : 'Point at the event check-in QR — or a ticket QR to validate a holder.',
+                        ? context.l10n.checkin_checkingTheCode
+                        : context.l10n.checkin_pointAtTheEventCheck,
                     style: const TextStyle(
                         color: Colors.white, fontSize: 13, height: 1.4),
                   ),
@@ -551,19 +551,19 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   // ── Landing ─────────────────────────────────────────────────────────────
 
   Widget _landing(AppPalette p) {
-    const steps = [
-      'Tap Open scanner and allow camera access.',
-      "Point your camera at the event's QR code displayed by the organizer.",
-      "You're checked in instantly and added to the attendee list.",
+    final steps = [
+      context.l10n.checkin_tapOpenScannerAndAllow,
+      context.l10n.checkin_pointYourCameraAtThe,
+      context.l10n.checkin_youreCheckedInInstantlyAnd,
     ];
     return Scaffold(
       backgroundColor: p.bg,
       body: SafeArea(
         bottom: false,
         child: Column(children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: SpHeader(title: 'Scan QR', subtitle: 'Check in to an event'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: SpHeader(title: context.l10n.checkin_scanQr, subtitle: context.l10n.checkin_checkInToAnEvent),
           ),
           Expanded(
             child: ListView(
@@ -591,14 +591,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                                 size: 26, color: _mint),
                           ),
                           const SizedBox(height: 16),
-                          const Text('CHECK IN',
-                              style: TextStyle(
+                          Text(context.l10n.checkin_checkIn2,
+                              style: const TextStyle(
                                   color: _mint,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 1.4)),
                           const SizedBox(height: 6),
-                          Text('Check in to an event',
+                          Text(context.l10n.checkin_checkInToAnEvent,
                               style: TextStyle(
                                   color: p.onHero,
                                   fontSize: 24,
@@ -606,7 +606,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                                   fontWeight: FontWeight.w800)),
                           const SizedBox(height: 8),
                           Text(
-                            "Scan the event's QR code to check yourself in. The organizer will see you on the attendee list instantly.",
+                            context.l10n.checkin_scanTheEventsQrCode,
                             style: TextStyle(
                                 color: p.heroMuted,
                                 fontSize: 13.5,
@@ -619,17 +619,17 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                             child: InkWell(
                               customBorder: const StadiumBorder(),
                               onTap: _openScanner,
-                              child: const Padding(
-                                padding: EdgeInsets.symmetric(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
                                     horizontal: 22, vertical: 14),
                                 child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.photo_camera_rounded,
+                                      const Icon(Icons.photo_camera_rounded,
                                           size: 19, color: Color(0xFF0E1411)),
-                                      SizedBox(width: 8),
-                                      Text('Open scanner',
-                                          style: TextStyle(
+                                      const SizedBox(width: 8),
+                                      Text(context.l10n.checkin_openScanner,
+                                          style: const TextStyle(
                                               color: Color(0xFF0E1411),
                                               fontSize: 15,
                                               fontWeight: FontWeight.w700)),
@@ -654,14 +654,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Validating tickets?',
+                          Text(context.l10n.checkin_validatingTickets,
                               style: TextStyle(
                                   color: p.ink,
                                   fontSize: 14.5,
                                   fontWeight: FontWeight.w700)),
                           const SizedBox(height: 2),
                           Text(
-                              "Organisers: scan a holder's ticket QR with the same scanner to let them in.",
+                              context.l10n.checkin_organisersScanAHoldersTicket,
                               style: TextStyle(
                                   color: p.muted, fontSize: 12.5, height: 1.4)),
                         ],
@@ -670,9 +670,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                   ]),
                 ),
                 const SizedBox(height: 18),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4),
-                  child: SpSectionTitle('How it works'),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: SpSectionTitle(context.l10n.checkin_howItWorks),
                 ),
                 // AdMob native (Android). Takes no space until it fills.
                 const AdMobNativeCard(
@@ -949,11 +949,11 @@ class _ResultSheet extends StatelessWidget {
                   () => Navigator.pop(context, true)),
               const SizedBox(height: 8),
             ],
-            pillBtn('Scan another code', Icons.qr_code_scanner_rounded,
+            pillBtn(context.l10n.checkin_scanAnotherCode, Icons.qr_code_scanner_rounded,
                 actionLabel == null, () => Navigator.pop(context, false)),
             if (doneButton) ...[
               const SizedBox(height: 8),
-              pillBtn('Done', null, false, () => Navigator.pop(context, true)),
+              pillBtn(context.l10n.checkin_done, null, false, () => Navigator.pop(context, true)),
             ] else if (!hasPrimary) ...[
               const SizedBox(height: 4),
             ],
@@ -992,13 +992,13 @@ class _RewardBlock extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(
-            child: Text('Lv $level${title.isNotEmpty ? ' · $title' : ''}',
+            child: Text(context.l10n.checkin_lv(level, title.isNotEmpty ? ' · $title' : ''),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                     color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
           ),
-          Text('+$xp XP',
+          Text(context.l10n.checkin_xp(xp),
               style: TextStyle(
                   color: p.greenText,
                   fontSize: 14,
@@ -1034,7 +1034,7 @@ class _RewardBlock extends StatelessWidget {
               Icon(Icons.local_fire_department_rounded,
                   size: 15, color: p.orangeInk),
               const SizedBox(width: 5),
-              Text('$streak-week streak',
+              Text(context.l10n.checkin_weekStreak(streak),
                   style: TextStyle(
                       color: p.orangeInk,
                       fontSize: 12,
@@ -1049,7 +1049,7 @@ class _RewardBlock extends StatelessWidget {
                 Icon(Icons.auto_awesome_rounded, size: 15, color: p.greenText),
                 const SizedBox(width: 5),
                 Expanded(
-                  child: Text('Achievement unlocked: ${u['title']}',
+                  child: Text(context.l10n.checkin_achievementUnlocked(u['title']),
                       style: TextStyle(
                           color: p.ink,
                           fontSize: 12,

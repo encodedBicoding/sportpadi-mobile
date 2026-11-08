@@ -1,4 +1,5 @@
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Wards (docs/design/wards-and-messaging.md, Part A): player accounts a
 /// guardian runs for someone who can't sign in — a child, or anyone who needs
@@ -8,29 +9,29 @@ import 'package:sportpadi_mobile/shared/format/parse.dart';
 const wardRelationships = <String>['parent', 'guardian', 'carer', 'other'];
 
 String relationshipLabel(String? r) => switch (r) {
-      'parent' => 'Parent',
-      'guardian' => 'Guardian',
-      'carer' => 'Carer',
-      _ => 'Other',
+      'parent' => l10n.common_parent,
+      'guardian' => l10n.common_guardian,
+      'carer' => l10n.common_carer,
+      _ => l10n.common_other,
     };
 
 /// Genders a ward can have; null is "Prefer not to say".
 const wardGenders = <String?>['female', 'male', 'non_binary', null];
 
 String genderLabel(String? g) => switch (g) {
-      'male' => 'Male',
-      'female' => 'Female',
-      'non_binary' => 'Non-binary',
-      _ => 'Prefer not to say',
+      'male' => l10n.common_male,
+      'female' => l10n.common_female,
+      'non_binary' => l10n.common_nonBinary,
+      _ => l10n.common_preferNotToSay,
     };
 
 /// Who can see a ward's profile, in picker order.
 const wardVisibilities = <String>['private', 'groups', 'public'];
 
 String visibilityLabel(String v) => switch (v) {
-      'groups' => 'Group members',
-      'public' => 'Everyone',
-      _ => 'Only guardians & organisers',
+      'groups' => l10n.common_groupMembers,
+      'public' => l10n.common_everyone,
+      _ => l10n.common_onlyGuardiansOrganisers,
     };
 
 List<Map<String, dynamic>> _maps(dynamic v) => v is List

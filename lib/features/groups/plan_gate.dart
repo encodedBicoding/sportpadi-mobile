@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/data/billing/iap_repository.dart';
 import 'package:sportpadi_mobile/data/wallet/wallet_repository.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// "Not on this group's plan" — the one dialog every locked create entry
 /// point shows (the Tournaments tab's New card, each mode screen's New …).
@@ -29,7 +30,7 @@ void showPlanLockedDialog(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: Text(canBuyInApp ? 'Not now' : 'OK'),
+          child: Text(canBuyInApp ? context.l10n.group_notNow : 'OK'),
         ),
         if (canBuyInApp)
           TextButton(
@@ -37,7 +38,7 @@ void showPlanLockedDialog(
               Navigator.of(ctx).pop();
               context.push('/groups/$groupId/plan');
             },
-            child: const Text('See plans'),
+            child: Text(context.l10n.group_seePlans),
           ),
       ],
     ),

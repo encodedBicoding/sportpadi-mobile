@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:sportpadi_mobile/data/manage/manage_repository.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 class CategoryDropdown extends ConsumerWidget {
   const CategoryDropdown({
@@ -24,16 +25,16 @@ class CategoryDropdown extends ConsumerWidget {
     final cats = ref.watch(categoriesProvider);
     return cats.when(
       loading: () => const LinearProgressIndicator(minHeight: 2),
-      error: (_, __) => const Text('Could not load sports.'),
+      error: (_, __) => Text(context.l10n.common_couldNotLoadSports),
       data: (list) => InputDecorator(
-        decoration: const InputDecoration(labelText: 'Sport'),
+        decoration: InputDecoration(labelText: context.l10n.common_sport),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             // A value that became unavailable reads as "none picked".
             value: value != null && disabledIds.contains(value) ? null : value,
             isExpanded: true,
             isDense: true,
-            hint: const Text('Choose sport'),
+            hint: Text(context.l10n.common_chooseSport),
             items: [
               for (final c in list)
                 DropdownMenuItem(

@@ -12,6 +12,7 @@ import 'package:sportpadi_mobile/features/shell/home_shell.dart'
     show homeTabIndexProvider;
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Announcement building blocks shared by the Inbox, the detail page and the
 /// pinned strips on group / team pages.
@@ -32,7 +33,7 @@ class UrgentPill extends StatelessWidget {
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(Icons.priority_high_rounded, size: 12, color: p.danger),
         const SizedBox(width: 2),
-        Text('Urgent',
+        Text(context.l10n.inbox_urgent,
             style: TextStyle(
                 color: p.danger,
                 fontSize: 11,
@@ -225,7 +226,7 @@ class AnnouncementCard extends StatelessWidget {
                   Icon(Icons.check_circle_rounded,
                       size: 14, color: p.greenText),
                   const SizedBox(width: 3),
-                  Text('Got it',
+                  Text(context.l10n.inbox_gotIt,
                       style: TextStyle(
                           color: p.greenText,
                           fontSize: 11.5,

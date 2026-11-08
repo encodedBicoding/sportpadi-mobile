@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/ads/ads_repository.dart';
 import 'package:sportpadi_mobile/features/inbox/announcement_card.dart'
     show openAnnouncementUrl;
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Shared parts for SportPadi messages and sponsored ads in every display
 /// (AdDisplay inline, PopupMessages on open). The server decides WHAT to show
@@ -138,8 +139,8 @@ class AdBadge extends StatelessWidget {
         color: Colors.black54,
         borderRadius: BorderRadius.circular(4),
       ),
-      child: const Text('AD',
-          style: TextStyle(
+      child: Text(context.l10n.common_ad3,
+          style: const TextStyle(
               color: Colors.white,
               fontSize: 8,
               fontWeight: FontWeight.w800,
@@ -201,7 +202,7 @@ class PromoText extends StatelessWidget {
                   horizontal: large ? 20 : 16, vertical: large ? 12 : 9),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Flexible(
-                  child: Text(ad.ctaLabel ?? 'Learn more',
+                  child: Text(ad.ctaLabel ?? context.l10n.common_learnMore,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(

@@ -47,19 +47,11 @@ import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/features/teams/balance_setup_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
-const _cancelRepeatingCopy =
-    'Anyone who paid for a ticket gets the ticket price back automatically. '
-    'This is a repeating event — cancelling stops the series; it will not be '
-    're-created. This cannot be undone.';
-const _cancelOnceCopy =
-    'Anyone who paid for a ticket gets the ticket price back automatically. '
-    'If no money ever changed hands, the event is removed entirely. This '
-    'cannot be undone.';
-const _processingFeeNote =
-    "SportPadi's processing fee is non-refundable: buyers get the ticket price "
-    "back, and if your group covers the fees, the processing fee on each sale "
-    "isn't returned to your group either.";
+String get _cancelRepeatingCopy => l10n.event_cancelRepeatingEventCopy;
+String get _cancelOnceCopy => l10n.event_cancelOneOffEventCopy;
+String get _processingFeeNote => l10n.event_sportPadisProcessingFeeIsNon;
 
 /// Event detail — a faithful mobile port of the web /events/[slug] page:
 /// photos, info, hosted-by (follow), stats, interest/check-in, organizer QR,
@@ -134,7 +126,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
       if (a == null || b == null || !mounted) return;
       if (!a.myCheckedIn && b.myCheckedIn) {
         HapticFeedback.mediumImpact();
-        _flash("You're checked in ✅");
+        _flash(context.l10n.event_youreCheckedIn2);
         return;
       }
       if (b.canManage) {
@@ -168,7 +160,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
 
   Future<void> _checkBalanceSetup(String eventId) async {
     final saved = await showBalanceSetupIfNeeded(context, ref, eventId: eventId);
-    if (saved && mounted) _flash("You're set ✅");
+    if (saved && mounted) _flash(l10n.event_youreSet);
   }
 
   void _flash(String msg) {
@@ -284,10 +276,10 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
           children: [
             SpSheetHeader(
               icon: Icons.qr_code_2_rounded,
-              title: 'Event QR code',
+              title: l10n.event_eventQrCode,
               subtitle: e.status == 'kicked_off'
-                  ? 'Late arrivals who scan this join the available pool.'
-                  : 'Players scan this to check in.',
+                  ? l10n.event_lateArrivalsWhoScanThis
+                  : l10n.event_playersScanThisToCheck,
             ),
             const SizedBox(height: 8),
             Center(
@@ -301,7 +293,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
               ),
             ),
             const SizedBox(height: 8),
-            Text('Refreshes every 30 seconds — screenshots won’t work.',
+            Text(l10n.event_refreshesEvery30SecondsScreenshots,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 11.5)),
             // "Check someone in" is hidden until further notice.
@@ -317,17 +309,16 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Complete this event?'),
-        content: const Text(
-            'This ends the event for everyone — check-ins close and results '
-            'are finalized. If the game is still being played, keep it open.'),
+        title: Text(l10n.event_completeThisEvent),
+        content: Text(
+            l10n.event_thisEndsTheEventFor2),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Keep it open')),
+              child: Text(l10n.event_keepItOpen)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Complete event')),
+              child: Text(l10n.event_completeEvent)),
         ],
       ),
     );
@@ -376,7 +367,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
               child: SpRoundButton(
                 icon: Icons.arrow_back_ios_new_rounded,
                 iconSize: 18,
-                tooltip: 'Back',
+                tooltip: context.l10n.event_back,
                 onTap: () =>
                     context.canPop() ? context.pop() : context.go('/home'),
               ),
@@ -394,7 +385,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
     Clipboard.setData(
         ClipboardData(text: withRef('$base/e/${e.slug}', me, 'event', e.id)));
     ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Link copied')));
+        .showSnackBar(SnackBar(content: Text(context.l10n.event_linkCopied)));
   }
 
   /// Organizers: the event's photos, in a sheet (from the "More" menu). It
@@ -413,8 +404,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
               icon: Icons.add_photo_alternate_outlined,
               iconBg: p.accentTint,
               iconFg: p.greenText,
-              title: 'Event photos',
-              subtitle: 'Tap a photo to make it the cover or remove it',
+              title: context.l10n.event_eventPhotos,
+              subtitle: context.l10n.event_tapAPhotoToMake,
             ),
             if (ev == null)
               const Center(child: CircularProgressIndicator())
@@ -651,7 +642,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
           e.attendeeCount >= 1) ...[
         const SizedBox(height: 14),
         SpButton(
-          label: 'Complete event',
+          label: context.l10n.event_completeEvent,
           icon: Icons.flag_outlined,
           expand: true,
           onTap: _busy != null
@@ -669,7 +660,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
       if (e.canManage && e.status != 'completed' && _isPast(e)) ...[
         const SizedBox(height: 14),
         SpButton(
-          label: 'Close this past event',
+          label: context.l10n.event_closeThisPastEvent,
           icon: Icons.flag_outlined,
           expand: true,
           onTap: _busy != null ? null : () => _closePast(e),
@@ -692,7 +683,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
                 children: [
                   Icon(Icons.event_busy_outlined, size: 17, color: p.danger),
                   const SizedBox(width: 7),
-                  Text('Cancel event',
+                  Text(context.l10n.event_cancelEvent,
                       style: TextStyle(
                           color: p.danger,
                           fontSize: 14,
@@ -772,17 +763,17 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Cancel this event?'),
+        title: Text(l10n.event_cancelThisEvent),
         content: Text(
           '${e.repeats ? _cancelRepeatingCopy : _cancelOnceCopy}\n\n$_processingFeeNote',
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Keep it')),
+              child: Text(l10n.event_keepIt)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Cancel event')),
+              child: Text(l10n.event_cancelEvent)),
         ],
       ),
     );
@@ -795,12 +786,12 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
       final refunded = (r['refunded'] as num?)?.toInt() ?? 0;
       messenger.showSnackBar(SnackBar(
           content: Text(r['deleted'] == true
-              ? 'Event deleted'
+              ? l10n.event_eventDeleted
               : r['queued'] == true
-                  ? 'Event cancelled — ticket refunds are processing.'
+                  ? l10n.event_eventCancelledTicketRefundsAre
                   : refunded > 0
-                      ? 'Event cancelled — refunded $refunded ticket holder${refunded == 1 ? '' : 's'}.'
-                      : 'Event cancelled')));
+                      ? l10n.event_eventCancelledRefundedTicketHolders(refunded)
+                      : l10n.event_eventCancelled)));
       if (router.canPop()) router.pop();
     } catch (err) {
       messenger.showSnackBar(SnackBar(content: Text('$err')));
@@ -815,16 +806,16 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
       final choice = await showDialog<String>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Repeat this event?'),
+          title: Text(l10n.event_repeatThisEvent),
           content: Text(
-              'This event repeats ${_recurrenceLabel(e.recurrence)}. Create the next occurrence when you close this one?'),
+              l10n.event_thisEventRepeatsCreateThe(_recurrenceLabel(e.recurrence))),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx, 'end'),
-                child: const Text('Just end it')),
+                child: Text(l10n.event_justEndIt)),
             TextButton(
                 onPressed: () => Navigator.pop(ctx, 'recreate'),
-                child: const Text('End & recreate')),
+                child: Text(l10n.event_endRecreate)),
           ],
         ),
       );
@@ -883,10 +874,10 @@ class _EventHeroState extends State<_EventHero> {
   int _page = 0;
   bool _more = false;
 
-  static const _competitive = {
-    'non_competitive': 'Non-competitive',
-    'moderate': 'Moderately competitive',
-    'high': 'Highly competitive',
+  static Map<String, String> get _competitive => {
+    'non_competitive': l10n.event_nonCompetitive,
+    'moderate': l10n.event_moderatelyCompetitive,
+    'high': l10n.event_highlyCompetitive,
   };
 
   @override
@@ -979,7 +970,7 @@ class _EventHeroState extends State<_EventHero> {
         child: SpRoundButton(
           icon: canPop ? Icons.arrow_back_ios_new_rounded : Icons.home_outlined,
           iconSize: canPop ? 18 : 21,
-          tooltip: canPop ? 'Back' : 'Home',
+          tooltip: canPop ? context.l10n.event_back : context.l10n.event_home,
           onTap: () => context.canPop() ? context.pop() : context.go('/home'),
         ),
       ),
@@ -990,13 +981,13 @@ class _EventHeroState extends State<_EventHero> {
           if (widget.onEdit != null) ...[
             SpRoundButton(
                 icon: Icons.edit_outlined,
-                tooltip: 'Edit event',
+                tooltip: context.l10n.event_editEvent,
                 onTap: widget.onEdit!),
             const SizedBox(width: 8),
           ],
           SpRoundButton(
               icon: Icons.ios_share_rounded,
-              tooltip: 'Share',
+              tooltip: context.l10n.event_share,
               onTap: widget.onShare),
           if (widget.menu != null) ...[
             const SizedBox(width: 8),
@@ -1056,11 +1047,11 @@ class _EventHeroState extends State<_EventHero> {
     final level =
         e.competitiveLevel != null ? _competitive[e.competitiveLevel!] : null;
     final status = switch (e.status) {
-      'open' => _pill('Open', p.accentTint, p.greenText, dot: true),
-      'drafting' => _pill('Drafting', p.orangeTint, p.orangeInk),
-      'kicked_off' => _pill('Live', p.liveTint, p.danger, dot: true),
-      'completed' => _pill('Completed', p.surface2, p.muted),
-      'cancelled' => _pill('Cancelled', p.liveTint, p.danger),
+      'open' => _pill(context.l10n.event_open, p.accentTint, p.greenText, dot: true),
+      'drafting' => _pill(context.l10n.event_drafting, p.orangeTint, p.orangeInk),
+      'kicked_off' => _pill(context.l10n.event_live2, p.liveTint, p.danger, dot: true),
+      'completed' => _pill(context.l10n.event_completed, p.surface2, p.muted),
+      'cancelled' => _pill(context.l10n.event_cancelled, p.liveTint, p.danger),
       _ => null,
     };
     final desc = e.description?.trim() ?? '';
@@ -1097,7 +1088,7 @@ class _EventHeroState extends State<_EventHero> {
           if (level != null) _pill(level, p.orangeTint, p.orangeInk),
           if (status != null) status,
           if (e.isPrivate)
-            _pill(e.audienceTeams.isEmpty ? 'Members only' : 'Team only',
+            _pill(e.audienceTeams.isEmpty ? context.l10n.event_membersOnly : context.l10n.event_teamOnly,
                 p.surface2, p.muted,
                 icon: Icons.lock_outline_rounded),
           // Team event: "For U12 Lions".
@@ -1167,7 +1158,7 @@ class _EventHeroState extends State<_EventHero> {
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(Icons.near_me_outlined, size: 13, color: p.greenText),
                     const SizedBox(width: 4),
-                    Text('Directions',
+                    Text(context.l10n.event_directions,
                         style: TextStyle(
                             color: p.greenText,
                             fontSize: 12,
@@ -1180,19 +1171,19 @@ class _EventHeroState extends State<_EventHero> {
         const SizedBox(height: 14),
         Row(children: [
           stat('${e.interestCount}',
-              e.capacity.rsvpRequired ? 'Going' : 'RSVPs', p.ink),
+              e.capacity.rsvpRequired ? context.l10n.event_going : context.l10n.event_rSVPs, p.ink),
           const SizedBox(width: 8),
-          stat('${e.attendeeCount}', 'Checked in', p.greenText),
+          stat('${e.attendeeCount}', context.l10n.event_checkedIn, p.greenText),
           const SizedBox(width: 8),
           if (e.capacity.capped)
             stat(
-                e.capacity.full ? 'Full' : '${e.capacity.spotsLeft}',
+                e.capacity.full ? context.l10n.event_full : '${e.capacity.spotsLeft}',
                 e.capacity.full
                     ? 'of ${e.capacity.maxPlayers} spots'
-                    : 'Spots left',
+                    : context.l10n.event_spotsLeft,
                 e.capacity.full ? p.muted : p.ink)
           else if (e.typicalAttendance != null)
-            stat('~${e.typicalAttendance}', 'Usually', p.ink)
+            stat('~${e.typicalAttendance}', context.l10n.event_usually, p.ink)
           else
             stat(e.myCheckedIn ? 'In' : '—', 'You',
                 e.myCheckedIn ? p.greenText : p.muted),
@@ -1208,7 +1199,7 @@ class _EventHeroState extends State<_EventHero> {
               onTap: () => setState(() => _more = !_more),
               child: Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Text(_more ? 'Show less' : 'Read more',
+                child: Text(_more ? context.l10n.event_showLess : context.l10n.event_readMore,
                     style: TextStyle(
                         color: p.greenText,
                         fontSize: 13,
@@ -1333,7 +1324,7 @@ class _HostedByCardState extends ConsumerState<_HostedByCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Eyebrow('Hosted by'),
+          Eyebrow(context.l10n.event_hostedBy),
           const SizedBox(height: 10),
           Row(children: [
             InkWell(
@@ -1366,7 +1357,7 @@ class _HostedByCardState extends ConsumerState<_HostedByCard> {
                           size: 18, color: p.muted),
                     ]),
                     Text(
-                      '$_followers follower${_followers == 1 ? '' : 's'}',
+                      context.l10n.event_followers(_followers),
                       style: TextStyle(color: p.muted, fontSize: 12),
                     ),
                   ],
@@ -1384,7 +1375,7 @@ class _HostedByCardState extends ConsumerState<_HostedByCard> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   child: Text(
-                    following ? 'Following' : 'Follow',
+                    following ? context.l10n.event_following : context.l10n.event_follow,
                     style: TextStyle(
                       color: following ? p.ink : p.onHero,
                       fontSize: 13,
@@ -1462,18 +1453,18 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
     final sure = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Check out of this event?'),
+        title: Text(l10n.event_checkOutOfThisEvent),
         content: Text(widget.event.canManage
-            ? "You'll be taken off the attendee list. To check in again, scan another admin's QR."
-            : "You'll be taken off the attendee list. You can check in again by scanning the event QR."),
+            ? l10n.event_youllBeTakenOffThe
+            : l10n.event_youllBeTakenOffThe2),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Stay checked in')),
+              child: Text(l10n.event_stayCheckedIn)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Check out',
-                  style: TextStyle(color: Color(0xFFDC2626)))),
+              child: Text(l10n.event_checkOut,
+                  style: const TextStyle(color: Color(0xFFDC2626)))),
         ],
       ),
     );
@@ -1511,10 +1502,10 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
     final wardChips = [
       for (final w in e.myWards)
         if (w.checkedIn)
-          SpBadge('${w.firstName} · checked in',
+          SpBadge(context.l10n.event_checkedIn3(w.firstName),
               icon: Icons.check_circle_rounded, tone: p.greenText)
         else if (w.interested)
-          SpBadge('${w.firstName} · going',
+          SpBadge(context.l10n.event_going4(w.firstName),
               icon: Icons.event_available_rounded),
     ];
 
@@ -1576,7 +1567,7 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
                 Icon(Icons.check_circle_rounded, size: 20, color: p.greenText),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text("You're checked in",
+                  child: Text(context.l10n.event_youreCheckedIn3,
                       style: TextStyle(
                           color: p.greenText,
                           fontSize: 14,
@@ -1589,12 +1580,12 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
               Expanded(
                 child: pill(
                   label: spotsGone
-                      ? 'Full'
+                      ? context.l10n.event_full
                       : hasWards
                           ? (going
-                              ? 'Going: ${goingNames.join(', ')}'
-                              : "RSVP — who's going?")
-                          : (e.myInterested ? "You're going" : "RSVP — I'm in"),
+                              ? context.l10n.event_going5(goingNames.join(', '))
+                              : context.l10n.event_rsvpWhosGoing2)
+                          : (e.myInterested ? context.l10n.event_youreGoing2 : context.l10n.event_rsvpImIn2),
                   icon: spotsGone
                       ? Icons.lock_outline
                       : going
@@ -1619,7 +1610,7 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
             if (open && e.myCheckedIn)
               Expanded(
                 child: pill(
-                  label: 'Check out',
+                  label: context.l10n.event_checkOut,
                   icon: Icons.logout_rounded,
                   bg: p.surface,
                   fg: p.danger,
@@ -1650,7 +1641,7 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                        "To check yourself in, scan the QR on another admin's phone — not your own.",
+                        context.l10n.event_toCheckYourselfInScan2,
                         style: TextStyle(color: p.muted, fontSize: 12)),
                   ),
                 ],
@@ -1661,7 +1652,7 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
           if (!e.myCheckedIn || e.myWards.any((w) => !w.checkedIn)) ...[
             if (open) const SizedBox(height: 10),
             pill(
-              label: 'Scan to check in',
+              label: context.l10n.event_scanToCheckIn,
               icon: Icons.qr_code_scanner_rounded,
               bg: p.accentDeep,
               fg: Colors.white,
@@ -1673,8 +1664,8 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
             const SizedBox(height: 8),
             Text(
               e.status == 'kicked_off'
-                  ? 'Teams are already set — scan the event QR at the venue to join the available pool.'
-                  : "Scan the event's QR code at the venue to check in.",
+                  ? context.l10n.event_teamsAreAlreadySetScan
+                  : context.l10n.event_scanTheEventsQrCode2,
               textAlign: TextAlign.center,
               style: TextStyle(color: p.muted, fontSize: 12),
             ),
@@ -1682,12 +1673,12 @@ class _EngageBlockState extends ConsumerState<_EngageBlock> {
           if (open && hasWards) ...[
             const SizedBox(height: 2),
             Text(
-                'Tap the RSVP button to choose who’s going — you and your wards.',
+                context.l10n.event_tapTheRsvpButtonTo,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 11.5)),
           ] else if (open && e.myInterested && !e.myCheckedIn) ...[
             const SizedBox(height: 2),
-            Text('Tap “You\'re going” to take your RSVP back.',
+            Text(context.l10n.event_tapYoureGoingToTake2,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 11.5)),
           ],
@@ -1737,12 +1728,12 @@ class _QrShortcut extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('See event QR code',
+                  Text(context.l10n.event_seeEventQrCode,
                       style: TextStyle(
                           color: p.ink,
                           fontSize: 14,
                           fontWeight: FontWeight.w700)),
-                  Text('Show it for late check-ins',
+                  Text(context.l10n.event_showItForLateCheck,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: p.muted, fontSize: 12)),
@@ -1774,14 +1765,14 @@ class _QrCard extends StatelessWidget {
     final e = event;
     return GlassCard(
       child: Column(children: [
-        Text('Check-in QR',
+        Text(context.l10n.event_checkInQr,
             style: TextStyle(
                 color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
         const SizedBox(height: 4),
         Text(
           e.status == 'kicked_off'
-              ? 'Teams are set — late arrivals who scan this join the available pool.'
-              : 'Show this at the venue — players scan it to check in.',
+              ? context.l10n.event_teamsAreSetLateArrivals
+              : context.l10n.event_showThisAtTheVenue,
           textAlign: TextAlign.center,
           style: TextStyle(color: p.muted, fontSize: 11.5),
         ),
@@ -1795,7 +1786,7 @@ class _QrCard extends StatelessWidget {
           child: _LiveQr(event: e, size: 190),
         ),
         const SizedBox(height: 8),
-        Text('Refreshes every 30 seconds — screenshots won’t work.',
+        Text(context.l10n.event_refreshesEvery30SecondsScreenshots,
             textAlign: TextAlign.center,
             style: TextStyle(color: p.muted, fontSize: 11)),
         // "Check someone in" (manual_checkin_sheet.dart) is hidden until
@@ -1897,12 +1888,12 @@ class _AssignTeamsCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('How many teams?',
+            Text(context.l10n.event_howManyTeams,
                 style: TextStyle(
                     color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             Text(
-                'Checked-in players are shuffled evenly and the event kicks off.',
+                context.l10n.event_checkedInPlayersAreShuffled,
                 style: TextStyle(color: p.muted, fontSize: 12.5)),
             const SizedBox(height: 14),
             Wrap(spacing: 10, children: [
@@ -1947,18 +1938,18 @@ class _AssignTeamsCard extends StatelessWidget {
           Row(children: [
             Icon(Icons.bolt_rounded, size: 16, color: p.amber),
             const SizedBox(width: 6),
-            Text('Assign teams',
+            Text(context.l10n.event_assignTeams,
                 style: TextStyle(
                     color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
           ]),
           const SizedBox(height: 4),
           Text(
-            'Assign the ${e.attendeeCount} checked-in player${e.attendeeCount == 1 ? '' : 's'} into teams — ${e.smartShuffle ? 'smart' : 'random'} shuffle.',
+            context.l10n.event_countPluralOneAssignThe(e.attendeeCount, e.smartShuffle ? 'smart' : 'random'),
             style: TextStyle(color: p.muted, fontSize: 12),
           ),
           const SizedBox(height: 12),
           SpButton(
-            label: 'Assign teams',
+            label: context.l10n.event_assignTeams,
             icon: Icons.bolt_rounded,
             expand: true,
             onTap: busy || e.attendeeCount < 1
@@ -1975,7 +1966,7 @@ class _AssignTeamsCard extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 child: Text(
-                  'Or run a live captain draft',
+                  context.l10n.event_orRunALiveCaptain,
                   style: TextStyle(
                       color: p.accent,
                       fontSize: 12.5,
@@ -2016,18 +2007,18 @@ class _OrganizerTeamControls extends StatelessWidget {
       children: [
         Wrap(spacing: 8, runSpacing: 8, children: [
           if (!hasGames)
-            _chip(context, 'Reshuffle', Icons.replay_rounded,
+            _chip(context, context.l10n.event_reshuffle, Icons.replay_rounded,
                 busy == null ? onReshuffle : null),
-          _chip(context, 'Complete', Icons.flag_outlined,
+          _chip(context, context.l10n.event_complete, Icons.flag_outlined,
               busy == null ? onComplete : null),
           if (!hasGames)
-            _chip(context, 'Reset teams', Icons.delete_outline_rounded,
+            _chip(context, context.l10n.event_resetTeams, Icons.delete_outline_rounded,
                 busy == null ? onReset : null),
         ]),
         if (hasGames) ...[
           const SizedBox(height: 6),
           Text(
-            'Teams are locked while this event has games. Add late players from the pool, or make substitutions during a game.',
+            context.l10n.event_teamsAreLockedWhileThis2,
             style: TextStyle(color: p.muted, fontSize: 11),
           ),
         ],
@@ -2116,7 +2107,7 @@ class _GamesTab extends ConsumerWidget {
         // own "Start the first match" below).
         if (event.canManage && teams.length >= 2 && list.isNotEmpty) ...[
           SpButton(
-            label: 'New match',
+            label: context.l10n.event_newMatch,
             icon: Icons.add_rounded,
             expand: true,
             onTap: () => _createMatch(context, ref),
@@ -2147,8 +2138,8 @@ class _GamesTab extends ConsumerWidget {
                         children: [
                           Text(
                             teams.length >= 2
-                                ? 'Teams are set — next, start the match'
-                                : 'Assign teams, then start the match',
+                                ? context.l10n.event_teamsAreSetNextStart
+                                : context.l10n.event_assignTeamsThenStartThe,
                             style: TextStyle(
                                 color: p.ink,
                                 fontSize: 14,
@@ -2156,7 +2147,7 @@ class _GamesTab extends ConsumerWidget {
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            'A match runs the clock and score live, records every goal, assist and card, and feeds the leaderboard. Without one, today leaves no stats behind.',
+                            context.l10n.event_aMatchRunsTheClock,
                             style: TextStyle(
                                 color: p.muted, fontSize: 12, height: 1.35),
                           ),
@@ -2164,21 +2155,21 @@ class _GamesTab extends ConsumerWidget {
                   ),
                 ]),
                 const SizedBox(height: 10),
-                const Row(children: [
+                Row(children: [
                   _NextStepChip(
-                      icon: Icons.timer_outlined, label: 'Live score'),
-                  SizedBox(width: 6),
-                  _NextStepChip(icon: Icons.bar_chart_rounded, label: 'Stats'),
-                  SizedBox(width: 6),
+                      icon: Icons.timer_outlined, label: context.l10n.event_liveScore),
+                  const SizedBox(width: 6),
+                  _NextStepChip(icon: Icons.bar_chart_rounded, label: context.l10n.event_stats),
+                  const SizedBox(width: 6),
                   _NextStepChip(
-                      icon: Icons.emoji_events_outlined, label: 'Leaderboard'),
+                      icon: Icons.emoji_events_outlined, label: context.l10n.event_leaderboard),
                 ]),
               ],
             ),
           )
         else if (list.isEmpty)
           GlassCard(
-            child: Text('No games yet.',
+            child: Text(context.l10n.event_noGamesYet,
                 style: TextStyle(color: p.muted, fontSize: 13)),
           )
         else
@@ -2212,12 +2203,12 @@ class _GamesTab extends ConsumerWidget {
                   const SizedBox(width: 10),
                   SpBadge(
                     g.status == 'live'
-                        ? 'LIVE'
+                        ? context.l10n.event_live
                         : g.status == 'completed'
-                            ? 'FT'
+                            ? context.l10n.event_ft
                             : g.status == 'abandoned'
-                                ? 'ABD'
-                                : 'SCHED',
+                                ? context.l10n.event_abd
+                                : context.l10n.event_sched,
                     tone: g.status == 'live' ? p.danger : p.muted,
                   ),
                   if (event.canManage && g.status != 'live') ...[
@@ -2237,15 +2228,15 @@ class _GamesTab extends ConsumerWidget {
         if (event.canManage && teams.length >= 2 && list.isEmpty) ...[
           const SizedBox(height: 4),
           SpButton(
-            label: 'Start the first match',
+            label: context.l10n.event_startTheFirstMatch,
             icon: Icons.add_rounded,
             expand: true,
             onTap: () => _createMatch(context, ref),
           ),
         ] else if (event.canManage) ...[
           const SizedBox(height: 4),
-          const SpButton(
-            label: 'Assign teams first',
+          SpButton(
+            label: context.l10n.event_assignTeamsFirst,
             icon: Icons.groups_outlined,
             expand: true,
             onTap: null,
@@ -2260,16 +2251,16 @@ class _GamesTab extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete this game?'),
-        content: const Text(
-            'The game and any recorded stats are removed. This cannot be undone.'),
+        title: Text(l10n.event_deleteThisGame),
+        content: Text(
+            l10n.event_theGameAndAnyRecorded),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Keep it')),
+              child: Text(l10n.event_keepIt)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete')),
+              child: Text(l10n.event_delete)),
         ],
       ),
     );
@@ -2279,7 +2270,7 @@ class _GamesTab extends ConsumerWidget {
       await ref.read(eventsRepositoryProvider).deleteGame(event.id, gameId);
       ref.invalidate(eventGamesProvider(event.id));
       onChanged();
-      messenger.showSnackBar(const SnackBar(content: Text('Game deleted')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.event_gameDeleted)));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
     }
@@ -2380,7 +2371,7 @@ class _GamesTab extends ConsumerWidget {
                   key: ValueKey('$label-$value'),
                   initialValue: value,
                   isExpanded: true,
-                  hint: Text('Pick a team',
+                  hint: Text(l10n.event_pickATeam,
                       style: TextStyle(color: p.muted, fontSize: 13)),
                   decoration: InputDecoration(
                     isDense: true,
@@ -2432,22 +2423,22 @@ class _GamesTab extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Create a game',
+                  Text(l10n.event_createAGame,
                       style: TextStyle(
                           color: p.ink,
                           fontSize: 16,
                           fontWeight: FontWeight.w700)),
                   const SizedBox(height: 12),
                   if (vsMode) ...[
-                    teamDropdown(useHomeAway ? 'Home team' : 'Team 1', homeId,
+                    teamDropdown(useHomeAway ? l10n.event_homeTeam : l10n.event_team1, homeId,
                         (v) => setSheet(() => homeId = v)),
                     const SizedBox(height: 10),
-                    teamDropdown(useHomeAway ? 'Away team' : 'Team 2', awayId,
+                    teamDropdown(useHomeAway ? l10n.event_awayTeam : l10n.event_team2, awayId,
                         (v) => setSheet(() => awayId = v)),
                     if (homeId != null && homeId == awayId)
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
-                        child: Text('Pick two different teams.',
+                        child: Text(l10n.event_pickTwoDifferentTeams,
                             style: TextStyle(color: p.danger, fontSize: 11.5)),
                       ),
                     CheckboxListTile(
@@ -2455,11 +2446,11 @@ class _GamesTab extends ConsumerWidget {
                       contentPadding: EdgeInsets.zero,
                       value: useHomeAway,
                       onChanged: (v) => setSheet(() => useHomeAway = v == true),
-                      title: Text('Use Home & Away',
+                      title: Text(l10n.event_useHomeAway,
                           style: TextStyle(color: p.ink, fontSize: 14)),
                     ),
                   ] else ...[
-                    Text('Teams (pick 2 or more)',
+                    Text(l10n.event_teamsPick2OrMore,
                         style: TextStyle(color: p.muted, fontSize: 11.5)),
                     for (final t in teams)
                       CheckboxListTile(
@@ -2483,12 +2474,12 @@ class _GamesTab extends ConsumerWidget {
                     contentPadding: EdgeInsets.zero,
                     value: uniqueColors,
                     onChanged: (v) => setSheet(() => uniqueColors = v == true),
-                    title: Text('Use unique team colors',
+                    title: Text(l10n.event_useUniqueTeamColors,
                         style: TextStyle(color: p.ink, fontSize: 14)),
                   ),
                   if (uniqueColors)
                     if (pickedIds().isEmpty)
-                      Text('Pick teams above to set their colors.',
+                      Text(l10n.event_pickTeamsAboveToSet,
                           style: TextStyle(color: p.muted, fontSize: 11.5))
                     else
                       Container(
@@ -2541,7 +2532,7 @@ class _GamesTab extends ConsumerWidget {
                               const SizedBox(height: 8),
                             ],
                             Text(
-                                "Overrides each team's default color for this game only.",
+                                l10n.event_overridesEachTeamsDefaultColor,
                                 style:
                                     TextStyle(color: p.muted, fontSize: 10.5)),
                           ],
@@ -2561,7 +2552,7 @@ class _GamesTab extends ConsumerWidget {
                   else ...[
                     Row(children: [
                       Expanded(
-                        child: Text('Duration (minutes, optional)',
+                        child: Text(l10n.event_durationMinutesOptional,
                             style: TextStyle(color: p.muted, fontSize: 12.5)),
                       ),
                       SizedBox(
@@ -2586,7 +2577,7 @@ class _GamesTab extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 3),
                       child: Text(
-                          'A reference length — the live match clock counts up and stoppage time is added during the game.',
+                          l10n.event_aReferenceLengthTheLive,
                           style: TextStyle(color: p.muted, fontSize: 10.5)),
                     ),
                   ],
@@ -2597,10 +2588,10 @@ class _GamesTab extends ConsumerWidget {
                       value: useOfficiants,
                       onChanged: (v) =>
                           setSheet(() => useOfficiants = v == true),
-                      title: Text('Use game officiants',
+                      title: Text(l10n.event_useGameOfficiants,
                           style: TextStyle(color: p.ink, fontSize: 14)),
                       subtitle: Text(
-                          'Group admins can always score. Pick who else may update stats.',
+                          l10n.event_groupAdminsCanAlwaysScore,
                           style: TextStyle(color: p.muted, fontSize: 11)),
                     ),
                     if (useOfficiants && candidates.isEmpty)
@@ -2608,8 +2599,8 @@ class _GamesTab extends ConsumerWidget {
                         padding: const EdgeInsets.only(left: 4, bottom: 6),
                         child: Text(
                             event.groupId == null
-                                ? 'Nobody has checked in yet — officiants are picked from the people at the event.'
-                                : 'No group members to choose from yet.',
+                                ? l10n.event_nobodyHasCheckedInYet
+                                : l10n.event_noGroupMembersToChoose,
                             style: TextStyle(color: p.muted, fontSize: 11.5)),
                       ),
                     if (useOfficiants && candidates.isNotEmpty) ...[
@@ -2620,7 +2611,7 @@ class _GamesTab extends ConsumerWidget {
                           style: TextStyle(color: p.ink, fontSize: 13),
                           decoration: InputDecoration(
                             isDense: true,
-                            hintText: 'Search by name or @handle',
+                            hintText: l10n.event_searchByNameOrHandle,
                             prefixIcon:
                                 const Icon(Icons.search_rounded, size: 18),
                             contentPadding: const EdgeInsets.symmetric(
@@ -2667,7 +2658,7 @@ class _GamesTab extends ConsumerWidget {
                   ],
                   const SizedBox(height: 8),
                   SpButton(
-                    label: 'Create game',
+                    label: l10n.event_createGame,
                     expand: true,
                     onTap: canCreate ? () => Navigator.pop(ctx, true) : null,
                   ),
@@ -2849,7 +2840,7 @@ class _TeamsTab extends ConsumerWidget {
                             color: p.accent.withAlpha(31),
                             borderRadius: BorderRadius.circular(999),
                           ),
-                          child: Text("You're here",
+                          child: Text(context.l10n.event_youreHere2,
                               style: TextStyle(
                                   color: p.accent,
                                   fontSize: 10.5,
@@ -2930,10 +2921,10 @@ class _TeamsTab extends ConsumerWidget {
                         style: TextStyle(color: p.ink, fontSize: 14)),
                     trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                       if (x.draftedRole != null) ...[
-                        _RosterTag(text: 'drafted as ${x.draftedRole}'),
+                        _RosterTag(text: context.l10n.event_draftedAs(x.draftedRole ?? '')),
                         if (x.isSub) const SizedBox(width: 4),
                       ],
-                      if (x.isSub) const _RosterTag(text: 'SUB'),
+                      if (x.isSub) _RosterTag(text: context.l10n.event_sub2),
                     ]),
                     onTap: () {
                       // Close the roster, then open their profile.
@@ -3000,24 +2991,19 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text("Release ${x.displayName}'s spot?"),
+        title: Text(l10n.event_releaseSSpot3(x.displayName)),
         content: Text(x.paid
-            ? 'They paid, so their ticket price is refunded right now '
-                "(service fees aren't). Their RSVP is taken back and they're "
-                'notified; the spot opens for the next player.'
+            ? l10n.event_theyPaidSoTheirTicket2
             : required
-                ? "Their RSVP is taken back and they're notified. The spot "
-                    'opens for the next player; they can RSVP again if spots '
-                    'are left.'
-                : "Their RSVP is taken back and they're notified. They can "
-                    'RSVP again any time.'),
+                ? l10n.event_theirRsvpIsTakenBack2
+                : l10n.event_theirRsvpIsTakenBack3),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Keep it')),
+              child: Text(l10n.event_keepIt)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text(x.paid ? 'Release and refund' : 'Release spot')),
+              child: Text(x.paid ? l10n.event_releaseAndRefund : l10n.event_releaseSpot)),
         ],
       ),
     );
@@ -3030,11 +3016,10 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(!r.released
-              ? 'They had no RSVP to release'
+              ? l10n.event_theyHadNoRsvpTo
               : r.refunded
-                  ? "Spot released — they've been told and their ticket "
-                      'price is on its way back'
-                  : "Spot released — they've been told")));
+                  ? l10n.event_spotReleasedTheyveBeenTold2
+                  : l10n.event_spotReleasedTheyveBeenTold3)));
       widget.onChanged();
     } catch (e) {
       if (!mounted) return;
@@ -3086,7 +3071,7 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
                   border: Border.all(color: p.line),
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: Text('PAID',
+                child: Text(context.l10n.event_paid3,
                     style: TextStyle(
                         color: p.ink,
                         fontSize: 8.5,
@@ -3095,7 +3080,7 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
             ],
             if (x.paying && !x.paid) ...[
               const SizedBox(width: 4),
-              Text('paying…',
+              Text(context.l10n.event_paying,
                   style: TextStyle(
                       color: p.muted,
                       fontSize: 10,
@@ -3108,7 +3093,7 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
       if (holding)
         Tooltip(
           message:
-              "Paying for this spot — it reopens by itself if they don't finish",
+              context.l10n.event_payingForThisSpotIt2,
           child: Container(
             padding: const EdgeInsets.fromLTRB(6, 7, 9, 7),
             decoration: BoxDecoration(
@@ -3116,7 +3101,7 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
               borderRadius:
                   const BorderRadius.horizontal(right: Radius.circular(999)),
             ),
-            child: Text('HOLD',
+            child: Text(context.l10n.event_hold2,
                 style: TextStyle(
                     color: p.muted,
                     fontSize: 9.5,
@@ -3127,7 +3112,7 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
       // refuses too) — the lock says why instead of a button that errors.
       if (locked)
         Tooltip(
-          message: "Checked in — can't be released",
+          message: context.l10n.event_checkedInCantBeReleased2,
           child: Container(
             padding: const EdgeInsets.fromLTRB(6, 7, 9, 7),
             decoration: BoxDecoration(
@@ -3138,7 +3123,7 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(Icons.lock_rounded, size: 12, color: p.greenText),
               const SizedBox(width: 3),
-              Text('IN',
+              Text(context.l10n.event_inLabel2,
                   style: TextStyle(
                       color: p.greenText,
                       fontSize: 9.5,
@@ -3158,9 +3143,9 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
             // Long-press hint on what the button does to a paid player.
             onLongPress: !x.paid
                 ? null
-                : () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                : () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text(
-                        'Releasing a paid player refunds their ticket price right away'))),
+                        context.l10n.event_releasingAPaidPlayerRefunds))),
             borderRadius:
                 const BorderRadius.horizontal(right: Radius.circular(999)),
             child: Padding(
@@ -3194,7 +3179,7 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
       for (final x in people)
         if (!x.checkedIn) x
     ];
-    final holdingLabel = required ? 'Holding a spot' : "RSVP'd";
+    final holdingLabel = required ? context.l10n.event_holdingASpot : context.l10n.event_rSVPd2;
     final notHereYet = arrived.isNotEmpty ? ' · not here yet' : '';
     Widget label(String text, Color color, {IconData? icon}) => Padding(
           padding: const EdgeInsets.only(bottom: 6),
@@ -3215,7 +3200,7 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SpSectionTitle(
-          required ? 'Going · spots held' : 'RSVPs',
+          required ? context.l10n.event_goingSpotsHeld : context.l10n.event_rSVPs,
           count: c.capped ? null : people.length,
           trailing: c.capped
               ? Text(
@@ -3233,7 +3218,7 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (arrived.isNotEmpty) ...[
-              label('Checked in · ${arrived.length}', p.greenText,
+              label(context.l10n.event_checkedIn4(arrived.length), p.greenText,
                   icon: Icons.check_circle_rounded),
               Wrap(spacing: 6, runSpacing: 6, children: [
                 for (final x in arrived) _chip(x, p),
@@ -3251,13 +3236,8 @@ class _InterestedListState extends ConsumerState<_InterestedList> {
               const SizedBox(height: 10),
               Text(
                   required
-                      ? 'Someone not showing up? Release their spot so the next '
-                          'player can RSVP. Releasing a paid player refunds '
-                          'their ticket price right away; a paid no-show you '
-                          "don't release is refunded once the event completes. "
-                          'Checked-in players are locked.'
-                      : "The remove button takes a no-show's RSVP back "
-                          "(they're told). Checked-in players are locked.",
+                      ? context.l10n.event_someoneNotShowingUpRelease2
+                      : context.l10n.event_theRemoveButtonTakesA,
                   style: TextStyle(color: p.muted, fontSize: 11.5)),
             ],
           ]),
@@ -3285,7 +3265,7 @@ class _CheckinsList extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SpSectionTitle('Checked in', count: e.attendeeCount),
+        SpSectionTitle(context.l10n.event_checkedIn, count: e.attendeeCount),
         const SizedBox(height: 10),
         if (e.attendees.isEmpty)
           GlassCard(
@@ -3293,7 +3273,7 @@ class _CheckinsList extends ConsumerWidget {
             child: Column(children: [
               const SpIconTile(Icons.how_to_reg_outlined, size: 48),
               const SizedBox(height: 10),
-              Text('No players checked in yet.',
+              Text(context.l10n.event_noPlayersCheckedInYet,
                   style: TextStyle(color: p.muted, fontSize: 13)),
             ]),
           )
@@ -3344,8 +3324,7 @@ class _CheckinsList extends ConsumerWidget {
                           ]),
                           if (e.attendees[i].checkedInAt != null)
                             Text(
-                                'Checked in ${timeAgo(e.attendees[i].checkedInAt)}'
-                                '${e.attendees[i].letInBy != null ? ' · let in by ${e.attendees[i].letInBy}' : ''}',
+                                context.l10n.event_checkedIn5(timeAgo(e.attendees[i].checkedInAt), (e.attendees[i].letInBy != null ? ' · let in by ${e.attendees[i].letInBy}' : '')),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(color: p.muted, fontSize: 12)),
@@ -3354,7 +3333,7 @@ class _CheckinsList extends ConsumerWidget {
                     ),
                     if (canEdit)
                       IconButton(
-                        tooltip: 'Check out',
+                        tooltip: context.l10n.event_checkOut,
                         onPressed: () => _checkOut(context, ref,
                             e.attendees[i].userId, e.attendees[i].displayName),
                         icon: Icon(Icons.person_remove_outlined,
@@ -3373,17 +3352,17 @@ class _CheckinsList extends ConsumerWidget {
     final sure = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Remove $playerName?'),
+        title: Text(l10n.event_remove3(playerName)),
         content: Text(
-            '$playerName will be taken off the checked-in list. They can check in again by scanning the event QR.'),
+            l10n.event_willBeTakenOffThe2(playerName)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Keep them')),
+              child: Text(l10n.event_keepThem)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Remove',
-                  style: TextStyle(color: Color(0xFFDC2626)))),
+              child: Text(l10n.event_remove2,
+                  style: const TextStyle(color: Color(0xFFDC2626)))),
         ],
       ),
     );
@@ -3476,18 +3455,18 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
         !_teamIds.containsAll(_initialTeamIds);
   }
 
-  static const _recurrences = {
-    'once': 'One-off',
-    'daily': 'Daily',
-    'weekly': 'Weekly',
-    'biweekly': 'Every 2 weeks',
-    'monthly': 'Monthly',
-    'yearly': 'Yearly',
+  static Map<String, String> get _recurrences => {
+    'once': l10n.event_recurrenceOneOff,
+    'daily': l10n.event_recurrenceDaily,
+    'weekly': l10n.event_recurrenceWeekly,
+    'biweekly': l10n.event_every2Weeks,
+    'monthly': l10n.event_recurrenceMonthly,
+    'yearly': l10n.event_recurrenceYearly,
   };
-  static const _levels = {
-    'non_competitive': 'Non-competitive',
-    'moderate': 'Moderate',
-    'high': 'Highly competitive',
+  static Map<String, String> get _levels => {
+    'non_competitive': l10n.event_nonCompetitive,
+    'moderate': l10n.event_levelModerate,
+    'high': l10n.event_highlyCompetitive,
   };
 
   @override
@@ -3535,7 +3514,7 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
   Future<void> _save() async {
     final title = _title.text.trim();
     if (title.isEmpty) {
-      setState(() => _error = 'Title is required.');
+      setState(() => _error = l10n.event_titleIsRequired);
       return;
     }
     // Only touch the audience when the picker was actually shown and changed.
@@ -3544,7 +3523,7 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
         ref.read(eventAudiencesProvider(groupId)).valueOrNull != null &&
         _audienceChanged;
     if (sendAudience && _forTeams && _teamIds.isEmpty) {
-      setState(() => _error = 'Pick the team this event is for.');
+      setState(() => _error = l10n.event_pickTheTeamThisEvent);
       return;
     }
     // Null = unchanged (or never loaded) → not sent.
@@ -3650,28 +3629,28 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            Text('Edit event',
+            Text(context.l10n.event_editEvent,
                 style: TextStyle(
                     color: p.ink, fontSize: 18, fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
             TextField(
               controller: _title,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(labelText: 'Title'),
+              decoration: InputDecoration(labelText: context.l10n.event_title),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _desc,
               maxLines: 3,
               minLines: 2,
-              decoration: const InputDecoration(
-                  labelText: 'Description', alignLabelWithHint: true),
+              decoration: InputDecoration(
+                  labelText: context.l10n.event_description, alignLabelWithHint: true),
             ),
             const SizedBox(height: 12),
             Row(children: [
               Expanded(
                 child: _pickerTile(
-                  label: 'Date',
+                  label: context.l10n.event_date,
                   value: _date != null ? formatDayYear(_date) : 'Pick',
                   onTap: _pickDate,
                 ),
@@ -3679,7 +3658,7 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
               const SizedBox(width: 8),
               Expanded(
                 child: _pickerTile(
-                  label: 'Starts',
+                  label: context.l10n.event_starts,
                   value: _start ?? '—',
                   onTap: () => _pickTime(true),
                 ),
@@ -3687,7 +3666,7 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
               const SizedBox(width: 8),
               Expanded(
                 child: _pickerTile(
-                  label: 'Ends',
+                  label: context.l10n.event_ends,
                   value: _end ?? '—',
                   onTap: () => _pickTime(false),
                 ),
@@ -3696,19 +3675,19 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
             const SizedBox(height: 12),
             TextField(
               controller: _venue,
-              decoration: const InputDecoration(labelText: 'Venue'),
+              decoration: InputDecoration(labelText: context.l10n.event_venue),
             ),
             const SizedBox(height: 14),
             _choiceRow<String>(
-              label: 'Repeats',
+              label: context.l10n.event_repeats,
               options: _recurrences,
               value: _recurrence,
               onChanged: (v) => setState(() => _recurrence = v ?? 'once'),
             ),
             const SizedBox(height: 10),
             _choiceRow<String?>(
-              label: 'Competitiveness',
-              options: {null: 'Not set', ..._levels},
+              label: context.l10n.event_competitiveness,
+              options: {null: context.l10n.event_notSet, ..._levels},
               value: _competitive,
               onChanged: (v) => setState(() => _competitive = v),
             ),
@@ -3742,8 +3721,8 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
               Expanded(
                 child: Text(
                     _forTeams
-                        ? 'Private (only this team can open it)'
-                        : 'Private event (members only)',
+                        ? context.l10n.event_privateOnlyThisTeamCan
+                        : context.l10n.event_privateEventMembersOnly,
                     style: TextStyle(color: p.ink, fontSize: 13.5)),
               ),
               Switch(
@@ -3753,7 +3732,7 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
             ]),
             Row(children: [
               Expanded(
-                child: Text('MVP vote after the event',
+                child: Text(context.l10n.event_mvpVoteAfterTheEvent,
                     style: TextStyle(color: p.ink, fontSize: 13.5)),
               ),
               Switch(
@@ -3764,7 +3743,7 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
             if (!_remindersFailed) ...[
               const SizedBox(height: 10),
               if (_reminders == null)
-                Text('Loading reminders…',
+                Text(context.l10n.event_loadingReminders,
                     style: TextStyle(color: p.muted, fontSize: 12))
               else
                 EventRemindersPicker(
@@ -3779,7 +3758,7 @@ class _EditEventSheetState extends ConsumerState<_EditEventSheet> {
             ],
             const SizedBox(height: 16),
             SpButton(
-              label: _busy ? 'Saving…' : 'Save changes',
+              label: _busy ? context.l10n.event_saving : context.l10n.event_saveChanges,
               expand: true,
               onTap: _busy ? null : _save,
             ),
@@ -3894,14 +3873,12 @@ class _PoolSection extends ConsumerWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Eyebrow('Available pool'),
+          Eyebrow(context.l10n.event_availablePool),
           const SizedBox(height: 8),
           GlassCard(
             padding: const EdgeInsets.all(12),
             child: Text(
-              "No one's waiting yet. Anyone who checks in after teams are "
-              'set shows up here so you can slot them into a team — '
-              'automatically or by hand.',
+              context.l10n.event_noOnesWaitingYetAnyone,
               style: TextStyle(color: p.muted, fontSize: 12),
             ),
           ),
@@ -3912,13 +3889,13 @@ class _PoolSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(children: [
-          Expanded(child: Eyebrow('Available pool · ${list.length}')),
+          Expanded(child: Eyebrow(context.l10n.event_availablePool2(list.length))),
           if (manage)
             InkWell(
               onTap: () => _autoAssign(context, ref),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                child: Text('Auto-assign all',
+                child: Text(context.l10n.event_autoAssignAll,
                     style: TextStyle(
                         color: p.accent,
                         fontSize: 12,
@@ -3928,15 +3905,14 @@ class _PoolSection extends ConsumerWidget {
         ]),
         const SizedBox(height: 6),
         Text(
-          'Late arrivals — waiting to be slotted into a team.',
+          context.l10n.event_lateArrivalsWaitingToBe,
           style: TextStyle(color: p.muted, fontSize: 11.5),
         ),
         if (event.canManage && !event.hasLatePool) ...[
           const SizedBox(height: 6),
           Text(
             // No upgrade prompts or plan names in the app (app-store rules).
-            'These players checked in after teams were set. Slotting late '
-            "arrivals into teams isn't enabled for this group.",
+            context.l10n.event_thesePlayersCheckedInAfter,
             style: TextStyle(color: p.amber, fontSize: 11.5),
           ),
         ],
@@ -3979,11 +3955,11 @@ class _PoolSection extends ConsumerWidget {
                     child: InkWell(
                       borderRadius: BorderRadius.circular(10),
                       onTap: () => _addToTeam(context, ref, x),
-                      child: const Padding(
+                      child: Padding(
                         padding:
-                            EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                        child: Text('Add',
-                            style: TextStyle(
+                            const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        child: Text(context.l10n.event_add,
+                            style: const TextStyle(
                                 fontSize: 12, fontWeight: FontWeight.w700)),
                       ),
                     ),
@@ -4016,7 +3992,7 @@ class _PoolSection extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Add ${x.displayName} to…',
+          Text(l10n.event_addTo(x.displayName),
               style: TextStyle(
                   color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: 10),
@@ -4025,13 +4001,13 @@ class _PoolSection extends ConsumerWidget {
               dense: true,
               contentPadding: EdgeInsets.zero,
               title: Text(t.name, style: TextStyle(color: p.ink)),
-              subtitle: Text('${t.players.length} players',
+              subtitle: Text(l10n.event_players3(t.players.length),
                   style: TextStyle(color: p.muted, fontSize: 11.5)),
               onTap: () => Navigator.pop(ctx, t.id),
             ),
           TextButton(
-            onPressed: () => Navigator.pop(ctx, 'AUTO'),
-            child: const Text('Auto-slot (best fit)'),
+            onPressed: () => Navigator.pop(ctx, l10n.event_auto),
+            child: Text(l10n.event_autoSlotBestFit),
           ),
         ],
       ),
@@ -4129,7 +4105,7 @@ class _PhotoManagerState extends ConsumerState<_PhotoManager> {
       builder: (ctx) => Column(mainAxisSize: MainAxisSize.min, children: [
         ListTile(
           leading: Icon(Icons.star_outline_rounded, color: p.accent),
-          title: const Text('Set as cover'),
+          title: Text(context.l10n.event_setAsCover),
           onTap: () {
             Navigator.pop(ctx);
             _save(e.images, url);
@@ -4137,7 +4113,7 @@ class _PhotoManagerState extends ConsumerState<_PhotoManager> {
         ),
         ListTile(
           leading: Icon(Icons.delete_outline_rounded, color: p.danger),
-          title: const Text('Remove photo'),
+          title: Text(context.l10n.event_removePhoto),
           onTap: () {
             Navigator.pop(ctx);
             final next = e.images.where((x) => x != url).toList();
@@ -4284,7 +4260,7 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
     final draft = ref.watch(draftProvider(widget.eventId)).valueOrNull;
     if (draft == null) {
       return GlassCard(
-        child: Text('Setting up the draft…',
+        child: Text(context.l10n.event_settingUpTheDraft,
             style: TextStyle(color: p.muted, fontSize: 13)),
       );
     }
@@ -4302,14 +4278,14 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
     final picksMade = (draft['picksMade'] as num?)?.toInt() ?? 0;
     final totalPicks = (draft['totalPicks'] as num?)?.toInt() ?? 0;
 
-    String turnLabel = 'Draft complete 🎉';
+    String turnLabel = context.l10n.event_draftComplete;
     if (!isDone && currentIdx is num) {
       final onClock = teams.cast<Map?>().firstWhere(
             (t) => (t?['index'] as num?)?.toInt() == currentIdx.toInt(),
             orElse: () => null,
           );
-      final name = onClock?['name'] ?? 'Team ${currentIdx.toInt() + 1}';
-      turnLabel = isYourTurn ? 'Your pick!' : '$name is picking…';
+      final name = onClock?['name'] ?? context.l10n.event_teamNumber(currentIdx.toInt() + 1);
+      turnLabel = isYourTurn ? context.l10n.event_yourPick : context.l10n.event_teamIsPicking(name);
     }
 
     return GlassCard(
@@ -4317,7 +4293,7 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            const Expanded(child: Eyebrow('Captain draft')),
+            Expanded(child: Eyebrow(context.l10n.event_captainDraft)),
             Text('$picksMade / $totalPicks picks',
                 style: TextStyle(color: p.muted, fontSize: 11.5)),
           ]),
@@ -4346,7 +4322,7 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
               _teamTile(context, Map<String, dynamic>.from(raw), currentIdx),
           if (pool.isNotEmpty && !isDone) ...[
             const SizedBox(height: 8),
-            Text('AVAILABLE',
+            Text(context.l10n.event_available,
                 style: TextStyle(
                     color: p.muted,
                     fontSize: 10.5,
@@ -4369,7 +4345,7 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: Text('Undo last pick',
+                  child: Text(context.l10n.event_undoLastPick,
                       style: TextStyle(
                           color: p.muted,
                           fontSize: 12,
@@ -4383,7 +4359,7 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: Text('Cancel draft',
+                  child: Text(context.l10n.event_cancelDraft,
                       style: TextStyle(
                           color: p.danger,
                           fontSize: 12,
@@ -4448,7 +4424,7 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700)),
             ),
-            Text('C: $captain',
+            Text(context.l10n.event_c(captain),
                 style: TextStyle(color: p.muted, fontSize: 11.5)),
           ]),
           if (starters.isNotEmpty)
@@ -4460,7 +4436,7 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
           if (subs.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 2),
-              child: Text('Subs: $subs',
+              child: Text(context.l10n.event_subs2(subs),
                   style:
                       TextStyle(color: p.muted, fontSize: 11.5, height: 1.4)),
             ),
@@ -4500,15 +4476,15 @@ class _DraftBoardState extends ConsumerState<_DraftBoard> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Cancel the draft?'),
-        content: const Text('Picks are discarded and the event reopens.'),
+        title: Text(l10n.event_cancelTheDraft),
+        content: Text(l10n.event_picksAreDiscardedAndThe),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Keep drafting')),
+              child: Text(l10n.event_keepDrafting)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Cancel draft')),
+              child: Text(l10n.event_cancelDraft)),
         ],
       ),
     );
@@ -4580,10 +4556,10 @@ class _RefundRetryCardState extends ConsumerState<_RefundRetryCard> {
       final refunded = (r['refunded'] as num?)?.toInt() ?? 0;
       messenger.showSnackBar(SnackBar(
           content: Text(r['queued'] == true
-              ? 'Refund sweep queued — it runs in the background.'
+              ? l10n.event_refundSweepQueuedItRuns
               : refunded > 0
-                  ? 'Refunded $refunded ticket${refunded == 1 ? '' : 's'}.'
-                  : 'No refunds went through — try again shortly.')));
+                  ? l10n.event_refundedTickets(refunded)
+                  : l10n.event_noRefundsWentThroughTry)));
       await _load();
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
@@ -4604,21 +4580,20 @@ class _RefundRetryCardState extends ConsumerState<_RefundRetryCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$remaining ticket${remaining == 1 ? '' : 's'} still awaiting refund'
-            '${refunded > 0 ? ' ($refunded already refunded)' : ''}.',
+            context.l10n.event_countPluralOneTicketStill(remaining, (refunded > 0 ? context.l10n.event_alreadyRefunded(refunded) : '')),
             style: TextStyle(
                 color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
-            'Retrying is safe — nobody is ever refunded twice.',
+            context.l10n.event_retryingIsSafeNobodyIs,
             style: TextStyle(color: p.muted, fontSize: 12),
           ),
           const SizedBox(height: 10),
           FilledButton(
             style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
             onPressed: _busy ? null : _retry,
-            child: Text(_busy ? 'Retrying…' : 'Retry refunds'),
+            child: Text(_busy ? context.l10n.event_retrying : context.l10n.event_retryRefunds),
           ),
         ],
       ),

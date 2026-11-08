@@ -22,6 +22,7 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// One announcement: the full text (selectable, links tappable), its
 /// attachments and link, "Got it" for recipients, and — for its sender and
@@ -89,7 +90,7 @@ class _AnnouncementDetailScreenState
       ref.invalidate(pinnedAnnouncementsProvider);
       ref.invalidate(sentAnnouncementsProvider);
       ref.invalidate(announcementsInboxProvider);
-      _snack('Unpinned.');
+      _snack(l10n.inbox_unpinned2);
     } catch (e) {
       _snack('$e');
     } finally {
@@ -101,17 +102,16 @@ class _AnnouncementDetailScreenState
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete this announcement?'),
-        content: const Text(
-            "It disappears from everyone's inbox and from the group page. "
-            'This cannot be undone.'),
+        title: Text(l10n.inbox_deleteThisAnnouncement),
+        content: Text(
+            l10n.inbox_itDisappearsFromEveryonesInbox2),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(l10n.inbox_cancel)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete')),
+              child: Text(l10n.inbox_delete)),
         ],
       ),
     );
@@ -130,7 +130,7 @@ class _AnnouncementDetailScreenState
         context.go('/inbox');
       }
       messenger
-          .showSnackBar(const SnackBar(content: Text('Announcement deleted.')));
+          .showSnackBar(SnackBar(content: Text(l10n.inbox_announcementDeleted2)));
     } catch (e) {
       _snack('$e');
       if (mounted) setState(() => _busy = null);
@@ -149,7 +149,7 @@ class _AnnouncementDetailScreenState
               : LaunchMode.inAppBrowserView);
       if (!ok) await launchUrl(uri, mode: LaunchMode.platformDefault);
     } catch (_) {
-      _snack("Couldn't open the attachment.");
+      _snack(l10n.inbox_couldntOpenTheAttachment);
     }
   }
 
@@ -185,14 +185,14 @@ class _AnnouncementDetailScreenState
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: SpHeader(
-              title: 'Announcement',
+              title: context.l10n.inbox_announcement,
               subtitle: d?.item.groupName,
               actions: [
                 // Recipients can report it to the group's admins (B8).
                 if (d != null && d.isRecipient)
                   SpRoundButton(
                     icon: Icons.flag_outlined,
-                    tooltip: 'Report',
+                    tooltip: context.l10n.inbox_report,
                     onTap: () =>
                         showReportSheet(context, announcementId: widget.id),
                   ),
@@ -253,7 +253,7 @@ class _AnnouncementDetailScreenState
                                   color: p.ink,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700)),
-                          Text('From ${a.senderName} · ${a.roleLabel}',
+                          Text(context.l10n.inbox_from(a.senderName, a.roleLabel),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(color: p.muted, fontSize: 12.5)),
@@ -264,11 +264,11 @@ class _AnnouncementDetailScreenState
                 Wrap(spacing: 6, runSpacing: 6, children: [
                   if (a.isUrgent) const UrgentPill(),
                   if (a.audienceLabel.isNotEmpty)
-                    SpBadge('To ${a.audienceLabel}',
+                    SpBadge(context.l10n.inbox_to3(a.audienceLabel),
                         icon: Icons.groups_outlined),
                   if (a.isPinned)
                     SpBadge(
-                        'Pinned until ${fmtInstant(a.pinnedUntil, style: InstantStyle.day)}',
+                        context.l10n.inbox_pinnedUntil2(fmtInstant(a.pinnedUntil, style: InstantStyle.day)),
                         icon: Icons.push_pin_outlined),
                   if (wards != null) WardsForChip(wards),
                 ]),
@@ -302,7 +302,7 @@ class _AnnouncementDetailScreenState
                 if (a.expiresAt != null) ...[
                   const SizedBox(height: 14),
                   Text(
-                      'Hidden from the inbox after ${fmtInstant(a.expiresAt, style: InstantStyle.day)}',
+                      context.l10n.inbox_hiddenFromTheInboxAfter(fmtInstant(a.expiresAt, style: InstantStyle.day)),
                       style: TextStyle(color: p.muted, fontSize: 12)),
                 ],
               ],
@@ -322,7 +322,7 @@ class _AnnouncementDetailScreenState
               if (a.isPinned) ...[
                 Expanded(
                   child: _OutlinePill(
-                    label: _busy == 'unpin' ? 'Unpinning…' : 'Unpin',
+                    label: _busy == 'unpin' ? context.l10n.inbox_unpinning : context.l10n.inbox_unpin,
                     icon: Icons.push_pin_outlined,
                     onTap: _busy == null ? () => _unpin(a) : null,
                   ),
@@ -331,7 +331,7 @@ class _AnnouncementDetailScreenState
               ],
               Expanded(
                 child: _OutlinePill(
-                  label: _busy == 'delete' ? 'Deleting…' : 'Delete',
+                  label: _busy == 'delete' ? context.l10n.inbox_deleting : context.l10n.inbox_delete,
                   icon: Icons.delete_outline_rounded,
                   color: p.danger,
                   onTap: _busy == null ? () => _delete(a) : null,
@@ -359,7 +359,7 @@ class _AnnouncementDetailScreenState
               Icon(Icons.picture_as_pdf_outlined, size: 20, color: p.danger),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(f.name ?? 'Attachment (PDF)',
+                child: Text(f.name ?? context.l10n.inbox_attachmentPdf,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -379,7 +379,7 @@ class _AnnouncementDetailScreenState
     final isTeam = l.type == 'team';
     final label = l.label.isNotEmpty
         ? '${isTeam ? 'Open team' : 'Open event'} · ${l.label}'
-        : (isTeam ? 'Open team' : 'Open event');
+        : (isTeam ? context.l10n.inbox_openTeam : context.l10n.inbox_openEvent);
     return SpButton(
       label: label,
       icon: isTeam ? Icons.shield_outlined : Icons.event_outlined,
@@ -412,7 +412,7 @@ class _AnnouncementDetailScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SpSectionTitle('Read receipts'),
+        SpSectionTitle(context.l10n.inbox_readReceipts),
         const SizedBox(height: 10),
         GlassCard(
           child: Column(
@@ -428,9 +428,9 @@ class _AnnouncementDetailScreenState
                       children: [
                         Text.rich(
                           TextSpan(children: [
-                            TextSpan(text: 'Seen by ${r.seen} of ${r.total}'),
+                            TextSpan(text: context.l10n.inbox_seenByOf(r.seen, r.total)),
                             TextSpan(
-                                text: ' · ${r.acked} tapped Got it',
+                                text: context.l10n.inbox_tappedGotIt(r.acked),
                                 style: TextStyle(
                                     color: p.muted,
                                     fontWeight: FontWeight.w600)),
@@ -476,9 +476,9 @@ class _AnnouncementDetailScreenState
                 const SizedBox(height: 14),
                 SpSegmented(
                   options: [
-                    'Not seen',
-                    'Seen · ${seen.length}',
-                    'All · ${everyone.length}',
+                    context.l10n.inbox_notSeen,
+                    context.l10n.inbox_seenCount(seen.length),
+                    context.l10n.inbox_allCount(everyone.length),
                   ],
                   badges: [notSeen.length, null, null],
                   index: _receiptTab,
@@ -491,10 +491,10 @@ class _AnnouncementDetailScreenState
                 Text(
                     switch (_receiptTab) {
                       0 => notSeen.isEmpty
-                          ? 'Everyone has opened it'
-                          : '${notSeen.length} ${notSeen.length == 1 ? 'hasn\u2019t' : 'haven\u2019t'} opened it yet',
-                      1 => '${seen.length} opened it · ${r.acked} tapped Got it',
-                      _ => 'All ${everyone.length} who received it',
+                          ? context.l10n.inbox_everyoneHasOpenedIt
+                          : context.l10n.inbox_notOpenedYetCount(notSeen.length),
+                      1 => context.l10n.inbox_openedItTappedGotIt(seen.length, r.acked),
+                      _ => context.l10n.inbox_allWhoReceivedIt(everyone.length),
                     },
                     textAlign: TextAlign.center,
                     style: TextStyle(color: p.muted, fontSize: 11.5)),
@@ -519,9 +519,9 @@ class _AnnouncementDetailScreenState
                     const SizedBox(width: 6),
                     Text(
                         switch (_receiptTab) {
-                          0 => 'Everyone has seen it',
-                          1 => 'No one has opened it yet',
-                          _ => 'No one to show',
+                          0 => context.l10n.inbox_everyoneHasSeenIt,
+                          1 => context.l10n.inbox_noOneHasOpenedIt,
+                          _ => context.l10n.inbox_noOneToShow,
                         },
                         style: TextStyle(
                             color: _receiptTab == 0 ? p.greenText : p.muted,
@@ -536,7 +536,7 @@ class _AnnouncementDetailScreenState
             if (!_allPeople && people.length > cap)
               TextButton(
                 onPressed: () => setState(() => _allPeople = true),
-                child: Text('Show all ${people.length}'),
+                child: Text(context.l10n.inbox_showAll(people.length)),
               ),
           ],
         ],
@@ -582,11 +582,11 @@ class _AnnouncementDetailScreenState
           ),
           const SizedBox(width: 8),
           if (person.acked)
-            SpBadge('Got it', icon: Icons.check_rounded, tone: p.greenText)
+            SpBadge(context.l10n.inbox_gotIt, icon: Icons.check_rounded, tone: p.greenText)
           else if (person.seen)
-            const SpBadge('Seen', icon: Icons.done_rounded)
+            SpBadge(context.l10n.inbox_seen, icon: Icons.done_rounded)
           else
-            SpBadge('Not seen', tone: p.orangeInk),
+            SpBadge(context.l10n.inbox_notSeen, tone: p.orangeInk),
         ]),
       ),
     );
@@ -604,14 +604,14 @@ class _AnnouncementDetailScreenState
           ? Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               Icon(Icons.check_circle_rounded, size: 20, color: p.greenText),
               const SizedBox(width: 8),
-              Text('You tapped Got it',
+              Text(context.l10n.inbox_youTappedGotIt,
                   style: TextStyle(
                       color: p.greenText,
                       fontSize: 14,
                       fontWeight: FontWeight.w700)),
             ])
           : SpButton(
-              label: _busy == 'ack' ? 'Sending…' : 'Got it',
+              label: _busy == 'ack' ? context.l10n.inbox_sending : context.l10n.inbox_gotIt,
               icon: Icons.thumb_up_alt_outlined,
               tone: SpButtonTone.brand,
               expand: true,

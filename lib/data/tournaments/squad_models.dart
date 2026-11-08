@@ -1,5 +1,6 @@
 import 'package:sportpadi_mobile/shared/format/event_time.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// A small profile embedded in squad rows.
 class SquadProfile {
@@ -52,7 +53,7 @@ class SquadPlayer {
   final bool isCaptain;
   final SquadProfile? profile;
 
-  String get name => profile?.displayName ?? 'Player';
+  String get name => profile?.displayName ?? l10n.common_player;
   bool get accepted => status == 'accepted';
   bool get pending => status == 'called';
 
@@ -86,7 +87,7 @@ class UncalledPlayer {
   final List<String> positions;
   final int? jerseyNumber;
   final SquadProfile? profile;
-  String get name => profile?.displayName ?? 'Player';
+  String get name => profile?.displayName ?? l10n.common_player;
   factory UncalledPlayer.fromJson(Map<String, dynamic> j) => UncalledPlayer(
         playerId: (j['playerId'] ?? '') as String,
         positions: parseStrList(j['positions']),
@@ -277,7 +278,7 @@ class TournamentSquad {
       teamGroupId: (team['groupId'] ?? '') as String,
       captainPlayerId: parseStr(team['captainPlayerId']),
       eventId: (event['id'] ?? '') as String,
-      eventTitle: parseStr(event['title']) ?? 'Tournament',
+      eventTitle: parseStr(event['title']) ?? l10n.common_tournament,
       eventDescription: parseStr(event['description']),
       eventDate: parseDate(event['eventDate']),
       startTime: parseDate(event['startTime']),
@@ -515,7 +516,7 @@ class TeamTournamentEntry {
       pending: parseInt(j['pending']) ?? 0,
       starters: parseInt(j['starters']) ?? 0,
       eventId: (e['id'] ?? '') as String,
-      eventTitle: parseStr(e['title']) ?? 'Tournament',
+      eventTitle: parseStr(e['title']) ?? l10n.common_tournament,
       eventDate: parseDate(e['eventDate']),
       eventStatus: parseStr(e['status']) ?? 'open',
       hostGroupId: parseStr(e['hostGroupId']),

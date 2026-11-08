@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/auth/auth_scaffold.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 const _otpLength = 4;
 
@@ -81,14 +82,14 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
         _startCooldown();
         if (manual) {
           ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('A new code is on the way.')));
+              SnackBar(content: Text(l10n.auth_aNewCodeIsOn)));
         }
       }
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
       if (mounted) {
-        setState(() => _error = "Couldn't send the code. Try again.");
+        setState(() => _error = l10n.auth_couldntSendTheCodeTry);
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -116,7 +117,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _error = "That code didn't work. Try again.");
+        setState(() => _error = l10n.auth_thatCodeDidntWorkTry);
         for (final c in _controllers) {
           c.clear();
         }
@@ -154,16 +155,16 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
     final email = ref.watch(authControllerProvider).value?.user?.email ?? '';
     final canResend = !_sending && _cooldown <= 0;
     return AuthScaffold(
-      eyebrow: 'One last step',
-      title: 'Confirm your email',
+      eyebrow: context.l10n.auth_oneLastStep,
+      title: context.l10n.auth_confirmYourEmail,
       subtitle: Text.rich(
         TextSpan(children: [
-          const TextSpan(text: 'We sent a 4-digit code to '),
+          TextSpan(text: context.l10n.auth_weSentA4Digit),
           TextSpan(
-              text: email.isEmpty ? 'your email' : email,
+              text: email.isEmpty ? context.l10n.auth_yourEmail : email,
               style: TextStyle(color: p.onHero, fontWeight: FontWeight.w700)),
-          const TextSpan(
-              text: '. Enter it below to finish setting up your account.'),
+          TextSpan(
+              text: context.l10n.auth_enterItBelowToFinish),
         ]),
       ),
       card: Container(
@@ -180,7 +181,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                 bg: p.accentTint, fg: p.greenText, size: 40, iconSize: 20),
             const SizedBox(width: 12),
             Expanded(
-              child: Text('Enter your code',
+              child: Text(context.l10n.auth_enterYourCode,
                   style: TextStyle(
                       color: p.ink, fontSize: 16, fontWeight: FontWeight.w800)),
             ),
@@ -251,7 +252,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
           ],
           const SizedBox(height: 18),
           AuthPrimaryButton(
-            label: 'Verify email',
+            label: context.l10n.auth_verifyEmail,
             busy: _verifying,
             onTap: _controllers.any((c) => c.text.isEmpty) ? null : _verify,
           ),
@@ -272,10 +273,10 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                     const SizedBox(width: 6),
                     Text(
                       _sending
-                          ? 'Sending…'
+                          ? context.l10n.auth_sending
                           : _cooldown > 0
-                              ? 'Resend code in ${_cooldown}s'
-                              : 'Resend code',
+                              ? context.l10n.auth_resendCodeInS(_cooldown)
+                              : context.l10n.auth_resendCode,
                       style: TextStyle(
                           color: canResend ? p.ink : p.muted,
                           fontSize: 13,
@@ -291,7 +292,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
       footer: [
         const SizedBox(height: 16),
         Center(
-          child: Text("Can't find it? Check spam, or resend in a moment.",
+          child: Text(context.l10n.auth_cantFindItCheckSpam,
               textAlign: TextAlign.center,
               style: TextStyle(color: p.muted, fontSize: 12.5)),
         ),
@@ -300,7 +301,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
           child: TextButton(
             onPressed: () =>
                 ref.read(authControllerProvider.notifier).signOut(),
-            child: Text('Use a different account',
+            child: Text(context.l10n.auth_useADifferentAccount,
                 style: TextStyle(
                     color: p.greenText,
                     fontSize: 13,

@@ -4,6 +4,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Zone-aware event times — the Dart half of `packages/lib/src/time.ts`.
 ///
@@ -27,7 +28,7 @@ import 'package:sportpadi_mobile/shared/format/parse.dart';
 Future<void> initEventTime() => initTimeZones();
 
 /// Same shape as `formatDay` ("Sat, 12 Oct"), for the viewer's own day.
-final _viewerDay = DateFormat('EEE, d MMM');
+DateFormat get _viewerDay => DateFormat('EEE, d MMM');
 
 tz.Location? _loc(String? name) {
   if (name == null || name.isEmpty) return null;
@@ -52,7 +53,7 @@ String _zoneLabel(tz.TZDateTime at) {
   final sign = m.group(1);
   final h = int.parse(m.group(2)!);
   final min = int.parse(m.group(3)!);
-  return min == 0 ? 'GMT$sign$h' : 'GMT$sign$h:${m.group(3)}';
+  return min == 0 ? l10n.common_gmt(sign ?? '', h) : l10n.common_gmt2(sign ?? '', h, m.group(3) ?? '');
 }
 
 class EventTimeParts {

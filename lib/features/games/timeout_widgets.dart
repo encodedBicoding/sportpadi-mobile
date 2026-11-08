@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Team timeouts (basketball + volleyball) and the basketball shot clock.
 /// Web twin: components/games/timeouts.tsx.
@@ -83,7 +84,7 @@ class _TimeoutBarState extends State<TimeoutBar> {
       return const SizedBox.shrink();
     }
     final left = bb?.timeoutsLeft ?? vb?.timeoutsLeft ?? const <String, int>{};
-    final period = bb != null ? bb.timeoutPeriodLabel : 'Set ${vb!.currentSet}';
+    final period = bb != null ? bb.timeoutPeriodLabel : context.l10n.game_set3(vb!.currentSet);
     final active = _active;
     final muted = widget.dark ? p.heroMuted : p.muted;
     final ink = widget.dark ? p.onHero : p.ink;
@@ -121,7 +122,7 @@ class _TimeoutBarState extends State<TimeoutBar> {
                         size: 18, color: secs == 0 ? p.danger : p.orangeInk),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text('Timeout · ${activeTeam?.name ?? 'Team'}',
+                      child: Text(context.l10n.game_timeout3(activeTeam?.name ?? 'Team'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -132,7 +133,7 @@ class _TimeoutBarState extends State<TimeoutBar> {
                     Text(
                         secs > 0
                             ? '0:${secs.toString().padLeft(2, '0')}'
-                            : 'Time',
+                            : context.l10n.game_time,
                         style: TextStyle(
                           color: secs == 0 ? p.danger : p.orangeInk,
                           fontSize: 24,
@@ -149,7 +150,7 @@ class _TimeoutBarState extends State<TimeoutBar> {
                             : () => onAction(active.teamId, 'end'),
                         style: FilledButton.styleFrom(
                             backgroundColor: p.ink, foregroundColor: p.bg),
-                        child: const Text('End timeout'),
+                        child: Text(context.l10n.game_endTimeout),
                       ),
                       const SizedBox(width: 8),
                       TextButton.icon(
@@ -157,12 +158,12 @@ class _TimeoutBarState extends State<TimeoutBar> {
                             ? null
                             : () => onAction(active.teamId, 'undo'),
                         icon: const Icon(Icons.undo_rounded, size: 16),
-                        label: const Text('Undo'),
+                        label: Text(context.l10n.game_undo),
                       ),
                     ]),
                     if (bb != null)
                       Text(
-                          'The clock is stopped. Start it again when play resumes.',
+                          context.l10n.game_theClockIsStoppedStart,
                           style: TextStyle(color: p.muted, fontSize: 11)),
                   ],
                 ]),
@@ -189,7 +190,7 @@ class _TimeoutBarState extends State<TimeoutBar> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                              'TIMEOUTS${period != null ? ' · ${period.toUpperCase()}' : ''}',
+                              context.l10n.game_timeouts2((period != null ? ' · ${period.toUpperCase()}' : '')),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -198,7 +199,7 @@ class _TimeoutBarState extends State<TimeoutBar> {
                                   fontWeight: FontWeight.w800)),
                           const SizedBox(height: 3),
                           n == 0
-                              ? Text('None left',
+                              ? Text(context.l10n.game_noneLeft,
                                   style: TextStyle(color: muted, fontSize: 12))
                               : Row(children: [
                                   for (var k = 0; k < n; k++)
@@ -226,8 +227,8 @@ class _TimeoutBarState extends State<TimeoutBar> {
                         visualDensity: VisualDensity.compact,
                         padding: const EdgeInsets.symmetric(horizontal: 10),
                       ),
-                      child: const Text('Timeout',
-                          style: TextStyle(
+                      child: Text(context.l10n.game_timeout2,
+                          style: const TextStyle(
                               fontSize: 12, fontWeight: FontWeight.w800)),
                     ),
                 ]);
@@ -364,7 +365,7 @@ class _ShotClockPanelState extends State<ShotClockPanel> {
                 fontFeatures: const [FontFeature.tabularFigures()],
               )),
           const SizedBox(height: 4),
-          Text('SHOT CLOCK${!sc.running && !expired ? ' · STOPPED' : ''}',
+          Text(context.l10n.game_shotClock2(!sc.running && !expired ? ' · STOPPED' : ''),
               style: TextStyle(
                   color: expired ? p.danger : muted,
                   fontSize: 9.5,

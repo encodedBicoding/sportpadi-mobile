@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/features/sports/sport_artwork.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The top of a sport record page (design §3.1): a dark card painted with the
 /// sport's artwork — dark in light AND dark mode — with the sport, the player,
@@ -50,7 +51,7 @@ class SportHero extends StatelessWidget {
     final t = sportTheme(family);
     final top = MediaQuery.of(context).padding.top;
     final emoji = parseStr(category['emoji']) ?? t.emoji;
-    final name = parseStr(category['name']) ?? 'Sport';
+    final name = parseStr(category['name']) ?? context.l10n.profile_sport;
     final fields = statFields(category['fields'], family);
     final setup = listOf(category['setup']);
     final games = gamesOf(tally);
@@ -121,7 +122,7 @@ class SportHero extends StatelessWidget {
                 icon: canPop
                     ? Icons.arrow_back_ios_new_rounded
                     : Icons.home_outlined,
-                tooltip: canPop ? 'Back' : 'Home',
+                tooltip: canPop ? context.l10n.profile_back : context.l10n.profile_home,
                 onTap: () => _back(context),
               ),
               if (onViewAsOthers != null) ...[
@@ -133,7 +134,7 @@ class SportHero extends StatelessWidget {
                     alignment: Alignment.centerRight,
                     child: _GlassPill(
                       icon: Icons.visibility_outlined,
-                      label: 'View as others see it',
+                      label: context.l10n.profile_viewAsOthersSeeIt,
                       onTap: onViewAsOthers!,
                     ),
                   ),
@@ -253,8 +254,8 @@ class SportHero extends StatelessWidget {
             ] else ...[
               Text(
                   isAttendanceDesign(family)
-                      ? 'No $name outings on record yet.'
-                      : 'No $name games on record yet.',
+                      ? context.l10n.profile_noOutingsOnRecordYet(name)
+                      : context.l10n.profile_noGamesOnRecordYet3(name),
                   style: const TextStyle(
                       color: sportHeroMuted,
                       fontSize: 14,

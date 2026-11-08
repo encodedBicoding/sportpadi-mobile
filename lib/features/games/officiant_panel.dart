@@ -14,6 +14,7 @@ import 'package:sportpadi_mobile/features/games/game_screen.dart'
 import 'package:sportpadi_mobile/features/games/stoppage_pad.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Scorekeeper controls: kickoff, clock/phase control, stat recording,
 /// substitutions, shootout tallying and finishing the match. Stat writes
@@ -64,7 +65,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
     final take = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Someone else is scoring'),
+        title: Text(l10n.game_someoneElseIsScoring),
         content: Text(msg),
         actions: [
           TextButton(
@@ -72,7 +73,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
               child: const Text('OK')),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Take over')),
+              child: Text(l10n.game_takeOver)),
         ],
       ),
     );
@@ -150,7 +151,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
         children: [
           Row(
             children: [
-              const Expanded(child: Eyebrow('Officiate')),
+              Expanded(child: Eyebrow(context.l10n.game_officiate)),
               if (_busy)
                 const SizedBox(
                     width: 14,
@@ -164,11 +165,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
           if (canTime && (g.isScheduled || g.isLive)) ...[
             _OfficiantModeTile(
               subtitle:
-                  'Full-screen clock: ${g.isScheduled ? 'kick-off, ' : ''}'
-                  '${prof.pauseLabel.toLowerCase()}'
-                  '${prof.addsTime ? ', stoppage' : ''}'
-                  '${prof.has('periods') ? ', ${prof.periodWord}s' : ''}'
-                  ' and full time — the app stays locked on screen.',
+                  context.l10n.game_fullScreenClockAndFull(g.isScheduled ? context.l10n.game_kickOff : '', prof.pauseLabel.toLowerCase(), prof.addsTime ? context.l10n.game_stoppage : '', prof.has('periods') ? context.l10n.game_s(prof.periodWord) : ''),
               onTap: () => context.push('/games/${widget.gameId}/officiate'),
             ),
             const SizedBox(height: 10),
@@ -178,10 +175,10 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
           if (g.isScheduled && canTime)
             SpButton(
               label: g.isBasketball
-                  ? 'Tip off'
+                  ? context.l10n.game_tipOff
                   : g.isVolleyball
-                      ? 'First serve'
-                      : 'Kick off',
+                      ? context.l10n.game_firstServe
+                      : context.l10n.game_kickOff2,
               icon: Icons.play_arrow_rounded,
               expand: true,
               onTap: _busy ? null : () => _run(() => repo.start(widget.gameId)),
@@ -191,7 +188,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
           if (g.isLive) ...[
             if (inShootout)
               Text(
-                'Penalty shootout in progress — record kicks on the shootout card above.',
+                context.l10n.game_penaltyShootoutInProgressRecord,
                 style: TextStyle(color: p.muted, fontSize: 12),
               )
             else ...[
@@ -212,7 +209,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                     ),
                     if (prof.addsTime)
                       _MiniAction(
-                        label: 'Stoppage',
+                        label: context.l10n.game_stoppage2,
                         icon: Icons.more_time_rounded,
                         onTap: _busy
                             ? null
@@ -223,11 +220,11 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
                                     children: [
-                                      const SpSheetHeader(
+                                      SpSheetHeader(
                                         icon: Icons.more_time_rounded,
-                                        title: 'Stoppage time',
+                                        title: context.l10n.game_stoppageTime,
                                         subtitle:
-                                            'Add any amount up to 120\', or correct the total.',
+                                            context.l10n.game_addAnyAmountUpTo,
                                       ),
                                       StoppagePad(
                                         dark: false,
@@ -254,7 +251,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                   ],
                   if (canTime && lc != null && inTimedPhase)
                     _MiniAction(
-                      label: 'End ${phase.label}',
+                      label: context.l10n.game_end2(phase.label),
                       icon: Icons.flag_rounded,
                       onTap: _busy
                           ? null
@@ -263,7 +260,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                     ),
                   if (showStartNext && canTime)
                     _MiniAction(
-                      label: 'Start ${lc.nextTimed!.label}',
+                      label: context.l10n.game_start4(lc.nextTimed!.label),
                       icon: Icons.play_arrow_rounded,
                       onTap: _busy
                           ? null
@@ -274,7 +271,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
               ),
               if (showPlay && canScore && g.isBasketball) ...[
                 const SizedBox(height: 12),
-                const Eyebrow('Record — tap a player'),
+                Eyebrow(context.l10n.game_recordTapAPlayer),
                 const SizedBox(height: 8),
                 BasketballScorePad(
                   game: g,
@@ -289,7 +286,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
               ],
               if (showPlay && canScore && g.isVolleyball) ...[
                 const SizedBox(height: 12),
-                const Eyebrow('Record — tap a player'),
+                Eyebrow(context.l10n.game_recordTapAPlayer),
                 const SizedBox(height: 8),
                 VolleyballScorePad(
                   game: g,
@@ -303,7 +300,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
                   !g.isBasketball &&
                   !g.isVolleyball) ...[
                 const SizedBox(height: 12),
-                const Eyebrow('Record'),
+                Eyebrow(context.l10n.game_record),
                 const SizedBox(height: 8),
                 // One row of event types (web layout): pick the event, then
                 // the team, the player — and the assist when it's a goal.
@@ -320,10 +317,10 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
               const SizedBox(height: 4),
               SpButton(
                 label: g.isBasketball
-                    ? 'End game'
+                    ? context.l10n.game_endGame
                     : g.isVolleyball
-                        ? 'End match'
-                        : 'Complete match',
+                        ? context.l10n.game_endMatch
+                        : context.l10n.game_completeMatch,
                 icon: Icons.check_rounded,
                 expand: true,
                 onTap: _busy || !completeEnabled ? null : _confirmComplete,
@@ -333,12 +330,10 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
 
           // -- Completed: post-match corrections ---------------------------
           if (showAmend) ...[
-            const Eyebrow('Amend stats'),
+            Eyebrow(context.l10n.game_amendStats),
             const SizedBox(height: 4),
             Text(
-              'Something happened right at the end? Record it here — the '
-              'final score and result update automatically. Fix who a stat '
-              'was credited to with ✎ on the timeline below, or delete it.',
+              context.l10n.game_somethingHappenedRightAtThe2,
               style: TextStyle(color: p.muted, fontSize: 11.5),
             ),
             const SizedBox(height: 8),
@@ -418,7 +413,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Which team?',
+          Text(l10n.game_whichTeam,
               style: TextStyle(
                   color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: 10),
@@ -439,17 +434,17 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
     final onField = g.onFieldFor(team.teamId);
     final bench = g.benchFor(team.teamId);
     if (onField.isEmpty || bench.isEmpty) {
-      _snack('Need a player on the pitch and one on the bench.');
+      _snack(l10n.game_needAPlayerOnThe);
       return;
     }
     final off = await _pickPlayer(
-        'Coming off — ${team.name}',
+        l10n.game_comingOff(team.name),
         onField
             .map((x) => _Pick(x.playerId, x.displayName, x.jersey))
             .toList());
     if (off == null) return;
     final on = await _pickPlayer(
-        'Coming on — ${team.name}',
+        l10n.game_comingOn(team.name),
         bench
             .where((x) => x.playerId != off)
             .map((x) => _Pick(x.playerId, x.displayName, x.jersey))
@@ -470,16 +465,16 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Complete the match?'),
+        title: Text(l10n.game_completeTheMatch),
         content:
-            const Text('Final scores are locked in and results are recorded.'),
+            Text(l10n.game_finalScoresAreLockedIn),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Not yet')),
+              child: Text(l10n.game_notYet)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Complete')),
+              child: Text(l10n.game_complete)),
         ],
       ),
     );
@@ -552,7 +547,7 @@ class _OfficiantPanelState extends ConsumerState<OfficiantPanel> {
             if (allowSkip)
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Skip'),
+                child: Text(context.l10n.game_skip),
               ),
           ],
         ),
@@ -594,7 +589,7 @@ class _OfficiantModeTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Enter officiant mode',
+                  Text(context.l10n.game_enterOfficiantMode,
                       style: TextStyle(
                           color: p.ink,
                           fontSize: 14,
@@ -743,7 +738,7 @@ class _RecordSheetState extends State<_RecordSheet> {
                 color: p.ink, fontSize: 17, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 14),
-          Text('TEAM',
+          Text(context.l10n.game_team3,
               style: TextStyle(
                   color: p.muted,
                   fontSize: 10.5,
@@ -799,7 +794,7 @@ class _RecordSheetState extends State<_RecordSheet> {
             ],
           ]),
           const SizedBox(height: 14),
-          Text('PLAYER',
+          Text(context.l10n.game_player2,
               style: TextStyle(
                   color: p.muted,
                   fontSize: 10.5,
@@ -807,7 +802,7 @@ class _RecordSheetState extends State<_RecordSheet> {
                   letterSpacing: 1.0)),
           const SizedBox(height: 6),
           if (pickable.isEmpty)
-            Text('No players in the game for this team.',
+            Text(context.l10n.game_noPlayersInTheGame,
                 style: TextStyle(color: p.muted, fontSize: 12.5))
           else
             Wrap(spacing: 6, runSpacing: 6, children: [
@@ -821,7 +816,7 @@ class _RecordSheetState extends State<_RecordSheet> {
             ]),
           if (bench.isNotEmpty) ...[
             const SizedBox(height: 10),
-            Text('BENCH',
+            Text(context.l10n.game_bench7,
                 style: TextStyle(
                     color: p.muted,
                     fontSize: 10.5,
@@ -841,7 +836,7 @@ class _RecordSheetState extends State<_RecordSheet> {
           if (wantsRelated) ...[
             const SizedBox(height: 14),
             Text(
-              needsRelated ? 'SECOND PLAYER' : 'ASSIST (OPTIONAL)',
+              needsRelated ? context.l10n.game_secondPlayer2 : context.l10n.game_assistOptional2,
               style: TextStyle(
                   color: p.muted,
                   fontSize: 10.5,
@@ -860,7 +855,7 @@ class _RecordSheetState extends State<_RecordSheet> {
           ],
           const SizedBox(height: 18),
           SpButton(
-            label: 'Record ${def.label.toLowerCase()}',
+            label: context.l10n.game_record2(def.label.toLowerCase()),
             expand: true,
             onTap: canRecord
                 ? () => Navigator.pop(context, (
@@ -911,7 +906,7 @@ class _RecordPad extends StatelessWidget {
         );
     final sub = onSub == null
         ? null
-        : _MiniAction(label: '🔁 Sub', onTap: busy ? null : onSub);
+        : _MiniAction(label: context.l10n.game_sub3, onTap: busy ? null : onSub);
     if (!acts.any((d) => d.side != null)) {
       return Wrap(spacing: 8, runSpacing: 8, children: [
         for (final def in acts) chip(def),

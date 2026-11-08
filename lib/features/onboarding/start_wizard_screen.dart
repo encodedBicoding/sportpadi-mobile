@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/features/onboarding/intent_cards.dart';
 import 'package:sportpadi_mobile/features/onboarding/intents.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// /start/<intent> — the onboarding-style carousel after sign-in: one page
 /// per step (a picture of the thing, a title, a paragraph) with a
@@ -85,7 +86,7 @@ class _StartWizardScreenState extends ConsumerState<StartWizardScreen> {
       return Scaffold(
           backgroundColor: p.bg,
           body: Center(
-              child: Text('Not sure what you were after — head Home.',
+              child: Text(context.l10n.auth_notSureWhatYouWere,
                   style: TextStyle(color: p.muted))));
     }
     final (bg, fg) = intentTint(p, i.key);
@@ -114,7 +115,7 @@ class _StartWizardScreenState extends ConsumerState<StartWizardScreen> {
                     children: [
                       Eyebrow(i.title),
                       const SizedBox(height: 2),
-                      Text('Step ${_step + 1} of $total',
+                      Text(context.l10n.auth_stepOf(_step + 1, total),
                           style: TextStyle(
                               color: p.muted,
                               fontSize: 12.5,
@@ -123,7 +124,7 @@ class _StartWizardScreenState extends ConsumerState<StartWizardScreen> {
               ),
               TextButton(
                   onPressed: _finish,
-                  child: Text('Skip',
+                  child: Text(context.l10n.auth_skip,
                       style: TextStyle(
                           color: p.muted, fontWeight: FontWeight.w700))),
             ]),
@@ -181,7 +182,7 @@ class _StartWizardScreenState extends ConsumerState<StartWizardScreen> {
             Row(children: [
               if (_step > 0) ...[
                 SpButton(
-                  label: 'Back',
+                  label: context.l10n.auth_back,
                   icon: Icons.arrow_back_rounded,
                   onTap: () => _pages.previousPage(
                       duration: const Duration(milliseconds: 220),
@@ -191,7 +192,7 @@ class _StartWizardScreenState extends ConsumerState<StartWizardScreen> {
               ],
               Expanded(
                 child: SpButton(
-                  label: last ? i.cta : 'Next',
+                  label: last ? i.cta : context.l10n.auth_next,
                   icon: Icons.arrow_forward_rounded,
                   expand: true,
                   tone: last ? SpButtonTone.brand : SpButtonTone.ink,

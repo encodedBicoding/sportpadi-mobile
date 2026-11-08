@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/sports/sport_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Basketball 🏀 — a scoreboard, a box score, shooting and a foul meter.
 
@@ -24,14 +25,14 @@ class BasketballRecord extends StatelessWidget {
       ),
       child: Column(children: [
         Row(children: [
-          Expanded(child: _Led(value: nums.wins, caption: 'Wins', dark: dark)),
+          Expanded(child: _Led(value: nums.wins, caption: context.l10n.profile_wins2, dark: dark)),
           Container(
             width: 1,
             height: 56,
             color: dark ? const Color(0x1FFFFFFF) : p.line,
           ),
           Expanded(
-              child: _Led(value: nums.losses, caption: 'Losses', dark: dark)),
+              child: _Led(value: nums.losses, caption: context.l10n.profile_losses, dark: dark)),
         ]),
         const SizedBox(height: 12),
         Wrap(
@@ -39,10 +40,10 @@ class BasketballRecord extends StatelessWidget {
             spacing: 6,
             runSpacing: 6,
             children: [
-              if (nums.draws > 0) MiniChip('D ${nums.draws}'),
-              MiniChip(nums.games > 0 ? '${nums.winRate}% wins' : 'No games'),
+              if (nums.draws > 0) MiniChip(context.l10n.profile_d2(nums.draws)),
+              MiniChip(nums.games > 0 ? context.l10n.profile_wins(nums.winRate) : context.l10n.profile_noGames),
               if (streak != null)
-                MiniChip('Streak $streak', color: streakColor(p, streak!)),
+                MiniChip(context.l10n.profile_streak2(streak ?? ''), color: streakColor(p, streak!)),
             ]),
       ]),
     );
@@ -105,34 +106,34 @@ class BasketballStats extends StatelessWidget {
     final p = context.palette;
     final g = nums.games;
     final cols = <(String, String)>[
-      ('PTS', 'points'),
-      if (nums.has('reb')) ('REB', 'reb'),
-      if (nums.has('assists')) ('AST', 'assists'),
-      if (nums.has('fouls')) ('PF', 'fouls'),
+      (context.l10n.profile_p5StatPts, 'points'),
+      if (nums.has('reb')) (context.l10n.profile_p5StatReb, 'reb'),
+      if (nums.has('assists')) (context.l10n.profile_p5StatAst, 'assists'),
+      if (nums.has('fouls')) (context.l10n.profile_p5StatPf, 'fouls'),
     ];
     final shooting = <(String, int, int)>[
-      for (final (label, made, att) in const [
-        ('2PT', 'fg2Made', 'fg2Att'),
-        ('3PT', 'fg3Made', 'fg3Att'),
-        ('FT', 'ftMade', 'ftAtt'),
+      for (final (label, made, att) in [
+        (context.l10n.profile_p5Stat2pt, 'fg2Made', 'fg2Att'),
+        (context.l10n.profile_p5Stat3pt, 'fg3Made', 'fg3Att'),
+        (context.l10n.profile_p5StatFt, 'ftMade', 'ftAtt'),
       ])
         if (nums.n(att) > 0) (label, nums.n(made), nums.n(att)),
     ];
     final foulAvg = g > 0 ? nums.n('fouls') / g : 0.0;
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const BlockHeading('Box score'),
+      BlockHeading(context.l10n.profile_boxScore),
       const SizedBox(height: 10),
       StatTable(
-        columns: ['G', for (final c in cols) c.$1],
+        columns: [context.l10n.profile_g, for (final c in cols) c.$1],
         rows: [
-          ('Total', ['$g', for (final c in cols) '${nums.n(c.$2)}']),
-          ('Per game', ['', for (final c in cols) nums.rate(c.$2)]),
+          (context.l10n.profile_total, ['$g', for (final c in cols) '${nums.n(c.$2)}']),
+          (context.l10n.profile_perGame, ['', for (final c in cols) nums.rate(c.$2)]),
         ],
       ),
       if (shooting.isNotEmpty) ...[
         const BlockDivider(),
-        const BlockHeading('Shooting'),
+        BlockHeading(context.l10n.profile_shooting),
         const SizedBox(height: 12),
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           for (var i = 0; i < shooting.length; i++) ...[
@@ -176,8 +177,8 @@ class BasketballStats extends StatelessWidget {
       ],
       if (nums.has('fouls')) ...[
         const BlockDivider(),
-        BlockHeading('Foul meter',
-            trailing: Text('${nums.rate('fouls')} / game',
+        BlockHeading(context.l10n.profile_foulMeter,
+            trailing: Text(context.l10n.profile_game(nums.rate('fouls')),
                 style: TextStyle(
                     color: p.muted,
                     fontSize: 12,
@@ -194,7 +195,7 @@ class BasketballStats extends StatelessWidget {
           ],
           const SizedBox(width: 12),
           Expanded(
-            child: Text('Fouls out at 5',
+            child: Text(context.l10n.profile_foulsOutAt5,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.right,

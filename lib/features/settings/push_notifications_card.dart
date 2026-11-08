@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/push/push_service.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// "Push notifications" on Settings.
 ///
@@ -108,10 +109,12 @@ class _PushNotificationsCardState extends ConsumerState<PushNotificationsCard>
     });
     try {
       final r = await ref.read(pushServiceProvider).sendSelfTest();
-      final why = r.errors.isEmpty ? '' : '\nFCM said: ${r.errors.join('; ')}';
+      final why = r.errors.isEmpty
+          ? ''
+          : '\n${l10n.profile_fcmSaid(r.errors.join('; '))}';
       setState(() => _testResult = r.ok > 0
-          ? 'Sent to ${r.ok} device${r.ok == 1 ? '' : 's'} — it should arrive within a few seconds.$why'
-          : 'The server tried ${r.devices} device${r.devices == 1 ? '' : 's'} and none accepted it.$why');
+          ? '${l10n.profile_pushTestSent(r.ok)}$why'
+          : '${l10n.profile_pushTestNoneAccepted(r.devices)}$why');
     } catch (e) {
       setState(() => _testResult = '$e');
     } finally {
@@ -132,16 +135,16 @@ class _PushNotificationsCardState extends ConsumerState<PushNotificationsCard>
 
     final String detail;
     if (ready) {
-      detail = 'On — this device can receive notifications.';
+      detail = context.l10n.profile_onThisDeviceCanReceive;
     } else if (unavailable) {
-      detail = 'Not available on this device.';
+      detail = context.l10n.profile_notAvailableOnThisDevice;
     } else if (status == AuthorizationStatus.denied) {
-      detail = 'Off — turned off in your phone\'s settings. Tap to turn on.';
+      detail = context.l10n.profile_offTurnedOffInYour;
     } else if (status == AuthorizationStatus.notDetermined) {
-      detail = 'Off — tap to allow notifications on this device.';
+      detail = context.l10n.profile_offTapToAllowNotifications;
     } else {
       // Allowed by the OS, but the server doesn't have this device yet.
-      detail = 'Finishing setup… tap to retry.';
+      detail = context.l10n.profile_finishingSetupTapToRetry;
     }
 
     final tappable = !ready && !unavailable && !_busy;
@@ -176,7 +179,7 @@ class _PushNotificationsCardState extends ConsumerState<PushNotificationsCard>
           Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Push notifications',
+              Text(context.l10n.profile_pushNotifications,
                   style: TextStyle(
                       color: p.ink, fontSize: 14, fontWeight: FontWeight.w600)),
               const SizedBox(height: 2),
@@ -210,11 +213,11 @@ class _PushNotificationsCardState extends ConsumerState<PushNotificationsCard>
   ) {
     final token = push.token;
     final permissionText = switch (status) {
-      AuthorizationStatus.authorized => 'Allowed',
-      AuthorizationStatus.provisional => 'Allowed (quiet)',
-      AuthorizationStatus.denied => 'Denied in system settings',
-      AuthorizationStatus.notDetermined => 'Not asked yet',
-      null => 'Unknown — Firebase not initialised',
+      AuthorizationStatus.authorized => context.l10n.profile_allowed,
+      AuthorizationStatus.provisional => context.l10n.profile_allowedQuiet,
+      AuthorizationStatus.denied => context.l10n.profile_deniedInSystemSettings,
+      AuthorizationStatus.notDetermined => context.l10n.profile_notAskedYet,
+      null => context.l10n.profile_unknownFirebaseNotInitialised,
     };
 
     Widget row(String label, String value,
@@ -249,53 +252,53 @@ class _PushNotificationsCardState extends ConsumerState<PushNotificationsCard>
       const SizedBox(height: 8),
       Divider(height: 1, color: p.muted.withAlpha(60)),
       const SizedBox(height: 8),
-      Text('DEBUG · push diagnostics',
+      Text(context.l10n.profile_debugPushDiagnostics,
           style: TextStyle(
               color: p.muted,
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.6)),
       const SizedBox(height: 4),
-      row('Notification permission', permissionText, ok: allowed),
+      row(context.l10n.profile_notificationPermission, permissionText, ok: allowed),
       row(
-        'Device token',
+        context.l10n.profile_deviceToken,
         token == null
-            ? 'None yet — the device hasn\'t registered with Firebase'
+            ? context.l10n.profile_noneYetTheDeviceHasnt
             : '${token.substring(0, 12)}… (tap to copy)',
         ok: token != null,
         trailing: token == null
             ? null
             : IconButton(
-                tooltip: 'Copy token',
+                tooltip: context.l10n.profile_copyToken,
                 visualDensity: VisualDensity.compact,
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: token));
                   ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Token copied')));
+                      SnackBar(content: Text(context.l10n.profile_tokenCopied)));
                 },
                 icon: const Icon(Icons.copy_rounded, size: 15),
               ),
       ),
       row(
-        'Registered with SportPadi',
+        context.l10n.profile_registeredWithSportPadi,
         push.registeredWithServer
-            ? 'Yes — this sign-in'
-            : (push.lastRegisterError ?? 'Not yet'),
+            ? context.l10n.profile_yesThisSignIn
+            : (push.lastRegisterError ?? context.l10n.profile_notYet),
         ok: push.registeredWithServer,
       ),
       row(
-        'Server',
+        context.l10n.profile_server,
         _serverError ??
             (_server == null
-                ? 'Checking…'
+                ? context.l10n.profile_checking
                 : _server!.serverEnabled
-                    ? 'Push enabled · ${_server!.devices} device${_server!.devices == 1 ? '' : 's'} on your account'
-                    : 'Push is not configured on the server'),
+                    ? context.l10n.profile_pushEnabledDevicesOnYour(_server!.devices)
+                    : context.l10n.profile_pushIsNotConfiguredOn),
         ok: _server?.serverEnabled == true && (_server?.devices ?? 0) > 0,
       ),
       const SizedBox(height: 8),
       SpButton(
-        label: _testing ? 'Sending…' : 'Send me a test notification',
+        label: _testing ? context.l10n.profile_sending : context.l10n.profile_sendMeATestNotification,
         icon: Icons.notifications_active_outlined,
         expand: true,
         onTap: _testing ? null : _test,

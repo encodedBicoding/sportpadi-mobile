@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/leagues/leagues_repository.dart';
 import 'package:sportpadi_mobile/features/leagues/league_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The leagues a group RUNS, inside its Tournaments tab (a league is a
 /// tournament format). Leagues its TEAMS play in — and their invitations —
@@ -30,7 +31,7 @@ class GroupLeaguesSection extends ConsumerWidget {
             onTap: () => context.push(canManage ? '/groups/$groupId/leagues/${l.str('id')}' : '/leagues/${l.str('slug')}'),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Wrap(spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
-                SpBadge('League', icon: Icons.format_list_numbered_rounded, tone: p.ink),
+                SpBadge(context.l10n.league_league, icon: Icons.format_list_numbered_rounded, tone: p.ink),
                 Text(l.str('season'), style: TextStyle(color: p.muted, fontSize: 11)),
                 if (l.s('division') != null) SpBadge(l.str('division')),
                 SpBadge(leagueStatusLabel[l.s('status')] ?? l.str('status'),
@@ -44,9 +45,11 @@ class GroupLeaguesSection extends ConsumerWidget {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                      '${l.i('teamsIn')} team${l.i('teamsIn') == 1 ? '' : 's'}'
-                      '${l.i('teamsInvited') > 0 ? ' · ${l.i('teamsInvited')} invited' : ''}'
-                      '${l.i('fixtures') > 0 ? ' · ${l.i('played')}/${l.i('fixtures')} played' : ''}',
+                      [
+                        context.l10n.league_teamCount(l.i('teamsIn')),
+                        if (l.i('teamsInvited') > 0) context.l10n.league_p5InvitedCount(l.i('teamsInvited')),
+                        if (l.i('fixtures') > 0) context.l10n.league_p5PlayedOfTotal(l.i('played'), l.i('fixtures')),
+                      ].join(' · '),
                       style: TextStyle(color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w600)),
                 ),
                 Icon(Icons.chevron_right_rounded, color: p.muted),

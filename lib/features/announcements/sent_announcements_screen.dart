@@ -12,6 +12,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Announcements sent in a group (staff): admins see all of them, coaches
 /// and organisers their own — each with how many have seen it and tapped
@@ -35,13 +36,13 @@ class SentAnnouncementsScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: SpHeader(
-              title: 'Sent announcements',
+              title: context.l10n.inbox_sentAnnouncements,
               subtitle: composer?.groupName,
               actions: [
                 if (composer != null)
                   SpRoundButton(
                     icon: Icons.edit_outlined,
-                    tooltip: 'New announcement',
+                    tooltip: context.l10n.inbox_newAnnouncement,
                     onTap: () =>
                         context.push('/groups/$groupId/announcements/new'),
                   ),
@@ -77,7 +78,7 @@ class SentAnnouncementsScreen extends ConsumerWidget {
                               size: 60, iconSize: 28),
                         ),
                         const SizedBox(height: 14),
-                        Text('Nothing sent yet',
+                        Text(context.l10n.inbox_nothingSentYet,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                                 color: p.ink,
@@ -85,15 +86,14 @@ class SentAnnouncementsScreen extends ConsumerWidget {
                                 fontWeight: FontWeight.w700)),
                         const SizedBox(height: 4),
                         Text(
-                            'Announcements you send to this group will '
-                            'show here, with who has seen them.',
+                            context.l10n.inbox_announcementsYouSendToThis,
                             textAlign: TextAlign.center,
                             style: TextStyle(color: p.muted, fontSize: 13)),
                         if (composer != null) ...[
                           const SizedBox(height: 18),
                           Center(
                             child: SpButton(
-                              label: 'New announcement',
+                              label: context.l10n.inbox_newAnnouncement,
                               icon: Icons.campaign_outlined,
                               onTap: () => context
                                   .push('/groups/$groupId/announcements/new'),
@@ -172,7 +172,7 @@ class _SentCard extends StatelessWidget {
     final a = item;
     final total = a.recipientCount;
     final meta = [
-      if (a.audienceLabel.isNotEmpty) 'To ${a.audienceLabel}',
+      if (a.audienceLabel.isNotEmpty) context.l10n.inbox_to3(a.audienceLabel),
       if (a.senderName.isNotEmpty) a.senderName,
       fmtRelative(a.createdAt),
     ].where((s) => s.isNotEmpty).join(' · ');
@@ -223,7 +223,7 @@ class _SentCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        Text('Seen ${a.seen} of $total · ${a.acked} tapped Got it',
+        Text(context.l10n.inbox_seenOfTappedGotIt(a.seen, total, a.acked),
             style: TextStyle(
                 color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w600)),
       ]),

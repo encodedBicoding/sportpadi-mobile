@@ -136,3 +136,6 @@ app.*.symbols
 
 # Scratch
 _to_delete/
+
+# Translations: generated from lib/l10n/*.arb on every build (l10n.yaml).
+lib/l10n/generated/

@@ -5,6 +5,8 @@ import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/data/groups/group_models.dart';
 import 'package:sportpadi_mobile/data/groups/member_models.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
+import 'package:sportpadi_mobile/shared/format/parse.dart';
 
 /// Reads groups over the REST bridge (`/api/mobile/groups`), which reuses the
 /// backend tRPC procedures `groups.mineDetailed` and `groups.get` behind bearer
@@ -70,6 +72,52 @@ class GroupsRepository {
     try {
       await _dio.post('/api/mobile/groups/$groupId',
           data: {'action': 'update', ...patch});
+    } on DioException catch (e) {
+      throw _err(e);
+    }
+  }
+
+  /// Admin: set the group's type (`school` … `community`), or null for
+  /// "Not set". The server refuses (403) once SportPadi has confirmed it
+  /// (`classificationLocked`); its message is passed through.
+  Future<void> setClassification(String groupId, String? classification) async {
+    try {
+      await _dio.post('/api/mobile/groups/$groupId', data: {
+        'action': 'setClassification',
+        'classification': classification,
+      });
+    } catch (e) {
+      throw apiError(e, fallback: l10n.common_couldntSaveYourChanges);
+    }
+  }
+
+  /// Groups of one type (Browse's "Browse groups by type"), biggest first,
+  /// a page at a time; [q] narrows by name.
+  Future<({List<GroupSummary> items, int? nextCursor})> classifiedGroups({
+    required String classification,
+    String? q,
+    int cursor = 0,
+    int limit = 20,
+  }) async {
+    try {
+      final res = await _dio.get('/api/mobile/groups/classified',
+          queryParameters: {
+            'class': classification,
+            if (q != null && q.isNotEmpty) 'q': q,
+            'cursor': cursor,
+            'limit': limit,
+          });
+      final m = res.data is Map
+          ? Map<String, dynamic>.from(res.data as Map)
+          : const <String, dynamic>{};
+      final list = m['items'] is List ? m['items'] as List : const [];
+      return (
+        items: [
+          for (final e in list)
+            if (e is Map) GroupSummary.fromJson(Map<String, dynamic>.from(e)),
+        ],
+        nextCursor: parseInt(m['nextCursor']),
+      );
     } on DioException catch (e) {
       throw _err(e);
     }
@@ -209,13 +257,13 @@ class GroupsRepository {
 
   ApiException _err(DioException e) {
     if (e.response?.statusCode == 404) {
-      return ApiException('Group not found.', statusCode: 404);
+      return ApiException(l10n.common_groupNotFound, statusCode: 404);
     }
     if (e.type == DioExceptionType.connectionError ||
         e.type == DioExceptionType.connectionTimeout) {
-      return ApiException('Can\'t reach the server.', statusCode: null);
+      return ApiException(l10n.common_cantReachTheServer, statusCode: null);
     }
-    return ApiException('Could not load groups.',
+    return ApiException(l10n.common_couldNotLoadGroups,
         statusCode: e.response?.statusCode);
   }
 }

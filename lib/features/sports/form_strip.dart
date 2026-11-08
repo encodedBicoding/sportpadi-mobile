@@ -4,6 +4,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/sports/sport_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Form: the last five results as circles, newest on the right, and the
 /// current streak.
@@ -34,12 +35,12 @@ class FormStrip extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
           Expanded(
-            child: Text('Form',
+            child: Text(context.l10n.profile_form,
                 style: TextStyle(
                     color: p.ink, fontSize: 15.5, fontWeight: FontWeight.w700)),
           ),
           if (streak != null)
-            MiniChip('Streak $streak', color: streakColor(p, streak)),
+            MiniChip(context.l10n.profile_streak2(streak), color: streakColor(p, streak)),
         ]),
         const SizedBox(height: 12),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -82,9 +83,9 @@ class FormStrip extends StatelessWidget {
         ]),
         const SizedBox(height: 8),
         Row(children: [
-          Text('Older', style: TextStyle(color: p.muted, fontSize: 11)),
+          Text(context.l10n.profile_older, style: TextStyle(color: p.muted, fontSize: 11)),
           const Spacer(),
-          Text('Latest', style: TextStyle(color: p.muted, fontSize: 11)),
+          Text(context.l10n.profile_latest2, style: TextStyle(color: p.muted, fontSize: 11)),
         ]),
       ]),
     );

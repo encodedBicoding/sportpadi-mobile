@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 import 'package:sportpadi_mobile/features/progression/progression_screens.dart'
     show showXpVisibilitySheet;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// "Lv 3 · Starter  🔥 4" — the compact identity on player pages and cards.
 class LevelBadge extends StatelessWidget {
@@ -27,7 +28,7 @@ class LevelBadge extends StatelessWidget {
         border: Border.all(color: p.accent.withAlpha(90)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Text('Lv $level · $title',
+        Text(context.l10n.profile_lv3(level, title),
             style: TextStyle(
                 color: p.accent, fontSize: 11, fontWeight: FontWeight.w700)),
         if ((streak ?? 0) > 0) ...[
@@ -66,8 +67,8 @@ class XpBar extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           nextLevelXp != null
-              ? '$xp XP · ${nextLevelXp! - xp!} to next level'
-              : '$xp XP · max level',
+              ? context.l10n.profile_xpToNextLevel(xp ?? '', nextLevelXp! - xp!)
+              : context.l10n.profile_xpMaxLevel(xp ?? ''),
           style: TextStyle(color: p.muted, fontSize: 11),
         ),
       ],
@@ -90,7 +91,7 @@ class StreakPill extends StatelessWidget {
     final on = n > 0;
     final paused = streak?.paused ?? false;
     final text = !on
-        ? (compact ? 'No streak' : 'No streak yet')
+        ? (compact ? context.l10n.profile_noStreak : context.l10n.profile_noStreakYet)
         : compact
             ? '$n wk${n == 1 ? '' : 's'}${paused ? ' · paused' : ''}'
             : '$n-week streak${paused ? ' · paused' : ''}';
@@ -185,9 +186,9 @@ class YourWeekCard extends ConsumerWidget {
     final needed = q?.needed ?? 3;
     final left = (needed - done).clamp(0, needed);
     final subtitle = q == null
-        ? 'Level ${d.level} · ${d.title}'
+        ? context.l10n.profile_level4(d.level, d.title)
         : q.rewarded
-            ? 'Done — +${q.rewardXp} XP earned'
+            ? context.l10n.profile_doneXpEarned(q.rewardXp)
             : '$left more for +${q.rewardXp} XP${daysLeft != null ? ' · ${daysLeft}d left' : ''}';
     return Padding(
       padding: const EdgeInsets.only(top: 14),
@@ -199,14 +200,14 @@ class YourWeekCard extends ConsumerWidget {
           Row(children: [
             ProgressRing(
               value: q == null ? d.progress : (needed == 0 ? 0 : done / needed),
-              label: q == null ? 'L${d.level}' : '$done/$needed',
+              label: q == null ? context.l10n.profile_l2(d.level) : '$done/$needed',
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Your week',
+                    Text(context.l10n.profile_yourWeek,
                         style: TextStyle(
                             color: p.ink,
                             fontSize: 16,
@@ -301,7 +302,7 @@ class YourWeekCard extends ConsumerWidget {
                           ),
                         ]),
                   ),
-                  Text('+${m.xp} XP',
+                  Text(context.l10n.profile_xp2(m.xp),
                       style: TextStyle(
                           color: p.orangeInk,
                           fontSize: 12,
@@ -315,7 +316,7 @@ class YourWeekCard extends ConsumerWidget {
               Icon(Icons.auto_awesome_rounded, size: 15, color: p.orange),
               const SizedBox(width: 8),
               Expanded(
-                child: Text('Next unlock: ${d.next!.title}',
+                child: Text(context.l10n.profile_nextUnlock2(d.next!.title),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -359,7 +360,7 @@ class ProfileProgressionSection extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
-          const Eyebrow('Progress'),
+          Eyebrow(context.l10n.profile_progress),
           const Spacer(),
           // Who can see the XP number and streaks (web parity: "XP private").
           InkWell(
@@ -375,7 +376,7 @@ class ProfileProgressionSection extends ConsumerWidget {
                     size: 13,
                     color: p.muted),
                 const SizedBox(width: 4),
-                Text(d.isPublic ? 'XP public' : 'XP private',
+                Text(d.isPublic ? context.l10n.profile_xpPublic : context.l10n.profile_xpPrivate,
                     style: TextStyle(
                         color: p.muted,
                         fontSize: 11.5,
@@ -386,7 +387,7 @@ class ProfileProgressionSection extends ConsumerWidget {
           const SizedBox(width: 12),
           InkWell(
             onTap: () => context.push('/leaderboards'),
-            child: Text('Leaderboards',
+            child: Text(context.l10n.profile_leaderboards,
                 style: TextStyle(
                     color: p.accent,
                     fontSize: 12,
@@ -408,7 +409,7 @@ class ProfileProgressionSection extends ConsumerWidget {
                           fontSize: 20,
                           fontWeight: FontWeight.w800)),
                   TextSpan(
-                      text: '  · Level ${d.level}',
+                      text: context.l10n.profile_level3(d.level),
                       style: TextStyle(
                           color: p.muted,
                           fontSize: 13,
@@ -443,7 +444,7 @@ class ProfileProgressionSection extends ConsumerWidget {
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Your game',
+                  Text(context.l10n.profile_yourGame,
                       style: TextStyle(
                           color: p.ink,
                           fontSize: 14,
@@ -465,7 +466,7 @@ class ProfileProgressionSection extends ConsumerWidget {
                                         fontWeight: FontWeight.w600)),
                               ),
                               Text(
-                                  '${s.value} · top ${(100 - s.percentile).clamp(1, 100)}%',
+                                  context.l10n.profile_top(s.value, (100 - s.percentile).clamp(1, 100)),
                                   style: TextStyle(
                                       color: p.muted, fontSize: 11.5)),
                             ]),
@@ -483,7 +484,7 @@ class ProfileProgressionSection extends ConsumerWidget {
                     ),
                   const SizedBox(height: 4),
                   Text(
-                      'Compared with everyone who plays this sport on SportPadi.',
+                      context.l10n.profile_comparedWithEveryoneWhoPlays,
                       style: TextStyle(color: p.muted, fontSize: 10.5)),
                 ]),
           ),
@@ -496,7 +497,7 @@ class ProfileProgressionSection extends ConsumerWidget {
             Row(children: [
               Expanded(
                 child: Text(
-                    'Achievements · ${d.unlocked.length}/${d.catalogue.length}',
+                    context.l10n.profile_achievements2(d.unlocked.length, d.catalogue.length),
                     style: TextStyle(
                         color: p.ink,
                         fontSize: 14,
@@ -506,7 +507,7 @@ class ProfileProgressionSection extends ConsumerWidget {
             ]),
             const SizedBox(height: 6),
             if (d.unlocked.isEmpty)
-              Text('Check in to your first game to unlock First Whistle.',
+              Text(context.l10n.profile_checkInToYourFirst2,
                   style: TextStyle(color: p.muted, fontSize: 12.5))
             else
               for (final a in d.unlocked.take(3))
@@ -527,7 +528,7 @@ class ProfileProgressionSection extends ConsumerWidget {
             // Kudos from teammates — the work no stat records.
             if (d.kudos.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text('Kudos from teammates',
+              Text(context.l10n.profile_kudosFromTeammates,
                   style: TextStyle(color: p.muted, fontSize: 11.5, fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               Wrap(spacing: 6, runSpacing: 6, children: [
@@ -622,13 +623,13 @@ class GroupReputationCard extends ConsumerWidget {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('GROUP LEVEL',
+                    Text(context.l10n.profile_groupLevel2,
                         style: TextStyle(
                             color: p.muted,
                             fontSize: 10.5,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1.1)),
-                    Text('Level ${d.level}',
+                    Text(context.l10n.profile_level(d.level),
                         style: TextStyle(
                             color: p.ink,
                             fontSize: 18,
@@ -677,7 +678,7 @@ class GroupReputationCard extends ConsumerWidget {
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.rocket_launch_outlined, size: 14, color: p.greenText),
                 const SizedBox(width: 6),
-                Text('Missions for your players',
+                Text(context.l10n.profile_missionsForYourPlayers,
                     style: TextStyle(color: p.greenText, fontSize: 12, fontWeight: FontWeight.w700)),
               ]),
             ),
@@ -719,7 +720,7 @@ class PointsLine extends StatelessWidget {
             : '${net > 0 ? '▲' : '▼'} ${_fmtPts(net.abs())} in ${r.days}d';
     return Semantics(
       button: onTap != null,
-      label: '${_fmtPts(week.xp)} XP, level ${week.level}. $move',
+      label: context.l10n.profile_xpLevel(_fmtPts(week.xp), week.level, move),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
@@ -775,12 +776,12 @@ class PointsStrip extends StatelessWidget {
     final toNext = week.nextLevelXp == null ? null : week.nextLevelXp! - week.xp;
     final net = r?.net ?? 0;
     return Row(children: [
-      tile('Level', '${week.level} · ${week.title}', sub: toNext == null ? 'Top level' : '${_fmtPts(toNext)} to next'),
+      tile(context.l10n.profile_level2, '${week.level} · ${week.title}', sub: toNext == null ? context.l10n.profile_topLevel : context.l10n.profile_toNext(_fmtPts(toNext))),
       const SizedBox(width: 8),
-      tile('XP', _fmtPts(week.xp), sub: 'all time'),
+      tile('XP', _fmtPts(week.xp), sub: context.l10n.profile_allTime),
       const SizedBox(width: 8),
       tile(
-        'Last ${r?.days ?? 7} days',
+        context.l10n.profile_lastDays(r?.days ?? 7),
         r == null ? '—' : net == 0 ? '0' : '${net > 0 ? '+' : ''}${_fmtPts(net)}',
         valueColor: net > 0 ? p.accentDeep : net < 0 ? p.amber : null,
         sub: r == null || (r.gained == 0 && r.lost == 0)

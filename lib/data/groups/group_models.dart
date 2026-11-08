@@ -1,3 +1,4 @@
+import 'package:sportpadi_mobile/data/groups/group_class.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 
 class GroupSummary {
@@ -13,6 +14,8 @@ class GroupSummary {
     this.verificationBadge,
     this.isMember = false,
     this.role,
+    this.classification,
+    this.classificationLocked = false,
   });
 
   final String id;
@@ -26,6 +29,13 @@ class GroupSummary {
   final String? verificationBadge;
   final bool isMember;
   final String? role; // admin | member (from mineDetailed)
+
+  /// school · university · faith · club · academy · workplace · community,
+  /// or null when not set (see group_class.dart).
+  final String? classification;
+
+  /// The owner console confirmed the type — admins can't change it.
+  final bool classificationLocked;
 
   bool get isVerified =>
       verificationBadge != null &&
@@ -44,6 +54,8 @@ class GroupSummary {
         verificationBadge: j['verificationBadge'] as String?,
         isMember: j['isMember'] == true,
         role: j['role'] as String?,
+        classification: parseGroupClass(j['classification']),
+        classificationLocked: j['classificationLocked'] == true,
       );
 
   GroupSummary copyWith({bool? isMember}) => GroupSummary(
@@ -57,6 +69,8 @@ class GroupSummary {
         followerCount: followerCount,
         verificationBadge: verificationBadge,
         isMember: isMember ?? this.isMember,
+        classification: classification,
+        classificationLocked: classificationLocked,
       );
 }
 
@@ -78,6 +92,8 @@ class GroupDetail {
     this.isFollower = false,
     this.membershipRequest,
     this.createdBy,
+    this.classification,
+    this.classificationLocked = false,
   });
 
   final String id;
@@ -107,6 +123,14 @@ class GroupDetail {
   /// My latest request to join, or null when I never asked.
   final GroupMembershipRequestRef? membershipRequest;
 
+  /// school · university · faith · club · academy · workplace · community,
+  /// or null when not set (see group_class.dart).
+  final String? classification;
+
+  /// The owner console confirmed the type ("Confirmed by SportPadi") —
+  /// admins see it read-only.
+  final bool classificationLocked;
+
   /// A request of mine is waiting on the owner.
   bool get hasPendingRequest => membershipRequest?.isPending ?? false;
 
@@ -133,6 +157,8 @@ class GroupDetail {
         membershipRequest:
             GroupMembershipRequestRef.fromJson(j['membershipRequest']),
         createdBy: j['createdBy'] as String?,
+        classification: parseGroupClass(j['classification']),
+        classificationLocked: j['classificationLocked'] == true,
       );
 }
 

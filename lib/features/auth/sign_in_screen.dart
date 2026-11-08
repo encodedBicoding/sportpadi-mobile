@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/auth/auth_scaffold.dart';
 import 'package:sportpadi_mobile/features/auth/social_buttons.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Sign in / create account (2026): dark pitch cover with logo, close and a
 /// title that follows the mode (and names what's behind a gated link), then
@@ -87,7 +88,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } catch (_) {
-      setState(() => _error = 'Something went wrong. Please try again.');
+      setState(() => _error = l10n.auth_somethingWentWrongPleaseTry);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -129,13 +130,13 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     final up = _isSignUp;
 
     return AuthScaffold(
-      eyebrow: gated ? 'Account needed' : (up ? 'Join free' : 'Welcome back'),
-      title: up ? 'Create your account' : 'Sign in to play',
+      eyebrow: gated ? context.l10n.auth_accountNeeded : (up ? context.l10n.auth_joinFree : context.l10n.auth_welcomeBack),
+      title: up ? context.l10n.auth_createYourAccount : context.l10n.auth_signInToPlay,
       subtitle: Text(gated
           ? _gateLine(wanted, signUp: up)
           : up
-              ? 'One account for every sport you play — games, groups, tickets and your record.'
-              : 'Your games, groups and record, right where you left them.'),
+              ? context.l10n.auth_oneAccountForEverySport
+              : context.l10n.auth_yourGamesGroupsAndRecord),
       // Pushed from the guest shell → pop back to it; sent here by the
       // router (a gated link) → there's nothing underneath, so go Home.
       onClose: () => context.canPop() ? context.pop() : context.go('/home'),
@@ -153,7 +154,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SpSegmented(
-                  options: const ['Sign in', 'Create account'],
+                  options: [context.l10n.auth_signIn, context.l10n.auth_createAccount],
                   index: up ? 1 : 0,
                   onChanged: (i) => _setMode(i == 1),
                 ),
@@ -177,9 +178,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     textCapitalization: TextCapitalization.words,
                     autofillHints: const [AutofillHints.name],
                     decoration: authInput(context,
-                        label: 'Your name', icon: Icons.person_outline_rounded),
+                        label: context.l10n.auth_yourName, icon: Icons.person_outline_rounded),
                     validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Enter your name'
+                        ? context.l10n.auth_enterYourName
                         : null,
                   ),
                   const SizedBox(height: 12),
@@ -191,9 +192,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                   autocorrect: false,
                   autofillHints: const [AutofillHints.email],
                   decoration: authInput(context,
-                      label: 'Email', icon: Icons.mail_outline_rounded),
+                      label: context.l10n.auth_email, icon: Icons.mail_outline_rounded),
                   validator: (v) => (v == null || !v.contains('@'))
-                      ? 'Enter a valid email'
+                      ? context.l10n.auth_enterAValidEmail
                       : null,
                 ),
                 const SizedBox(height: 12),
@@ -207,11 +208,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                   onFieldSubmitted: (_) => _submit(),
                   decoration: authInput(
                     context,
-                    label: 'Password',
+                    label: context.l10n.auth_password,
                     icon: Icons.lock_outline_rounded,
                     suffix: IconButton(
                       tooltip:
-                          _showPassword ? 'Hide password' : 'Show password',
+                          _showPassword ? context.l10n.auth_hidePassword : context.l10n.auth_showPassword,
                       icon: Icon(
                           _showPassword
                               ? Icons.visibility_off_outlined
@@ -223,14 +224,14 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     ),
                   ),
                   validator: (v) => (v == null || v.length < 8)
-                      ? 'At least 8 characters'
+                      ? context.l10n.auth_atLeast8CharactersShort
                       : null,
                 ),
                 if (up) ...[
                   const SizedBox(height: 6),
                   Padding(
                     padding: const EdgeInsets.only(left: 4),
-                    child: Text('At least 8 characters.',
+                    child: Text(context.l10n.auth_atLeast8Characters,
                         style: TextStyle(color: p.muted, fontSize: 12)),
                   ),
                 ] else
@@ -241,7 +242,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                       onTap: _busy ? null : _forgotPassword,
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(6, 8, 4, 2),
-                        child: Text('Forgot password?',
+                        child: Text(context.l10n.auth_forgotPassword2,
                             style: TextStyle(
                                 color: p.greenText,
                                 fontSize: 13,
@@ -255,7 +256,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 ],
                 const SizedBox(height: 18),
                 AuthPrimaryButton(
-                  label: up ? 'Create account' : 'Sign in',
+                  label: up ? context.l10n.auth_createAccount : context.l10n.auth_signIn,
                   busy: _busy,
                   onTap: _submit,
                 ),
@@ -270,7 +271,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           child: Wrap(
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text(up ? 'Already have an account? ' : 'New to SportPadi? ',
+              Text(up ? context.l10n.auth_alreadyHaveAnAccount2 : context.l10n.auth_newToSportPadi2,
                   style: TextStyle(color: p.muted, fontSize: 13.5)),
               InkWell(
                 borderRadius: BorderRadius.circular(8),
@@ -278,7 +279,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                  child: Text(up ? 'Sign in' : 'Create an account',
+                  child: Text(up ? context.l10n.auth_signIn : context.l10n.auth_createAnAccount,
                       style: TextStyle(
                           color: p.greenText,
                           fontSize: 13.5,
@@ -290,7 +291,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
         ),
         const SizedBox(height: 10),
         Text(
-          'By continuing you agree to our Terms and Privacy Policy.',
+          context.l10n.auth_byContinuingYouAgreeTo2,
           textAlign: TextAlign.center,
           style: TextStyle(color: p.muted, fontSize: 11.5),
         ),
@@ -306,12 +307,32 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
 /// One line naming what's behind the door, from the path they were sent from.
 String _gateLine(String raw, {bool signUp = false}) {
-  final lead = signUp ? 'Create an account' : 'Sign in';
+  final t = l10n;
   final path = Uri.tryParse(Uri.decodeComponent(raw))?.path ?? '';
-  if (path.startsWith('/events/')) return '$lead to open this event.';
-  if (path.startsWith('/tournaments/')) return '$lead to open this tournament.';
-  if (path.startsWith('/groups/')) return '$lead to open this group.';
-  if (path.startsWith('/teams/')) return '$lead to open this team.';
-  if (path.startsWith('/players/')) return '$lead to view this player.';
-  return '$lead to continue.';
+  if (path.startsWith('/events/')) {
+    return signUp
+        ? t.auth_createAnAccountToOpenThisEvent
+        : t.auth_signInToOpenThisEvent;
+  }
+  if (path.startsWith('/tournaments/')) {
+    return signUp
+        ? t.auth_createAnAccountToOpenThisTournament
+        : t.auth_signInToOpenThisTournament;
+  }
+  if (path.startsWith('/groups/')) {
+    return signUp
+        ? t.auth_createAnAccountToOpenThisGroup
+        : t.auth_signInToOpenThisGroup;
+  }
+  if (path.startsWith('/teams/')) {
+    return signUp
+        ? t.auth_createAnAccountToOpenThisTeam
+        : t.auth_signInToOpenThisTeam;
+  }
+  if (path.startsWith('/players/')) {
+    return signUp
+        ? t.auth_createAnAccountToViewThisPlayer
+        : t.auth_signInToViewThisPlayer;
+  }
+  return signUp ? t.auth_createAnAccountToContinue : t.auth_signInToContinue;
 }

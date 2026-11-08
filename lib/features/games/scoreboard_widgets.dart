@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:sportpadi_mobile/core/env/app_config.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The match scoreboard's sport-aware pieces (mobile twin of web
 /// components/games/scoreboard.tsx).
@@ -25,19 +26,32 @@ class BoardSpec {
   final String court;
 }
 
-const _specs = <String, BoardSpec>{
-  'soccer': BoardSpec('Goals', 'Full time', 'FT', 'pitch'),
-  'hockey': BoardSpec('Goals', 'Full time', 'FT', 'hockey'),
-  'handball': BoardSpec('Goals', 'Full time', 'FT', 'handball'),
-  'netball': BoardSpec('Goals', 'Full time', 'FT', 'netball'),
-  'basketball': BoardSpec('Points', 'Final', 'Final', 'basketball'),
-  'volleyball': BoardSpec('Points', 'Match over', 'Final', 'volleyball'),
-  'racket': BoardSpec('Points', 'Match over', 'Final', 'tennis'),
-  'rugby': BoardSpec('Points', 'Full time', 'FT', 'rugby'),
-  'american_football': BoardSpec('Points', 'Final', 'Final', 'gridiron'),
-  'cricket': BoardSpec('Runs', 'Result', 'Result', 'cricket'),
-  'baseball': BoardSpec('Runs', 'Final', 'Final', 'diamond'),
-  'generic': BoardSpec('Score', 'Final', 'Final', 'none'),
+// A getter (not const) so the labels follow the language on screen.
+Map<String, BoardSpec> get _specs => <String, BoardSpec>{
+  'soccer': BoardSpec(
+      l10n.game_goals, l10n.game_fullTime2, l10n.game_ft, 'pitch'),
+  'hockey': BoardSpec(
+      l10n.game_goals, l10n.game_fullTime2, l10n.game_ft, 'hockey'),
+  'handball': BoardSpec(
+      l10n.game_goals, l10n.game_fullTime2, l10n.game_ft, 'handball'),
+  'netball': BoardSpec(
+      l10n.game_goals, l10n.game_fullTime2, l10n.game_ft, 'netball'),
+  'basketball': BoardSpec(
+      l10n.game_points, l10n.game_finalLabel2, l10n.game_finalLabel2, 'basketball'),
+  'volleyball': BoardSpec(
+      l10n.game_points, l10n.game_matchOver, l10n.game_finalLabel2, 'volleyball'),
+  'racket': BoardSpec(
+      l10n.game_points, l10n.game_matchOver, l10n.game_finalLabel2, 'tennis'),
+  'rugby': BoardSpec(
+      l10n.game_points, l10n.game_fullTime2, l10n.game_ft, 'rugby'),
+  'american_football': BoardSpec(
+      l10n.game_points, l10n.game_finalLabel2, l10n.game_finalLabel2, 'gridiron'),
+  'cricket': BoardSpec(
+      l10n.game_runs, l10n.game_result, l10n.game_result, 'cricket'),
+  'baseball': BoardSpec(
+      l10n.game_runs, l10n.game_finalLabel2, l10n.game_finalLabel2, 'diamond'),
+  'generic': BoardSpec(
+      l10n.game_score, l10n.game_finalLabel2, l10n.game_finalLabel2, 'none'),
 };
 
 BoardSpec boardSpec(String? family) =>
@@ -264,7 +278,7 @@ class ScoreCrest extends ConsumerWidget {
             right: -shirt * 0.3,
             bottom: -shirt * 0.25,
             child: Semantics(
-              label: '$name kit colour',
+              label: context.l10n.game_kitColour(name),
               child: KitShirt(color: color!, size: shirt, outline: outline),
             ),
           ),

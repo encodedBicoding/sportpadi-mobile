@@ -5,6 +5,7 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/leagues/leagues_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The season's MVP poll on the public league page (web `MvpPolls`): one
 /// card per match whose poll is open (or closed in the last few days). Pick a
@@ -28,10 +29,9 @@ class MvpPollsSection extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const SpSectionTitle('Vote: match MVP'),
+        SpSectionTitle(context.l10n.league_voteMatchMvp),
         Text(
-            '${d.str('audience') == 'players' ? 'League players vote' : 'Anyone signed in can vote'}'
-            " — the poll helps the organiser pick each match's MVP.",
+            context.l10n.league_thePollHelpsTheOrganiser2((d.str('audience') == 'players' ? context.l10n.league_leaguePlayersVote : context.l10n.league_anyoneSignedInCanVote)),
             style: TextStyle(color: p.muted, fontSize: 12)),
         for (final poll in polls)
           Padding(
@@ -70,7 +70,7 @@ class _PollCardState extends ConsumerState<_PollCard> {
     try {
       await ref.read(leaguesRepositoryProvider).mutate('voteMvp', {'fixtureId': widget.poll.str('fixtureId'), 'playerId': playerId});
       ref.invalidate(mvpPollsProvider(widget.slug));
-      messenger.showSnackBar(const SnackBar(content: Text('Vote counted')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.league_voteCounted)));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
     } finally {
@@ -102,30 +102,34 @@ class _PollCardState extends ConsumerState<_PollCard> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(
                   f == null
-                      ? 'Match'
-                      : '${f.o('home')?.str('name', 'Home')} ${f.iOrNull('homeScore') ?? ''}–${f.iOrNull('awayScore') ?? ''} ${f.o('away')?.str('name', 'Away')}',
+                      ? context.l10n.league_match
+                      : '${f.o('home')?.str('name', context.l10n.league_home)} ${f.iOrNull('homeScore') ?? ''}–${f.iOrNull('awayScore') ?? ''} ${f.o('away')?.str('name', context.l10n.league_away)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
               Text(
-                  '${open && closes != null ? 'Closes ${loc.formatShortMonthDay(closes)} ${loc.formatTimeOfDay(TimeOfDay.fromDateTime(closes))}' : 'Poll closed'}'
-                  '${showResults ? ' · $total vote${total == 1 ? '' : 's'}' : ''}',
+                  [
+                    open && closes != null
+                        ? context.l10n.league_p5PollClosesOn(loc.formatShortMonthDay(closes), loc.formatTimeOfDay(TimeOfDay.fromDateTime(closes)))
+                        : context.l10n.league_pollClosed,
+                    if (showResults) context.l10n.event_voteCount(total),
+                  ].join(' · '),
                   style: TextStyle(color: p.muted, fontSize: 11.5)),
             ]),
           ),
           if (mvpId != null)
-            SpBadge('MVP picked', tone: p.greenText)
+            SpBadge(context.l10n.league_mvpPicked, tone: p.greenText)
           else if (open)
-            SpBadge('Open', tone: p.orangeInk),
+            SpBadge(context.l10n.league_open, tone: p.orangeInk),
         ]),
         if (open && !widget.canVote) ...[
           const SizedBox(height: 8),
           Text(
               !widget.signedIn
-                  ? 'Sign in to vote.'
+                  ? context.l10n.league_signInToVote
                   : widget.players
-                      ? 'Only players registered in this league can vote.'
-                      : "You can't vote on this one.",
+                      ? context.l10n.league_onlyPlayersRegisteredInThis
+                      : context.l10n.league_youCantVoteOnThis,
               style: TextStyle(color: p.muted, fontSize: 12)),
         ],
         for (final t in sides) ...[
@@ -177,7 +181,10 @@ class _PollCardState extends ConsumerState<_PollCard> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                      '${b.str('name')}${b.b('isMe') ? ' (you)' : ''}${picked ? ' · MVP' : ''}',
+                      [
+                        b.b('isMe') ? context.l10n.league_p5NameYou(b.str('name')) : b.str('name'),
+                        if (picked) context.l10n.league_p5MvpTag,
+                      ].join(' · '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: p.ink, fontWeight: FontWeight.w600, fontSize: 13)),

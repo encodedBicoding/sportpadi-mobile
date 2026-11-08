@@ -5,6 +5,7 @@ import 'package:sportpadi_mobile/features/sports/generic_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/soccer_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/sport_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Tennis 🎾 (design §8) — a match record like the scoreboard on court, then
 /// the serve: aces against faults.
@@ -70,9 +71,9 @@ class TennisRecord extends StatelessWidget {
       Row(children: [
         Expanded(
           child: Column(children: [
-            row('Won', w, w > 0 && w >= l),
+            row(context.l10n.profile_won, w, w > 0 && w >= l),
             const SizedBox(height: 6),
-            row('Lost', l, l > w),
+            row(context.l10n.profile_lost, l, l > w),
           ]),
         ),
         const SizedBox(width: 14),
@@ -81,9 +82,9 @@ class TennisRecord extends StatelessWidget {
       if (nums.draws > 0 || streak != null) ...[
         const SizedBox(height: 12),
         Wrap(spacing: 6, runSpacing: 6, children: [
-          if (nums.draws > 0) MiniChip('D ${nums.draws}'),
+          if (nums.draws > 0) MiniChip(context.l10n.profile_d2(nums.draws)),
           if (streak != null)
-            MiniChip('Streak $streak', color: streakColor(p, streak!)),
+            MiniChip(context.l10n.profile_streak2(streak ?? ''), color: streakColor(p, streak!)),
         ]),
       ],
     ]);
@@ -111,9 +112,9 @@ class TennisStats extends StatelessWidget {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       if (hasServe) ...[
-        BlockHeading('Serve',
+        BlockHeading(context.l10n.profile_serve,
             trailing: hasAces
-                ? Text('${nums.rate('aces')} aces / match',
+                ? Text(context.l10n.profile_acesMatch(nums.rate('aces')),
                     style: TextStyle(
                         color: p.muted,
                         fontSize: 12,
@@ -139,7 +140,7 @@ class TennisStats extends StatelessWidget {
       ],
       if (hasPoints) ...[
         if (hasServe) const BlockDivider(),
-        const BlockHeading('Points'),
+        BlockHeading(context.l10n.profile_points),
         const SizedBox(height: 12),
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
@@ -148,13 +149,13 @@ class TennisStats extends StatelessWidget {
                 label: nums.field('points').label),
           ),
           Expanded(
-            child: StatFigure(value: nums.rate('points'), label: 'Per match'),
+            child: StatFigure(value: nums.rate('points'), label: context.l10n.profile_perMatch),
           ),
           if (hasAces)
             Expanded(
               child: StatFigure(
                   value: nums.rate('aces'),
-                  label: 'Aces / match',
+                  label: context.l10n.profile_acesMatch2,
                   color: sportInk(SportFamily.tennis,
                       dark: Theme.of(context).brightness == Brightness.dark)),
             ),

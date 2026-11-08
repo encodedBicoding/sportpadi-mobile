@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Building blocks shared by the Discussions list, the thread, the composer
 /// and the group / team sections.
@@ -42,7 +43,7 @@ class DiscussionResolvedPill extends StatelessWidget {
   const DiscussionResolvedPill({super.key});
 
   @override
-  Widget build(BuildContext context) => SpBadge('Resolved',
+  Widget build(BuildContext context) => SpBadge(context.l10n.inbox_resolved,
       icon: Icons.check_circle_outline_rounded,
       tone: context.palette.greenText);
 }
@@ -119,14 +120,14 @@ class DiscussionAuthorLine extends StatelessWidget {
       ),
       if (isOP) ...[
         const SizedBox(width: 5),
-        DiscussionTag('OP', fg: Colors.white, bg: p.accentDeep),
+        DiscussionTag(context.l10n.inbox_op, fg: Colors.white, bg: p.accentDeep),
       ],
       if (author.isAdmin) ...[
         const SizedBox(width: 5),
-        DiscussionTag('Admin', fg: p.onHero, bg: p.hero),
+        DiscussionTag(context.l10n.inbox_admin, fg: p.onHero, bg: p.hero),
       ] else if (author.isCoach) ...[
         const SizedBox(width: 5),
-        DiscussionTag('Coach', fg: p.orangeInk, bg: p.orangeTint),
+        DiscussionTag(context.l10n.inbox_coach, fg: p.orangeInk, bg: p.orangeTint),
       ],
       if (guardian != null) ...[
         const SizedBox(width: 5),
@@ -137,7 +138,7 @@ class DiscussionAuthorLine extends StatelessWidget {
               color: p.wardTint,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Text("$guardian's guardian",
+            child: Text(context.l10n.inbox_sGuardian4(guardian),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -193,7 +194,7 @@ class _VoteArrow extends StatelessWidget {
             up ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
             size: size,
             color: active ? tone : p.muted,
-            semanticLabel: up ? 'Upvote' : 'Downvote',
+            semanticLabel: up ? context.l10n.inbox_upvote : context.l10n.inbox_downvote,
           ),
         ),
       ),
@@ -334,9 +335,9 @@ class DiscussionCard extends StatelessWidget {
     final preview = d.preview.trim();
     final tags = <Widget>[
       if (d.pinned)
-        SpBadge('Pinned', icon: Icons.push_pin_rounded, tone: p.greenText),
+        SpBadge(context.l10n.inbox_pinned, icon: Icons.push_pin_rounded, tone: p.greenText),
       if (d.locked)
-        SpBadge('Locked', icon: Icons.lock_outline_rounded, tone: p.orangeInk),
+        SpBadge(context.l10n.inbox_locked2, icon: Icons.lock_outline_rounded, tone: p.orangeInk),
       DiscussionFlairPill(d.flair),
       if (d.isResolved) const DiscussionResolvedPill(),
       if (team != null) SpBadge(team, icon: Icons.shield_outlined),
@@ -357,7 +358,7 @@ class DiscussionCard extends StatelessWidget {
                 if (d.unseen) ...[
                   // New activity since I last looked.
                   Semantics(
-                    label: 'New activity',
+                    label: context.l10n.inbox_newActivity2,
                     child: Container(
                       width: 8,
                       height: 8,
@@ -442,7 +443,7 @@ void openDiscussionImage(BuildContext context, String url) {
     context: context,
     useRootNavigator: true,
     barrierDismissible: true,
-    barrierLabel: 'Close',
+    barrierLabel: context.l10n.inbox_close,
     barrierColor: Colors.black,
     pageBuilder: (ctx, __, ___) => SafeArea(
       child: Stack(children: [
@@ -465,7 +466,7 @@ void openDiscussionImage(BuildContext context, String url) {
           top: 8,
           right: 8,
           child: IconButton(
-            tooltip: 'Close',
+            tooltip: context.l10n.inbox_close,
             onPressed: () => Navigator.of(ctx).pop(),
             icon: const Icon(Icons.close_rounded, color: Colors.white),
           ),
@@ -490,7 +491,7 @@ Future<bool> confirmDiscussionAction(
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel')),
+            child: Text(l10n.inbox_cancel)),
         TextButton(
             onPressed: () => Navigator.pop(ctx, true), child: Text(confirm)),
       ],

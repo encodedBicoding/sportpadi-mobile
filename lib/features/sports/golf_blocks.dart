@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/sports/sport_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Golf ⛳ (design §8) — the scorecard look: thin-ruled cells, a green
 /// header row, tabular figures.
@@ -17,11 +18,11 @@ class GolfRecord extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final cols = <(String, String)>[
-      ('Rounds', '${nums.games}'),
-      ('Wins', '${nums.wins}'),
-      if (nums.draws > 0) ('Halved', '${nums.draws}'),
-      ('Losses', '${nums.losses}'),
-      ('Win %', nums.games > 0 ? '${nums.winRate}' : '—'),
+      (context.l10n.profile_rounds, '${nums.games}'),
+      (context.l10n.profile_wins2, '${nums.wins}'),
+      if (nums.draws > 0) (context.l10n.profile_p5Halved, '${nums.draws}'),
+      (context.l10n.profile_losses, '${nums.losses}'),
+      (context.l10n.profile_winPct, nums.games > 0 ? '${nums.winRate}' : '—'),
     ];
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Scorecard(
@@ -35,7 +36,7 @@ class GolfRecord extends StatelessWidget {
         const SizedBox(height: 10),
         Align(
           alignment: Alignment.centerLeft,
-          child: MiniChip('Streak $streak', color: streakColor(p, streak!)),
+          child: MiniChip(context.l10n.profile_streak2(streak ?? ''), color: streakColor(p, streak!)),
         ),
       ],
     ]);
@@ -57,15 +58,15 @@ class GolfStats extends StatelessWidget {
         fields.sublist(i, i + 4 > fields.length ? fields.length : i + 4),
     ];
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const BlockHeading('Scorecard'),
+      BlockHeading(context.l10n.profile_scorecard),
       const SizedBox(height: 12),
       for (var i = 0; i < chunks.length; i++) ...[
         if (i > 0) const SizedBox(height: 10),
         Scorecard(
           header: [for (final f in chunks[i]) f.label],
           rows: [
-            ('Total', [for (final f in chunks[i]) '${nums.n(f.key)}']),
-            ('Per rd', [for (final f in chunks[i]) nums.rate(f.key)]),
+            (context.l10n.profile_total, [for (final f in chunks[i]) '${nums.n(f.key)}']),
+            (context.l10n.profile_perRd, [for (final f in chunks[i]) nums.rate(f.key)]),
           ],
         ),
       ],

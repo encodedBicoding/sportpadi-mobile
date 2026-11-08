@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/shared/format/instant.dart' show deviceTimezone
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Venues of a league season or a multi-team tournament (web
 /// `components/venues/VenueManager.tsx`). A venue is pinned once — its time
@@ -42,7 +43,7 @@ class VenueItem {
         id: '${j['id']}',
         name: _s(j['name']) ?? 'Venue',
         address: _s(j['address']),
-        label: _s(j['label']) ?? _s(j['name']) ?? 'Venue',
+        label: _s(j['label']) ?? _s(j['name']) ?? l10n.manage_venue,
         timezone: _s(j['timezone']),
         notes: _s(j['notes']),
         status: _s(j['status']) ?? 'active',
@@ -100,7 +101,7 @@ Future<bool> runVenueAction(BuildContext context, Future<String?> Function() f) 
     if (msg != null) messenger.showSnackBar(SnackBar(content: Text(msg)));
     return true;
   } catch (e) {
-    messenger.showSnackBar(SnackBar(content: Text(e is ApiException ? e.message : 'Something went wrong.')));
+    messenger.showSnackBar(SnackBar(content: Text(e is ApiException ? e.message : l10n.manage_somethingWentWrong)));
     return false;
   }
 }
@@ -172,15 +173,15 @@ class VenuesPanel extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('$unplaced ${pluralNoun(noun, unplaced)} without a venue', style: TextStyle(color: p.ink, fontWeight: FontWeight.w800)),
-                Text("They can't go live until placed.", style: TextStyle(color: p.muted, fontSize: 12)),
+                Text(context.l10n.manage_withoutAVenue2(unplaced, pluralNoun(noun, unplaced)), style: TextStyle(color: p.ink, fontWeight: FontWeight.w800)),
+                Text(context.l10n.manage_theyCantGoLiveUntil2, style: TextStyle(color: p.muted, fontSize: 12)),
               ]),
             ),
             SpPill(
-              label: 'Place',
+              label: context.l10n.manage_place,
               height: 34,
               onTap: () async {
-                final id = active.length == 1 ? active.first.id : await pickVenue(context, active, title: 'Place $unplaced ${pluralNoun(noun, unplaced)} in…');
+                final id = active.length == 1 ? active.first.id : await pickVenue(context, active, title: l10n.manage_placeIn(unplaced, pluralNoun(noun, unplaced)));
                 if (id == null || !context.mounted) return;
                 await runVenueAction(context, () => actions.placeUnplaced(id));
               },
@@ -189,10 +190,10 @@ class VenuesPanel extends StatelessWidget {
         ),
         const SizedBox(height: 14),
       ],
-      SpSectionTitle('Venues',
+      SpSectionTitle(context.l10n.manage_venues,
           count: active.length,
           trailing: SpPill(
-              label: 'Add venue',
+              label: context.l10n.manage_addVenue,
               icon: Icons.add_rounded,
               height: 32,
               onTap: () => showVenueForm(context, noun: noun, suggestions: data.suggestions, firstOne: active.isEmpty, onSubmit: actions.add))),
@@ -200,8 +201,7 @@ class VenuesPanel extends StatelessWidget {
       if (active.isEmpty)
         SpEmpty(
             icon: Icons.place_rounded,
-            text: 'Add at least one venue. ${noun == 'fixture' ? 'Fixtures' : 'Matches'} are placed in venues — the first one takes them all, '
-                'and its time zone comes with it.')
+            text: context.l10n.manage_addAtLeastOneVenue((noun == 'fixture' ? context.l10n.manage_fixtures : context.l10n.manage_matches)))
       else
         for (final v in active) ...[
           _VenueCard(v: v, noun: noun, onTap: () => _venueMenu(context, v)),
@@ -212,7 +212,7 @@ class VenuesPanel extends StatelessWidget {
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
             tilePadding: const EdgeInsets.symmetric(horizontal: 4),
-            title: Text('Archived (${archived.length})', style: TextStyle(color: p.muted, fontSize: 13, fontWeight: FontWeight.w600)),
+            title: Text(context.l10n.manage_archived2(archived.length), style: TextStyle(color: p.muted, fontSize: 13, fontWeight: FontWeight.w600)),
             children: [
               for (final v in archived) ...[
                 _VenueCard(
@@ -231,11 +231,11 @@ class VenuesPanel extends StatelessWidget {
     final choice = await showSpSheet<String>(context,
         builder: (c) => Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               SpSheetHeader(title: v.name, subtitle: v.label, icon: Icons.place_rounded),
-              ListTile(leading: const Icon(Icons.edit_rounded), title: const Text('Edit'), onTap: () => Navigator.pop(c, 'edit')),
+              ListTile(leading: const Icon(Icons.edit_rounded), title: Text(l10n.manage_edit), onTap: () => Navigator.pop(c, 'edit')),
               ListTile(
                   leading: const Icon(Icons.archive_outlined),
-                  title: const Text('No longer available…'),
-                  subtitle: v.upcoming > 0 ? Text('Move its ${v.upcoming} upcoming ${pluralNoun(noun, v.upcoming)} first') : null,
+                  title: Text(l10n.manage_noLongerAvailable),
+                  subtitle: v.upcoming > 0 ? Text(l10n.manage_moveItsUpcomingFirst(v.upcoming, pluralNoun(noun, v.upcoming))) : null,
                   onTap: () => Navigator.pop(c, 'archive')),
             ]));
     if (!context.mounted) return;
@@ -253,11 +253,11 @@ class VenuesPanel extends StatelessWidget {
       return;
     }
     if (others.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Add another venue first, then move these matches there.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.manage_addAnotherVenueFirstThen2)));
       return;
     }
     final to = await pickVenue(context, others,
-        title: 'Move ${v.upcoming} ${pluralNoun(noun, v.upcoming)} to…', subtitle: '${v.name} is archived; everyone in those matches is told.');
+        title: l10n.manage_moveTo2(v.upcoming, pluralNoun(noun, v.upcoming)), subtitle: l10n.manage_isArchivedEveryoneInThose(v.name));
     if (to == null || !context.mounted) return;
     await runVenueAction(context, () => actions.archive(v.id, to));
   }
@@ -305,7 +305,7 @@ class _VenueCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
               child: Wrap(spacing: 6, runSpacing: 6, children: [
-                SpBadge(v.active ? '${v.upcoming} upcoming ${pluralNoun(noun, v.upcoming)}' : 'Archived — tap to restore',
+                SpBadge(v.active ? context.l10n.manage_upcoming(v.upcoming, pluralNoun(noun, v.upcoming)) : context.l10n.manage_archivedTapToRestore,
                     tone: v.active && v.upcoming > 0 ? p.greenText : p.muted),
                 if (v.timezone != null) SpBadge(_zoneName(v.timezone)!, icon: Icons.schedule_rounded, tone: p.muted),
                 if (v.notes != null)
@@ -403,18 +403,18 @@ class _VenueFormState extends State<_VenueForm> {
     final n = widget.initial?.upcoming ?? 0;
     return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       SpSheetHeader(
-        title: edit ? 'Edit venue' : 'Add a venue',
+        title: edit ? context.l10n.manage_editVenue : context.l10n.manage_addAVenue,
         subtitle: edit
             ? (n > 0
-                ? '$n ${pluralNoun(widget.noun, n)} ${n == 1 ? 'is' : 'are'} here — they follow this change, and everyone in them is told.'
-                : 'Nothing upcoming is played here yet.')
+                ? context.l10n.manage_countPluralOneIsHere2(n, pluralNoun(widget.noun, n))
+                : context.l10n.manage_nothingUpcomingIsPlayedHere2)
             : widget.firstOne
-                ? 'The first venue takes every ${widget.noun} that doesn\'t have one.'
-                : 'Pick one you\'ve used before, or add a new one.',
+                ? context.l10n.manage_theFirstVenueTakesEvery(widget.noun)
+                : context.l10n.manage_pickOneYouveUsedBefore2,
         icon: Icons.place_rounded,
       ),
       if (!edit && widget.suggestions.isNotEmpty) ...[
-        Text('USED BEFORE — ONE TAP', style: TextStyle(color: p.muted, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.1)),
+        Text(context.l10n.manage_usedBeforeOneTap2, style: TextStyle(color: p.muted, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.1)),
         const SizedBox(height: 8),
         Wrap(spacing: 6, runSpacing: 6, children: [
           for (final s in widget.suggestions)
@@ -425,19 +425,19 @@ class _VenueFormState extends State<_VenueForm> {
             ),
         ]),
         const SizedBox(height: 12),
-        Text('OR A NEW ONE', style: TextStyle(color: p.muted, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.1)),
+        Text(context.l10n.manage_orANewOne2, style: TextStyle(color: p.muted, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.1)),
         const SizedBox(height: 8),
       ],
-      TextField(controller: _name, maxLength: 120, onChanged: (_) => setState(() {}), decoration: _deco('Name', 'Burnaby Lake — Pitch 2')),
+      TextField(controller: _name, maxLength: 120, onChanged: (_) => setState(() {}), decoration: _deco(context.l10n.manage_name, context.l10n.manage_burnabyLakePitch2)),
       const SizedBox(height: 4),
-      TextField(controller: _address, maxLength: 200, decoration: _deco('Address', '3500 Sprott St, Burnaby BC')),
-      Text('We pin it on the map once — it sets the local time zone for every match played there. Leave it empty to use the name.',
+      TextField(controller: _address, maxLength: 200, decoration: _deco(context.l10n.manage_address, '3500 Sprott St, Burnaby BC')),
+      Text(context.l10n.manage_wePinItOnThe2,
           style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.35)),
       const SizedBox(height: 10),
-      TextField(controller: _notes, maxLength: 300, maxLines: 2, decoration: _deco('Notes (optional)', 'Parking on Sprott St · north gate')),
+      TextField(controller: _notes, maxLength: 300, maxLines: 2, decoration: _deco(context.l10n.manage_notesOptional, context.l10n.manage_parkingOnSprottStNorth)),
       const SizedBox(height: 8),
       SpButton(
-        label: _busy ? 'Saving…' : (edit ? 'Save venue' : 'Add venue'),
+        label: _busy ? context.l10n.manage_saving : (edit ? context.l10n.manage_saveVenue : context.l10n.manage_addVenue),
         icon: Icons.place_rounded,
         expand: true,
         onTap: _busy || _name.text.trim().isEmpty

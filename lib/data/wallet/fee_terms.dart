@@ -1,4 +1,5 @@
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The one way SportPadi's fee is said to groups, matching the web
 /// (packages/lib feeWording.ts): always "X% + card processing", never the
@@ -12,7 +13,7 @@ String fmtBps(int bps) {
 
 /// "6% + card processing" / "No SportPadi fee — card processing only".
 String feePhrase(int netBps) => netBps == 0
-    ? 'No SportPadi fee — card processing only'
+    ? l10n.common_noSportPadiFeeCardProcessing
     : '${fmtBps(netBps)} + card processing';
 
 /// "Pro plan rate" / "platform rate".
@@ -194,7 +195,7 @@ class StatementLine {
       kind: parseStr(j['kind']) ?? 'ticket',
       id: parseStr(j['id']) ?? '',
       at: at,
-      description: parseStr(j['description']) ?? 'Payment',
+      description: parseStr(j['description']) ?? l10n.common_payment,
       reference: parseStr(j['reference']),
       payerName: parseStr(j['payerName']),
       currency: parseStr(j['currency']) ?? 'USD',

@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/onboarding/intent_video_sheet.dart';
 import 'package:sportpadi_mobile/features/onboarding/intents.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The intent picked before sign-up, remembered for the session so the
 /// email-verification step (which swaps the whole stack) still ends on the
@@ -30,7 +31,7 @@ void openIntent(BuildContext context, WidgetRef ref, UserIntent i) {
   showIntentWalkthrough(
     context,
     intent: i,
-    proceedLabel: signedIn ? 'Show me' : 'Get started',
+    proceedLabel: signedIn ? context.l10n.auth_showMe : context.l10n.auth_getStarted,
     onProceed: () => proceedWithIntent(context, ref, i),
   );
 }
@@ -60,16 +61,16 @@ class IntentCards extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Eyebrow('Start here'),
+      Eyebrow(context.l10n.auth_startHere),
       const SizedBox(height: 4),
-      Text('What brings you to SportPadi?',
+      Text(context.l10n.auth_whatBringsYouToSportPadi,
           style: TextStyle(
               color: p.ink,
               fontSize: 20,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.4)),
       const SizedBox(height: 2),
-      Text("Pick one and we'll take you straight there.",
+      Text(context.l10n.auth_pickOneAndWellTake,
           style: TextStyle(color: p.muted, fontSize: 12.5)),
       const SizedBox(height: 12),
       for (final (n, i) in intents.indexed) ...[

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// All · Local · Tournaments, each with its game count. A scope with no games
 /// is shown but can't be picked ("All" always can).
@@ -42,7 +43,7 @@ class SportScopeSwitch extends StatelessWidget {
       button: true,
       selected: selected,
       enabled: enabled,
-      label: '${s.label}, ${plural(n, 'game')}',
+      label: '${s.label}, ${l10n.profile_p5GamesCount(n)}',
       excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,

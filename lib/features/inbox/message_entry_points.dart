@@ -13,6 +13,7 @@ import 'package:sportpadi_mobile/features/inbox/message_start.dart';
 import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Where messages start outside the Inbox (docs B4/B5): the group page
 /// ("Contact the admins", "Message coach", and for admins "Conversations"),
@@ -54,13 +55,13 @@ class GroupMessagesSection extends ConsumerWidget {
     final memberButtons = <Widget>[
       if (blocked == null && admins.isNotEmpty)
         _QuietButton(
-          label: 'Contact the admins',
+          label: context.l10n.inbox_contactTheAdmins2,
           icon: Icons.admin_panel_settings_outlined,
           onTap: () => run((c) => contactGroupAdmins(c, o)),
         ),
       if (blocked == null && hasCoaches)
         _QuietButton(
-          label: 'Message coach',
+          label: context.l10n.inbox_messageCoach,
           icon: Icons.sports_rounded,
           onTap: () => run((c) => showMessageStartSheet(c, groupId: groupId)),
         ),
@@ -68,13 +69,13 @@ class GroupMessagesSection extends ConsumerWidget {
     final staffButtons = <Widget>[
       if (staff != null)
         _QuietButton(
-          label: 'Message a member',
+          label: context.l10n.inbox_messageAMember,
           icon: Icons.chat_bubble_outline_rounded,
           onTap: () => run((c) => pickMemberToMessage(c, groupId: groupId)),
         ),
       if (staff != null && staff.isAdmin)
         _QuietButton(
-          label: 'Conversations',
+          label: context.l10n.inbox_conversations,
           icon: Icons.forum_outlined,
           onTap: () => run((c) => c.push('/groups/$groupId/messages')),
         ),
@@ -121,10 +122,10 @@ Future<void> contactGroupAdmins(BuildContext context, StartOptions o,
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SpSheetHeader(
+          SpSheetHeader(
             icon: Icons.admin_panel_settings_outlined,
-            title: 'Contact the admins',
-            subtitle: 'Who is it about?',
+            title: l10n.inbox_contactTheAdmins2,
+            subtitle: l10n.inbox_whoIsItAbout,
           ),
           SpListCard(children: [
             for (final c in entries)
@@ -134,7 +135,7 @@ Future<void> contactGroupAdmins(BuildContext context, StartOptions o,
                         ? Icons.person_outline_rounded
                         : Icons.child_care_rounded,
                     color: c.isMe ? p.ink : p.wardInk),
-                title: Text(c.isMe ? 'Me' : 'About ${c.name}'),
+                title: Text(c.isMe ? l10n.inbox_me : l10n.inbox_about3(c.name)),
                 trailing: Icon(Icons.chevron_right_rounded, color: p.muted),
                 onTap: () => Navigator.of(ctx).pop(c),
               ),
@@ -204,14 +205,14 @@ class TeamMessagesSection extends ConsumerWidget {
       if (coaches.isNotEmpty)
         _QuietButton(
           label: coaches.length == 1
-              ? 'Message ${coaches.first.name}'
-              : 'Message coach',
+              ? context.l10n.inbox_message3(coaches.first.name)
+              : context.l10n.inbox_messageCoach,
           icon: Icons.sports_rounded,
           onTap: () => run((c) => _messageTeamCoach(c, coaches)),
         ),
       if (toPlayers)
         _QuietButton(
-          label: 'Message a player',
+          label: context.l10n.inbox_messageAPlayer,
           icon: Icons.chat_bubble_outline_rounded,
           onTap: () => run((c) =>
               pickTeamPlayerToMessage(c, groupId: groupId, teamId: teamId)),
@@ -301,17 +302,17 @@ class _TeamPlayerPickerSheet extends ConsumerWidget {
       children: [
         SpSheetHeader(
           icon: Icons.person_search_outlined,
-          title: 'Message a player',
+          title: context.l10n.inbox_messageAPlayer,
           subtitle: t == null
-              ? "Wards' messages go to their guardians."
-              : "${t.name} · wards' messages go to their guardians.",
+              ? context.l10n.inbox_wardsMessagesGoToTheir
+              : context.l10n.inbox_wardsMessagesGoToTheir2(t.name),
         ),
         if (players == null)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Center(
               child: failed
-                  ? Text("Couldn't load the players.",
+                  ? Text(context.l10n.inbox_couldntLoadThePlayers,
                       style: TextStyle(color: p.muted))
                   : const CircularProgressIndicator(),
             ),
@@ -319,7 +320,7 @@ class _TeamPlayerPickerSheet extends ConsumerWidget {
         else if (players.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Text('No players you can message on this team yet.',
+            child: Text(context.l10n.inbox_noPlayersYouCanMessage,
                 textAlign: TextAlign.center, style: TextStyle(color: p.muted)),
           )
         else
@@ -339,7 +340,7 @@ class _TeamPlayerPickerSheet extends ConsumerWidget {
                   ],
                 ]),
                 subtitle: m.isWard
-                    ? Text('Goes to their guardians',
+                    ? Text(context.l10n.inbox_goesToTheirGuardians,
                         style: TextStyle(color: p.wardInk, fontSize: 11.5))
                     : null,
                 trailing: Icon(Icons.chevron_right_rounded, color: p.muted),
@@ -375,7 +376,7 @@ class MessageMemberButton extends ConsumerWidget {
     }
     final p = context.palette;
     return IconButton(
-      tooltip: isWard ? "Message $name's guardians" : 'Message $name',
+      tooltip: isWard ? context.l10n.inbox_messageSGuardians(name) : context.l10n.inbox_message3(name),
       visualDensity: VisualDensity.compact,
       icon:
           Icon(Icons.chat_bubble_outline_rounded, size: 19, color: p.greenText),
@@ -426,16 +427,16 @@ class WardGroupMessageButton extends ConsumerWidget {
         );
     return Semantics(
       container: true,
-      label: 'Messages about $wardName',
+      label: context.l10n.inbox_messagesAbout(wardName),
       child: Wrap(spacing: 6, runSpacing: 6, children: [
         if (coaches)
           chip(
               Icons.sports_rounded,
-              'Message coach',
+              context.l10n.inbox_messageCoach,
               () => showMessageStartSheet(context,
                   groupId: groupId, wardId: wardId)),
         if (admins)
-          chip(Icons.admin_panel_settings_outlined, 'Contact the admins',
+          chip(Icons.admin_panel_settings_outlined, context.l10n.inbox_contactTheAdmins2,
               () => contactGroupAdmins(context, o, wardId: wardId)),
       ]),
     );
@@ -485,13 +486,11 @@ class _MessageNotificationsCardState
       padding: const EdgeInsets.fromLTRB(16, 4, 12, 4),
       child: SwitchListTile(
         contentPadding: EdgeInsets.zero,
-        title: Text('Push notifications',
+        title: Text(context.l10n.inbox_pushNotifications,
             style: TextStyle(
                 color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700)),
         subtitle: Text(
-            'New messages from your admins and coaches (and, if you run a '
-            'group or coach a team, from members). Mute a single conversation '
-            'from its menu.',
+            context.l10n.inbox_newMessagesFromYourAdmins,
             style: TextStyle(color: p.muted, fontSize: 12)),
         value: _pending ?? saved,
         onChanged: list == null ? null : _set,

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Compulsory "balance by attribute" setup (web twin: BalanceSetupGate).
 ///
@@ -35,7 +36,7 @@ Future<bool> showBalanceSetupIfNeeded(
     ref,
     categoryId: catId,
     categoryName: (data['categoryName'] as String?) ?? 'this sport',
-    label: (field['label'] as String?) ?? 'position',
+    label: (field['label'] as String?) ?? l10n.team_position,
     options: field['options'] is List
         ? (field['options'] as List).map((x) => x.toString()).toList()
         : const <String>[],
@@ -119,17 +120,14 @@ Future<bool> showBalanceSetupSheet(
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text('Set your ${label.toLowerCase()} for $categoryName',
+                  Text(l10n.team_setYourFor(label.toLowerCase(), categoryName),
                       style: TextStyle(
                           color: p.ink,
                           fontSize: 18,
                           fontWeight: FontWeight.w800)),
                   const SizedBox(height: 6),
                   Text(
-                    '$categoryName games pick fair teams by spreading players\' '
-                    '${label.toLowerCase()} across the sides — so it needs to know yours. '
-                    '${maxPicks == 1 ? 'Pick one' : 'Pick up to $maxPicks'}; '
-                    'you can change this later from your profile.',
+                    l10n.team_gamesPickFairTeamsBy(categoryName, label.toLowerCase(), (maxPicks == 1 ? l10n.team_pickOne : l10n.team_pickUpTo(maxPicks))),
                     style:
                         TextStyle(color: p.muted, fontSize: 13, height: 1.45),
                   ),
@@ -187,7 +185,7 @@ Future<bool> showBalanceSetupSheet(
                       maxLength: 60,
                       textInputAction: TextInputAction.done,
                       decoration: InputDecoration(
-                        hintText: 'Your ${label.toLowerCase()}',
+                        hintText: l10n.team_your(label.toLowerCase()),
                         counterText: '',
                       ),
                     ),
@@ -196,12 +194,12 @@ Future<bool> showBalanceSetupSheet(
                     style: FilledButton.styleFrom(
                         minimumSize: const Size(0, 48)),
                     onPressed: canSave && !saving ? doSave : null,
-                    child: Text(saving ? 'Saving…' : 'Save & continue'),
+                    child: Text(saving ? l10n.team_saving : l10n.team_saveContinue),
                   ),
                   if (dismissible)
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(),
-                      child: Text('Later', style: TextStyle(color: p.muted)),
+                      child: Text(l10n.team_later, style: TextStyle(color: p.muted)),
                     ),
                 ],
               ),

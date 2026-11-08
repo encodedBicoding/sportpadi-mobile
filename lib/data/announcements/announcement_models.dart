@@ -1,4 +1,5 @@
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Announcements (Messaging 1): broadcasts from a group's admins, its team
 /// coaches and event organisers. No replies — an optional "Got it" only.
@@ -163,14 +164,14 @@ class AnnouncementItem {
 
   /// "Admin", "Coach", "Organiser".
   String get roleLabel => switch (senderRole) {
-        'coach' => 'Coach',
-        'organiser' => 'Organiser',
-        _ => 'Admin',
+        'coach' => l10n.common_coach,
+        'organiser' => l10n.common_organiser,
+        _ => l10n.common_admin,
       };
 
   /// "For Tobi, Zara" on a guardian's copy; null otherwise.
   String? get wardsLabel =>
-      forWards.isEmpty ? null : 'For ${forWards.map((w) => w.name).join(', ')}';
+      forWards.isEmpty ? null : l10n.common_forLabel(forWards.map((w) => w.name).join(', '));
 
   AnnouncementItem copyWith({DateTime? seenAt, DateTime? ackedAt}) =>
       AnnouncementItem(
@@ -393,7 +394,7 @@ class ComposerEvent {
 
   factory ComposerEvent.fromJson(Map<String, dynamic> j) => ComposerEvent(
         id: parseStr(j['id']) ?? '',
-        title: parseStr(j['title']) ?? 'Event',
+        title: parseStr(j['title']) ?? l10n.common_event,
         date: parseStr(j['date']),
         time: parseStr(j['time']),
         going: _int(j['going']),

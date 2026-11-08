@@ -1,4 +1,5 @@
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// A ticket as the organizer manages it (all fields, incl. hidden ones).
 class ManagedTicket {
@@ -199,8 +200,8 @@ class TicketSale {
   /// The provider's name for people: Stripe, Paystack, Flutterwave.
   String? get providerLabel => switch (provider) {
         'stripe' => 'Stripe',
-        'paystack' => 'Paystack',
-        'flutterwave' => 'Flutterwave',
+        'paystack' => l10n.common_paystack,
+        'flutterwave' => l10n.common_flutterwave,
         final String other => other[0].toUpperCase() + other.substring(1),
         null => null,
       };

@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/data/wards/ward_models.dart';
 import 'package:sportpadi_mobile/data/wards/wards_repository.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// "Who is this ticket for?" — pick the people one purchase covers. The buyer
 /// can include or exclude themselves; every other ticket is attached to a
@@ -135,11 +136,11 @@ class _RecipientSheetState extends ConsumerState<_RecipientSheet> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SpSheetHeader(
+        SpSheetHeader(
           icon: Icons.group_add_outlined,
-          title: 'Who is this for?',
+          title: context.l10n.wallet_whoIsThisFor,
           subtitle:
-              'One purchase can cover several people — each gets their own ticket and receipt.',
+              context.l10n.wallet_onePurchaseCanCoverSeveral,
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
@@ -147,15 +148,15 @@ class _RecipientSheetState extends ConsumerState<_RecipientSheet> {
           onChanged: widget.selfPaid || (!_includeSelf && _full)
               ? null
               : (v) => setState(() => _includeSelf = v),
-          title: const Text('Include myself'),
+          title: Text(context.l10n.wallet_includeMyself),
           subtitle: Text(widget.selfPaid
-              ? 'You already have this ticket.'
+              ? context.l10n.wallet_youAlreadyHaveThisTicket2
               : _includeSelf
-                  ? "You'll get a ticket + receipt of your own."
-                  : "You're paying for others only — no receipt for you."),
+                  ? context.l10n.wallet_youllGetATicketReceipt2
+                  : context.l10n.wallet_yourePayingForOthersOnly),
         ),
         if (wards.isNotEmpty) ...[
-          Text('Your wards',
+          Text(context.l10n.wallet_yourWards,
               style: TextStyle(
                   color: p.muted, fontSize: 12, fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
@@ -181,8 +182,7 @@ class _RecipientSheetState extends ConsumerState<_RecipientSheet> {
           ]),
           const SizedBox(height: 6),
           Text(
-              'You pay; they hold the ticket — its QR shows under '
-              'your purchases.',
+              context.l10n.wallet_youPayTheyHoldThe,
               style: TextStyle(color: p.muted, fontSize: 11.5)),
           const SizedBox(height: 4),
         ],
@@ -192,7 +192,7 @@ class _RecipientSheetState extends ConsumerState<_RecipientSheet> {
             leading: _avatar(r),
             title: Text(r.displayName),
             subtitle: Text(
-                wardIds.contains(r.userId) ? 'Your ward' : '@${r.username}'),
+                wardIds.contains(r.userId) ? context.l10n.wallet_yourWard : '@${r.username}'),
             trailing: IconButton(
               icon: const Icon(Icons.close_rounded, size: 18),
               onPressed: () => setState(() => _others.remove(r)),
@@ -203,8 +203,8 @@ class _RecipientSheetState extends ConsumerState<_RecipientSheet> {
             padding: const EdgeInsets.only(top: 4),
             child: Text(
               widget.maxTotal != null && widget.maxTotal! < 20
-                  ? 'Only ${widget.maxTotal} left — that\'s the most this purchase can cover.'
-                  : 'That\'s the most one purchase can cover.',
+                  ? context.l10n.wallet_onlyNLeftThatsThe(widget.maxTotal!)
+                  : context.l10n.wallet_thatsTheMostOnePurchase,
               style: TextStyle(color: p.amber, fontSize: 11.5),
             ),
           )
@@ -212,7 +212,7 @@ class _RecipientSheetState extends ConsumerState<_RecipientSheet> {
           TextField(
             controller: _search,
             decoration: InputDecoration(
-              labelText: 'Add someone — @username or exact email',
+              labelText: context.l10n.wallet_addSomeoneUsernameOrExact,
               suffixIcon: _searching
                   ? const Padding(
                       padding: EdgeInsets.all(12),
@@ -243,7 +243,7 @@ class _RecipientSheetState extends ConsumerState<_RecipientSheet> {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                'No one found — usernames and exact emails are the handles that work.',
+                context.l10n.wallet_noOneFoundUsernamesAnd2,
                 style: TextStyle(color: p.muted, fontSize: 11.5),
               ),
             ),
@@ -258,13 +258,13 @@ class _RecipientSheetState extends ConsumerState<_RecipientSheet> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(children: [
-              _priceRow('Ticket${_count > 1 ? ' × $_count' : ''}',
+              _priceRow(context.l10n.wallet_ticket3((_count > 1 ? ' × $_count' : '')),
                   formatMoney(priceSum, widget.currency, widget.exponent)),
               if (feeSum > 0)
-                _priceRow('Fees',
+                _priceRow(context.l10n.wallet_fees,
                     formatMoney(feeSum, widget.currency, widget.exponent)),
               _priceRow(
-                  'Total', formatMoney(total, widget.currency, widget.exponent),
+                  context.l10n.wallet_total, formatMoney(total, widget.currency, widget.exponent),
                   bold: true),
             ]),
           ),
@@ -272,8 +272,8 @@ class _RecipientSheetState extends ConsumerState<_RecipientSheet> {
         const SizedBox(height: 14),
         SpButton(
           label: _count == 0
-              ? 'Add at least one person'
-              : 'Pay ${formatMoney(total, widget.currency, widget.exponent)}',
+              ? context.l10n.wallet_addAtLeastOnePerson2
+              : context.l10n.wallet_pay(formatMoney(total, widget.currency, widget.exponent)),
           icon: Icons.confirmation_num_rounded,
           expand: true,
           onTap: _count == 0

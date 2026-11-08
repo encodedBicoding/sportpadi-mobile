@@ -12,6 +12,7 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// A group's discussions (docs/design/discussions.md): everything I can see
 /// — group-wide and my teams — or one space, sorted Hot / New / Top with
@@ -75,7 +76,7 @@ class _DiscussionsScreenState extends ConsumerState<DiscussionsScreen> {
       backgroundColor: p.bg,
       floatingActionButton: canPost
           ? SpButton(
-              label: 'New discussion',
+              label: context.l10n.inbox_newDiscussion,
               icon: Icons.add_rounded,
               tone: SpButtonTone.brand,
               onTap: _compose,
@@ -86,7 +87,7 @@ class _DiscussionsScreenState extends ConsumerState<DiscussionsScreen> {
         child: Column(children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: SpHeader(title: 'Discussions', subtitle: groupName),
+            child: SpHeader(title: context.l10n.inbox_discussions, subtitle: groupName),
           ),
           if (spaces != null && spaces.teams.isNotEmpty) _spacesRow(spaces),
           Padding(
@@ -112,14 +113,14 @@ class _DiscussionsScreenState extends ConsumerState<DiscussionsScreen> {
   Widget _spacesRow(DiscussionSpaces spaces) {
     final pills = <Widget>[
       DiscussionPill(
-        label: 'All',
+        label: context.l10n.inbox_all,
         icon: Icons.forum_outlined,
         selected: _space.isEmpty,
         onTap: () => setState(() => _space = ''),
       ),
       if (spaces.group)
         DiscussionPill(
-          label: 'Group',
+          label: context.l10n.inbox_group,
           icon: Icons.groups_outlined,
           selected: _space == 'group',
           onTap: () => setState(() => _space = 'group'),
@@ -147,14 +148,14 @@ class _DiscussionsScreenState extends ConsumerState<DiscussionsScreen> {
   Widget _filtersRow() {
     final pills = <Widget>[
       DiscussionPill(
-        label: 'Open',
+        label: context.l10n.inbox_open,
         icon: Icons.radio_button_unchecked_rounded,
         selected: _status == 'open',
         onTap: () =>
             setState(() => _status = _status == 'open' ? null : 'open'),
       ),
       DiscussionPill(
-        label: 'Resolved',
+        label: context.l10n.inbox_resolved,
         icon: Icons.check_circle_outline_rounded,
         selected: _status == 'resolved',
         onTap: () =>
@@ -212,7 +213,7 @@ class _DiscussionsScreenState extends ConsumerState<DiscussionsScreen> {
                       SpIconTile(Icons.forum_outlined, size: 60, iconSize: 28),
                 ),
                 const SizedBox(height: 14),
-                Text(filtered ? 'Nothing matches' : 'No discussions yet',
+                Text(filtered ? context.l10n.inbox_nothingMatches : context.l10n.inbox_noDiscussionsYet,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: p.ink,
@@ -221,9 +222,8 @@ class _DiscussionsScreenState extends ConsumerState<DiscussionsScreen> {
                 const SizedBox(height: 4),
                 Text(
                     filtered
-                        ? 'Try other filters.'
-                        : 'Ask a question, raise an issue or share an idea '
-                            'with everyone here.',
+                        ? context.l10n.inbox_tryOtherFilters
+                        : context.l10n.inbox_askAQuestionRaiseAn,
                     textAlign: TextAlign.center,
                     style: TextStyle(color: p.muted, fontSize: 13)),
               ],

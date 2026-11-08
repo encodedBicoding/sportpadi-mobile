@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/features/leagues/league_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Organiser console → sponsors & match tickets, in the app (web
 /// LeagueCommercials): one title sponsor ("presented by") and partners with
@@ -81,10 +82,10 @@ class _SponsorsSheetState extends ConsumerState<_SponsorsSheet> {
       if (r.i('settled') > 0) {
         ref.invalidate(leagueManageProvider(_leagueId));
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${r.i('settled')} sponsor spot${r.i('settled') == 1 ? '' : 's'} added — place your sponsors')));
+            SnackBar(content: Text(l10n.league_sponsorSpotsAddedPlaceYour(r.i('settled')))));
       } else if (!quiet) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('No new payment yet — it can take a minute.')));
+            .showSnackBar(SnackBar(content: Text(l10n.league_noNewPaymentYetIt)));
       }
     } catch (_) {
       // Quietly retried next time the sheet opens.
@@ -98,13 +99,13 @@ class _SponsorsSheetState extends ConsumerState<_SponsorsSheet> {
     final price = sp?.o('price');
     final max = sp?.i('max') ?? 8;
     if (sp?.b('walletReady') != true) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Set up your group wallet first — it sets the currency and how you pay.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(l10n.league_setUpYourGroupWallet2)));
       return;
     }
     if (price == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Sponsor spots aren't on sale in your wallet's currency yet.")));
+          SnackBar(content: Text(l10n.league_sponsorSpotsArentOnSale2)));
       return;
     }
     final qty = await showSpSheet<int>(context, builder: (_) => _BuySpotsSheet(price: price, owned: _owned, max: max));
@@ -125,7 +126,7 @@ class _SponsorsSheetState extends ConsumerState<_SponsorsSheet> {
   Future<void> _save(List<_Sponsor> next) async {
     setState(() => _busy = true);
     final ok = await leagueAction(context, ref, 'setSponsors', {'leagueId': _leagueId, 'sponsors': [for (final s in next) _sponsorJson(s)]},
-        success: 'Sponsors saved', refresh: [leagueManageProvider(_leagueId)]);
+        success: context.l10n.league_sponsorsSaved, refresh: [leagueManageProvider(_leagueId)]);
     if (!mounted) return;
     setState(() {
       _busy = false;
@@ -158,19 +159,18 @@ class _SponsorsSheetState extends ConsumerState<_SponsorsSheet> {
     final max = _spots?.i('max') ?? 8;
     if (!_termsOk) {
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-        const SpSheetHeader(title: 'Sponsors', icon: Icons.lock_outline_rounded),
+        SpSheetHeader(title: context.l10n.league_sponsors, icon: Icons.lock_outline_rounded),
         Text(
-            'Show a title sponsor ("presented by") and partners on this season — on the league page, website widget, table image and league passes. '
-            'Each sponsor takes a sponsor spot bought from SportPadi. To get started, accept the Sponsorship Terms for your group.',
+            context.l10n.league_showATitleSponsorPresented2,
             style: TextStyle(color: p.muted, fontSize: 13)),
         const SizedBox(height: 16),
-        SpButton(label: 'Review & accept terms', icon: Icons.fact_check_outlined, expand: true, onTap: _reviewTerms),
+        SpButton(label: context.l10n.league_reviewAcceptTerms, icon: Icons.fact_check_outlined, expand: true, onTap: _reviewTerms),
       ]);
     }
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-      const SpSheetHeader(
-          title: 'Sponsors',
-          subtitle: 'The title sponsor shows as "presented by" on the league page, website widget, table image and league passes. Partners show on the league page.',
+      SpSheetHeader(
+          title: context.l10n.league_sponsors,
+          subtitle: context.l10n.league_theTitleSponsorShowsAs,
           icon: Icons.handshake_rounded),
       if (_suspended != null)
         Container(
@@ -178,14 +178,13 @@ class _SponsorsSheetState extends ConsumerState<_SponsorsSheet> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(color: p.danger.withAlpha(26), borderRadius: BorderRadius.circular(16)),
           child: Text(
-              "SportPadi has suspended this league's sponsors: $_suspended. They won't show until the suspension is lifted — "
-              'contact support@sportpadi.com if you think this is a mistake.',
+              context.l10n.league_sportPadiHasSuspendedThisLeagues2(_suspended ?? ''),
               style: TextStyle(color: p.danger, fontSize: 12.5)),
         ),
       if (_list.isEmpty)
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Text('No sponsors yet.', style: TextStyle(color: p.muted, fontSize: 13)),
+          child: Text(context.l10n.league_noSponsorsYet, style: TextStyle(color: p.muted, fontSize: 13)),
         )
       else
         SpListCard(children: [
@@ -194,15 +193,15 @@ class _SponsorsSheetState extends ConsumerState<_SponsorsSheet> {
               leading: _Logo(s: s, size: 38),
               title: Text(s.name, style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
               subtitle: _downReason(s) != null
-                  ? Text('Taken down by SportPadi: ${_downReason(s)}',
+                  ? Text(context.l10n.league_takenDownBySportPadi2(_downReason(s) ?? ''),
                       maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.danger, fontSize: 12))
-                  : Text(s.url ?? 'No link', maxLines: 1, overflow: TextOverflow.ellipsis),
+                  : Text(s.url ?? context.l10n.league_noLink, maxLines: 1, overflow: TextOverflow.ellipsis),
               onTap: _busy ? null : () => _edit(i),
               trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                 if (_downReason(s) != null)
-                  SpBadge('Hidden', tone: p.danger)
+                  SpBadge(context.l10n.league_hidden, tone: p.danger)
                 else
-                  SpBadge(s.tier == 'title' ? 'Title' : 'Partner', tone: s.tier == 'title' ? p.greenText : null),
+                  SpBadge(s.tier == 'title' ? context.l10n.league_title : context.l10n.league_partner, tone: s.tier == 'title' ? p.greenText : null),
                 IconButton(
                   icon: Icon(Icons.delete_outline_rounded, color: p.danger, size: 20),
                   onPressed: _busy ? null : () => _save([for (final (j, x) in _list.indexed) if (j != i) x]),
@@ -213,16 +212,16 @@ class _SponsorsSheetState extends ConsumerState<_SponsorsSheet> {
       const SizedBox(height: 10),
       Text(
           _owned > 0
-              ? '${_list.length} of $_owned spot${_owned == 1 ? '' : 's'} used — one sponsor per spot.${_list.length > _owned ? " Sponsors beyond your spots don't show." : ''}'
-              : 'Each sponsor takes a sponsor spot, bought from SportPadi for this season.',
+              ? context.l10n.league_countPluralOneOfSpot2(_owned, _list.length, (_list.length > _owned ? context.l10n.league_sponsorsBeyondYourSpotsDont2 : ''))
+              : context.l10n.league_eachSponsorTakesASponsor,
           style: TextStyle(color: p.muted, fontSize: 12.5)),
       const SizedBox(height: 12),
       if (_list.length < _owned)
-        SpButton(label: 'Add a sponsor', icon: Icons.add_rounded, expand: true, onTap: _busy ? null : () => _edit(null)),
+        SpButton(label: context.l10n.league_addASponsor, icon: Icons.add_rounded, expand: true, onTap: _busy ? null : () => _edit(null)),
       if (_owned < max) ...[
         const SizedBox(height: 8),
         SpPill(
-          label: _busy ? 'Opening checkout…' : 'Buy sponsor spots',
+          label: _busy ? context.l10n.league_openingCheckout : context.l10n.league_buySponsorSpots,
           icon: Icons.credit_card_rounded,
           tone: _list.length < _owned ? SpPillTone.soft : SpPillTone.ink,
           expand: true,
@@ -232,7 +231,7 @@ class _SponsorsSheetState extends ConsumerState<_SponsorsSheet> {
       const SizedBox(height: 6),
       TextButton(
         onPressed: _checking ? null : () => _confirm(),
-        child: Text(_checking ? 'Checking payment…' : 'Paid already? Check payment'),
+        child: Text(_checking ? context.l10n.league_checkingPayment : context.l10n.league_paidAlreadyCheckPayment),
       ),
     ]);
   }
@@ -307,12 +306,12 @@ class _SponsorEditorState extends ConsumerState<_SponsorEditor> {
     final validUrl = url.isEmpty || RegExp(r'^https?://\S+\.\S+').hasMatch(url);
     final current = (name: _name.text.trim(), url: url.isEmpty ? null : url, logoUrl: _logo, tier: _tier);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-      SpSheetHeader(title: widget.initial.name.isEmpty ? 'Add a sponsor' : 'Edit sponsor', icon: Icons.handshake_rounded),
+      SpSheetHeader(title: widget.initial.name.isEmpty ? context.l10n.league_addASponsor : context.l10n.league_editSponsor, icon: Icons.handshake_rounded),
       Row(children: [
         _Logo(s: current, size: 56),
         const SizedBox(width: 12),
         SpPill(
-          label: _uploading ? 'Uploading…' : (_logo == null ? 'Upload logo' : 'Change logo'),
+          label: _uploading ? context.l10n.league_uploading : (_logo == null ? context.l10n.league_uploadLogo : context.l10n.league_changeLogo),
           icon: Icons.add_photo_alternate_outlined,
           tone: SpPillTone.soft,
           height: 36,
@@ -321,9 +320,9 @@ class _SponsorEditorState extends ConsumerState<_SponsorEditor> {
         if (_logo != null)
           IconButton(icon: Icon(Icons.close_rounded, color: p.muted), onPressed: () => setState(() => _logo = null)),
       ]),
-      const FieldLabel('Name'),
-      TextField(controller: _name, maxLength: 60, onChanged: (_) => setState(() {}), decoration: fieldDeco(context, 'Sponsor name')),
-      const FieldLabel('Website (optional)'),
+      FieldLabel(context.l10n.league_name),
+      TextField(controller: _name, maxLength: 60, onChanged: (_) => setState(() {}), decoration: fieldDeco(context, context.l10n.league_sponsorName)),
+      FieldLabel(context.l10n.league_websiteOptional),
       TextField(
           controller: _url,
           keyboardType: TextInputType.url,
@@ -332,20 +331,20 @@ class _SponsorEditorState extends ConsumerState<_SponsorEditor> {
       if (!validUrl)
         Padding(
           padding: const EdgeInsets.only(top: 4),
-          child: Text('Use a full web address, starting with https://', style: TextStyle(color: p.danger, fontSize: 12)),
+          child: Text(context.l10n.league_useAFullWebAddress, style: TextStyle(color: p.danger, fontSize: 12)),
         ),
-      const FieldLabel('Type'),
+      FieldLabel(context.l10n.league_type),
       Wrap(spacing: 8, children: [
         ChoiceChip(
-          label: Text(widget.titleTaken ? 'Title sponsor (taken)' : 'Title sponsor'),
+          label: Text(widget.titleTaken ? context.l10n.league_titleSponsorTaken : context.l10n.league_titleSponsor),
           selected: _tier == 'title',
           onSelected: widget.titleTaken ? null : (_) => setState(() => _tier = 'title'),
         ),
-        ChoiceChip(label: const Text('Partner'), selected: _tier == 'partner', onSelected: (_) => setState(() => _tier = 'partner')),
+        ChoiceChip(label: Text(context.l10n.league_partner), selected: _tier == 'partner', onSelected: (_) => setState(() => _tier = 'partner')),
       ]),
       const SizedBox(height: 16),
       SpButton(
-        label: 'Save sponsor',
+        label: context.l10n.league_saveSponsor,
         expand: true,
         onTap: _uploading || current.name.isEmpty || !validUrl ? null : () => Navigator.of(context).pop(current),
       ),
@@ -390,8 +389,8 @@ class _TermsSheetState extends ConsumerState<_TermsSheet> {
     final t = _terms;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
       SpSheetHeader(
-          title: t?.str('title', 'Sponsorship Terms') ?? 'Sponsorship Terms',
-          subtitle: "Please read these before buying sponsor spots. You're accepting them for your group.",
+          title: t?.str('title', context.l10n.league_sponsorshipTerms) ?? context.l10n.league_sponsorshipTerms,
+          subtitle: context.l10n.league_pleaseReadTheseBeforeBuying,
           icon: Icons.fact_check_outlined),
       if (_error != null)
         Text(_error!, style: TextStyle(color: p.danger))
@@ -418,23 +417,23 @@ class _TermsSheetState extends ConsumerState<_TermsSheet> {
                 ),
             ],
             const SizedBox(height: 10),
-            Text('Version ${t.str('version')} · updated ${t.str('updated')}', style: TextStyle(color: p.muted, fontSize: 11.5)),
+            Text(context.l10n.league_versionUpdated(t.str('version'), t.str('updated')), style: TextStyle(color: p.muted, fontSize: 11.5)),
           ]),
         ),
         const SizedBox(height: 10),
         Text(
-            "In short: SportPadi may still show its own and third-party ads on your league and tournament pages, and sponsor spots aren't refundable once bought.",
+            context.l10n.league_inShortSportPadiMayStill,
             style: TextStyle(color: p.muted, fontSize: 12)),
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           controlAffinity: ListTileControlAffinity.leading,
           value: _agree,
           onChanged: (v) => setState(() => _agree = v ?? false),
-          title: Text('I have read and agree to the Sponsorship Terms on behalf of my group.',
+          title: Text(context.l10n.league_iHaveReadAndAgree,
               style: TextStyle(color: p.ink, fontSize: 13)),
         ),
         SpButton(
-          label: 'Accept and continue',
+          label: context.l10n.league_acceptAndContinue,
           expand: true,
           onTap: !_agree || _busy
               ? null
@@ -442,7 +441,7 @@ class _TermsSheetState extends ConsumerState<_TermsSheet> {
                   setState(() => _busy = true);
                   final ok = await leagueAction(context, ref, 'acceptSponsorTerms',
                       {'leagueId': widget.leagueId, 'version': t.str('version'), 'agree': true},
-                      success: 'Sponsorship Terms accepted');
+                      success: context.l10n.league_sponsorshipTermsAccepted);
                   if (!mounted) return;
                   setState(() => _busy = false);
                   if (ok) Navigator.of(this.context).pop(true);
@@ -474,12 +473,12 @@ class _BuySpotsSheetState extends State<_BuySpotsSheet> {
     final cur = widget.price.str('currency');
     final exp = widget.price.i('exponent');
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-      const SpSheetHeader(
-          title: 'Buy sponsor spots',
-          subtitle: 'One spot = one sponsor on this league season. Paid to SportPadi by card.',
+      SpSheetHeader(
+          title: context.l10n.league_buySponsorSpots,
+          subtitle: context.l10n.league_oneSpotOneSponsorOn2,
           icon: Icons.credit_card_rounded),
       if (room == 0)
-        Text('This season already has the most sponsor spots it can take (${widget.max}).', style: TextStyle(color: p.muted))
+        Text(context.l10n.league_thisSeasonAlreadyHasThe(widget.max), style: TextStyle(color: p.muted))
       else ...[
         Container(
           padding: const EdgeInsets.all(12),
@@ -487,8 +486,8 @@ class _BuySpotsSheetState extends State<_BuySpotsSheet> {
           child: Row(children: [
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('${spotMoney(unit, cur, exp)} per spot', style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
-                Text('You have ${widget.owned}; up to ${widget.max} a season.', style: TextStyle(color: p.muted, fontSize: 12)),
+                Text(context.l10n.league_perSpot(spotMoney(unit, cur, exp)), style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
+                Text(context.l10n.league_youHaveUpToA(widget.owned, widget.max), style: TextStyle(color: p.muted, fontSize: 12)),
               ]),
             ),
             IconButton(onPressed: _qty <= 1 ? null : () => setState(() => _qty--), icon: const Icon(Icons.remove_circle_outline_rounded)),
@@ -497,10 +496,10 @@ class _BuySpotsSheetState extends State<_BuySpotsSheet> {
           ]),
         ),
         const SizedBox(height: 14),
-        SpButton(label: 'Pay ${spotMoney(unit * _qty, cur, exp)}', icon: Icons.lock_rounded, expand: true, onTap: () => Navigator.of(context).pop(_qty)),
+        SpButton(label: context.l10n.league_pay2(spotMoney(unit * _qty, cur, exp)), icon: Icons.lock_rounded, expand: true, onTap: () => Navigator.of(context).pop(_qty)),
         const SizedBox(height: 6),
         Text(
-            "Checkout opens in your browser — come back here when you're done. Spots are for this season only and aren't refundable once bought; SportPadi may still show its own and third-party ads on your pages (Sponsorship Terms).",
+            context.l10n.league_checkoutOpensInYourBrowser,
             style: TextStyle(color: p.muted, fontSize: 12)),
       ],
     ]);
@@ -524,7 +523,7 @@ class _TicketsSheetState extends ConsumerState<_TicketsSheet> {
   J? get _wallet => widget.data.o('wallet');
   int get _exp => _wallet?.i('exponent') ?? 2;
   late bool _on = _t?.b('enabled') ?? false;
-  late final _title = TextEditingController(text: _t?.s('title') ?? 'Match ticket');
+  late final _title = TextEditingController(text: _t?.s('title') ?? context.l10n.league_matchTicket);
   late final _price = TextEditingController(
       text: _t == null ? '' : (_t!.i('price') / _pow(_exp)).toStringAsFixed(_exp).replaceFirst(RegExp(r'\.?0+$'), ''));
   late final _capacity = TextEditingController(text: _t?.iOrNull('capacity')?.toString() ?? '');
@@ -559,27 +558,27 @@ class _TicketsSheetState extends ConsumerState<_TicketsSheet> {
     final tk = widget.data.o('tickets');
     final missing = (tk?.i('published') ?? 0) - (tk?.i('withTicket') ?? 0);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-      const SpSheetHeader(
-          title: 'Match tickets',
-          subtitle: 'Each fixture gets a spectator ticket when it\'s published — sold on the match page, scanned at the gate. Players don\'t need one.',
+      SpSheetHeader(
+          title: context.l10n.league_matchTickets,
+          subtitle: context.l10n.league_eachFixtureGetsASpectator2,
           icon: Icons.confirmation_number_outlined),
       if (w == null)
-        Text('Activate your group wallet first — it sets the currency tickets are sold in.',
+        Text(context.l10n.league_activateYourGroupWalletFirst,
             style: TextStyle(color: p.muted, fontSize: 13))
       else ...[
         SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
-          title: Text('Sell match tickets', style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
+          title: Text(context.l10n.league_sellMatchTickets, style: TextStyle(color: p.ink, fontWeight: FontWeight.w700)),
           value: _on,
           onChanged: (v) => setState(() => _on = v),
         ),
         if (_on) ...[
-          const FieldLabel('Ticket name'),
-          TextField(controller: _title, maxLength: 60, onChanged: (_) => setState(() {}), decoration: fieldDeco(context, 'Match ticket')),
+          FieldLabel(context.l10n.league_ticketName),
+          TextField(controller: _title, maxLength: 60, onChanged: (_) => setState(() {}), decoration: fieldDeco(context, context.l10n.league_matchTicket)),
           Row(children: [
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                FieldLabel('Price (${w.str('currency')})'),
+                FieldLabel(context.l10n.league_price2(w.str('currency'))),
                 TextField(
                     controller: _price,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -590,19 +589,19 @@ class _TicketsSheetState extends ConsumerState<_TicketsSheet> {
             const SizedBox(width: 10),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                const FieldLabel('Capacity (optional)'),
-                TextField(controller: _capacity, keyboardType: TextInputType.number, decoration: fieldDeco(context, 'No limit')),
+                FieldLabel(context.l10n.league_capacityOptional),
+                TextField(controller: _capacity, keyboardType: TextInputType.number, decoration: fieldDeco(context, context.l10n.league_noLimit)),
               ]),
             ),
           ]),
-          const FieldLabel('Sales open — days before (optional)'),
-          TextField(controller: _days, keyboardType: TextInputType.number, decoration: fieldDeco(context, 'Straight away')),
-          const FieldLabel('Note on the ticket (optional)'),
-          TextField(controller: _note, maxLength: 500, decoration: fieldDeco(context, 'Gates open 30 minutes before kick-off')),
+          FieldLabel(context.l10n.league_salesOpenDaysBeforeOptional2),
+          TextField(controller: _days, keyboardType: TextInputType.number, decoration: fieldDeco(context, context.l10n.league_straightAway)),
+          FieldLabel(context.l10n.league_noteOnTheTicketOptional),
+          TextField(controller: _note, maxLength: 500, decoration: fieldDeco(context, context.l10n.league_gatesOpen30MinutesBefore)),
         ],
         const SizedBox(height: 14),
         SpButton(
-          label: 'Save',
+          label: context.l10n.league_save,
           expand: true,
           onTap: _busy || !valid
               ? null
@@ -623,7 +622,7 @@ class _TicketsSheetState extends ConsumerState<_TicketsSheet> {
                         : t == null
                             ? null
                             : {...t.raw, 'enabled': false},
-                  }, success: _on ? 'Match tickets saved' : 'Match tickets off', refresh: [leagueManageProvider(_leagueId)]);
+                  }, success: _on ? context.l10n.league_matchTicketsSaved : context.l10n.league_matchTicketsOff, refresh: [leagueManageProvider(_leagueId)]);
                   if (!mounted) return;
                   setState(() => _busy = false);
                   if (ok) Navigator.of(this.context).pop();
@@ -632,13 +631,13 @@ class _TicketsSheetState extends ConsumerState<_TicketsSheet> {
         if (_t?.b('enabled') == true && widget.data.o('league')?.s('status') != 'draft' && missing > 0) ...[
           const SizedBox(height: 8),
           SpPill(
-            label: 'Add to $missing published fixture${missing == 1 ? '' : 's'}',
+            label: context.l10n.league_addToPublishedFixtures(missing),
             tone: SpPillTone.soft,
             expand: true,
             onTap: _busy
                 ? null
                 : () => leagueAction(context, ref, 'applyTickets', {'leagueId': _leagueId},
-                    success: 'Tickets added', refresh: [leagueManageProvider(_leagueId)]),
+                    success: context.l10n.league_ticketsAdded, refresh: [leagueManageProvider(_leagueId)]),
           ),
         ],
       ],

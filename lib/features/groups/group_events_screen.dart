@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/shared/widgets/event_tile.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// A group's events (2026, the web /groups/[id]/events page): the round-back
 /// header with "Group · N events" and a New pill, an Upcoming / Past switch,
@@ -151,13 +152,13 @@ class _GroupEventsScreenState extends ConsumerState<GroupEventsScreen> {
           Text(_error!,
               textAlign: TextAlign.center,
               style: TextStyle(color: p.danger, fontSize: 13)),
-          TextButton(onPressed: _reload, child: const Text('Try again')),
+          TextButton(onPressed: _reload, child: Text(context.l10n.group_tryAgain)),
         ]),
       );
     } else if (_items.isEmpty) {
       content = SpEmpty(
         icon: Icons.calendar_today_outlined,
-        text: 'No $_scope events${_scope == 'upcoming' ? ' yet' : ''}.',
+        text: context.l10n.group_noEvents(_scope, (_scope == 'upcoming' ? context.l10n.group_yet : '')),
       );
     } else {
       // The 2026 event tiles in two columns (as on Browse / the web).
@@ -177,14 +178,14 @@ class _GroupEventsScreenState extends ConsumerState<GroupEventsScreen> {
     }
 
     return SpSubPage(
-      title: 'Events',
+      title: context.l10n.group_events,
       subtitle: count != null
-          ? '$name · $count event${count == 1 ? '' : 's'}'
+          ? context.l10n.group_countPluralOneEventOther(count, name)
           : name,
       actions: [
         if (canCreate)
           SpPill(
-            label: 'New',
+            label: context.l10n.group_newLabel,
             icon: Icons.add_rounded,
             onTap: () => context.push('/groups/${widget.groupId}/new-event'),
           ),

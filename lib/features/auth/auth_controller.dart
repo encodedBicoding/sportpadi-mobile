@@ -5,6 +5,7 @@ import 'package:sportpadi_mobile/data/auth/auth_models.dart';
 import 'package:sportpadi_mobile/data/auth/auth_repository.dart';
 import 'package:sportpadi_mobile/data/auth/social_sign_in.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Holds the global session. Sign-in / sign-up throw on failure so the screen
 /// can show the error locally; only a success mutates the global session, which
@@ -101,7 +102,7 @@ class AuthController extends AsyncNotifier<SessionState> {
   Future<void> verifyEmail(String otp) async {
     final email = state.value?.user?.email;
     if (email == null || email.isEmpty) {
-      throw StateError('No signed-in email to verify.');
+      throw StateError(l10n.auth_noSignedInEmailTo);
     }
     final user = await ref
         .read(authRepositoryProvider)

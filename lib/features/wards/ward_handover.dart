@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sportpadi_mobile/core/i18n/date_locale.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -9,6 +10,7 @@ import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Wards 3 (A11): "Hand over this account" on a ward's page. A guardian
 /// sends a link to the ward's own email; the ward chooses a password and the
@@ -43,7 +45,7 @@ class _WardHandoverCardState extends ConsumerState<WardHandoverCard> {
       builder: (_) => _HandoverSheet(ward: _ward),
     );
     if (email == null || !mounted) return;
-    _toast('Link sent to $email.');
+    _toast(l10n.ward_linkSentTo3(email));
     _refresh();
   }
 
@@ -52,7 +54,7 @@ class _WardHandoverCardState extends ConsumerState<WardHandoverCard> {
     setState(() => _busy = true);
     try {
       await ref.read(wardsRepositoryProvider).startClaim(_ward.userId, email);
-      _toast('A new link went to $email.');
+      _toast(l10n.ward_aNewLinkWentTo(email));
       if (mounted) _refresh();
     } catch (e) {
       _toast('$e');
@@ -67,17 +69,16 @@ class _WardHandoverCardState extends ConsumerState<WardHandoverCard> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Cancel the link?'),
+        title: Text(l10n.ward_cancelTheLink),
         content:
-            Text("The link stops working and $first's account stays with you. "
-                'You can send a new one any time.'),
+            Text(l10n.ward_theLinkStopsWorkingAnd(first)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Keep it')),
+              child: Text(l10n.ward_keepIt)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text('Cancel link',
+              child: Text(l10n.ward_cancelLink,
                   style: TextStyle(color: ctx.palette.danger))),
         ],
       ),
@@ -86,7 +87,7 @@ class _WardHandoverCardState extends ConsumerState<WardHandoverCard> {
     setState(() => _busy = true);
     try {
       await ref.read(wardsRepositoryProvider).cancelClaim(_ward.userId);
-      _toast('Link cancelled.');
+      _toast(l10n.ward_linkCancelled2);
       if (mounted) _refresh();
     } catch (e) {
       _toast('$e');
@@ -114,7 +115,7 @@ class _WardHandoverCardState extends ConsumerState<WardHandoverCard> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Hand over this account',
+                    Text(context.l10n.ward_handOverThisAccount,
                         style: TextStyle(
                             color: d.claimable ? p.ink : p.muted,
                             fontSize: 15,
@@ -134,7 +135,7 @@ class _WardHandoverCardState extends ConsumerState<WardHandoverCard> {
     if (!d.claimable && claim == null) {
       final opens = formatYmd(d.claimOpensOn);
       final reason =
-          d.claimBlockedReason ?? 'Handing over opens when they turn 15.';
+          d.claimBlockedReason ?? context.l10n.ward_handingOverOpensWhenThey;
       return GlassCard(
         child: header(opens.isEmpty ? reason : '$reason Opens on $opens.'),
       );
@@ -145,11 +146,10 @@ class _WardHandoverCardState extends ConsumerState<WardHandoverCard> {
       return GlassCard(
         child:
             Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          header('Give $first their own login. Everything stays — their '
-              'games, stats, badges, teams and tickets.'),
+          header(context.l10n.ward_giveTheirOwnLoginEverything(first)),
           const SizedBox(height: 14),
           SpButton(
-            label: 'Hand over this account',
+            label: context.l10n.ward_handOverThisAccount,
             icon: Icons.send_rounded,
             expand: true,
             onTap: _busy ? null : _start,
@@ -160,16 +160,15 @@ class _WardHandoverCardState extends ConsumerState<WardHandoverCard> {
 
     // A link is out (or has lapsed).
     final status = claim.expired
-        ? 'Link expired — it went to ${claim.email}.'
-        : 'Link sent to ${claim.email}'
-            '${claim.expiresAt == null ? '' : ' · expires ${fmtInstant(claim.expiresAt)}'}';
+        ? context.l10n.ward_linkExpiredItWentTo(claim.email)
+        : context.l10n.ward_linkSentTo4(claim.email, (claim.expiresAt == null ? '' : ' · expires ${fmtInstant(claim.expiresAt)}'));
     return GlassCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         header(status, subColor: claim.expired ? p.orangeInk : null),
         if (!claim.expired) ...[
           const SizedBox(height: 8),
           Text(
-            'Waiting for $first to open it and choose a password.',
+            context.l10n.ward_waitingForToOpenIt(first),
             style: TextStyle(color: p.muted, fontSize: 12),
           ),
         ],
@@ -177,7 +176,7 @@ class _WardHandoverCardState extends ConsumerState<WardHandoverCard> {
         Row(children: [
           Expanded(
             child: SpButton(
-              label: _busy ? 'Working…' : 'Send again',
+              label: _busy ? context.l10n.ward_working : context.l10n.ward_sendAgain,
               icon: Icons.refresh_rounded,
               expand: true,
               onTap: _busy || !d.claimable ? null : () => _resend(claim.email),
@@ -193,7 +192,7 @@ class _WardHandoverCardState extends ConsumerState<WardHandoverCard> {
                 onTap: _busy ? null : _cancel,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 13),
-                  child: Text('Cancel',
+                  child: Text(context.l10n.ward_cancel,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           color: p.ink,
@@ -213,7 +212,7 @@ class _WardHandoverCardState extends ConsumerState<WardHandoverCard> {
 // The hand-over sheet: what happens, their email, send.
 // ---------------------------------------------------------------------------
 
-final _longDate = DateFormat('MMM d, y', 'en_US');
+DateFormat get _longDate => DateFormat('MMM d, y', spDateLocale);
 
 class _HandoverSheet extends ConsumerStatefulWidget {
   const _HandoverSheet({required this.ward});
@@ -292,31 +291,25 @@ class _HandoverSheetState extends ConsumerState<_HandoverSheet> {
           icon: Icons.key_rounded,
           iconBg: p.wardTint,
           iconFg: p.wardInk,
-          title: 'Hand over $first\'s account',
-          subtitle: "We'll email $first a link to choose a password.",
+          title: context.l10n.ward_handOverSAccount(first),
+          subtitle: context.l10n.ward_wellEmailALinkTo(first),
         ),
         point(
             Icons.login_rounded,
             '$first gets their own login — they sign in with this email and '
             'the password they choose.'),
         point(Icons.inventory_2_outlined,
-            'Everything stays: their games, stats, badges, teams and tickets.'),
+            context.l10n.ward_everythingStaysTheirGamesStats),
         if (minor)
           point(
               Icons.supervisor_account_rounded,
-              'Until their 18th birthday'
-              '${adult == null ? '' : ' (${_longDate.format(adult)})'}, you '
-              'stay on as their supervising guardian. You still get messages '
-              "from their groups' admins and coaches about $first and copies "
-              'of announcements, but you '
-              "can't act for them any more.")
+              context.l10n.ward_untilTheir18thBirthdayYou((adult == null ? '' : ' (${_longDate.format(adult)})'), first))
         else
           point(
               Icons.person_off_outlined,
-              "You'll no longer manage $first — they'll run everything "
-              'themselves.'),
+              context.l10n.ward_youllNoLongerManageTheyll(first)),
         point(
-            Icons.timer_outlined, 'The link works once and expires in 7 days.'),
+            Icons.timer_outlined, context.l10n.ward_theLinkWorksOnceAnd2),
         const SizedBox(height: 4),
         TextField(
           controller: _email,
@@ -325,8 +318,8 @@ class _HandoverSheetState extends ConsumerState<_HandoverSheet> {
           autocorrect: false,
           textInputAction: TextInputAction.send,
           decoration: InputDecoration(
-            labelText: "$first's own email",
-            helperText: "Must be an address that isn't on SportPadi yet.",
+            labelText: context.l10n.ward_sOwnEmail(first),
+            helperText: context.l10n.ward_mustBeAnAddressThat,
           ),
           onChanged: (_) => setState(() => _error = null),
           onSubmitted: (_) => _send(),
@@ -337,7 +330,7 @@ class _HandoverSheetState extends ConsumerState<_HandoverSheet> {
         ],
         const SizedBox(height: 16),
         SpButton(
-          label: _busy ? 'Sending…' : 'Send link',
+          label: _busy ? context.l10n.ward_sending : context.l10n.ward_sendLink,
           icon: Icons.send_rounded,
           tone: SpButtonTone.brand,
           expand: true,

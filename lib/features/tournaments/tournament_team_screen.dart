@@ -15,6 +15,7 @@ import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/team_tile.dart'
     show kitGradient;
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The tournament-scoped team profile: this team AS IT IS in THIS tournament.
 /// Squad (called / accepted / declined, with times), the formation set for
@@ -92,16 +93,16 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Withdraw from this squad?'),
+          title: Text(l10n.tournament_withdrawFromThisSquad),
           content: Text(
-              "You'll be taken off ${sq.teamName}'s squad for ${sq.eventTitle}."),
+              l10n.tournament_youllBeTakenOffS(sq.teamName, sq.eventTitle)),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel')),
+                child: Text(l10n.tournament_cancel)),
             FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Withdraw')),
+                child: Text(l10n.tournament_withdraw)),
           ],
         ),
       );
@@ -111,7 +112,7 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
       () => ref
           .read(tournamentsRepositoryProvider)
           .respondCall(widget.eventId, id, accept: accept),
-      success: accept ? "You're in the squad" : 'Response sent',
+      success: accept ? l10n.tournament_youreInTheSquad : l10n.tournament_responseSent,
     );
   }
 
@@ -131,8 +132,8 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
             note: req.note,
           );
       _snack(n == 0
-          ? 'Everyone picked had already been called.'
-          : "Called $n player${n == 1 ? '' : 's'} — they've been notified.");
+          ? l10n.tournament_everyonePickedHadAlreadyBeen
+          : l10n.tournament_calledPlayersTheyveBeenNotified(n));
     });
   }
 
@@ -187,7 +188,7 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
               child: SpRoundButton(
                 icon: Icons.arrow_back_ios_new_rounded,
                 iconSize: 18,
-                tooltip: 'Back',
+                tooltip: context.l10n.tournament_back,
                 onTap: () =>
                     context.canPop() ? context.pop() : context.go('/home'),
               ),
@@ -295,8 +296,8 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
                       Text(
                           [
                             d.kind,
-                            d.role == 'host' ? 'Host' : 'Guest',
-                            if (d.kickedOff) 'Kicked off',
+                            d.role == 'host' ? context.l10n.tournament_host : context.l10n.tournament_guest,
+                            if (d.kickedOff) context.l10n.tournament_kickedOff,
                           ].join(' · '),
                           style: TextStyle(
                               color: p.orangeInk,
@@ -311,14 +312,14 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
         ),
         const SizedBox(height: 12),
         Row(children: [
-          stat('${d.accepted.length}', 'In squad', tone: p.greenText),
+          stat('${d.accepted.length}', context.l10n.tournament_inSquad, tone: p.greenText),
           const SizedBox(width: 8),
-          stat('${d.pending.length}', 'Awaiting',
+          stat('${d.pending.length}', context.l10n.tournament_awaiting,
               tone: d.pending.isNotEmpty ? p.orangeInk : null),
           const SizedBox(width: 8),
           d.needsFormation
-              ? stat('$starters/${d.maxStarters}', 'Starters')
-              : stat('${d.games.length}', 'Games'),
+              ? stat('$starters/${d.maxStarters}', context.l10n.tournament_starters2)
+              : stat('${d.games.length}', context.l10n.tournament_games),
         ]),
       ]),
     );
@@ -344,7 +345,7 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
         child: SpRoundButton(
           icon: canPop ? Icons.arrow_back_ios_new_rounded : Icons.home_outlined,
           iconSize: canPop ? 18 : 21,
-          tooltip: canPop ? 'Back' : 'Home',
+          tooltip: canPop ? context.l10n.tournament_back : context.l10n.tournament_home,
           onTap: () => context.canPop() ? context.pop() : context.go('/home'),
         ),
       ),
@@ -353,7 +354,7 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
         top: 12,
         child: SpRoundButton(
           icon: Icons.shield_outlined,
-          tooltip: 'General team profile',
+          tooltip: context.l10n.tournament_generalTeamProfile,
           onTap: () => context.push('/teams/${d.teamId}'),
         ),
       ),
@@ -387,12 +388,12 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("You've been called up",
+                    Text(context.l10n.tournament_youveBeenCalledUp,
                         style: TextStyle(
                             color: p.onHero,
                             fontSize: 16,
                             fontWeight: FontWeight.w800)),
-                    Text('Can you play for ${d.teamName}?',
+                    Text(context.l10n.tournament_canYouPlayFor(d.teamName),
                         style: TextStyle(color: p.heroMuted, fontSize: 12.5)),
                   ]),
             ),
@@ -400,22 +401,22 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
           // Nobody can answer "can you play?" from a title alone — put the
           // when / where / who in front of them, above the buttons.
           const SizedBox(height: 14),
-          _detail(p, Icons.event_outlined, 'When', d.when.line,
+          _detail(p, Icons.event_outlined, context.l10n.tournament_when, d.when.line,
               sub: d.when.viewerTime != null
-                  ? '${d.when.viewerTime} your time'
+                  ? context.l10n.tournament_yourTime(d.when.viewerTime ?? '')
                   : null),
           if (d.locationName != null)
-            _detail(p, Icons.place_outlined, 'Where', d.locationName!),
+            _detail(p, Icons.place_outlined, context.l10n.tournament_where, d.locationName!),
           if (d.opponents.isNotEmpty)
             _detail(
                 p,
                 Icons.sports_kabaddi_outlined,
-                d.opponents.length > 1 ? 'Teams' : 'Opponent',
+                d.opponents.length > 1 ? context.l10n.tournament_teams : context.l10n.tournament_opponent,
                 d.opponents.map((o) => o.name).join(', ')),
           _detail(
               p,
               Icons.groups_outlined,
-              'Host',
+              context.l10n.tournament_host,
               [
                 d.hostGroupName,
                 if (d.categoryName != null)
@@ -432,7 +433,7 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${d.myCalledByName ?? 'Your coach'} says',
+                    Text(context.l10n.tournament_says2(d.myCalledByName ?? context.l10n.tournament_yourCoach),
                         style: const TextStyle(
                             color: Color(0xFFFFB57D),
                             fontSize: 11.5,
@@ -456,13 +457,13 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
           ],
           const SizedBox(height: 8),
           Text(
-            'Accepting locks you to this team for this ${d.kind.toLowerCase()}.',
+            context.l10n.tournament_acceptingLocksYouToThis3(d.kind.toLowerCase()),
             style: TextStyle(color: p.heroMuted, fontSize: 12, height: 1.35),
           ),
           if (blocked) ...[
             const SizedBox(height: 6),
             Text(
-              "You've already accepted for ${d.myOtherTeamName} — withdraw there first to switch.",
+              context.l10n.tournament_youveAlreadyAcceptedForWithdraw(d.myOtherTeamName ?? ''),
               style: const TextStyle(color: Color(0xFFFF8A84), fontSize: 12.5),
             ),
           ],
@@ -486,7 +487,7 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
                                   ? p.heroMuted
                                   : const Color(0xFF0E1411)),
                           const SizedBox(width: 6),
-                          Text("I'm in",
+                          Text(context.l10n.tournament_imIn,
                               style: TextStyle(
                                   color: _busy || blocked
                                       ? p.heroMuted
@@ -509,7 +510,7 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
                   child: SizedBox(
                     height: 48,
                     child: Center(
-                      child: Text("Can't make it",
+                      child: Text(context.l10n.tournament_cantMakeIt,
                           style: TextStyle(
                               color: p.onHero,
                               fontSize: 14,
@@ -534,7 +535,7 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
           Icon(Icons.check_circle_rounded, color: p.greenText, size: 20),
           const SizedBox(width: 10),
           Expanded(
-            child: Text("You're in this squad",
+            child: Text(context.l10n.tournament_youreInThisSquad,
                 style: TextStyle(
                     color: p.greenText,
                     fontSize: 14,
@@ -544,7 +545,7 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
             TextButton(
               onPressed: _busy ? null : () => _respond(d, false),
               style: TextButton.styleFrom(foregroundColor: p.muted),
-              child: const Text('Withdraw', style: TextStyle(fontSize: 12.5)),
+              child: Text(context.l10n.tournament_withdraw, style: const TextStyle(fontSize: 12.5)),
             ),
         ]),
       );
@@ -599,7 +600,7 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
     return [
       if (d.canManage && !d.isOver) ...[
         SpButton(
-          label: 'Call players',
+          label: context.l10n.tournament_callPlayersButton,
           icon: Icons.campaign_rounded,
           expand: true,
           onTap: _busy || (d.uncalled.isEmpty && d.notPlaying.isEmpty)
@@ -608,23 +609,23 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Players get an in-app, push and email call-up and accept or decline. They can only accept for one team per ${d.kind.toLowerCase()}.',
+          context.l10n.tournament_playersGetAnInApp2(d.kind.toLowerCase()),
           textAlign: TextAlign.center,
           style: TextStyle(color: p.muted, fontSize: 12, height: 1.4),
         ),
         const SizedBox(height: 18),
       ],
-      SpSectionTitle('In the squad', count: d.accepted.length),
+      SpSectionTitle(context.l10n.tournament_inTheSquad, count: d.accepted.length),
       const SizedBox(height: 10),
       if (d.accepted.isEmpty)
-        _empty('Nobody has accepted yet.', p)
+        _empty(context.l10n.tournament_nobodyHasAcceptedYet, p)
       else
         SpListCard(children: [
           for (final m in d.accepted)
             _row(m, d, p,
                 trailing: d.canManage && !d.isOver
                     ? IconButton(
-                        tooltip: 'Remove from squad',
+                        tooltip: context.l10n.tournament_removeFromSquad,
                         icon: Icon(Icons.person_remove_outlined,
                             size: 18, color: p.muted),
                         onPressed: _busy
@@ -632,13 +633,13 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
                             : () => _run(
                                 () => repo.removeSquadPlayer(
                                     widget.eventId, m.id),
-                                success: 'Removed from squad'),
+                                success: context.l10n.tournament_removedFromSquad),
                       )
                     : null),
         ]),
       if (d.pending.isNotEmpty) ...[
         const SizedBox(height: 20),
-        SpSectionTitle('Awaiting reply', count: d.pending.length),
+        SpSectionTitle(context.l10n.tournament_awaitingReply, count: d.pending.length),
         const SizedBox(height: 10),
         SpListCard(children: [
           for (final m in d.pending)
@@ -650,11 +651,11 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
                             : () => _run(
                                 () => repo.addSquadPlayer(widget.eventId,
                                     d.tournamentTeamId, m.playerId),
-                                success: 'Added to squad'),
+                                success: context.l10n.tournament_addedToSquad),
                         style:
                             TextButton.styleFrom(foregroundColor: p.greenText),
-                        child: const Text('Add',
-                            style: TextStyle(
+                        child: Text(context.l10n.tournament_add,
+                            style: const TextStyle(
                                 fontSize: 13, fontWeight: FontWeight.w700)),
                       )
                     : null),
@@ -662,7 +663,7 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
       ],
       if (d.notPlaying.isNotEmpty) ...[
         const SizedBox(height: 20),
-        SpSectionTitle('Not playing', count: d.notPlaying.length),
+        SpSectionTitle(context.l10n.tournament_notPlaying, count: d.notPlaying.length),
         const SizedBox(height: 10),
         // Removed by the coach, or declined: one tap puts them back in the
         // squad (accepted on the coach's behalf, like "Add" above).
@@ -676,11 +677,11 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
                             : () => _run(
                                 () => repo.addSquadPlayer(widget.eventId,
                                     d.tournamentTeamId, m.playerId),
-                                success: 'Back in the squad'),
+                                success: context.l10n.tournament_backInTheSquad),
                         style:
                             TextButton.styleFrom(foregroundColor: p.greenText),
-                        child: const Text('Add back',
-                            style: TextStyle(
+                        child: Text(context.l10n.tournament_addBack,
+                            style: const TextStyle(
                                 fontSize: 13, fontWeight: FontWeight.w700)),
                       )
                     : null),
@@ -688,7 +689,7 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
       ],
       if (d.coaches.isNotEmpty) ...[
         const SizedBox(height: 20),
-        SpSectionTitle('Coaches', count: d.coaches.length),
+        SpSectionTitle(context.l10n.tournament_coaches, count: d.coaches.length),
         const SizedBox(height: 10),
         GlassCard(
           padding: const EdgeInsets.all(14),
@@ -715,20 +716,22 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
   Widget _row(SquadPlayer m, TournamentSquad d, AppPalette p,
       {Widget? trailing}) {
     final (String status, Color bg, Color fg) = switch (m.status) {
-      'accepted' => ('In', p.accentTint, p.greenText),
-      'called' => ('Awaiting', p.orangeTint, p.orangeInk),
-      'removed' => ('Removed', p.liveTint, p.danger),
-      'withdrawn' => ('Withdrew', p.surface2, p.muted),
-      _ => ('Declined', p.surface2, p.muted),
+      'accepted' => (context.l10n.tournament_squadIn, p.accentTint, p.greenText),
+      'called' => (context.l10n.tournament_awaiting, p.orangeTint, p.orangeInk),
+      'removed' => (context.l10n.tournament_squadRemoved, p.liveTint, p.danger),
+      'withdrawn' => (context.l10n.tournament_squadWithdrew, p.surface2, p.muted),
+      _ => (context.l10n.tournament_declined, p.surface2, p.muted),
     };
     final sub = <String>[
       if (m.positions.isNotEmpty) m.positions.join(' · '),
       if (m.accepted)
-        '${m.source == 'coach' ? 'Added by coach' : 'Accepted'} ${timeAgo(m.acceptedAt)}'
+        m.source == 'coach'
+            ? context.l10n.tournament_addedByCoachAgo(timeAgo(m.acceptedAt))
+            : context.l10n.tournament_acceptedAgo(timeAgo(m.acceptedAt))
       else if (m.pending)
-        'Called ${timeAgo(m.calledAt)}'
+        context.l10n.tournament_calledAgoCapital(timeAgo(m.calledAt))
       else
-        '$status ${timeAgo(m.respondedAt)}',
+        context.l10n.tournament_statusAgo(status, timeAgo(m.respondedAt)),
     ].join(' · ');
     return InkWell(
       borderRadius: BorderRadius.circular(18),
@@ -791,7 +794,7 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
                 ],
                 if (m.accepted) ...[
                   const SizedBox(width: 5),
-                  Text(m.isStarter ? 'Starter' : 'Sub',
+                  Text(m.isStarter ? context.l10n.tournament_starter : context.l10n.tournament_sub,
                       style: TextStyle(
                           color: m.isStarter ? p.greenText : p.muted,
                           fontSize: 11,
@@ -803,7 +806,7 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: p.muted, fontSize: 12)),
               if (m.accepted && m.joinedAfterKickoff)
-                Text('Joined after kick-off',
+                Text(context.l10n.tournament_joinedAfterKickOff,
                     style: TextStyle(
                         color: p.orangeInk,
                         fontSize: 11.5,
@@ -849,14 +852,14 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
             painter: _MiniPitch(),
             child: Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Text(d.formationName ?? 'No formation',
+                Text(d.formationName ?? context.l10n.tournament_noFormation,
                     style: const TextStyle(
                         color: Colors.white,
                         fontSize: 30,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.5)),
                 const SizedBox(height: 2),
-                Text('$starters of ${d.maxStarters} on the pitch',
+                Text(context.l10n.tournament_ofOnThePitch(starters, d.maxStarters),
                     style: const TextStyle(
                         color: Color(0xCCFFFFFF),
                         fontSize: 13,
@@ -871,15 +874,15 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
               Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Text(
               d.accepted.isEmpty
-                  ? 'The formation is built from players who accepted the call-up. Call players first.'
-                  : 'For ${d.eventTitle} only. This is what the match line-up is built from.',
+                  ? context.l10n.tournament_theFormationIsBuiltFrom
+                  : context.l10n.tournament_forOnlyThisIsWhat(d.eventTitle),
               style: TextStyle(color: p.muted, fontSize: 13, height: 1.45),
             ),
             const SizedBox(height: 14),
             SpButton(
               label: d.canManage && !d.isOver
-                  ? 'Open formation board'
-                  : 'View formation',
+                  ? context.l10n.tournament_openFormationBoard
+                  : context.l10n.tournament_viewFormation,
               icon: Icons.grid_on_rounded,
               expand: true,
               onTap: d.accepted.isEmpty
@@ -897,9 +900,9 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
   }
 
   List<Widget> _gamesTab(TournamentSquad d, AppPalette p) {
-    if (d.games.isEmpty) return [_empty('No games yet.', p)];
+    if (d.games.isEmpty) return [_empty(context.l10n.tournament_noGamesYet, p)];
     return [
-      SpSectionTitle('Games', count: d.games.length),
+      SpSectionTitle(context.l10n.tournament_games, count: d.games.length),
       const SizedBox(height: 10),
       SpListCard(children: [
         for (final g in d.games)
@@ -954,11 +957,11 @@ class _TournamentTeamScreenState extends ConsumerState<TournamentTeamScreen> {
                   ),
                   child: Text(
                       g.status == 'live'
-                          ? 'LIVE'
+                          ? context.l10n.tournament_live4
                           : g.status == 'completed'
-                              ? 'FT'
+                              ? context.l10n.tournament_ft
                               : g.status == 'scheduled'
-                                  ? 'Upcoming'
+                                  ? context.l10n.tournament_upcoming
                                   : g.status,
                       style: TextStyle(
                           color: g.status == 'live'
@@ -1109,15 +1112,15 @@ class _CallPlayersSheetState extends State<_CallPlayersSheet> {
             icon: Icons.campaign_rounded,
             iconBg: p.orangeTint,
             iconFg: p.orangeInk,
-            title: 'Call players',
+            title: context.l10n.tournament_callPlayersButton,
             subtitle:
-                'Each player gets an in-app, push and email call-up and replies in the app. Only roster members can be called.',
+                context.l10n.tournament_eachPlayerGetsAnIn2,
           ),
           if (rows.isNotEmpty) ...[
             const SizedBox(height: 8),
             Row(children: [
               Expanded(
-                child: Text('${_sel.length} of ${rows.length} selected',
+                child: Text(context.l10n.tournament_ofSelected2(_sel.length, rows.length),
                     style: TextStyle(color: p.muted, fontSize: 11.5)),
               ),
               TextButton(
@@ -1126,14 +1129,14 @@ class _CallPlayersSheetState extends State<_CallPlayersSheet> {
                 style: TextButton.styleFrom(
                     visualDensity: VisualDensity.compact,
                     padding: const EdgeInsets.symmetric(horizontal: 8)),
-                child: const Text('Select all', style: TextStyle(fontSize: 12)),
+                child: Text(context.l10n.tournament_selectAll, style: const TextStyle(fontSize: 12)),
               ),
               TextButton(
                 onPressed: () => setState(_sel.clear),
                 style: TextButton.styleFrom(
                     visualDensity: VisualDensity.compact,
                     padding: const EdgeInsets.symmetric(horizontal: 8)),
-                child: const Text('Clear', style: TextStyle(fontSize: 12)),
+                child: Text(context.l10n.tournament_clear, style: const TextStyle(fontSize: 12)),
               ),
             ]),
           ],
@@ -1142,7 +1145,7 @@ class _CallPlayersSheetState extends State<_CallPlayersSheet> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
-                child: Text('Everyone on the roster has already been called.',
+                child: Text(context.l10n.tournament_everyoneOnTheRosterHas,
                     style: TextStyle(color: p.muted, fontSize: 13)),
               ),
             )
@@ -1185,9 +1188,9 @@ class _CallPlayersSheetState extends State<_CallPlayersSheet> {
             maxLength: 300,
             style: TextStyle(color: p.ink, fontSize: 13),
             decoration: InputDecoration(
-              labelText: 'Remark (optional)',
+              labelText: context.l10n.tournament_remarkOptional,
               hintText:
-                  'Meet at the clubhouse 45 minutes before kick-off — bring the away kit.',
+                  context.l10n.tournament_meetAtTheClubhouse45,
               hintStyle: TextStyle(color: p.muted, fontSize: 12),
               counterStyle: TextStyle(color: p.muted, fontSize: 10),
               border:
@@ -1196,7 +1199,7 @@ class _CallPlayersSheetState extends State<_CallPlayersSheet> {
           ),
           const SizedBox(height: 6),
           SpButton(
-            label: 'Call ${_sel.length} player${_sel.length == 1 ? '' : 's'}',
+            label: context.l10n.tournament_callPlayers2(_sel.length),
             icon: Icons.campaign_rounded,
             expand: true,
             onTap: _sel.isEmpty
@@ -1218,7 +1221,7 @@ class _CallPlayersSheetState extends State<_CallPlayersSheet> {
                     Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   Icon(Icons.groups_2_outlined, size: 17, color: p.ink),
                   const SizedBox(width: 6),
-                  Text('Call whole roster',
+                  Text(context.l10n.tournament_callWholeRoster,
                       style: TextStyle(
                           color: p.ink,
                           fontSize: 14,
@@ -1244,7 +1247,7 @@ class _StatsTab extends ConsumerWidget {
       loading: () => Center(
           child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('Loading stats…',
+              child: Text(context.l10n.tournament_loadingStats,
                   style: TextStyle(color: p.muted, fontSize: 13)))),
       error: (e, _) => Center(
           child: Text('$e', style: TextStyle(color: p.muted, fontSize: 13))),
@@ -1272,7 +1275,7 @@ class _StatsTab extends ConsumerWidget {
               const SpIconTile(Icons.bar_chart_rounded, size: 50, iconSize: 24),
               const SizedBox(height: 10),
               Text(
-                  'Stats appear once this squad has played a game in this tournament.',
+                  context.l10n.tournament_statsAppearOnceThisSquad,
                   textAlign: TextAlign.center,
                   style: TextStyle(color: p.muted, fontSize: 13)),
             ]),
@@ -1313,7 +1316,7 @@ class _StatsTab extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Player stats',
+            Text(context.l10n.tournament_playerStats,
                 style: TextStyle(
                     color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
@@ -1327,7 +1330,7 @@ class _StatsTab extends ConsumerWidget {
                       child: Row(children: [
                         SizedBox(
                             width: 140,
-                            child: Text('PLAYER',
+                            child: Text(context.l10n.tournament_player3,
                                 style: TextStyle(
                                     color: p.muted,
                                     fontSize: 9.5,
@@ -1335,7 +1338,7 @@ class _StatsTab extends ConsumerWidget {
                                     letterSpacing: 0.4))),
                         head('GP'),
                         head('ST'),
-                        head('W-D-L', width: 52),
+                        head(context.l10n.tournament_wDL2, width: 52),
                         for (final f in fields)
                           head(
                               '${parseStr(f['icon']) ?? ''}${parseStr(f['label']) ?? parseStr(f['key']) ?? ''}',
@@ -1372,7 +1375,7 @@ class _StatsTab extends ConsumerWidget {
                                               ? parseStr((r['profile']
                                                   as Map)['displayName'])
                                               : null) ??
-                                          'Player',
+                                          context.l10n.tournament_player2,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
@@ -1404,9 +1407,7 @@ class _StatsTab extends ConsumerWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              'Across $games game${games == 1 ? '' : 's'}'
-              '${cats.isEmpty ? '' : ' · ${cats.map((c) => '${parseStr(c['emoji']) ?? ''}${parseStr(c['name']) ?? ''}').join(', ')} stats'}'
-              '. Tap a player for their match-by-match.',
+              context.l10n.tournament_countPluralOneAcrossGame(games, cats.isEmpty ? '' : ' · ${cats.map((c) => '${parseStr(c['emoji']) ?? ''}${parseStr(c['name']) ?? ''}').join(', ')} stats'),
               style: TextStyle(color: p.muted, fontSize: 10.5),
             ),
           ]),

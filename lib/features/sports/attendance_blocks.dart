@@ -9,6 +9,7 @@ import 'package:sportpadi_mobile/features/sports/sport_blocks.dart';
 import 'package:sportpadi_mobile/features/sports/sport_theme.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Showing up (design §8). Hiking 🥾 and running 🏃 are about turning up,
 /// not winning: their record block is twelve months of check-ins (bars for
@@ -38,7 +39,7 @@ class AttendanceBlock extends StatelessWidget {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       if (months.isEmpty)
-        Text('The month-by-month view appears after the next check-in.',
+        Text(context.l10n.profile_theMonthByMonthView,
             style: TextStyle(color: p.muted, fontSize: 12.5))
       else if (family == SportFamily.running)
         _LaneChart(months: months)
@@ -46,9 +47,9 @@ class AttendanceBlock extends StatelessWidget {
         _MonthBars(family: family, months: months),
       const SizedBox(height: 14),
       Wrap(spacing: 6, runSpacing: 6, children: [
-        MiniChip('Last 30 days: $last30', color: sportInk(family, dark: dark)),
-        MiniChip('$thisYear this year'),
-        if (streak > 0) MiniChip('🔥 $streak-week streak', color: p.orangeInk),
+        MiniChip(context.l10n.profile_last30Days(last30), color: sportInk(family, dark: dark)),
+        MiniChip(context.l10n.profile_thisYear2(thisYear)),
+        if (streak > 0) MiniChip(context.l10n.profile_weekStreak3(streak), color: p.orangeInk),
       ]),
     ]);
   }
@@ -218,9 +219,9 @@ class RaceRecord extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final tiles = <(String, int, Color, Color)>[
-      ('Won', nums.wins, p.accentTint, p.greenText),
-      if (nums.draws > 0) ('Drawn', nums.draws, p.surface2, p.muted),
-      ('Lost', nums.losses, p.liveTint, p.danger),
+      (context.l10n.profile_won, nums.wins, p.accentTint, p.greenText),
+      if (nums.draws > 0) (context.l10n.profile_p5Drawn, nums.draws, p.surface2, p.muted),
+      (context.l10n.profile_lost, nums.losses, p.liveTint, p.danger),
     ];
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
@@ -255,8 +256,8 @@ class RaceRecord extends StatelessWidget {
       ]),
       const SizedBox(height: 10),
       Wrap(spacing: 6, runSpacing: 6, children: [
-        MiniChip('🏅 ${plural(nums.wins, 'podium')}', color: p.orangeInk),
-        MiniChip(gamesPhrase(SportFamily.running, nums.games)),
+        MiniChip('🏅 ${context.l10n.profile_p5PodiumsCount(nums.wins)}', color: p.orangeInk),
+        MiniChip(gamesCount(SportFamily.running, nums.games)),
       ]),
     ]);
   }
@@ -269,14 +270,14 @@ class RecentOutings extends StatefulWidget {
     super.key,
     required this.family,
     required this.outings,
-    this.title = 'Recent outings',
+    this.title,
     this.initial = 5,
   });
   final SportFamily family;
 
   /// `attendance.recent`, newest first.
   final List<Map<String, dynamic>> outings;
-  final String title;
+  final String? title;
   final int initial;
 
   @override
@@ -292,7 +293,8 @@ class _RecentOutingsState extends State<RecentOutings> {
     final outings = widget.outings;
     final shown = _all ? outings : outings.take(widget.initial).toList();
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      RecordSectionTitle(widget.title, count: outings.length),
+      RecordSectionTitle(widget.title ?? context.l10n.profile_recentOutings,
+          count: outings.length),
       const SizedBox(height: 10),
       RecordList(children: [
         for (final o in shown) OutingRow(family: widget.family, outing: o),
@@ -303,7 +305,7 @@ class _RecentOutingsState extends State<RecentOutings> {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 13),
               child: Center(
-                child: Text('Show all ${outings.length}',
+                child: Text(context.l10n.profile_showAll(outings.length),
                     style: TextStyle(
                         color: p.greenText,
                         fontSize: 13.5,
@@ -327,7 +329,7 @@ class OutingRow extends StatelessWidget {
     final p = context.palette;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final ink = sportInk(family, dark: dark);
-    final title = parseStr(outing['title']) ?? 'Event';
+    final title = parseStr(outing['title']) ?? context.l10n.profile_event;
     final target = parseStr(outing['slug']) ?? parseStr(outing['eventId']);
     final eventDay = shortDay(outing['date']);
     final day =
@@ -406,12 +408,12 @@ class ShowingUpStrip extends StatelessWidget {
     final last = shortDay(attendance['lastAt']);
     final line = [
       thisYear > 0
-          ? '${plural(thisYear, 'check-in')} this year'
-          : '${plural(checkIns, 'check-in')} in all',
+          ? context.l10n.profile_p5CheckInsThisYear(thisYear)
+          : context.l10n.profile_p5CheckInsInAll(checkIns),
       if (streak > 0)
-        '$streak-week streak'
+        context.l10n.profile_weekStreakCount(streak)
       else if (last.isNotEmpty)
-        'last $last',
+        context.l10n.profile_p5LastOn(last),
     ].join(' · ');
 
     return GlassCard(
@@ -425,7 +427,7 @@ class ShowingUpStrip extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Showing up',
+                Text(context.l10n.profile_showingUp,
                     style: TextStyle(
                         color: p.ink,
                         fontSize: 14.5,

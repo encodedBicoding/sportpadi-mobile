@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart'
     show groupProvider;
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// One group's pending tournament invites, reached from the group menu.
 ///
@@ -34,7 +35,7 @@ class TournamentInvitesScreen extends ConsumerWidget {
         child: Column(children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: SpHeader(title: 'Tournament invites', subtitle: groupName),
+            child: SpHeader(title: context.l10n.manage_tournamentInvites, subtitle: groupName),
           ),
           Expanded(
             // Pullable in every state; a pull refetches the invites and the
@@ -71,7 +72,7 @@ class TournamentInvitesScreen extends ConsumerWidget {
                                 iconSize: 28),
                           ),
                           const SizedBox(height: 14),
-                          Text('No pending invites',
+                          Text(context.l10n.manage_noPendingInvites,
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   color: p.ink,
@@ -79,7 +80,7 @@ class TournamentInvitesScreen extends ConsumerWidget {
                                   fontWeight: FontWeight.w700)),
                           const SizedBox(height: 4),
                           Text(
-                            "When another group invites one of this group's teams to a tournament, it lands here.",
+                            context.l10n.manage_whenAnotherGroupInvitesOne,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                                 color: p.muted, fontSize: 13, height: 1.45),
@@ -110,13 +111,13 @@ class TournamentInvitesScreen extends ConsumerWidget {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                          '${list.length} invitation${list.length == 1 ? '' : 's'} waiting',
+                                          context.l10n.manage_invitationsWaiting(list.length),
                                           style: TextStyle(
                                               color: p.ink,
                                               fontSize: 15,
                                               fontWeight: FontWeight.w700)),
                                       Text(
-                                          'Soonest first. Accepting takes you to the squad to call your players.',
+                                          context.l10n.manage_soonestFirstAcceptingTakesYou,
                                           style: TextStyle(
                                               color: p.orangeInk,
                                               fontSize: 12,

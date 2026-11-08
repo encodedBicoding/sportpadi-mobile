@@ -14,6 +14,7 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The side menu's Discussions (`/discussions`): every discussion I can see,
 /// across all my groups and teams, newest activity first — All or Unread.
@@ -48,11 +49,11 @@ class _MyDiscussionsScreenState extends ConsumerState<MyDiscussionsScreen> {
       body: SafeArea(
         bottom: false,
         child: Column(children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: SpHeader(
-              title: 'Discussions',
-              subtitle: 'From all your groups and teams',
+              title: context.l10n.inbox_discussions,
+              subtitle: context.l10n.inbox_fromAllYourGroupsAnd,
             ),
           ),
           Padding(
@@ -101,7 +102,7 @@ class _MyDiscussionsScreenState extends ConsumerState<MyDiscussionsScreen> {
                       iconSize: 28),
                 ),
                 const SizedBox(height: 14),
-                Text(_unreadOnly ? 'All caught up' : 'No discussions yet',
+                Text(_unreadOnly ? context.l10n.inbox_allCaughtUp : context.l10n.inbox_noDiscussionsYet,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: p.ink,
@@ -110,9 +111,8 @@ class _MyDiscussionsScreenState extends ConsumerState<MyDiscussionsScreen> {
                 const SizedBox(height: 4),
                 Text(
                     _unreadOnly
-                        ? 'Nothing new since you last looked.'
-                        : 'Discussions from your groups and teams show up '
-                            'here.',
+                        ? context.l10n.inbox_nothingNewSinceYouLast
+                        : context.l10n.inbox_discussionsFromYourGroupsAnd,
                     textAlign: TextAlign.center,
                     style: TextStyle(color: p.muted, fontSize: 13)),
               ],
@@ -230,7 +230,7 @@ class _MyDiscussionRow extends StatelessWidget {
                 if (d.unseen) ...[
                   const SizedBox(width: 8),
                   Semantics(
-                    label: 'New',
+                    label: context.l10n.inbox_newLabel,
                     child: Container(
                       width: 9,
                       height: 9,
@@ -263,7 +263,7 @@ class _MyDiscussionRow extends StatelessWidget {
                         color: p.accentDeep,
                         borderRadius: BorderRadius.circular(999),
                       ),
-                      child: Text('${d.newComments} new',
+                      child: Text(context.l10n.inbox_newLabel3(d.newComments),
                           style: const TextStyle(
                               color: Colors.white,
                               fontSize: 11.5,

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/push/push_alert.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/shell/notification_target.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Renders a push that arrived while the app was open, as a banner over
 /// whatever is on screen. Wrapped around the whole app (MaterialApp.builder)
@@ -165,7 +166,7 @@ class _Banner extends StatelessWidget {
                         icon:
                             Icon(Icons.close_rounded, size: 17, color: p.muted),
                         onPressed: onDismiss,
-                        tooltip: 'Dismiss',
+                        tooltip: context.l10n.common_dismiss,
                       ),
                     ]),
               ),

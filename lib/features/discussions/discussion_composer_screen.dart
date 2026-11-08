@@ -15,6 +15,7 @@ import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Start a discussion: where (group-wide or a team — as a ward's guardian
 /// when I'm on it only through them), flair, title, body and up to 4 photos.
@@ -140,7 +141,7 @@ class _DiscussionComposerScreenState
         child: Column(children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: SpHeader(title: 'New discussion', subtitle: groupName),
+            child: SpHeader(title: context.l10n.inbox_newDiscussion, subtitle: groupName),
           ),
           Expanded(
             child: AsyncView<DiscussionSpaces>(
@@ -152,7 +153,7 @@ class _DiscussionComposerScreenState
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(32),
-                      child: Text("You can't start discussions in this group.",
+                      child: Text(context.l10n.inbox_youCantStartDiscussionsIn,
                           textAlign: TextAlign.center,
                           style: TextStyle(color: p.muted)),
                     ),
@@ -170,7 +171,7 @@ class _DiscussionComposerScreenState
                 border: Border(top: BorderSide(color: p.line)),
               ),
               child: SpButton(
-                label: _posting ? 'Posting…' : 'Post',
+                label: _posting ? context.l10n.inbox_posting : context.l10n.inbox_post,
                 icon: Icons.send_rounded,
                 tone: SpButtonTone.brand,
                 expand: true,
@@ -191,18 +192,18 @@ class _DiscussionComposerScreenState
       if (w.id == wardId) wardName = w.firstName;
     }
     final visibility = team == null
-        ? 'Everyone in ${groupName ?? 'the group'} can see it.'
-        : "${team.name}'s players, their guardians, its coaches and the "
-            "group's admins can see it.";
+        ? context.l10n.inbox_everyoneInCanSeeIt(
+            groupName ?? context.l10n.inbox_theGroup)
+        : context.l10n.inbox_teamPlayersGuardiansCoachesCanSeeIt(team.name);
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
       children: [
-        const Eyebrow('Where'),
+        Eyebrow(context.l10n.inbox_where),
         const SizedBox(height: 10),
         Wrap(spacing: 8, runSpacing: 8, children: [
           if (s.group)
             DiscussionPill(
-              label: 'Whole group',
+              label: context.l10n.inbox_wholeGroup,
               icon: Icons.groups_outlined,
               selected: _space == 'group',
               onTap: () => setState(() => _space = 'group'),
@@ -239,7 +240,7 @@ class _DiscussionComposerScreenState
                   Icon(Icons.child_care_rounded, size: 16, color: p.wardInk),
                   const SizedBox(width: 6),
                   Expanded(
-                    child: Text("Posting as $wardName's guardian",
+                    child: Text(context.l10n.inbox_postingAsSGuardian(wardName),
                         style: TextStyle(
                             color: p.wardInk,
                             fontSize: 13,
@@ -262,7 +263,7 @@ class _DiscussionComposerScreenState
           ),
         ],
         const SizedBox(height: 22),
-        const Eyebrow('Flair'),
+        Eyebrow(context.l10n.inbox_flair),
         const SizedBox(height: 10),
         Wrap(spacing: 8, runSpacing: 8, children: [
           for (final f in discussionFlairs)
@@ -274,7 +275,7 @@ class _DiscussionComposerScreenState
             ),
         ]),
         const SizedBox(height: 22),
-        const Eyebrow('Discussion'),
+        Eyebrow(context.l10n.inbox_discussion),
         const SizedBox(height: 10),
         GlassCard(
           child: Column(children: [
@@ -282,9 +283,9 @@ class _DiscussionComposerScreenState
               controller: _title,
               maxLength: 140,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Title',
-                helperText: 'At least 3 characters.',
+              decoration: InputDecoration(
+                labelText: context.l10n.inbox_title,
+                helperText: context.l10n.inbox_atLeast3Characters,
               ),
               onChanged: (_) => setState(() {}),
             ),
@@ -296,10 +297,10 @@ class _DiscussionComposerScreenState
               maxLines: 14,
               keyboardType: TextInputType.multiline,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Details (optional)',
+              decoration: InputDecoration(
+                labelText: context.l10n.inbox_detailsOptional,
                 alignLabelWithHint: true,
-                helperText: 'Plain text. Links will be tappable.',
+                helperText: context.l10n.inbox_plainTextLinksWillBe,
               ),
             ),
           ]),
@@ -325,8 +326,8 @@ class _DiscussionComposerScreenState
                     child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.add_photo_alternate_outlined, size: 19),
             label: Text(_images.isEmpty
-                ? 'Add photos'
-                : 'Add photo (${_images.length}/$_maxImages)'),
+                ? context.l10n.inbox_addPhotos
+                : context.l10n.inbox_addPhoto(_images.length, _maxImages)),
           ),
         ),
       ],

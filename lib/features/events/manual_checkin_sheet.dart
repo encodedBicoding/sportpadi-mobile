@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// "Check someone in" (organisers) — the web event page's dialog. Mostly for
 /// ANOTHER organiser, who can't scan their own event's QR, and for players
@@ -105,11 +106,11 @@ class _ManualCheckInSheetState extends ConsumerState<_ManualCheckInSheet> {
         final yes = await showDialog<bool>(
           context: context,
           builder: (c2) => AlertDialog(
-            title: const Text('Not registered for this league'),
+            title: Text(l10n.event_notRegisteredForThisLeague),
             content: Text(e.message),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(c2, false), child: const Text('Cancel')),
-              TextButton(onPressed: () => Navigator.pop(c2, true), child: const Text('Check in anyway')),
+              TextButton(onPressed: () => Navigator.pop(c2, false), child: Text(l10n.event_cancel)),
+              TextButton(onPressed: () => Navigator.pop(c2, true), child: Text(l10n.event_checkInAnyway)),
             ],
           ),
         );
@@ -159,23 +160,23 @@ class _ManualCheckInSheetState extends ConsumerState<_ManualCheckInSheet> {
         children: [
           SpSheetHeader(
             icon: Icons.how_to_reg_outlined,
-            title: 'Check someone in',
-            subtitle: 'For anyone without a phone.',
+            title: context.l10n.event_checkSomeoneIn,
+            subtitle: context.l10n.event_forAnyoneWithoutAPhone,
             trailing: TextButton(
               onPressed: _pending == null
                   ? () => Navigator.of(context).pop()
                   : null,
-              child: const Text('Done'),
+              child: Text(context.l10n.event_done),
             ),
           ),
-          const SpTipCard(
-            "Nobody checks themselves in here. Organisers check in by scanning another admin's QR, or another admin checks them in from this list.",
+          SpTipCard(
+            context.l10n.event_nobodyChecksThemselvesInHere2,
             icon: Icons.verified_user_outlined,
           ),
           const SizedBox(height: 10),
           SpSearchCard(
             controller: _search,
-            hint: 'Search members',
+            hint: context.l10n.event_searchMembers,
             onChanged: _onSearch,
             onClear: () {
               _search.clear();
@@ -204,7 +205,7 @@ class _ManualCheckInSheetState extends ConsumerState<_ManualCheckInSheet> {
                     textAlign: TextAlign.center,
                     style: TextStyle(color: p.muted, fontSize: 13)),
                 const SizedBox(height: 8),
-                TextButton(onPressed: _load, child: const Text('Try again')),
+                TextButton(onPressed: _load, child: Text(context.l10n.event_tryAgain)),
               ]),
             )
           else if (people.isEmpty)
@@ -212,19 +213,19 @@ class _ManualCheckInSheetState extends ConsumerState<_ManualCheckInSheet> {
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Text(
                   q.isEmpty
-                      ? 'No one to check in yet.'
-                      : 'No one matches “$q”.',
+                      ? context.l10n.event_noOneToCheckIn
+                      : context.l10n.event_noOneMatches(q),
                   textAlign: TextAlign.center,
                   style: TextStyle(color: p.muted, fontSize: 13.5)),
             )
           else ...[
             if (organisers.isNotEmpty) ...[
-              label('Organisers'),
+              label(context.l10n.event_organisers),
               SpListCard(children: [for (final c in organisers) _row(c)]),
               const SizedBox(height: 12),
             ],
             if (others.isNotEmpty) ...[
-              label(q.isEmpty ? 'RSVPs & members' : 'Members'),
+              label(q.isEmpty ? context.l10n.event_rSVPsMembers : context.l10n.event_members),
               SpListCard(children: [for (final c in others) _row(c)]),
             ],
           ],
@@ -236,14 +237,14 @@ class _ManualCheckInSheetState extends ConsumerState<_ManualCheckInSheet> {
   Widget _row(CheckInCandidate c) {
     final p = context.palette;
     final sub = c.isMe
-        ? "Scan another admin's QR to check in"
+        ? context.l10n.event_scanAnotherAdminsQrTo2
         : c.isCreator
-            ? 'Created this event'
+            ? context.l10n.event_createdThisEvent
             : c.isOrganiser
-            ? 'Organiser'
+            ? context.l10n.event_organiser
             : c.rsvp
-                ? 'RSVP’d'
-                : 'Member';
+                ? context.l10n.event_rSVPd
+                : context.l10n.event_member;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
       child: Row(children: [
@@ -269,7 +270,7 @@ class _ManualCheckInSheetState extends ConsumerState<_ManualCheckInSheet> {
                 ],
                 if (c.isMe) ...[
                   const SizedBox(width: 6),
-                  Text('You',
+                  Text(context.l10n.event_you,
                       style: TextStyle(
                           color: p.greenText,
                           fontSize: 12,
@@ -285,7 +286,7 @@ class _ManualCheckInSheetState extends ConsumerState<_ManualCheckInSheet> {
         ),
         const SizedBox(width: 8),
         if (c.checkedIn)
-          SpBadge('In', icon: Icons.check_rounded, tone: p.greenText)
+          SpBadge(context.l10n.event_inLabel, icon: Icons.check_rounded, tone: p.greenText)
         else if (!c.isMe)
           _pending == c.userId
               ? const SizedBox(
@@ -297,7 +298,7 @@ class _ManualCheckInSheetState extends ConsumerState<_ManualCheckInSheet> {
                   ),
                 )
               : SpPill(
-                  label: 'Check in',
+                  label: context.l10n.event_checkIn,
                   onTap: _pending == null ? () => _checkIn(c) : null,
                 ),
       ]),

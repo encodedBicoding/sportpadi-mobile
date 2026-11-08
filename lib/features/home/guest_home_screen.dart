@@ -17,6 +17,7 @@ import 'package:sportpadi_mobile/features/shell/home_shell.dart'
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/features/onboarding/intent_cards.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 const _mint = Color(0xFF6EDC9E);
 const _dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -114,12 +115,12 @@ class _GuestHomeScreenState extends ConsumerState<GuestHomeScreen> {
               Row(children: [
                 Expanded(
                   child: _quickAction(
-                      p, Icons.explore_outlined, 'Browse events', _browse),
+                      p, Icons.explore_outlined, context.l10n.home_browseEvents, _browse),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _quickAction(p, Icons.person_add_alt_1_rounded,
-                      'Join SportPadi', _signIn,
+                      context.l10n.home_joinSportPadi, _signIn,
                       dark: true),
                 ),
               ]),
@@ -205,10 +206,10 @@ class _GuestHeader extends StatelessWidget {
     final p = context.palette;
     final h = DateTime.now().hour;
     final greeting = h < 12
-        ? 'Good morning'
+        ? context.l10n.home_goodMorning
         : h < 17
-            ? 'Good afternoon'
-            : 'Good evening';
+            ? context.l10n.home_goodAfternoon
+            : context.l10n.home_goodEvening;
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Row(children: [
@@ -218,7 +219,7 @@ class _GuestHeader extends StatelessWidget {
             Text(greeting,
                 style: TextStyle(
                     color: p.muted, fontSize: 13, fontWeight: FontWeight.w500)),
-            Text('Welcome 👋',
+            Text(context.l10n.home_welcome2,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -238,7 +239,7 @@ class _GuestHeader extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text('Sign in',
+                Text(context.l10n.home_signIn,
                     style: TextStyle(
                         color: p.bg,
                         fontSize: 14,
@@ -273,7 +274,7 @@ class _CalendarStandIn extends StatelessWidget {
         Row(children: [
           Padding(
             padding: const EdgeInsets.only(left: 2),
-            child: Text('Your calendar',
+            child: Text(context.l10n.home_yourCalendar,
                 style: TextStyle(
                     color: p.ink, fontSize: 17, fontWeight: FontWeight.w800)),
           ),
@@ -287,7 +288,7 @@ class _CalendarStandIn extends StatelessWidget {
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(Icons.lock_outline_rounded, size: 12, color: p.orangeInk),
               const SizedBox(width: 4),
-              Text('After sign-in',
+              Text(context.l10n.home_afterSignIn,
                   style: TextStyle(
                       color: p.orangeInk,
                       fontSize: 11.5,
@@ -315,15 +316,13 @@ class _CalendarStandIn extends StatelessWidget {
             SpIconTile(Icons.event_available_rounded,
                 bg: p.accentTint, fg: p.greenText, size: 48, iconSize: 22),
             const SizedBox(height: 10),
-            Text('Your games will land here',
+            Text(context.l10n.home_yourGamesWillLandHere,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     color: p.ink, fontSize: 15, fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
             Text(
-              "Once you're signed in, every game from the groups you belong "
-              "to and follow shows up on this calendar. Until then, see "
-              "what's on.",
+              context.l10n.home_onceYoureSignedInEvery,
               textAlign: TextAlign.center,
               style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.4),
             ),
@@ -331,7 +330,7 @@ class _CalendarStandIn extends StatelessWidget {
             Row(children: [
               Expanded(
                 child: SpButton(
-                  label: 'Browse events',
+                  label: context.l10n.home_browseEvents,
                   icon: Icons.explore_outlined,
                   expand: true,
                   onTap: onBrowse,
@@ -348,7 +347,7 @@ class _CalendarStandIn extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       child: Center(
-                        child: Text('Sign in',
+                        child: Text(context.l10n.home_signIn,
                             style: TextStyle(
                                 color: p.ink,
                                 fontSize: 14,
@@ -435,14 +434,14 @@ class _JoinCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const Text('JOIN FREE',
-            style: TextStyle(
+        Text(context.l10n.home_joinFree,
+            style: const TextStyle(
                 color: _mint,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.4)),
         const SizedBox(height: 6),
-        Text('Ready to play?',
+        Text(context.l10n.home_readyToPlay,
             style: TextStyle(
                 color: p.onHero,
                 fontSize: 22,
@@ -450,16 +449,16 @@ class _JoinCard extends StatelessWidget {
                 letterSpacing: -0.3)),
         const SizedBox(height: 4),
         Text(
-          'One account for every sport you play.',
+          context.l10n.home_oneAccountForEverySport,
           style: TextStyle(color: p.heroMuted, fontSize: 13, height: 1.4),
         ),
         const SizedBox(height: 16),
-        perk(Icons.sports_soccer_rounded, 'Join games and check in with a QR'),
-        perk(Icons.groups_rounded, 'Follow groups and see their calendar'),
+        perk(Icons.sports_soccer_rounded, context.l10n.home_joinGamesAndCheckIn),
+        perk(Icons.groups_rounded, context.l10n.home_followGroupsAndSeeTheir),
         perk(
-            Icons.confirmation_num_outlined, 'Buy tickets for you and friends'),
+            Icons.confirmation_num_outlined, context.l10n.home_buyTicketsForYouAnd),
         perk(
-            Icons.emoji_events_outlined, 'Keep your record, level and streaks'),
+            Icons.emoji_events_outlined, context.l10n.home_keepYourRecordLevelAnd),
         const SizedBox(height: 6),
         Material(
           color: Colors.white,
@@ -467,22 +466,22 @@ class _JoinCard extends StatelessWidget {
           child: InkWell(
             customBorder: const StadiumBorder(),
             onTap: onSignIn,
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Flexible(
-                    child: Text('Sign in or create an account',
+                    child: Text(context.l10n.home_signInOrCreateAn,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: const TextStyle(
                             color: Color(0xFF0E1411),
                             fontSize: 14.5,
                             fontWeight: FontWeight.w800)),
                   ),
-                  SizedBox(width: 8),
-                  Icon(Icons.arrow_forward_rounded,
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward_rounded,
                       size: 18, color: Color(0xFF0E1411)),
                 ],
               ),
@@ -518,27 +517,24 @@ class _LocationCard extends ConsumerWidget {
 
     if (s.loading) {
       icon = Icons.my_location_rounded;
-      title = 'Finding events near you…';
-      body = 'Reading your location so the picks below are ones you can '
-          'actually get to.';
+      title = context.l10n.home_findingEventsNearYou;
+      body = context.l10n.home_readingYourLocationSoThe;
     } else if (s.location != null) {
       icon = Icons.location_on_rounded;
-      title = 'Showing events near you';
-      body = 'Within about ${s.radiusMiles} miles of where you are. '
-          'Browse to change the distance or search another area.';
+      title = context.l10n.home_showingEventsNearYou;
+      body = context.l10n.home_withinAboutMilesOfWhere(s.radiusMiles);
     } else if (s.denied) {
       icon = Icons.location_off_rounded;
-      title = 'Location is off';
-      body = 'Turn it on in Settings to see games near you. '
-          'Everything still works without it.';
-      actionLabel = 'Open Settings';
+      title = context.l10n.home_locationIsOff;
+      body = context.l10n.home_turnItOnInSettings;
+      actionLabel = context.l10n.home_openSettings;
       action = () => Geolocator.openAppSettings();
     } else {
       icon = Icons.location_searching_rounded;
-      title = "See what's on near you";
+      title = context.l10n.home_seeWhatsOnNearYou;
       body = s.error ??
-          'Share your location once and the picks below become local.';
-      actionLabel = 'Use my location';
+          context.l10n.home_shareYourLocationOnceAnd;
+      actionLabel = context.l10n.home_useMyLocation;
       action = () => ref.read(locationProvider.notifier).request();
     }
     final found = s.location != null;

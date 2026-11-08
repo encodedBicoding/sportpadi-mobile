@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Added time, any amount (web twin: StoppagePad in OfficiateClient.tsx).
 ///
@@ -173,7 +174,7 @@ class _StoppagePadState extends State<StoppagePad> {
 
     final header = Row(children: [
       Expanded(
-        child: Text(_mode == _Mode.set ? 'CORRECT STOPPAGE' : 'ADD STOPPAGE',
+        child: Text(_mode == _Mode.set ? context.l10n.game_correctStoppage2 : context.l10n.game_addStoppage2,
             style: TextStyle(
                 color: dim,
                 fontSize: 11,
@@ -188,7 +189,7 @@ class _StoppagePadState extends State<StoppagePad> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
                 color: faint, borderRadius: BorderRadius.circular(999)),
-            child: Text("+${widget.current}' added · Correct",
+            child: Text(context.l10n.game_addedCorrect(widget.current),
                 style: TextStyle(
                     color: accent, fontSize: 11, fontWeight: FontWeight.w700)),
           ),
@@ -208,7 +209,7 @@ class _StoppagePadState extends State<StoppagePad> {
             const SizedBox(width: 8),
           ],
           Expanded(
-            child: pill('More', widget.busy ? null : () => _open(_Mode.add, 10),
+            child: pill(context.l10n.game_more, widget.busy ? null : () => _open(_Mode.add, 10),
                 size: 14),
           ),
         ]),
@@ -309,7 +310,7 @@ class _StoppagePadState extends State<StoppagePad> {
             if (!widget.startExpanded || _mode == _Mode.set) ...[
               Expanded(
                 child: pill(
-                    'Cancel',
+                    context.l10n.game_cancel,
                     widget.startExpanded
                         ? () => setState(() => _mode = _Mode.add)
                         : _close,
@@ -321,10 +322,10 @@ class _StoppagePadState extends State<StoppagePad> {
               flex: 2,
               child: pill(
                 _mode == _Mode.add
-                    ? "Add +$n'"
+                    ? context.l10n.game_add(n)
                     : n == 0
-                        ? 'Clear stoppage'
-                        : "Set to +$n'",
+                        ? context.l10n.game_clearStoppage
+                        : context.l10n.game_setTo4(n),
                 widget.busy || (_mode == _Mode.add && n < 1) ? null : _confirm,
                 bg: dark ? _amber : p.hero,
                 fg: dark ? const Color(0xFF0E1411) : p.onHero,
@@ -340,7 +341,7 @@ class _StoppagePadState extends State<StoppagePad> {
               child: TextButton(
                 onPressed: () => _open(_Mode.set, widget.current),
                 child: Text(
-                    "+${widget.current}' added so far · Correct the total",
+                    context.l10n.game_addedSoFarCorrectThe(widget.current),
                     style: TextStyle(color: dim, fontSize: 12)),
               ),
             ),
@@ -348,7 +349,7 @@ class _StoppagePadState extends State<StoppagePad> {
           if (_mode == _Mode.set) ...[
             const SizedBox(height: 6),
             Text(
-              "Sets this period's added time to exactly this — it replaces the +${widget.current}' so far.",
+              context.l10n.game_setsThisPeriodsAddedTime(widget.current),
               textAlign: TextAlign.center,
               style: TextStyle(color: dim, fontSize: 11),
             ),

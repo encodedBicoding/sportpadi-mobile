@@ -14,6 +14,7 @@ import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// The cross-sport boards, in display order.
 const kXpBoards = <({String key, String label})>[
@@ -61,10 +62,10 @@ class BoardList extends ConsumerWidget {
             child: GlassCard(
               child: Text(
                 board == 'community'
-                    ? 'Nobody on this board yet — it fills as people organise games and bring new players in.'
+                    ? context.l10n.profile_nobodyOnThisBoardYet
                     : board == 'performance'
-                        ? 'No recorded stats in this sport yet — they come from games played with the live scoreboard.'
-                        : 'Nobody on this board yet. It fills as people check in and play.',
+                        ? context.l10n.profile_noRecordedStatsInThis
+                        : context.l10n.profile_nobodyOnThisBoardYet2,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 13),
               ),
@@ -108,7 +109,7 @@ class BoardList extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           e.userId == myUserId
-                              ? '${e.displayName} (you)'
+                              ? context.l10n.profile_you2(e.displayName)
                               : e.displayName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -134,7 +135,7 @@ class BoardList extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                      "You're not in the top ${d.entries.length} yet — keep showing up.",
+                      context.l10n.profile_youreNotInTheTop(d.entries.length),
                       style: TextStyle(color: p.muted, fontSize: 11.5)),
                 ),
             ]);
@@ -170,8 +171,8 @@ class _LeaderboardsScreenState extends ConsumerState<LeaderboardsScreen> {
         leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
-        title: const Text('Leaderboards',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        title: Text(context.l10n.profile_leaderboards,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
       ),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         SizedBox(
@@ -180,7 +181,7 @@ class _LeaderboardsScreenState extends ConsumerState<LeaderboardsScreen> {
             for (final b in kXpBoards)
               chip(b.label, _board == b.key,
                   () => setState(() => _board = b.key)),
-            chip('Performance', _board == 'performance',
+            chip(context.l10n.profile_performance, _board == 'performance',
                 () => setState(() => _board = 'performance')),
           ]),
         ),
@@ -220,8 +221,8 @@ class ProgressScreen extends ConsumerWidget {
         leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
-        title: const Text('Progress',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        title: Text(context.l10n.profile_progress,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
       ),
       body: AsyncView(
         value: ref.watch(myProgressionProvider),
@@ -229,7 +230,7 @@ class ProgressScreen extends ConsumerWidget {
         data: (d) {
           if (d == null) {
             return Center(
-              child: Text('Progress is coming soon.',
+              child: Text(context.l10n.profile_progressIsComingSoon,
                   style: TextStyle(color: p.muted)),
             );
           }
@@ -240,7 +241,7 @@ class ProgressScreen extends ConsumerWidget {
                   children: [
                     Row(children: [
                       Expanded(
-                        child: Text('${d.title} · Level ${d.level}',
+                        child: Text(context.l10n.profile_level5(d.title, d.level),
                             style: TextStyle(
                                 color: p.ink,
                                 fontSize: 18,
@@ -263,7 +264,7 @@ class ProgressScreen extends ConsumerWidget {
                         child: TextButton.icon(
                           onPressed: () => context.push('/xp'),
                           icon: const Icon(Icons.history_rounded, size: 18),
-                          label: const Text('How I earned it'),
+                          label: Text(context.l10n.profile_howIEarnedIt),
                         ),
                       ),
                     ],
@@ -273,7 +274,7 @@ class ProgressScreen extends ConsumerWidget {
             const ProgressionVisibilityTile(),
             const SizedBox(height: 16),
             Eyebrow(
-                'Achievements · ${d.unlocked.length}/${d.catalogue.length}'),
+                context.l10n.profile_achievements2(d.unlocked.length, d.catalogue.length)),
             const SizedBox(height: 8),
             GridView.count(
               crossAxisCount: 2,
@@ -325,7 +326,7 @@ class ProgressScreen extends ConsumerWidget {
                                   style:
                                       TextStyle(color: p.muted, fontSize: 11)),
                             ),
-                            Text('+${a.xp} XP',
+                            Text(context.l10n.profile_xp2(a.xp),
                                 style: TextStyle(
                                     color: p.muted,
                                     fontSize: 10.5,
@@ -349,18 +350,17 @@ class ProgressScreen extends ConsumerWidget {
 Future<void> showXpVisibilitySheet(BuildContext context) {
   return showSpSheet<void>(
     context,
-    builder: (_) => const Column(
+    builder: (_) => Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SpSheetHeader(
           icon: Icons.visibility_outlined,
-          title: 'Who sees your XP',
+          title: context.l10n.profile_whoSeesYourXp,
           subtitle:
-              'Your level and achievements are always visible. Your XP number, '
-              'streaks and per-sport levels stay private unless you share them.',
+              context.l10n.profile_yourLevelAndAchievementsAre2,
         ),
-        ProgressionVisibilityTile(),
+        const ProgressionVisibilityTile(),
       ],
     ),
   );
@@ -388,11 +388,11 @@ class _ProgressionVisibilityTileState
         Expanded(
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Show my XP and streaks to others',
+            Text(context.l10n.profile_showMyXpAndStreaks,
                 style: TextStyle(
                     color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w600)),
             const SizedBox(height: 2),
-            Text('Your level and achievements are always visible.',
+            Text(context.l10n.profile_yourLevelAndAchievementsAre3,
                 style: TextStyle(color: p.muted, fontSize: 11.5)),
           ]),
         ),
@@ -432,8 +432,8 @@ class MatchSummaryScreen extends ConsumerWidget {
         leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
-        title: const Text('Match summary',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        title: Text(context.l10n.profile_matchSummary,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
       ),
       body: AsyncView(
         value: ref.watch(matchSummaryProvider(gameId)),
@@ -441,12 +441,12 @@ class MatchSummaryScreen extends ConsumerWidget {
         data: (d) {
           final mine = d.teams.where((t) => t.mine).toList();
           final result = mine.isEmpty
-              ? 'Full time'
+              ? context.l10n.profile_fullTime
               : switch (mine.first.result) {
-                  'win' => 'You won',
-                  'loss' => 'You lost',
-                  'draw' => 'Draw',
-                  _ => 'Full time',
+                  'win' => context.l10n.profile_youWon,
+                  'loss' => context.l10n.profile_youLost,
+                  'draw' => context.l10n.profile_draw,
+                  _ => context.l10n.profile_fullTime,
                 };
           return ListView(padding: const EdgeInsets.all(16), children: [
             GlassCard(
@@ -499,14 +499,14 @@ class MatchSummaryScreen extends ConsumerWidget {
                     children: [
                       Row(children: [
                         Expanded(
-                          child: Text('Your match',
+                          child: Text(context.l10n.profile_yourMatch,
                               style: TextStyle(
                                   color: p.ink,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700)),
                         ),
                         if (d.xp > 0)
-                          Text('+${d.xp} XP',
+                          Text(context.l10n.profile_xp2(d.xp),
                               style: TextStyle(
                                   color: p.accent,
                                   fontSize: 15,
@@ -554,7 +554,7 @@ class MatchSummaryScreen extends ConsumerWidget {
                                 size: 16, color: p.amber),
                             const SizedBox(width: 6),
                             Expanded(
-                              child: Text('Achievement unlocked: $u',
+                              child: Text(context.l10n.profile_achievementUnlocked2(u),
                                   style: TextStyle(
                                       color: p.ink,
                                       fontSize: 13,
@@ -577,7 +577,7 @@ class MatchSummaryScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             OutlinedButton(
               onPressed: () => context.push('/games/$gameId'),
-              child: const Text('Full match details'),
+              child: Text(context.l10n.profile_fullMatchDetails),
             ),
           ]);
         },

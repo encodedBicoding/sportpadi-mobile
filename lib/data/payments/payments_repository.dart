@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/data/payments/payment_models.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Tickets + fines over the REST bridge. Checkout is the provider's hosted
 /// page (Stripe / Paystack / Flutterwave) opened in the browser; afterwards
@@ -61,7 +62,7 @@ class PaymentsRepository {
       final res = await _dio.get('/api/mobile/payments',
           queryParameters: {'view': 'receipt', 'code': code});
       if (res.data is! Map) {
-        throw ApiException('Receipt not found.', statusCode: 404);
+        throw ApiException(l10n.common_receiptNotFound, statusCode: 404);
       }
       return MyTicket.fromJson(Map<String, dynamic>.from(res.data as Map));
     } catch (e) {

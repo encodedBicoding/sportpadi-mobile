@@ -6,6 +6,7 @@ import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/core/links/link_resolver.dart' show HomeTab;
 import 'package:sportpadi_mobile/features/shell/home_shell.dart'
     show homeTabIndexProvider;
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Tap a person, open their profile — anywhere a player shows up (rosters,
 /// lineups, check-ins, team lists, leaderboards, posts…). Your own name opens
@@ -45,7 +46,7 @@ class PlayerTap extends ConsumerWidget {
     if (id == null || id.isEmpty) return child;
     return Semantics(
       button: true,
-      label: 'View profile',
+      label: context.l10n.common_viewProfile,
       child: InkWell(
         borderRadius: BorderRadius.circular(borderRadius),
         onTap: () => openPlayerProfile(context, ref, id),

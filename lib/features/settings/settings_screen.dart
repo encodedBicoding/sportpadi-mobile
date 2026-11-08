@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/theme/theme_mode.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:sportpadi_mobile/core/i18n/l10n.dart';
+import 'package:sportpadi_mobile/core/i18n/locale_controller.dart';
+import 'package:sportpadi_mobile/core/i18n/locales.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/profile/profile_models.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
@@ -49,12 +53,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _save() async {
     final name = _displayName.text.trim();
     final uname = _username.text.trim().replaceFirst(RegExp(r'^@'), '');
-    if (name.isEmpty) return _snack('Display name is required');
+    if (name.isEmpty) return _snack(l10n.profile_displayNameIsRequired2);
     if (uname.length < 3) {
-      return _snack('Username must be at least 3 characters');
+      return _snack(l10n.profile_usernameMustBeAtLeast2);
     }
     if (!RegExp(r'^[A-Za-z0-9_]+$').hasMatch(uname)) {
-      return _snack('Username can only use letters, numbers, and underscores');
+      return _snack(l10n.profile_usernameCanOnlyUseLetters2);
     }
     setState(() => _saving = true);
     try {
@@ -62,7 +66,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           .read(profileRepositoryProvider)
           .updateMe({'displayName': name, 'username': uname});
       ref.invalidate(meProvider);
-      _snack('Profile updated ✅');
+      _snack(l10n.profile_profileUpdated2);
     } catch (e) {
       _snack('$e');
     } finally {
@@ -81,12 +85,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Finish in your browser'),
-          content: const Text(
-              'Add the card on the secure Stripe page, then come back here.'),
+          title: Text(l10n.profile_finishInYourBrowser),
+          content: Text(
+              l10n.profile_addTheCardOnThe),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx), child: const Text('Done')),
+                onPressed: () => Navigator.pop(ctx), child: Text(l10n.profile_done)),
           ],
         ),
       );
@@ -126,14 +130,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         leading: const SpLeading(),
         backgroundColor: p.bg,
         surfaceTintColor: p.bg,
-        title: const Text('Settings',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        title: Text(context.l10n.profile_settings,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // ── Profile (same fields as web: name, username, read-only email) ──
-          const Eyebrow('Profile'),
+          Eyebrow(context.l10n.profile_profile),
           const SizedBox(height: 8),
           GlassCard(
             child: Column(
@@ -141,23 +145,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               children: [
                 TextField(
                   controller: _displayName,
-                  decoration: const InputDecoration(labelText: 'Display name'),
+                  decoration: InputDecoration(labelText: context.l10n.profile_displayName),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: _username,
-                  decoration: const InputDecoration(
-                    labelText: 'Username',
+                  decoration: InputDecoration(
+                    labelText: context.l10n.profile_username,
                     prefixText: '@',
                     helperText:
-                        'Friends use this to find you and buy tickets for you.',
+                        context.l10n.profile_friendsUseThisToFind2,
                   ),
                 ),
                 const SizedBox(height: 10),
                 InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    helperText: 'Receipts and confirmations go here.',
+                  decoration: InputDecoration(
+                    labelText: context.l10n.profile_email,
+                    helperText: context.l10n.profile_receiptsAndConfirmationsGoHere2,
                     enabled: false,
                   ),
                   child: Text(
@@ -167,7 +171,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 14),
                 SpButton(
-                  label: _saving ? 'Saving…' : 'Save changes',
+                  label: _saving ? context.l10n.profile_saving : context.l10n.profile_saveChanges,
                   icon: Icons.save_outlined,
                   expand: true,
                   onTap: _saving ? null : _save,
@@ -181,27 +185,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           //    my account under 18) — nothing for everyone else ──
           const ProfilePrivacySection(),
 
+          // ── Language: the player's choice, else the phone (docs/design/i18n.md) ──
+          Eyebrow(context.l10n.settings_language),
+          const SizedBox(height: 8),
+          const _LanguageRow(),
+          const SizedBox(height: 18),
+
           // ── Appearance: follow the phone, or force light / dark ──
-          const Eyebrow('Appearance'),
+          Eyebrow(context.l10n.settings_appearance),
           const SizedBox(height: 8),
           const _AppearanceCard(),
           const SizedBox(height: 18),
 
           // ── Sign-in methods: password + Google / Apple links ──
-          const Eyebrow('Sign-in methods'),
+          Eyebrow(context.l10n.profile_signInMethods),
           const SizedBox(height: 8),
           const SignInMethodsCard(),
           const SizedBox(height: 18),
 
           // ── Time zone: the clock every message / notification stamp uses ──
-          const Eyebrow('Time zone'),
+          Eyebrow(context.l10n.profile_timeZone),
           const SizedBox(height: 8),
           const TimezoneCard(),
           const SizedBox(height: 18),
 
           // ── Notifications: can this device receive pushes? (tap to fix),
           //    then one card of switches for messages, discussions, events ──
-          const Eyebrow('Notifications'),
+          Eyebrow(context.l10n.profile_notifications),
           const SizedBox(height: 8),
           const PushNotificationsCard(),
           const SizedBox(height: 10),
@@ -209,36 +219,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 18),
 
           // ── Announcements: push / email for normal and urgent ones ──
-          const Eyebrow('Announcements'),
+          Eyebrow(context.l10n.profile_announcements),
           const SizedBox(height: 8),
           const AnnouncementPreferencesCard(),
           const SizedBox(height: 18),
 
           // ── Progress: XP / streak visibility ──
-          const Eyebrow('Progress'),
+          Eyebrow(context.l10n.profile_progress),
           const SizedBox(height: 8),
           const ProgressionVisibilityTile(),
           const SizedBox(height: 18),
 
           // ── Payment methods (cards on file) ──
-          const Eyebrow('Payment methods'),
+          Eyebrow(context.l10n.profile_paymentMethods),
           const SizedBox(height: 8),
           GlassCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Save a card for faster ticket checkout. Cards are stored by Stripe — SportPadi never sees the number.',
+                  context.l10n.profile_saveACardForFaster,
                   style: TextStyle(color: p.muted, fontSize: 12),
                 ),
                 const SizedBox(height: 10),
                 cards.when(
-                  loading: () => Text('Loading cards…',
+                  loading: () => Text(context.l10n.profile_loadingCards,
                       style: TextStyle(color: p.muted, fontSize: 13)),
                   error: (e, _) => Text('$e',
                       style: TextStyle(color: p.muted, fontSize: 13)),
                   data: (list) => list.isEmpty
-                      ? Text('No cards saved yet.',
+                      ? Text(context.l10n.profile_noCardsSavedYet,
                           style: TextStyle(color: p.muted, fontSize: 13))
                       : Column(children: [
                           for (final c in list) _cardRow(c, p),
@@ -248,14 +258,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 OutlinedButton.icon(
                   onPressed: _cardBusy ? null : _addCard,
                   icon: const Icon(Icons.add_card_rounded, size: 18),
-                  label: const Text('Add card'),
+                  label: Text(context.l10n.profile_addCard),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 18),
           // ── Account ──
-          const Eyebrow('Account'),
+          Eyebrow(context.l10n.profile_account),
           const SizedBox(height: 8),
           Material(
             color: p.surface,
@@ -275,7 +285,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   children: [
                     Icon(Icons.logout_rounded, size: 18, color: p.danger),
                     const SizedBox(width: 8),
-                    Text('Sign out',
+                    Text(context.l10n.profile_signOut,
                         style: TextStyle(
                             color: p.danger,
                             fontSize: 14.5,
@@ -291,13 +301,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onPressed: _deleting ? null : _confirmDeleteAccount,
             icon:
                 Icon(Icons.delete_forever_outlined, size: 18, color: p.danger),
-            label: Text('Delete my account',
+            label: Text(context.l10n.profile_deleteMyAccount,
                 style: TextStyle(color: p.danger, fontSize: 13)),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Text(
-              'Deleting removes your name, username, photo, email, saved cards and memberships permanently, and signs you out everywhere. Past payments stay in group records as "Deleted user". If it was a mistake, contact support within 30 days to restore it — after that it\'s permanently erased.',
+              context.l10n.profile_deletingRemovesYourNameUsername,
               textAlign: TextAlign.center,
               style: TextStyle(color: p.muted, fontSize: 11, height: 1.4),
             ),
@@ -313,28 +323,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
-          title: const Text('Delete your account?'),
+          title: Text(l10n.profile_deleteYourAccount),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text(
-                'This deletes your personal data and signs you out everywhere. Support can restore it within 30 days; after that it\'s gone forever. Type DELETE to confirm.'),
+            Text(
+                l10n.profile_thisDeletesYourPersonalData),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
               autofocus: true,
-              decoration: const InputDecoration(hintText: 'DELETE'),
+              decoration: InputDecoration(hintText: l10n.profile_delete),
               onChanged: (_) => setDlg(() {}),
             ),
           ]),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel')),
+                child: Text(l10n.profile_cancel)),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: Colors.red),
               onPressed: controller.text.trim() == 'DELETE'
                   ? () => Navigator.pop(ctx, true)
                   : null,
-              child: const Text('Delete forever'),
+              child: Text(l10n.profile_deleteForever),
             ),
           ],
         ),
@@ -345,7 +355,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     setState(() => _deleting = true);
     try {
       await ref.read(profileRepositoryProvider).deleteAccount();
-      _snack('Your account has been deleted.');
+      _snack(l10n.profile_yourAccountHasBeenDeleted);
       await ref.read(authControllerProvider.notifier).signOut();
     } catch (e) {
       _snack('$e');
@@ -369,10 +379,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     color: p.ink, fontSize: 13.5, fontWeight: FontWeight.w700)),
             Text(
               c.isPrimary
-                  ? 'Primary${c.expiry != null ? ' · expires ${c.expiry}' : ''}'
+                  ? context.l10n.profile_primary3((c.expiry != null ? ' · expires ${c.expiry}' : ''))
                   : c.expiry != null
-                      ? 'Expires ${c.expiry}'
-                      : 'Card on file',
+                      ? context.l10n.profile_expires3(c.expiry ?? '')
+                      : context.l10n.profile_cardOnFile,
               style: TextStyle(color: p.muted, fontSize: 11.5),
             ),
           ]),
@@ -383,7 +393,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ? null
                 : () => _cardAction(() =>
                     ref.read(profileRepositoryProvider).setPrimaryCard(c.id)),
-            child: const Text('Make primary', style: TextStyle(fontSize: 12)),
+            child: Text(context.l10n.profile_makePrimary, style: const TextStyle(fontSize: 12)),
           ),
         IconButton(
           icon: Icon(Icons.close_rounded, size: 18, color: p.muted),
@@ -400,14 +410,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Sign out?'),
+        title: Text(l10n.profile_signOut2),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Stay')),
+              child: Text(l10n.profile_stay)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Sign out')),
+              child: Text(l10n.profile_signOut)),
         ],
       ),
     );
@@ -459,22 +469,65 @@ class _AppearanceCard extends ConsumerWidget {
       padding: const EdgeInsets.all(12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
-          option(ThemeMode.system, Icons.brightness_auto_rounded, 'System'),
+          option(ThemeMode.system, Icons.brightness_auto_rounded, context.l10n.profile_system),
           const SizedBox(width: 8),
-          option(ThemeMode.light, Icons.light_mode_rounded, 'Light'),
+          option(ThemeMode.light, Icons.light_mode_rounded, context.l10n.profile_light),
           const SizedBox(width: 8),
-          option(ThemeMode.dark, Icons.dark_mode_rounded, 'Dark'),
+          option(ThemeMode.dark, Icons.dark_mode_rounded, context.l10n.profile_dark),
         ]),
         const SizedBox(height: 10),
         Text(
           mode == ThemeMode.system
-              ? "Matches your phone's light or dark setting."
+              ? context.l10n.profile_matchesYourPhonesLightOr
               : mode == ThemeMode.dark
-                  ? 'Always dark, whatever your phone is set to.'
-                  : 'Always light, whatever your phone is set to.',
+                  ? context.l10n.profile_alwaysDarkWhateverYourPhone
+                  : context.l10n.profile_alwaysLightWhateverYourPhone,
           style: TextStyle(color: p.muted, fontSize: 12),
         ),
       ]),
+    );
+  }
+}
+
+
+/// Settings → Language row: the language in use, opening the picker.
+class _LanguageRow extends ConsumerWidget {
+  const _LanguageRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = context.palette;
+    final l = context.l10n;
+    final chosen = ref.watch(localeControllerProvider);
+    final active = Localizations.localeOf(context).languageCode;
+    final name = spLocaleFor(active)?.name ?? 'English';
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => context.push('/settings/language'),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+          child: Row(children: [
+            SpIconTile(Icons.language_rounded,
+                size: 38, iconSize: 19, bg: p.accentTint, fg: p.greenText),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name,
+                      style: TextStyle(
+                          color: p.ink, fontSize: 14.5, fontWeight: FontWeight.w700)),
+                  Text(chosen == null ? l.settings_followDevice : l.settings_language,
+                      style: TextStyle(color: p.muted, fontSize: 12)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: p.muted),
+          ]),
+        ),
+      ),
     );
   }
 }
