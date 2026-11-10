@@ -182,6 +182,7 @@
   "settings_appearance": "Darstellung",
   "settings_account": "Konto",
   "settings_saved": "Sprache gespeichert",
+  "settings_notSaved": "Deine Sprache konnte nicht gespeichert werden. Versuch es noch einmal.",
   "common_save": "Speichern",
   "common_saving": "Wird gespeichert…",
   "common_cancel": "Abbrechen",
@@ -1108,6 +1109,10 @@
       }
     }
   },
+  "browse_recentSearches": "Zuletzt",
+  "browse_clearAllRecent": "Alle löschen",
+  "browse_removeRecent": "Aus „Zuletzt“ entfernen",
+  "browse_recentEmpty": "Suche nach Gruppen, Spielern, Teams und Events. Deine letzten Suchen erscheinen hier.",
   "event_opening": "Wird geöffnet…",
   "event_linkCopied": "Link kopiert",
   "event_sportPadiHome": "SportPadi-Startseite",
@@ -4709,6 +4714,7 @@
   "group_classChipWorkplace": "Unternehmen",
   "group_classChipCommunity": "Communitys",
   "group_classTitle": "Gruppentyp",
+  "group_classOptional": "Gruppentyp (optional)",
   "group_classPrompt": "Was für eine Gruppe ist das? So finden Leute Schulen, Kirchen und Vereine auf SportPadi.",
   "group_classNotSet": "Nicht festgelegt",
   "group_classConfirmed": "Von SportPadi bestätigt",

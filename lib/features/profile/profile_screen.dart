@@ -69,6 +69,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     ref.invalidate(identityProvider(userId ?? ''));
     ref.invalidate(myWardsProvider);
     if (userId != null) ref.invalidate(playerHonoursProvider(userId));
+    if (userId != null) ref.invalidate(followStateProvider(userId));
     return settleAll([
       ref.read(meProvider.future),
       // The rest is only on screen (watched) once the profile is.

@@ -182,6 +182,7 @@
   "settings_appearance": "Kamanni",
   "settings_account": "Asusu",
   "settings_saved": "An adana harshe",
+  "settings_notSaved": "Ba mu iya ajiye harshenka ba. Sake gwadawa.",
   "common_save": "Ajiye",
   "common_saving": "Ana ajiyewa…",
   "common_cancel": "Soke",
@@ -1108,6 +1109,10 @@
       }
     }
   },
+  "browse_recentSearches": "Na kwanan nan",
+  "browse_clearAllRecent": "Share duka",
+  "browse_removeRecent": "Cire daga na kwanan nan",
+  "browse_recentEmpty": "Nemi ƙungiyoyi, ’yan wasa, tawagogi da abubuwan da ke faruwa. Binciken da ka yi kwanan nan zai bayyana a nan.",
   "event_opening": "Ana buɗewa…",
   "event_linkCopied": "An kwafi mahaɗi",
   "event_sportPadiHome": "Shafin farko na SportPadi",
@@ -4709,6 +4714,7 @@
   "group_classChipWorkplace": "Wuraren aiki",
   "group_classChipCommunity": "Al’ummomi",
   "group_classTitle": "Nau’in ƙungiya",
+  "group_classOptional": "Nau’in ƙungiya (na zaɓi)",
   "group_classPrompt": "Wane irin ƙungiya ce wannan? Yana taimaka wa mutane su sami makarantu, coci-coci, masallatai da kulob-kulob a SportPadi.",
   "group_classNotSet": "Ba a saita ba",
   "group_classConfirmed": "SportPadi ya tabbatar",

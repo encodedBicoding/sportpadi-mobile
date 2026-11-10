@@ -65,9 +65,10 @@ class LanguageScreen extends ConsumerWidget {
 
     Future<void> choose(String? code) async {
       final messenger = ScaffoldMessenger.of(context);
-      await ref.read(localeControllerProvider.notifier).set(code);
+      final ok = await ref.read(localeControllerProvider.notifier).set(code);
       if (!context.mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(context.l10n.settings_saved)));
+      messenger.showSnackBar(SnackBar(
+          content: Text(ok ? context.l10n.settings_saved : context.l10n.settings_notSaved)));
     }
 
     return Scaffold(

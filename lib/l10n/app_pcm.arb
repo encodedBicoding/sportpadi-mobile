@@ -182,6 +182,7 @@
   "settings_appearance": "How e look",
   "settings_account": "Account",
   "settings_saved": "Language don save",
+  "settings_notSaved": "We no fit save your language. Try again.",
   "common_save": "Save",
   "common_saving": "E dey save…",
   "common_cancel": "Cancel",
@@ -1108,6 +1109,10 @@
       }
     }
   },
+  "browse_recentSearches": "Recent",
+  "browse_clearAllRecent": "Clear all",
+  "browse_removeRecent": "Comot from recent",
+  "browse_recentEmpty": "Search for groups, players, teams and events. Wetin you search recently go show here.",
   "event_opening": "E dey open…",
   "event_linkCopied": "Link don copy",
   "event_sportPadiHome": "SportPadi home",
@@ -4709,6 +4714,7 @@
   "group_classChipWorkplace": "Workplaces",
   "group_classChipCommunity": "Communities",
   "group_classTitle": "Group type",
+  "group_classOptional": "Group type (if you want)",
   "group_classPrompt": "Which kain group be dis? E go help people find schools, churches and clubs for SportPadi.",
   "group_classNotSet": "Never set",
   "group_classConfirmed": "SportPadi don confirm am",

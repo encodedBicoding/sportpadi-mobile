@@ -182,6 +182,7 @@
   "settings_appearance": "المظهر",
   "settings_account": "الحساب",
   "settings_saved": "تم حفظ اللغة",
+  "settings_notSaved": "تعذّر حفظ لغتك. حاول مجددًا.",
   "common_save": "حفظ",
   "common_saving": "جارٍ الحفظ…",
   "common_cancel": "إلغاء",
@@ -1108,6 +1109,10 @@
       }
     }
   },
+  "browse_recentSearches": "الأخيرة",
+  "browse_clearAllRecent": "مسح الكل",
+  "browse_removeRecent": "إزالة من الأخيرة",
+  "browse_recentEmpty": "ابحث عن مجموعات ولاعبين وفرق وفعاليات. تظهر عمليات بحثك الأخيرة هنا.",
   "event_opening": "جارٍ الفتح…",
   "event_linkCopied": "تم نسخ الرابط",
   "event_sportPadiHome": "الصفحة الرئيسية لـ SportPadi",
@@ -4709,6 +4714,7 @@
   "group_classChipWorkplace": "أماكن العمل",
   "group_classChipCommunity": "المجتمعات",
   "group_classTitle": "نوع المجموعة",
+  "group_classOptional": "نوع المجموعة (اختياري)",
   "group_classPrompt": "ما نوع هذه المجموعة؟ يساعد ذلك الناس على العثور على المدارس ودور العبادة والأندية على SportPadi.",
   "group_classNotSet": "غير محدد",
   "group_classConfirmed": "مؤكَّد من SportPadi",

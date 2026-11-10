@@ -45,6 +45,7 @@ import 'package:sportpadi_mobile/features/home/intent_first_card.dart';
 import 'package:sportpadi_mobile/features/notifications/notifications_nudge_card.dart';
 import 'package:sportpadi_mobile/features/home/balance_gaps_card.dart';
 import 'package:sportpadi_mobile/core/i18n/l10n.dart';
+import 'package:sportpadi_mobile/features/groups/group_class_field.dart';
 
 /// Home — the user's personal dashboard: their upcoming events across every
 /// group they belong to (live events beep on the tab), a Kids tab (future),
@@ -1049,6 +1050,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final p = context.palette;
     final name = TextEditingController();
     final desc = TextEditingController();
+    String? groupClass;
     final created = await showSpSheet<String>(
       context,
       builder: (ctx) => Column(
@@ -1091,6 +1093,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     borderSide: BorderSide(color: p.line)),
               ),
             ),
+            const SizedBox(height: 10),
+            GroupClassField(
+              decoration: InputDecoration(
+                isDense: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: p.line)),
+              ),
+              onChanged: (v) => groupClass = v,
+            ),
             const SizedBox(height: 14),
             SpButton(
               label: l10n.home_createGroup,
@@ -1102,7 +1116,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 try {
                   final id = await ref
                       .read(groupsRepositoryProvider)
-                      .createGroup(n, desc.text.trim());
+                      .createGroup(n, desc.text.trim(),
+                          classification: groupClass);
                   if (ctx.mounted) Navigator.pop(ctx, id);
                 } catch (e) {
                   if (ctx.mounted) {

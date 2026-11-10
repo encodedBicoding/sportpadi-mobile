@@ -182,6 +182,7 @@
   "settings_appearance": "Apariencia",
   "settings_account": "Cuenta",
   "settings_saved": "Idioma guardado",
+  "settings_notSaved": "No se pudo guardar tu idioma. Inténtalo de nuevo.",
   "common_save": "Guardar",
   "common_saving": "Guardando…",
   "common_cancel": "Cancelar",
@@ -1108,6 +1109,10 @@
       }
     }
   },
+  "browse_recentSearches": "Recientes",
+  "browse_clearAllRecent": "Borrar todo",
+  "browse_removeRecent": "Quitar de recientes",
+  "browse_recentEmpty": "Busca grupos, jugadores, equipos y eventos. Tus búsquedas recientes aparecen aquí.",
   "event_opening": "Abriendo…",
   "event_linkCopied": "Enlace copiado",
   "event_sportPadiHome": "Inicio de SportPadi",
@@ -4709,6 +4714,7 @@
   "group_classChipWorkplace": "Empresas",
   "group_classChipCommunity": "Comunidades",
   "group_classTitle": "Tipo de grupo",
+  "group_classOptional": "Tipo de grupo (opcional)",
   "group_classPrompt": "¿Qué tipo de grupo es este? Ayuda a la gente a encontrar escuelas, iglesias y clubes en SportPadi.",
   "group_classNotSet": "Sin definir",
   "group_classConfirmed": "Confirmado por SportPadi",

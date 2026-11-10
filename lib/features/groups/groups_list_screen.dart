@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/groups/group_models.dart';
 import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
+import 'package:sportpadi_mobile/features/groups/group_class_field.dart';
 import 'package:sportpadi_mobile/features/groups/group_invitations.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
@@ -561,6 +562,7 @@ class _CreateGroupSheet extends ConsumerStatefulWidget {
 class _CreateGroupSheetState extends ConsumerState<_CreateGroupSheet> {
   final _name = TextEditingController();
   final _desc = TextEditingController();
+  String? _class;
   bool _busy = false;
   String? _error;
 
@@ -584,7 +586,7 @@ class _CreateGroupSheetState extends ConsumerState<_CreateGroupSheet> {
     try {
       final id = await ref
           .read(groupsRepositoryProvider)
-          .createGroup(name, _desc.text.trim());
+          .createGroup(name, _desc.text.trim(), classification: _class);
       ref.invalidate(myGroupsProvider);
       ref.invalidate(discoverGroupsProvider);
       if (!mounted) return;
@@ -624,6 +626,12 @@ class _CreateGroupSheetState extends ConsumerState<_CreateGroupSheet> {
             labelText: context.l10n.group_descriptionOptional,
             alignLabelWithHint: true,
           ),
+        ),
+        const SizedBox(height: 12),
+        GroupClassField(
+          initial: _class,
+          enabled: !_busy,
+          onChanged: (v) => setState(() => _class = v),
         ),
         if (_error != null) ...[
           const SizedBox(height: 10),

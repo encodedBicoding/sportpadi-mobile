@@ -182,6 +182,7 @@
   "settings_appearance": "Appearance",
   "settings_account": "Account",
   "settings_saved": "Language saved",
+  "settings_notSaved": "Couldn’t save your language. Try again.",
   "common_save": "Save",
   "common_saving": "Saving…",
   "common_cancel": "Cancel",
@@ -1108,6 +1109,10 @@
       }
     }
   },
+  "browse_recentSearches": "Recent",
+  "browse_clearAllRecent": "Clear all",
+  "browse_removeRecent": "Remove from recent",
+  "browse_recentEmpty": "Search for groups, players, teams and events. Your recent searches show up here.",
   "event_opening": "Opening…",
   "event_linkCopied": "Link copied",
   "event_sportPadiHome": "SportPadi home",
@@ -4709,6 +4714,7 @@
   "group_classChipWorkplace": "Workplaces",
   "group_classChipCommunity": "Communities",
   "group_classTitle": "Group type",
+  "group_classOptional": "Group type (optional)",
   "group_classPrompt": "What kind of group is this? It helps people find schools, churches and clubs on SportPadi.",
   "group_classNotSet": "Not set",
   "group_classConfirmed": "Confirmed by SportPadi",
