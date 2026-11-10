@@ -1109,6 +1109,10 @@
       }
     }
   },
+  "browse_recentSearches": "Récents",
+  "browse_clearAllRecent": "Tout effacer",
+  "browse_removeRecent": "Retirer des récents",
+  "browse_recentEmpty": "Cherchez des groupes, joueurs, équipes et événements. Vos recherches récentes s’affichent ici.",
   "event_opening": "Ouverture…",
   "event_linkCopied": "Lien copié",
   "event_sportPadiHome": "Accueil SportPadi",

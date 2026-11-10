@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,21 +9,16 @@ import 'package:sportpadi_mobile/data/ads/ads_repository.dart'
     show servedSlotsProvider;
 import 'package:sportpadi_mobile/data/events/event_models.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
-import 'package:sportpadi_mobile/data/groups/group_class.dart';
-import 'package:sportpadi_mobile/data/groups/group_models.dart';
-import 'package:sportpadi_mobile/data/groups/groups_repository.dart';
 import 'package:sportpadi_mobile/features/ads/ad_display.dart';
-import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
-import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_tile.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
-import 'package:sportpadi_mobile/shared/widgets/verified_badge.dart';
 import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
-/// Browse — universal network search (events, groups, players, teams), the
+/// Browse — the search bar (tapping it opens the search page,
+/// browse_search_screen.dart: recent searches + network results), the
 /// "find your event" location filter, and an infinite-scroll 2-column grid of
 /// event tiles (2026 design): cover, sport, status, then title, when, group.
 /// Web /discover twin.
@@ -36,13 +29,7 @@ class BrowseScreen extends ConsumerStatefulWidget {
 }
 
 class _BrowseScreenState extends ConsumerState<BrowseScreen> {
-  final _search = TextEditingController();
   final _scroll = ScrollController();
-  Timer? _debounce;
-
-  // Universal search state
-  Map<String, dynamic>? _results;
-  bool _searching = false;
 
   // Grid state
   final List<EventSummary> _items = [];
@@ -59,17 +46,6 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   bool _liveOnly = false;
   bool _tournamentsOnly = false;
 
-  // Browse groups by type: the picked class (null = the normal Browse) and
-  // its groups, paged like the grid and narrowed by the search text.
-  String? _groupClass;
-  final _classScroll = ScrollController();
-  final List<GroupSummary> _classItems = [];
-  int? _classCursor = 0;
-  bool _classLoading = false;
-  bool _classRefreshing = false;
-  int _classGen = 0;
-  String? _classError;
-
   @override
   void initState() {
     super.initState();
@@ -79,87 +55,12 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
         _loadMore();
       }
     });
-    _classScroll.addListener(() {
-      if (_classScroll.position.pixels >
-          _classScroll.position.maxScrollExtent - 600) {
-        _loadClass();
-      }
-    });
   }
 
   @override
   void dispose() {
-    _debounce?.cancel();
-    _search.dispose();
     _scroll.dispose();
-    _classScroll.dispose();
     super.dispose();
-  }
-
-  /// The next page of the picked type's groups (or the first, on [reset]:
-  /// a new type, new search text, a pull). Same generation guard as the grid.
-  Future<void> _loadClass({bool reset = false}) async {
-    final cls = _groupClass;
-    if (cls == null) return;
-    if (_classLoading && !reset) return;
-    if (reset) _classCursor = 0;
-    final cursor = _classCursor;
-    if (cursor == null) return;
-    final gen = reset ? ++_classGen : _classGen;
-    setState(() {
-      _classLoading = true;
-      if (reset) {
-        _classRefreshing = true;
-        _classError = null;
-      }
-    });
-    final q = _search.text.trim();
-    try {
-      final page = await ref.read(groupsRepositoryProvider).classifiedGroups(
-            classification: cls,
-            q: q.isEmpty ? null : q,
-            cursor: cursor,
-          );
-      if (!mounted || gen != _classGen) return;
-      setState(() {
-        if (reset) _classItems.clear();
-        _classItems.addAll(page.items);
-        _classCursor = page.nextCursor;
-        _classLoading = false;
-        _classRefreshing = false;
-      });
-    } catch (e) {
-      if (!mounted || gen != _classGen) return;
-      setState(() {
-        _classLoading = false;
-        _classRefreshing = false;
-        if (reset) _classError = '$e';
-      });
-    }
-  }
-
-  /// Pick a type chip; the same one again (or All, [c] null) goes back to
-  /// the normal Browse.
-  void _pickClass(String? c) {
-    final next = c == null || c == _groupClass ? null : c;
-    if (next == _groupClass) return;
-    setState(() {
-      _groupClass = next;
-      _classItems.clear();
-      _classCursor = 0;
-      _classError = null;
-      _classLoading = false;
-      _classRefreshing = false;
-    });
-    if (_classScroll.hasClients) _classScroll.jumpTo(0);
-    if (next != null) {
-      _loadClass(reset: true);
-    } else {
-      _classGen++; // drop a page still in flight
-      // Back to the normal Browse: bring its search results up to date with
-      // the text typed while a type was picked.
-      if (_search.text.trim().isNotEmpty) _onSearch(_search.text);
-    }
   }
 
   Future<void> _loadMore({bool reset = false}) async {
@@ -203,31 +104,6 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
         if (reset) _error = '$e';
       });
     }
-  }
-
-  void _onSearch(String q) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () async {
-      // A type is picked: the text narrows that type's groups instead.
-      if (_groupClass != null) {
-        if (mounted) _loadClass(reset: true);
-        return;
-      }
-      final query = q.trim();
-      if (query.length < 2) {
-        if (mounted) setState(() => _results = null);
-        return;
-      }
-      setState(() => _searching = true);
-      try {
-        final r = await ref.read(eventsRepositoryProvider).searchAll(query);
-        if (mounted) setState(() => _results = r);
-      } catch (_) {
-        if (mounted) setState(() => _results = const {});
-      } finally {
-        if (mounted) setState(() => _searching = false);
-      }
-    });
   }
 
   Future<void> _openFinder() async {
@@ -329,8 +205,6 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final classMode = _groupClass != null;
-    final showResults = !classMode && _search.text.trim().length >= 2;
     return Scaffold(
       backgroundColor: p.bg,
       body: SafeArea(
@@ -350,76 +224,54 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
             child: _searchField(p),
           ),
-          _classChips(p),
-          if (!showResults && !classMode) _filterChips(p),
+          _filterChips(p),
           // Sponsored (zero-height when no ads). Must live in the Column,
           // not a Row: a Row gives it unbounded width and the frame can't
           // lay out.
-          if (!showResults && !classMode)
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
-              child: AdDisplay(slots: ['home_ads'], carousel: true),
-            ),
-          Expanded(
-            child: classMode
-                ? _classList(p)
-                : showResults
-                    ? _resultsList(p)
-                    : _list(p),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
+            child: AdDisplay(slots: ['home_ads'], carousel: true),
           ),
+          Expanded(child: _list(p)),
         ]),
       ),
     );
   }
 
+  /// Looks like a search field; tapping it opens the search page (its own
+  /// screen with a back button and your recent searches — Instagram /
+  /// TikTok style).
   Widget _searchField(AppPalette p) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      height: 52,
-      decoration: BoxDecoration(
+    final hint = context.l10n.browse_searchGroupsPlayersEvents;
+    return Semantics(
+      button: true,
+      label: hint,
+      child: Material(
         color: p.surface,
         borderRadius: BorderRadius.circular(18),
-        border: dark ? Border.all(color: p.line) : null,
-        boxShadow: cardShadow(context),
-      ),
-      alignment: Alignment.center,
-      child: TextField(
-        controller: _search,
-        onChanged: (v) {
-          setState(() {});
-          _onSearch(v);
-        },
-        textInputAction: TextInputAction.search,
-        style: TextStyle(color: p.ink, fontSize: 14.5),
-        decoration: InputDecoration(
-          isDense: true,
-          hintText: context.l10n.browse_searchGroupsPlayersEvents,
-          hintStyle: TextStyle(color: p.muted, fontSize: 14.5),
-          prefixIcon: Icon(Icons.search_rounded, size: 21, color: p.muted),
-          suffixIcon: _searching || _classRefreshing
-              ? const Padding(
-                  padding: EdgeInsets.all(15),
-                  child: SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2)),
-                )
-              : _search.text.isNotEmpty
-                  ? IconButton(
-                      onPressed: () {
-                        _debounce?.cancel();
-                        _search.clear();
-                        setState(() => _results = null);
-                        if (_groupClass != null) _loadClass(reset: true);
-                      },
-                      icon: Icon(Icons.close_rounded, size: 18, color: p.muted),
-                    )
-                  : null,
-          filled: false,
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 15),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () => context.push('/search'),
+          child: Container(
+            height: 52,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: dark ? Border.all(color: p.line) : null,
+              boxShadow: cardShadow(context),
+            ),
+            child: Row(children: [
+              Icon(Icons.search_rounded, size: 21, color: p.muted),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(hint,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: p.muted, fontSize: 14.5)),
+              ),
+            ]),
+          ),
         ),
       ),
     );
@@ -461,39 +313,6 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
           ),
         ),
       );
-
-  /// "Browse groups by type": All + one chip per type (emoji + plural name).
-  /// A picked type swaps the page for that type's groups ([_classList]).
-  Widget _classChips(AppPalette p) {
-    final t = context.l10n;
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(22, 0, 20, 6),
-        child: Text(t.group_classBrowseLabel,
-            style: TextStyle(
-                color: p.muted, fontSize: 12, fontWeight: FontWeight.w600)),
-      ),
-      SizedBox(
-        height: 48,
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(20, 0, 12, 12),
-          children: [
-            _chip(p, t.group_classAll, _groupClass == null,
-                () => _pickClass(null)),
-            for (final c in groupClasses)
-              _chip(
-                p,
-                '${groupClassEmoji[c] ?? ''} ${groupClassChipLabel(t, c)}'
-                    .trim(),
-                _groupClass == c,
-                () => _pickClass(c),
-              ),
-          ],
-        ),
-      ),
-    ]);
-  }
 
   /// Near me (opens the finder), sport chips (All + active sports) and the
   /// Live / Tournaments toggles.
@@ -547,206 +366,6 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
     );
   }
 
-  // ── Universal search results ──────────────────────────────────────────────
-
-  Widget _resultsList(AppPalette p) {
-    final r = _results;
-    if (r == null) {
-      return Center(
-        child:
-            Text(context.l10n.browse_searching, style: TextStyle(color: p.muted, fontSize: 13)),
-      );
-    }
-    List<Map<String, dynamic>> section(String key) => r[key] is List
-        ? [
-            for (final e in r[key] as List)
-              if (e is Map) Map<String, dynamic>.from(e)
-          ]
-        : const [];
-    final events = section('events');
-    final groups = section('groups');
-    final teams = section('teams');
-    final players = section('players');
-    if (events.isEmpty && groups.isEmpty && teams.isEmpty && players.isEmpty) {
-      return _emptyState(
-          p,
-          Icons.search_off_rounded,
-          context.l10n.browse_nothingOnTheNetworkMatches,
-          context.l10n.browse_tryAShorterNameOr);
-    }
-
-    Widget header(String label, int n) => Padding(
-          padding: const EdgeInsets.fromLTRB(4, 18, 4, 10),
-          child: Row(children: [
-            Text(label,
-                style: TextStyle(
-                    color: p.ink, fontSize: 17, fontWeight: FontWeight.w700)),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                  color: p.surface2, borderRadius: BorderRadius.circular(999)),
-              child: Text('$n',
-                  style: TextStyle(
-                      color: p.muted,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700)),
-            ),
-          ]),
-        );
-
-    Widget group(List<Widget> rows) => GlassCard(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          child: Column(children: [
-            for (var i = 0; i < rows.length; i++) ...[
-              if (i > 0)
-                Divider(
-                    height: 1,
-                    thickness: 1,
-                    indent: 12,
-                    endIndent: 12,
-                    color: p.surface2),
-              rows[i],
-            ],
-          ]),
-        );
-
-    Widget row(Widget lead, String title, String? sub, VoidCallback onTap) =>
-        InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            child: Row(children: [
-              lead,
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: p.ink,
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w700)),
-                      if (sub != null && sub.isNotEmpty)
-                        Text(sub,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: p.muted, fontSize: 12)),
-                    ]),
-              ),
-              Icon(Icons.chevron_right_rounded, size: 20, color: p.muted),
-            ]),
-          ),
-        );
-
-    Widget tile(String text, {bool tournament = false}) => Container(
-          width: 42,
-          height: 42,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: tournament ? p.orangeTint : p.accentTint,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: tournament
-              ? Icon(Icons.emoji_events_outlined, size: 20, color: p.orangeInk)
-              : Text(text, style: const TextStyle(fontSize: 19)),
-        );
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
-      children: [
-        if (events.isNotEmpty) ...[
-          header(context.l10n.browse_events, events.length),
-          group([
-            for (final e in events)
-              row(
-                tile(
-                    (e['category'] is Map
-                            ? parseStr((e['category'] as Map)['emoji'])
-                            : null) ??
-                        '🏅',
-                    tournament: e['isTournament'] == true),
-                parseStr(e['title']) ?? context.l10n.browse_event,
-                [
-                  formatDay(e['eventDate']),
-                  if (e['isTournament'] == true) 'Tournament',
-                ].join(' · '),
-                () {
-                  final id = parseStr(e['id']);
-                  if (e['isTournament'] == true && id != null) {
-                    context.push('/tournaments/$id');
-                  } else {
-                    context.push('/events/${parseStr(e['slug']) ?? id}');
-                  }
-                },
-              ),
-          ]),
-        ],
-        if (groups.isNotEmpty) ...[
-          header(context.l10n.browse_groups, groups.length),
-          group([
-            for (final g in groups)
-              row(
-                Crest(
-                    logoUrl: parseStr(g['imageUrl']),
-                    label: parseStr(g['name']) ?? 'G',
-                    size: 42),
-                parseStr(g['name']) ?? context.l10n.browse_group,
-                _classLine(parseGroupClass(g['classification'])),
-                () => context.push('/groups/${parseStr(g['id'])}'),
-              ),
-          ]),
-        ],
-        if (teams.isNotEmpty) ...[
-          header(context.l10n.browse_teams, teams.length),
-          group([
-            for (final t in teams)
-              row(
-                Crest(
-                    logoUrl: parseStr(t['logoUrl']),
-                    kitPrimary: parseStr(t['kitPrimary']),
-                    kitSecondary: parseStr(t['kitSecondary']),
-                    label: parseStr(t['name']) ?? 'T',
-                    size: 42),
-                parseStr(t['name']) ?? context.l10n.browse_team,
-                [
-                  if (parseStr(t['username']) != null)
-                    '@${parseStr(t['username'])}',
-                  if (parseStr(t['groupName']) != null)
-                    parseStr(t['groupName'])!,
-                ].join(' · '),
-                () => context.push('/teams/${parseStr(t['id'])}'),
-              ),
-          ]),
-        ],
-        if (players.isNotEmpty) ...[
-          header(context.l10n.browse_players, players.length),
-          group([
-            for (final u in players)
-              row(
-                ClipOval(
-                  child: Crest(
-                      logoUrl: parseStr(u['avatarUrl']),
-                      label: parseStr(u['displayName']) ?? 'P',
-                      size: 42),
-                ),
-                parseStr(u['displayName']) ?? context.l10n.browse_player,
-                parseStr(u['username']) != null
-                    ? '@${parseStr(u['username'])}'
-                    : null,
-                () => context.push('/players/${parseStr(u['userId'])}'),
-              ),
-          ]),
-        ],
-      ],
-    );
-  }
-
   Widget _emptyState(AppPalette p, IconData icon, String title, String body,
           {Widget? action}) =>
       Center(
@@ -773,110 +392,6 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                       TextStyle(color: p.muted, fontSize: 12.5, height: 1.45)),
             ],
             if (action != null) ...[const SizedBox(height: 14), action],
-          ]),
-        ),
-      );
-
-  // ── Groups by type ────────────────────────────────────────────────────────
-
-  /// "🏫 School" for a group row, or null when the type isn't set.
-  String? _classLine(String? code) => code == null
-      ? null
-      : '${groupClassEmoji[code] ?? ''} ${groupClassName(context.l10n, code)}'
-          .trim();
-
-  /// The picked type's groups, biggest first, paged on scroll; each row
-  /// opens the group. Pullable in every state.
-  Widget _classList(AppPalette p) => RefreshIndicator(
-      onRefresh: () => _loadClass(reset: true), child: _classListBody(p));
-
-  Widget _classListBody(AppPalette p) {
-    if (_classError != null && _classItems.isEmpty) {
-      return PullableState(
-          child: _emptyState(p, Icons.wifi_off_rounded, _classError!, '',
-              action: SpButton(
-                  label: context.l10n.browse_retry,
-                  onTap: () => _loadClass(reset: true))));
-    }
-    if (_classItems.isEmpty && (_classLoading || _classCursor == 0)) {
-      return const PullableState(child: CircularProgressIndicator());
-    }
-    if (_classItems.isEmpty) {
-      return PullableState(
-          child: _emptyState(p, Icons.groups_outlined,
-              context.l10n.group_classEmpty, ''));
-    }
-    final t = context.l10n;
-    return ListView(
-      controller: _classScroll,
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
-      children: [
-        GlassCard(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          child: Column(children: [
-            for (var i = 0; i < _classItems.length; i++) ...[
-              if (i > 0)
-                Divider(
-                    height: 1,
-                    thickness: 1,
-                    indent: 12,
-                    endIndent: 12,
-                    color: p.surface2),
-              _classRow(p, t, _classItems[i]),
-            ],
-          ]),
-        ),
-        if (_classCursor != null)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 18),
-            child: Center(
-              child: SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2)),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _classRow(AppPalette p, AppLocalizations t, GroupSummary g) =>
-      InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: g.id.isEmpty ? null : () => context.push('/groups/${g.id}'),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          child: Row(children: [
-            Crest(logoUrl: g.logoUrl, label: g.name, size: 42),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(children: [
-                      Flexible(
-                        child: Text(g.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: p.ink,
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w700)),
-                      ),
-                      if (g.isVerified) ...[
-                        const SizedBox(width: 4),
-                        const VerifiedBadge(size: 15),
-                      ],
-                    ]),
-                    Text(t.group_classMembers(g.memberCount ?? 0),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: p.muted, fontSize: 12)),
-                  ]),
-            ),
-            Icon(Icons.chevron_right_rounded, size: 20, color: p.muted),
           ]),
         ),
       );

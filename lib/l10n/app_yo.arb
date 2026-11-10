@@ -1109,6 +1109,10 @@
       }
     }
   },
+  "browse_recentSearches": "Àìpẹ́",
+  "browse_clearAllRecent": "Pa gbogbo rẹ̀ rẹ́",
+  "browse_removeRecent": "Yọ kúrò nínú àìpẹ́",
+  "browse_recentEmpty": "Wá ẹgbẹ́, àwọn agbábọ́ọ̀lù, ẹgbẹ́ eré àti ìṣẹ̀lẹ̀. Àwọn ìwádìí rẹ àìpẹ́ yóò hàn níbí.",
   "event_opening": "Ń ṣí i…",
   "event_linkCopied": "A ti da ìjápọ̀ kọ",
   "event_sportPadiHome": "Ilé SportPadi",

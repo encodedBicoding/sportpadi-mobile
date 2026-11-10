@@ -1546,8 +1546,12 @@ class _FollowButtonState extends ConsumerState<_FollowButton> {
     });
     try {
       await ref.read(eventsRepositoryProvider).setFollow(widget.groupId, !was);
-      // The header's "You follow this group" and the follower count.
-      if (mounted) ref.invalidate(groupProvider(widget.groupId));
+      // The header's "You follow this group" and the follower count, and
+      // the Groups page lists (followed groups show there).
+      if (mounted) {
+        ref.invalidate(groupProvider(widget.groupId));
+        ref.invalidate(myGroupsProvider);
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _following = was);

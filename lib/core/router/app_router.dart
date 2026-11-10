@@ -10,6 +10,7 @@ import 'package:sportpadi_mobile/features/auth/claim_account_screen.dart';
 import 'package:sportpadi_mobile/features/auth/sign_in_screen.dart';
 import 'package:sportpadi_mobile/features/auth/forgot_password_screen.dart';
 import 'package:sportpadi_mobile/features/auth/verify_email_screen.dart';
+import 'package:sportpadi_mobile/features/browse/browse_search_screen.dart';
 import 'package:sportpadi_mobile/features/discussions/discussion_composer_screen.dart';
 import 'package:sportpadi_mobile/features/discussions/discussion_screen.dart';
 import 'package:sportpadi_mobile/features/discussions/discussions_screen.dart';
@@ -179,6 +180,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         if (loc == '/sign-in' ||
             loc == '/forgot-password' ||
             loc == '/home' ||
+            // Browse's search page (a guest can search; opening a result
+            // asks for an account like everything else).
+            loc == '/search' ||
             loc.startsWith('/join') ||
             // A tournament's registration link reads signed out, like a
             // join link — it asks for an account only to register.
@@ -231,6 +235,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           path: '/start/:intent',
           builder: (_, st) =>
               StartWizardScreen(intentKey: st.pathParameters['intent']!)),
+      // Browse search: its own page with a back button and recent searches.
+      GoRoute(
+        path: '/search',
+        builder: (_, st) =>
+            BrowseSearchScreen(initialQuery: st.uri.queryParameters['q']),
+      ),
       GoRoute(
           path: '/notifications',
           builder: (_, __) => const NotificationsScreen()),

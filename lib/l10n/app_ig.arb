@@ -1109,6 +1109,10 @@
       }
     }
   },
+  "browse_recentSearches": "Nso nso a",
+  "browse_clearAllRecent": "Hichapụ ha niile",
+  "browse_removeRecent": "Wepụ na nso nso a",
+  "browse_recentEmpty": "Chọọ otu, ndị egwuregwu, otu egwuregwu na mmemme. Ihe ị chọrọ nso nso a ga-apụta ebe a.",
   "event_opening": "Na-emepe…",
   "event_linkCopied": "Edepụtala njikọ",
   "event_sportPadiHome": "Ụlọ SportPadi",

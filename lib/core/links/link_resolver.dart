@@ -313,7 +313,14 @@ LinkTarget resolveLink(String? url) {
 
   // ── URLs whose home is a tab, not a page ──────────────────────────────────
   if (path.startsWith('/profile')) return _tab(HomeTab.profile);
+  // A search link (/discover/search?q=…, or the older /discover?q=…) opens
+  // the search page with that query.
   if (path.startsWith('/discover') || path.startsWith('/browse')) {
+    final q = query['q']?.trim() ?? '';
+    if (path.startsWith('/discover/search') || q.isNotEmpty) {
+      return _route(
+          q.isEmpty ? '/search' : '/search?q=${Uri.encodeQueryComponent(q)}');
+    }
     return _tab(HomeTab.browse);
   }
   // /groups is a page now (Groups left the dock); ?tab=invites opens Invites.

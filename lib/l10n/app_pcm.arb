@@ -1109,6 +1109,10 @@
       }
     }
   },
+  "browse_recentSearches": "Recent",
+  "browse_clearAllRecent": "Clear all",
+  "browse_removeRecent": "Comot from recent",
+  "browse_recentEmpty": "Search for groups, players, teams and events. Wetin you search recently go show here.",
   "event_opening": "E dey open…",
   "event_linkCopied": "Link don copy",
   "event_sportPadiHome": "SportPadi home",

@@ -1109,6 +1109,10 @@
       }
     }
   },
+  "browse_recentSearches": "हाल की",
+  "browse_clearAllRecent": "सब हटाएँ",
+  "browse_removeRecent": "हाल की से हटाएँ",
+  "browse_recentEmpty": "ग्रुप, खिलाड़ी, टीमें और इवेंट खोजें। आपकी हाल की खोजें यहाँ दिखेंगी।",
   "event_opening": "खुल रहा है…",
   "event_linkCopied": "लिंक कॉपी हो गया",
   "event_sportPadiHome": "SportPadi होम",

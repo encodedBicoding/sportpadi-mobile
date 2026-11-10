@@ -1109,6 +1109,10 @@
       }
     }
   },
+  "browse_recentSearches": "Na kwanan nan",
+  "browse_clearAllRecent": "Share duka",
+  "browse_removeRecent": "Cire daga na kwanan nan",
+  "browse_recentEmpty": "Nemi ƙungiyoyi, ’yan wasa, tawagogi da abubuwan da ke faruwa. Binciken da ka yi kwanan nan zai bayyana a nan.",
   "event_opening": "Ana buɗewa…",
   "event_linkCopied": "An kwafi mahaɗi",
   "event_sportPadiHome": "Shafin farko na SportPadi",

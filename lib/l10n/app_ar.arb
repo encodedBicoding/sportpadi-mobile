@@ -1109,6 +1109,10 @@
       }
     }
   },
+  "browse_recentSearches": "الأخيرة",
+  "browse_clearAllRecent": "مسح الكل",
+  "browse_removeRecent": "إزالة من الأخيرة",
+  "browse_recentEmpty": "ابحث عن مجموعات ولاعبين وفرق وفعاليات. تظهر عمليات بحثك الأخيرة هنا.",
   "event_opening": "جارٍ الفتح…",
   "event_linkCopied": "تم نسخ الرابط",
   "event_sportPadiHome": "الصفحة الرئيسية لـ SportPadi",

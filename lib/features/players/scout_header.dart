@@ -65,6 +65,10 @@ class FollowState {
       );
 }
 
+/// Bumped after I follow / unfollow someone, so open follower lists
+/// (which page with their own state, not a provider) re-read.
+final followsChanged = ValueNotifier<int>(0);
+
 final followStateProvider = FutureProvider.autoDispose
     .family<FollowState, String>((ref, userId) async {
   try {
@@ -264,7 +268,11 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
       } else {
         await dio.post('/api/mobile/players/${widget.userId}/follow');
       }
-      ref.invalidate(followStateProvider(widget.userId));
+      // Every follow count on screen, not just theirs: my own "following"
+      // on the Me tab (kept alive by the shell, so it never re-reads by
+      // itself) and any list showing either of us.
+      ref.invalidate(followStateProvider);
+      followsChanged.value++;
     } catch (e) {
       messenger.showSnackBar(SnackBar(
           content: Text(apiError(e, fallback: l10n.profile_couldNotUpdate2).message)));
@@ -897,14 +905,29 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
   bool _loading = true;
   bool _more = false;
   String? _error;
+  // Bumped by each reset so an older page still in flight is dropped.
+  int _gen = 0;
 
   @override
   void initState() {
     super.initState();
     _load(reset: true);
+    followsChanged.addListener(_onFollowsChanged);
+  }
+
+  @override
+  void dispose() {
+    followsChanged.removeListener(_onFollowsChanged);
+    super.dispose();
+  }
+
+  // I followed / unfollowed someone (here or on a profile opened from here).
+  void _onFollowsChanged() {
+    if (mounted) _load(reset: true);
   }
 
   Future<void> _load({bool reset = false}) async {
+    final gen = reset ? ++_gen : _gen;
     if (reset) {
       setState(() {
         _loading = true;
@@ -922,7 +945,7 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
             if (_cursor != null) 'cursor': _cursor,
           });
       final m = res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {};
-      if (!mounted) return;
+      if (!mounted || gen != _gen) return;
       setState(() {
         _items.addAll(listOf(m['items']));
         _cursor = parseStr(m['nextCursor']);
@@ -930,7 +953,7 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
         _loading = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || gen != _gen) return;
       setState(() {
         _error = apiError(e, fallback: l10n.profile_couldNotLoad).message;
         _loading = false;
