@@ -2,7 +2,7 @@ import Combine
 import Foundation
 import WatchKit
 
-/// Clock actions from the wrist, in order, whatever the link is doing
+/// Clock actions — and, in scorer mode, stats — from the wrist, in order, whatever the link is doing
 /// (docs/design/watch-officiant.md "Act"). Each action gets a client id when
 /// it's tapped, is saved to disk at once, and is sent one at a time in the
 /// order tapped; a send that fails on the network is retried with back-off,
@@ -18,8 +18,13 @@ final class ActionQueue: ObservableObject {
     var gameId: String
     var action: String
     var minutes: Int?
+    /// Scorer mode: the stat's fields (type, teamId, playerId, at …).
+    var extra: [String: String]?
     var createdAt: Date
     var attempts: Int = 0
+
+    /// Stats don't hold the clock's buttons back; clock actions do.
+    var isClock: Bool { !["stat", "sub", "teamStat", "undoStat", "removeStat"].contains(action) }
   }
 
   @Published private(set) var pending: [Pending] = []
@@ -40,15 +45,27 @@ final class ActionQueue: ObservableObject {
   }
 
   func count(for gameId: String) -> Int { pending.filter { $0.gameId == gameId }.count }
+  /// Clock actions still to send (what makes the clock's buttons wait).
+  func clockCount(for gameId: String) -> Int { pending.filter { $0.gameId == gameId && $0.isClock }.count }
 
   /// Tap → queued → sent. Returns the action id.
   @discardableResult
-  func enqueue(gameId: String, action: String, minutes: Int? = nil) -> String {
-    let p = Pending(id: UUID().uuidString.lowercased(), gameId: gameId, action: action, minutes: minutes, createdAt: Date())
+  func enqueue(gameId: String, action: String, minutes: Int? = nil, extra: [String: String]? = nil) -> String {
+    let p = Pending(id: UUID().uuidString.lowercased(), gameId: gameId, action: action, minutes: minutes, extra: extra, createdAt: Date())
     pending.append(p)
     persist()
     kick()
     return p.id
+  }
+
+  /// Undo before it was sent: take it back out of the queue. False when it
+  /// is already on its way (or gone) — then the server has to undo it.
+  func cancel(id: String) -> Bool {
+    guard let i = pending.firstIndex(where: { $0.id == id }) else { return false }
+    if i == 0 && sending { return false }
+    pending.remove(at: i)
+    persist()
+    return true
   }
 
   /// Drop everything queued for a match (hold-to-exit after a long outage).
@@ -71,14 +88,14 @@ final class ActionQueue: ObservableObject {
     while let next = pending.first {
       sending = true
       do {
-        let g = try await ApiClient.shared.act(next.gameId, action: next.action, minutes: next.minutes, actionId: next.id)
-        pending.removeFirst()
+        let g = try await ApiClient.shared.act(next.gameId, action: next.action, minutes: next.minutes, extra: next.extra ?? [:], actionId: next.id)
+        if pending.first?.id == next.id { pending.removeFirst() }
         persist()
         lastResult = g
         WKInterfaceDevice.current().play(.click)
       } catch ApiError.server(let m) {
         // The server understood and said no: this one is gone, say why.
-        pending.removeFirst()
+        if pending.first?.id == next.id { pending.removeFirst() }
         persist()
         refusal = m
         WKInterfaceDevice.current().play(.failure)
@@ -89,10 +106,14 @@ final class ActionQueue: ObservableObject {
         continue
       } catch {
         // Network: back off (2, 4, 8 … 30 s) and try the same one again.
-        pending[0].attempts += 1
+        var attempts = 1
+        if pending.first?.id == next.id {
+          pending[0].attempts += 1
+          attempts = pending[0].attempts
+        }
         persist()
         sending = false
-        let delay = min(30, pow(2, Double(min(pending[0].attempts, 5))))
+        let delay = min(30, pow(2, Double(min(attempts, 5))))
         try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
         continue
       }

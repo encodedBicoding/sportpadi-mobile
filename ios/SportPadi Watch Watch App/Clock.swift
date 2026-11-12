@@ -30,6 +30,11 @@ struct BoardClock {
       var sub = ph.label
       if ph.stoppageMin > 0 { sub += " · +\(ph.stoppageMin)" }
       if ph.pausedAt != nil { sub += " · paused" }
+      // Count-down sports (basketball quarters): the time LEFT in the period.
+      if g.clockDirection == "down" {
+        let left = max(0, nominal * 60 - total)
+        return BoardClock(text: "\(left / 60):\(String(format: "%02d", left % 60))", sub: sub, paused: ph.pausedAt != nil)
+      }
       return BoardClock(text: "\(minute)\(over > 0 ? "+\(over)" : ""):\(String(format: "%02d", total % 60))", sub: sub, paused: ph.pausedAt != nil)
     }
     if let t = g.timer, let started = ISO.date(g.startedAt) {

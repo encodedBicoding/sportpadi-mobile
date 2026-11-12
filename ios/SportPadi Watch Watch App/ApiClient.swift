@@ -88,10 +88,12 @@ final class ApiClient {
     _ = try await send(try request("/api/mobile/watch/\(gameId)", method: "POST", body: ["action": accept ? "accept" : "decline"]), as: R.self)
   }
 
-  /// A clock action (Phase 3 uses it; the id makes a retry a no-op).
-  func act(_ gameId: String, action: String, minutes: Int? = nil, actionId: String = UUID().uuidString) async throws -> WatchGame {
+  /// A clock action, or (scorer mode) a stat / substitution / removal whose
+  /// fields ride in `extra`. The id makes a retry a no-op.
+  func act(_ gameId: String, action: String, minutes: Int? = nil, extra: [String: String] = [:], actionId: String = UUID().uuidString) async throws -> WatchGame {
     var body: [String: Any] = ["action": action, "actionId": actionId]
     if let minutes { body["minutes"] = minutes }
+    for (k, v) in extra { body[k] = v }
     return try await send(try request("/api/mobile/watch/\(gameId)", method: "POST", body: body), as: WatchGame.self)
   }
 
