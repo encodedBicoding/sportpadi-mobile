@@ -32,6 +32,11 @@ data class BoardClock(val text: String, val sub: String, val paused: Boolean) {
                 var sub = ph.label
                 if (ph.stoppageMin > 0) sub += " · +${ph.stoppageMin}"
                 if (ph.pausedAt != null) sub += " · paused"
+                // Count-down sports (basketball quarters): the time LEFT in the period.
+                if (g.clockDirection == "down") {
+                    val left = (nominal * 60 - total).coerceAtLeast(0)
+                    return BoardClock("${left / 60}:${"%02d".format(left % 60)}", sub, ph.pausedAt != null)
+                }
                 return BoardClock("$minute${if (over > 0) "+$over" else ""}:${"%02d".format(total % 60)}", sub, ph.pausedAt != null)
             }
             val t = g.timer

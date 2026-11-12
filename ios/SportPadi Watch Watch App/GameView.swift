@@ -11,7 +11,13 @@ import WatchKit
 /// ActionQueue (ordered, retried, idempotent). Every realtime ping refetches;
 /// "Paused by Ade" when another device did it. Always-on: the clock stays
 /// readable with the wrist down; the buttons hide.
+///
+/// Scorer mode (docs/design/watch-officiant.md "Scoring"): an officiant who
+/// may score gets pages to swipe between — Clock (when they also run it),
+/// Score and Events (ScoreViews.swift). A timekeeper sees the clock alone.
 struct GameView: View {
+  enum Page: Hashable { case clock, score, events }
+
   let gameId: String
   @EnvironmentObject private var ctx: ContextStore
   @StateObject private var model = GameModel()
@@ -21,6 +27,7 @@ struct GameView: View {
   @Environment(\.scenePhase) private var scenePhase
   @Environment(\.isLuminanceReduced) private var dimmed
   @Environment(\.dismiss) private var dismiss
+  @State private var page: Page = .clock
 
   var body: some View {
     content
@@ -29,9 +36,10 @@ struct GameView: View {
       .navigationBarBackButtonHidden(isLive)   // live: leave by holding Exit
       .task { await appeared() }
       .onDisappear { left() }
-      .onChange(of: live.lastPing?.type) { _, _ in pinged() }
-      .onChange(of: live.lastPing?.action) { _, _ in pinged() }
+      .onChange(of: live.seq) { _, _ in pinged() }
       .onChange(of: queue.lastResult?.serverNow) { _, _ in adoptQueueResult() }
+      // A refused stat was already shown as recorded: put the truth back.
+      .onChange(of: queue.refusal) { _, r in if r != nil { Task { await model.load(gameId) } } }
       .onChange(of: model.game?.status) { _, status in statusChanged(status) }
       .onChange(of: scenePhase) { _, phase in phaseChanged(phase) }
       .alert("Not applied", isPresented: refusalShown) {
@@ -43,8 +51,26 @@ struct GameView: View {
 
   @ViewBuilder private var content: some View {
     if let g = model.game {
-      TimelineView(.periodic(from: .now, by: dimmed ? 1 : 0.5)) { tl in
-        face(g, now: tl.date)
+      if let scoring = g.scoring, g.canScore == true, !dimmed {
+        // Scorer mode: swipe between the pages this officiant's role gets.
+        TabView(selection: $page) {
+          if g.canTime {
+            TimelineView(.periodic(from: .now, by: 0.5)) { tl in
+              face(g, now: tl.date)
+            }
+            .tag(Page.clock)
+          }
+          ScoreTab(gameId: gameId, game: g, scoring: scoring, model: model, onClock: g.canTime ? { page = .clock } : nil)
+            .tag(Page.score)
+          EventsTab(gameId: gameId, game: g, scoring: scoring, model: model, onExit: !g.canTime && g.status == "live" ? { leaveMatch() } : nil)
+            .tag(Page.events)
+        }
+        .tabViewStyle(.page)
+      } else {
+        // Timekeeper (or wrist down): the clock alone.
+        TimelineView(.periodic(from: .now, by: dimmed ? 1 : 0.5)) { tl in
+          face(g, now: tl.date)
+        }
       }
     } else if let err = model.error {
       Pitch(icon: "wifi.slash", title: err, text: "Tap to try again")
@@ -68,6 +94,8 @@ struct GameView: View {
   private func appeared() async {
     UsageTracker.shared.screen("/watch/games/\(gameId)")
     await model.load(gameId)
+    // A scorer who doesn't run the clock opens on Score.
+    if let g = model.game, !g.canTime, g.canScore == true { page = .score }
     live.start(gameId: gameId)
     ctx.tellPhoneOpen(gameId: gameId)
   }
@@ -89,7 +117,7 @@ struct GameView: View {
   // Live → keep the app frontmost for the whole match (MatchSession);
   // over → let the workout close and save.
   private func statusChanged(_ status: String?) {
-    guard let g = model.game, g.canTime else { return }
+    guard let g = model.game, g.canTime || g.canScore == true else { return }
     if status == "live" {
       matchSession.start(gameId: gameId, categoryName: g.category?.name)
     } else if status == "completed" || status == "abandoned", matchSession.runningGameId == gameId {
@@ -151,7 +179,7 @@ struct GameView: View {
   // MARK: controls
 
   @ViewBuilder private func controls(_ g: WatchGame) -> some View {
-    let busy = queue.count(for: gameId) > 0
+    let busy = queue.clockCount(for: gameId) > 0
     VStack(spacing: 6) {
       ForEach(g.actions) { a in
         if let minutes = a.minutes {
@@ -160,7 +188,7 @@ struct GameView: View {
             Text(a.label).font(.caption2).foregroundStyle(.secondary)
             HStack(spacing: 4) {
               ForEach(minutes, id: \.self) { m in
-                Button("+\(m)") { send(a.action, minutes: m) }
+                Button("+\(m)") { send(a.action, minutes: m, arg: a.arg) }
                   .buttonStyle(.bordered).tint(.blue)
                   .font(.system(size: 14, weight: .bold, design: .rounded))
               }
@@ -173,12 +201,12 @@ struct GameView: View {
             systemImage: a.action == "kickoff" ? "play.fill" : "flag.fill",
             tint: a.action == "fullTime" ? .red : a.action == "kickoff" ? .green : .orange,
             disabled: busy
-          ) { send(a.action) }
+          ) { send(a.action, arg: a.arg) }
         } else {
           Button {
-            send(a.action)
+            send(a.action, arg: a.arg)
           } label: {
-            Label(a.label, systemImage: icon(a.action)).frame(maxWidth: .infinity)
+            Label(a.label, systemImage: icon(a.action)).lineLimit(1).minimumScaleFactor(0.7).frame(maxWidth: .infinity)
           }
           .buttonStyle(.borderedProminent)
           .tint(a.action == "pause" ? .orange : a.action == "resume" ? .green : .blue)
@@ -190,19 +218,23 @@ struct GameView: View {
           Text("To keep SportPadi on screen all match: Watch app → General → Return to Clock → SportPadi → Always.")
             .font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.top, 6)
         }
-        HoldButton(label: "Exit", systemImage: "xmark", tint: .gray, seconds: 2) {
-          ActionQueue.shared.clear(gameId: gameId)
-          if matchSession.runningGameId == gameId { matchSession.end() }
-          dismiss()
-        }
-        .padding(.top, 8)
+        HoldButton(label: "Exit", systemImage: "xmark", tint: .gray, seconds: 2) { leaveMatch() }
+          .padding(.top, 8)
       }
     }
     .padding(.top, 8)
   }
 
-  private func send(_ action: String, minutes: Int? = nil) {
-    queue.enqueue(gameId: gameId, action: action, minutes: minutes)
+  /// Leave a live match (held, never a stray tap): drop what's still queued.
+  private func leaveMatch() {
+    ActionQueue.shared.clear(gameId: gameId)
+    if matchSession.runningGameId == gameId { matchSession.end() }
+    dismiss()
+  }
+
+  /// `arg` rides back to the server with the action (a timeout's team).
+  private func send(_ action: String, minutes: Int? = nil, arg: String? = nil) {
+    queue.enqueue(gameId: gameId, action: action, minutes: minutes, extra: arg.map { ["arg": $0] })
     // Show the tap at once: pause / resume flip locally until the server answers.
     model.optimistic(action)
   }
@@ -225,16 +257,16 @@ struct GameView: View {
     .frame(maxWidth: .infinity)
   }
 
-  private func color(_ hex: String?) -> Color {
-    guard let hex, let v = UInt32(hex.trimmingCharacters(in: CharacterSet(charactersIn: "#")), radix: 16), hex.count >= 6 else { return .gray }
-    return Color(red: Double((v >> 16) & 0xff) / 255, green: Double((v >> 8) & 0xff) / 255, blue: Double(v & 0xff) / 255)
-  }
+  private func color(_ hex: String?) -> Color { TeamColor(hex).color }
 
   private func icon(_ a: String) -> String {
     switch a {
     case "pause": return "pause.fill"
     case "resume": return "play.fill"
-    case "startNext": return "forward.fill"
+    case "startNext", "nextSet": return "forward.fill"
+    case "timeout": return "hand.raised.fill"
+    case "timeoutEnd": return "play.fill"
+    case "sidesSwitched": return "arrow.left.arrow.right"
     case "extraTime", "overtime": return "clock.badge.exclamationmark"
     case "penalties": return "target"
     default: return "circle"
@@ -312,6 +344,35 @@ final class GameModel: ObservableObject {
     default:
       return
     }
+    game = g
+  }
+
+  /// A stat just tapped: move the score at once (the server's view follows).
+  /// `sign` −1 takes it back (Undo).
+  func optimisticScore(teamId: String, stat: WatchStat, sign: Int) {
+    guard var g = game, let sc = stat.score else { return }
+    let delta = sc.points * sign
+    // Whose total moves: the player's team, or (an own goal, an error) the other one.
+    var target: String? = teamId
+    if sc.team != "own" { target = g.teams.count == 2 ? g.teams.first(where: { $0.teamId != teamId })?.teamId : nil }
+    guard let target else { return }
+    if var scoring = g.scoring, var sides = scoring.teams,
+       let i = sides.firstIndex(where: { $0.teamId == target }), let shown = sides[i].value, let n = Int(shown) {
+      // The tile shows the sport's own number (a set's points): move that.
+      sides[i].value = String(max(0, n + delta))
+      scoring.teams = sides
+      g.scoring = scoring
+    } else if let i = g.teams.firstIndex(where: { $0.teamId == target }) {
+      g.teams[i].score = max(0, g.teams[i].score + delta)
+    }
+    game = g
+  }
+
+  /// An event just removed: off the list at once.
+  func optimisticRemove(eventId: String) {
+    guard var g = game, var sc = g.scoring else { return }
+    sc.events = (sc.events ?? []).filter { $0.id != eventId }
+    g.scoring = sc
     game = g
   }
 

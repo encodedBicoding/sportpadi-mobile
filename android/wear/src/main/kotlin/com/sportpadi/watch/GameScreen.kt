@@ -56,6 +56,10 @@ import java.time.Instant
  * overtime when drawn, and hold-to-exit. Taps go through ActionQueue
  * (ordered, retried, idempotent). Every realtime ping refetches; "Paused by
  * Ade" when another device did it. Ambient (wrist down): the clock only.
+ *
+ * Scorer mode (docs/design/watch-officiant.md "Scoring"): an officiant who
+ * may score gets tabs — Clock (when they also run it), Score and Events
+ * (ScoreScreens.kt). A timekeeper sees the clock alone.
  */
 @Composable
 fun GameScreen(gameId: String, activity: MainActivity, onExit: () -> Unit) {
@@ -75,6 +79,8 @@ fun GameScreen(gameId: String, activity: MainActivity, onExit: () -> Unit) {
     val lastResult by ActionQueue.lastResult.collectAsState()
     var remindedPhase by remember { mutableStateOf<String?>(null) }
     var remindedOver by remember { mutableStateOf<String?>(null) }
+    /** The tab showing ("" = this role's first one). */
+    var tab by remember { mutableStateOf("") }
 
     fun adopt(g: Game) {
         parseIso(g.serverNow)?.let { skew = it.toEpochMilli() - g.receivedAt }
@@ -102,13 +108,15 @@ fun GameScreen(gameId: String, activity: MainActivity, onExit: () -> Unit) {
     }
     LaunchedEffect(ping) { ping?.let { load(it.second) } }
     LaunchedEffect(lastResult?.serverNow) { lastResult?.let { if (it.id == gameId) adopt(it) } }
+    // A refused stat was already shown as recorded: put the truth back.
+    LaunchedEffect(refusal) { if (refusal != null) load() }
     // Half-second tick (one second in ambient).
     LaunchedEffect(activity.ambient) { while (isActive) { now = System.currentTimeMillis(); delay(if (activity.ambient) 1000 else 500) } }
     // Keep the clock on the watch face while live; off at full time / exit.
     val status = game?.status
     LaunchedEffect(status) {
         val g = game ?: return@LaunchedEffect
-        if (status == "live" && g.canTime) OngoingMatch.start(context, g) else OngoingMatch.stop(context)
+        if (status == "live" && (g.canTime || g.canScore)) OngoingMatch.start(context, g) else OngoingMatch.stop(context)
     }
 
     val g = game
@@ -137,7 +145,24 @@ fun GameScreen(gameId: String, activity: MainActivity, onExit: () -> Unit) {
     }
 
     val queued = pending.count { it.gameId == gameId }
+    val clockQueued = pending.count { it.gameId == gameId && it.isClock }
+    // Scorer mode: the tabs this officiant's role gets.
+    val sc = g.scoring
+    val tabs = if (sc != null && g.canScore) (if (g.canTime) listOf("clock", "score", "events") else listOf("score", "events")) else emptyList()
+    val current = if (tab in tabs) tab else tabs.firstOrNull() ?: "clock"
+    if (sc != null && current == "score") {
+        ScorePage(gameId, g, sc, skew, now, tabs, { tab = it }, refusal, { game = it })
+        return
+    }
+    if (sc != null && current == "events") {
+        val exit: (() -> Unit)? = if (!g.canTime && g.status == "live") {
+            { ActionQueue.clear(gameId); OngoingMatch.stop(context); onExit() }
+        } else null
+        EventsPage(gameId, g, sc, tabs, { tab = it }, queued - clockQueued, sending, { game = it }, exit)
+        return
+    }
     ScalingLazyColumn(modifier = Modifier.fillMaxSize()) {
+        if (tabs.isNotEmpty()) item { TabRow(tabs, "clock") { tab = it } }
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                 TeamCol(g.teams.getOrNull(0), Modifier.weight(1f))
@@ -157,22 +182,22 @@ fun GameScreen(gameId: String, activity: MainActivity, onExit: () -> Unit) {
         }
         // Buttons, in the server's order.
         for (a in g.actions) item {
-            val busy = queued > 0
+            val busy = clockQueued > 0
             when {
                 a.minutes != null -> Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                     Text(a.label, fontSize = 10.sp, color = Color.Gray)
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        for (m in a.minutes) Button(onClick = { ActionQueue.enqueue(gameId, a.action, m) }, colors = ButtonDefaults.secondaryButtonColors(), modifier = Modifier.size(36.dp)) { Text("+$m", fontSize = 12.sp) }
+                        for (m in a.minutes) Button(onClick = { ActionQueue.enqueue(gameId, a.action, m, argOf(a)) }, colors = ButtonDefaults.secondaryButtonColors(), modifier = Modifier.size(36.dp)) { Text("+$m", fontSize = 12.sp) }
                     }
                 }
                 a.hold -> HoldButton(
                     label = a.label, enabled = !busy,
                     color = when (a.action) { "fullTime" -> Color(0xFFC62828); "kickoff" -> Color(0xFF1B7A4F); else -> Color(0xFFE08A1C) },
-                ) { ActionQueue.enqueue(gameId, a.action); game = optimistic(g, a.action, skew) }
+                ) { ActionQueue.enqueue(gameId, a.action, extra = argOf(a)); game = optimistic(g, a.action, skew) }
                 else -> Chip(
-                    onClick = { ActionQueue.enqueue(gameId, a.action); game = optimistic(g, a.action, skew) },
+                    onClick = { ActionQueue.enqueue(gameId, a.action, extra = argOf(a)); game = optimistic(g, a.action, skew) },
                     enabled = !busy || a.action == "pause",
-                    label = { Text(a.label) },
+                    label = { Text(a.label, maxLines = 2) },
                     colors = ChipDefaults.primaryChipColors(backgroundColor = when (a.action) { "pause" -> Color(0xFFE08A1C); "resume" -> Color(0xFF1B7A4F); else -> Color(0xFF1565C0) }),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -207,7 +232,10 @@ private fun TeamCol(t: Team?, modifier: Modifier) {
     }
 }
 
-private fun hexColor(hex: String?): Color {
+/** What rides back to the server with an action (a timeout's team). */
+private fun argOf(a: Action): Map<String, String>? = a.arg?.let { mapOf("arg" to it) }
+
+internal fun hexColor(hex: String?): Color {
     val h = hex?.trim()?.removePrefix("#") ?: return Color.Gray
     if (h.length < 6) return Color.Gray
     val v = h.take(6).toLongOrNull(16) ?: return Color.Gray

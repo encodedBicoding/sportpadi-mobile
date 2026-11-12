@@ -4,8 +4,10 @@ Officiant mode on the wrist: the invite list (accept / decline), a live match fa
 clock runs from the server's timestamps and follows every change made on any other device,
 and the clock controls — kick-off, pause / resume, add time, end of period, start next,
 extra time / penalties / overtime when drawn, full time — with hold-to-confirm, an ordered
-offline queue, always-on display and period-end taps. Strictly the clock: stats, subs and
-formations stay on the phone. Contract: `../../docs/design/watch-officiant.md` (workspace
+offline queue, always-on display and period-end taps. Officiants who may score also get
+**Score** and **Events** pages (`ScoreViews.swift`): goals, cards, the category's other stats
+and substitutions, with Undo and tap-then-hold removal — see "Scoring" in the contract.
+Formations stay on the phone. Contract: `../../docs/design/watch-officiant.md` (workspace
 repo). Phone side of pairing: `ios/Runner/WatchBridge.swift`.
 
 The sources in this folder are the whole app. Xcode has to own the target, so add it once:

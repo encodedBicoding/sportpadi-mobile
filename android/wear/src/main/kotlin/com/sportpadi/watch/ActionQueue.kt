@@ -19,14 +19,23 @@ import kotlin.math.min
 import kotlin.math.pow
 
 /**
- * Clock actions from the wrist, in order, whatever the link is doing. Each
+ * Clock actions — and, in scorer mode, stats — from the wrist, in order, whatever the link is doing. Each
  * tap gets a client id, is saved to disk at once, and is sent one at a time
  * in tap order; a network failure backs off (2…30 s) and retries the SAME id
  * (a no-op server-side if it landed), so a full time is never lost and never
  * applied twice. A server "no" (400/403) drops that one and says why.
  */
 object ActionQueue {
-    data class Pending(val id: String, val gameId: String, val action: String, val minutes: Int?, val createdAt: Long, var attempts: Int = 0)
+    data class Pending(
+        val id: String, val gameId: String, val action: String, val minutes: Int?, val createdAt: Long, var attempts: Int = 0,
+        /** Scorer mode: the stat's fields (type, teamId, playerId, at …). */
+        val extra: Map<String, String>? = null,
+    ) {
+        /** Stats don't hold the clock's buttons back; clock actions do. */
+        val isClock get() = action !in STAT_ACTIONS
+    }
+
+    private val STAT_ACTIONS = setOf("stat", "sub", "teamStat", "undoStat", "removeStat")
 
     private const val PREFS = "sp.queue"
     private lateinit var app: Context
@@ -49,7 +58,8 @@ object ActionQueue {
             val a = JSONArray(raw)
             _pending.value = (0 until a.length()).map { i ->
                 val j = a.getJSONObject(i)
-                Pending(j.getString("id"), j.getString("gameId"), j.getString("action"), if (j.isNull("minutes")) null else j.getInt("minutes"), j.getLong("createdAt"), j.optInt("attempts"))
+                val extra = j.optJSONObject("extra")?.let { o -> o.keys().asSequence().associateWith { k -> o.optString(k) } }
+                Pending(j.getString("id"), j.getString("gameId"), j.getString("action"), if (j.isNull("minutes")) null else j.getInt("minutes"), j.getLong("createdAt"), j.optInt("attempts"), extra)
             }
         }
         if (_pending.value.isNotEmpty()) kick()
@@ -57,12 +67,26 @@ object ActionQueue {
 
     fun count(gameId: String) = _pending.value.count { it.gameId == gameId }
 
-    fun enqueue(gameId: String, action: String, minutes: Int? = null): String {
-        val p = Pending(UUID.randomUUID().toString(), gameId, action, minutes, System.currentTimeMillis())
+    fun enqueue(gameId: String, action: String, minutes: Int? = null, extra: Map<String, String>? = null): String {
+        val p = Pending(UUID.randomUUID().toString(), gameId, action, minutes, System.currentTimeMillis(), extra = extra)
         _pending.value = _pending.value + p
         persist()
         kick()
         return p.id
+    }
+
+    /**
+     * Undo before it was sent: take it back out of the queue. False when it
+     * is already on its way (or gone) — then the server has to undo it.
+     */
+    fun cancel(id: String): Boolean {
+        val list = _pending.value
+        val i = list.indexOfFirst { it.id == id }
+        if (i < 0) return false
+        if (i == 0 && _sending.value) return false
+        _pending.value = list.filterNot { it.id == id }
+        persist()
+        return true
     }
 
     fun clear(gameId: String) {
@@ -72,7 +96,7 @@ object ActionQueue {
 
     private fun persist() {
         val a = JSONArray()
-        for (p in _pending.value) a.put(JSONObject().put("id", p.id).put("gameId", p.gameId).put("action", p.action).put("minutes", p.minutes ?: JSONObject.NULL).put("createdAt", p.createdAt).put("attempts", p.attempts))
+        for (p in _pending.value) a.put(JSONObject().put("id", p.id).put("gameId", p.gameId).put("action", p.action).put("minutes", p.minutes ?: JSONObject.NULL).put("createdAt", p.createdAt).put("attempts", p.attempts).put("extra", p.extra?.let { m -> JSONObject().also { o -> m.forEach { (k, v) -> o.put(k, v) } } } ?: JSONObject.NULL))
         app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("items", a.toString()).apply()
     }
 
@@ -86,13 +110,13 @@ object ActionQueue {
             val next = _pending.value.firstOrNull() ?: break
             _sending.value = true
             try {
-                val g = ApiClient.act(next.gameId, next.action, next.minutes, next.id)
-                _pending.value = _pending.value.drop(1)
+                val g = ApiClient.act(next.gameId, next.action, next.minutes, next.id, next.extra)
+                _pending.value = _pending.value.filterNot { it.id == next.id }
                 persist()
                 lastResult.value = g
                 Haptics.click(app)
             } catch (e: ApiError.Server) {
-                _pending.value = _pending.value.drop(1)
+                _pending.value = _pending.value.filterNot { it.id == next.id }
                 persist()
                 refusal.value = e.message
                 Haptics.fail(app)
@@ -101,11 +125,12 @@ object ActionQueue {
             } catch (e: ApiError.NotPaired) {
                 _sending.value = false; delay(5000); continue
             } catch (e: Exception) {
-                val p = _pending.value.first()
-                p.attempts++
+                // (It may have been undone out of the queue while this was failing.)
+                val p = _pending.value.firstOrNull { it.id == next.id }
+                if (p != null) p.attempts++
                 persist()
                 _sending.value = false
-                delay(min(30_000.0, 2.0.pow(min(p.attempts, 5)) * 1000).toLong())
+                delay(min(30_000.0, 2.0.pow(min(p?.attempts ?: 1, 5)) * 1000).toLong())
                 continue
             }
         }

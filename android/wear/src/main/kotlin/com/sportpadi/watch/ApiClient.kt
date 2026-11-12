@@ -68,10 +68,14 @@ object ApiClient {
         send(request("/api/mobile/watch/$gameId", JSONObject().put("action", if (accept) "accept" else "decline")))
     }
 
-    /** A clock action; the id makes a retry a no-op. Returns the fresh view. */
-    suspend fun act(gameId: String, action: String, minutes: Int?, actionId: String): Game {
+    /**
+     * A clock action, or (scorer mode) a stat / substitution / removal whose
+     * fields ride in [extra]. The id makes a retry a no-op. Returns the fresh view.
+     */
+    suspend fun act(gameId: String, action: String, minutes: Int?, actionId: String, extra: Map<String, String>? = null): Game {
         val body = JSONObject().put("action", action).put("actionId", actionId)
         if (minutes != null) body.put("minutes", minutes)
+        extra?.forEach { (k, v) -> body.put(k, v) }
         return Game.of(send(request("/api/mobile/watch/$gameId", body)))
     }
 

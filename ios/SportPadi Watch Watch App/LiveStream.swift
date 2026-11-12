@@ -7,6 +7,8 @@ import Foundation
 @MainActor
 final class LiveStream: NSObject, ObservableObject {
   @Published private(set) var lastPing: WatchPing?
+  /// Counts every ping, so two alike in a row (two goals) both refetch.
+  @Published private(set) var seq = 0
   @Published private(set) var connected = false
 
   private var task: URLSessionDataTask?
@@ -65,6 +67,7 @@ final class LiveStream: NSObject, ObservableObject {
         let json = line.dropFirst(5).trimmingCharacters(in: .whitespaces)
         if let d = json.data(using: .utf8), let ping = try? JSONDecoder().decode(WatchPing.self, from: d) {
           lastPing = ping
+          seq += 1
         }
       }
     }

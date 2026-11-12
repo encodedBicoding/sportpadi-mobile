@@ -4,7 +4,9 @@ Officiant mode on a Wear OS wrist, the same thing as the watchOS app (`ios/Sport
 invites (accept / decline), a live match face whose clock runs from the server's timestamps and
 follows every change made on any other device, and the clock controls drawn from the server's
 `actions[]` with hold-to-confirm, an ordered offline queue, ambient mode and period-end taps.
-Strictly the clock — stats, subs and formations stay on the phone.
+Officiants who may score also get **Score** and **Events** tabs (`ScoreScreens.kt`): goals,
+cards, the category's other stats and substitutions, with Undo and tap-then-hold removal — see
+"Scoring" in the contract. Formations stay on the phone.
 Contract: `../../docs/design/watch-officiant.md` (workspace repo). Phone side of pairing:
 `android/app/src/main/kotlin/.../WatchBridge.kt`.
 
