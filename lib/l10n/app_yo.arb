@@ -614,6 +614,24 @@
   "common_proFeaturesOfferTerms": "Òfin ìpèsè àwọn ẹ̀yà Pro",
   "common_groupNotFound": "A kò rí ẹgbẹ́ náà.",
   "common_cantReachTheServer": "A kò lè dé olupin.",
+  "common_theServerIsTakingTooLong": "Olupin náà ń pẹ́ jù.",
+  "common_notFound": "A kò rí i.",
+  "common_theServerHadAProblem": "Olupin náà ní ìṣòro ({status}).",
+  "@common_theServerHadAProblem": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
+  "common_theRequestWasRefused": "A kọ ìbéèrè náà ({status}).",
+  "@common_theRequestWasRefused": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
   "common_couldNotLoadGroups": "A kò lè gbé àwọn ẹgbẹ́ wọlé.",
   "common_teamNotFound": "A kò rí ikọ̀ náà.",
   "common_couldNotStartThePayment": "A kò lè bẹ̀rẹ̀ ìsanwó náà.",
@@ -8961,8 +8979,6 @@
   "profile_youreNotInAnyGroups": "O kò tíì wà nínú ẹgbẹ́ kankan.",
   "profile_browseGroups": "Wá ẹgbẹ́ kiri",
   "profile_myTournaments": "Ìdíje mi",
-  "profile_highlightsAreComing": "Àwọn ìṣẹ́jú pàtàkì ń bọ̀",
-  "profile_yourBestMomentsPhotosAnd": "Àwọn ìṣẹ́jú rẹ tí ó dára jùlọ — àwòrán àti fídíò láti inú àwọn eré rẹ — yóò wà níbí. Ó ń bọ̀ láìpẹ́.",
   "profile_progressAchievements": "Ìlọsíwájú & àṣeyọrí",
   "profile_myRecords": "Àwọn àkọsílẹ̀ mi",
   "profile_yourNumbersSportBySport": "Àwọn nọ́mbà rẹ, eré lẹ́yìn eré",
@@ -20287,5 +20303,665 @@
         "type": "Object"
       }
     }
-  }
+  },
+  "highlights_title": "Àwọn ìṣẹ́jú pàtàkì",
+  "highlights_navLabel": "Ìṣẹ́jú pàtàkì",
+  "highlights_tabFollowing": "Àwọn tí o ń tẹ̀lé",
+  "highlights_tabDiscover": "Ṣàwárí",
+  "highlights_postHighlight": "Gbé ìṣẹ́jú pàtàkì jáde",
+  "highlights_seeDiscover": "Wo Ṣàwárí",
+  "highlights_backToHighlights": "Padà sí àwọn ìṣẹ́jú pàtàkì",
+  "highlights_followingEmptyTitle": "Kò sí nǹkan níbí síbẹ̀",
+  "highlights_followingEmptyText": "Àwọn ìṣẹ́jú pàtàkì láti ọ̀dọ̀ àwọn eléré tí o ń tẹ̀lé — àti tìrẹ — yóò hàn níbí. Wo Ṣàwárí láti rí àwọn eléré tí o lè tẹ̀lé.",
+  "highlights_discoverEmptyTitle": "Kò tíì sí ìṣẹ́jú pàtàkì",
+  "highlights_discoverEmptyText": "Jẹ́ ẹni àkọ́kọ́ tí yóò gbé ọ̀kan jáde.",
+  "highlights_followingEndTitle": "O ti rí gbogbo rẹ̀",
+  "highlights_followingEndText": "Ìyẹn ni gbogbo ohun tí àwọn eléré tí o ń tẹ̀lé gbé jáde. Púpọ̀ sí i wà nínú Ṣàwárí.",
+  "highlights_discoverEndTitle": "O ti rí gbogbo nǹkan",
+  "highlights_discoverEndText": "Ìyẹn ni gbogbo ìṣẹ́jú pàtàkì tí o lè rí fún ìsinsìnyí.",
+  "highlights_feedErrorTitle": "A kò lè gbé àwọn ìṣẹ́jú pàtàkì wọlé",
+  "highlights_feedErrorText": "Ṣàyẹ̀wò ìsopọ̀ rẹ kí o sì gbìyànjú lẹ́ẹ̀kan sí i.",
+  "highlights_feedMoreErrorTitle": "A kò lè gbé púpọ̀ sí i wọlé",
+  "highlights_notFoundTitle": "A kò rí ìṣẹ́jú pàtàkì náà",
+  "highlights_notFoundText": "Ó ṣeé ṣe kí a ti pa á rẹ́, tàbí kò hàn sí ọ.",
+  "highlights_goneToast": "Ìṣẹ́jú pàtàkì yìí kò sí mọ́.",
+  "highlights_postBy": "Ìṣẹ́jú pàtàkì láti ọ̀dọ̀ {name}",
+  "@highlights_postBy": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_aboutSubject": "nípa <link>{name}</link>",
+  "@highlights_aboutSubject": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statMinute": "{minute}’",
+  "@highlights_statMinute": {
+    "placeholders": {
+      "minute": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statOpenMatch": "Ṣí eré náà",
+  "highlights_like": "Fẹ́ràn",
+  "highlights_unlike": "Má fẹ́ràn mọ́",
+  "highlights_likeFailed": "A kò lè fi ìfẹ́ràn rẹ pamọ́.",
+  "highlights_commentsOpen": "{count, plural, =0{Ọ̀rọ̀} one{Ọ̀rọ̀ {count}} other{Ọ̀rọ̀ {count}}}",
+  "@highlights_commentsOpen": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_share": "Pín",
+  "highlights_shareTitle": "Ìṣẹ́jú pàtàkì {name} lórí SportPadi",
+  "@highlights_shareTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_linkCopied": "A ti ṣẹ̀dà ìjápọ̀ náà",
+  "highlights_linkCopyFailed": "A kò lè ṣẹ̀dà ìjápọ̀ náà.",
+  "highlights_more": "Síwájú sí i",
+  "highlights_menuEmpty": "Kò sí ohun tí o lè ṣe sí ìṣẹ́jú pàtàkì yìí.",
+  "highlights_report": "Jábọ̀",
+  "highlights_delete": "Pa rẹ́",
+  "highlights_deleteTitle": "Pa ìṣẹ́jú pàtàkì yìí rẹ́?",
+  "highlights_deleteText": "Yóò kúrò lójú gbogbo ènìyàn, a ó sì pa àwọn fáìlì rẹ̀ rẹ́. A kò lè yí èyí padà, pípa á rẹ́ kò sì dá ọ̀kan nínú àwọn ìgbéjáde ọ̀sẹ̀ yìí padà fún ọ.",
+  "highlights_deleteTextFailed": "Ó ti kúrò pátápátá — a kò lè yí èyí padà. Fídíò tí ó kùnà kò ká sínú àwọn ìgbéjáde ọ̀sẹ̀ yìí.",
+  "highlights_deleteTextGuardian": "Yóò kúrò lójú gbogbo ènìyàn — àti lórí pírófáìlì {name} pẹ̀lú — a ó sì pa àwọn fáìlì rẹ̀ rẹ́. A kò lè yí èyí padà.",
+  "@highlights_deleteTextGuardian": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_deleted": "A ti pa ìṣẹ́jú pàtàkì náà rẹ́",
+  "highlights_deleteFailed": "A kò lè pa ìṣẹ́jú pàtàkì náà rẹ́.",
+  "highlights_play": "Bẹ̀rẹ̀",
+  "highlights_soundOn": "Tan ohùn",
+  "highlights_soundOff": "Pa ohùn",
+  "highlights_videoCantPlay": "Fídíò yìí kò ṣiṣẹ́.",
+  "highlights_photoAlt": "Àwòrán {n} nínú {total} — {name}",
+  "@highlights_photoAlt": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      },
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoCount": "Àwòrán {n} nínú {total}",
+  "@highlights_photoCount": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_previousPhoto": "Àwòrán tí ó ṣáájú",
+  "highlights_nextPhoto": "Àwòrán tí ó tẹ̀lé",
+  "highlights_processingTitle": "A ń ṣiṣẹ́ lórí fídíò rẹ",
+  "highlights_processingText": "Ìwọ nìkan ni ó rí i títí ó fi ṣe tán. Ojú ìwé yìí ń yí ara rẹ̀ padà — kò sì pọn dandan kí o dúró síbí: iṣẹ́ náà ń tẹ̀síwájú láìsí ìwọ, ó sì lè pẹ́ nígbà tí ọ̀pọ̀ nǹkan ń lọ.",
+  "highlights_failedTitle": "A kò lè gbé fídíò yìí jáde",
+  "highlights_failedText": "Nǹkan kan kùnà nígbà tí à ń ṣiṣẹ́ lórí rẹ̀.",
+  "highlights_failedNote": "Kò ká sínú àwọn ìgbéjáde ọ̀sẹ̀ yìí. Tí o bá fi í sílẹ̀ níbí, yóò kúrò fúnra rẹ̀ lẹ́yìn ọjọ́ 7.",
+  "highlights_failedPostAgain": "Gbé e jáde lẹ́ẹ̀kan sí i",
+  "highlights_failedDelete": "Pa á rẹ́",
+  "highlights_takenDownTitle": "SportPadi ti yọ fídíò yìí kúrò",
+  "highlights_takenDownText": "Àyẹ̀wò SportPadi rí ìṣòro nínú fídíò yìí, nítorí náà a kò fi í hàn mọ́. Tí o bá rí ohun kan níbí tí ó dà ọ́ láàmú, o ṣì lè jábọ̀ rẹ̀.",
+  "highlights_takenDownTextPlain": "Àyẹ̀wò SportPadi rí ìṣòro nínú fídíò yìí, nítorí náà a kò fi í hàn mọ́.",
+  "highlights_commentsTitle": "{count, plural, =0{Ọ̀rọ̀} one{Ọ̀rọ̀ {count}} other{Ọ̀rọ̀ {count}}}",
+  "@highlights_commentsTitle": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_commentsDescription": "Àwọn ọ̀rọ̀ lórí ìṣẹ́jú pàtàkì yìí, àtijọ́ ní ìṣáájú.",
+  "highlights_commentsEmpty": "Kò tíì sí ọ̀rọ̀. Jẹ́ ẹni àkọ́kọ́ tí yóò sọ nǹkan.",
+  "highlights_commentsLoadFailed": "A kò lè gbé àwọn ọ̀rọ̀ wọlé.",
+  "highlights_commentsMore": "Fi ọ̀rọ̀ púpọ̀ sí i hàn",
+  "highlights_commentLabel": "Fi ọ̀rọ̀ kún un",
+  "highlights_commentPlaceholder": "Fi ọ̀rọ̀ kún un…",
+  "highlights_commentSend": "Fi ọ̀rọ̀ ránṣẹ́",
+  "highlights_commentDelete": "Pa ọ̀rọ̀ náà rẹ́",
+  "highlights_commentDeleteTitle": "Pa ọ̀rọ̀ yìí rẹ́?",
+  "highlights_commentDeleteText": "Yóò kúrò lójú gbogbo ènìyàn. A kò lè yí èyí padà.",
+  "highlights_commentReport": "Jábọ̀ ọ̀rọ̀ náà",
+  "highlights_charCount": "{count} / {max}",
+  "@highlights_charCount": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportTitle": "Jábọ̀ ìṣẹ́jú pàtàkì yìí",
+  "highlights_reportCommentTitle": "Jábọ̀ ọ̀rọ̀ yìí",
+  "highlights_reportIntro": "Ó ń lọ sí ọ̀dọ̀ ikọ̀ SportPadi, àwọn tí yóò ṣàyẹ̀wò rẹ̀.",
+  "highlights_reportWhatsWrong": "Kí ni kò tọ̀nà?",
+  "highlights_reasonInappropriate": "Kò bójú mu",
+  "highlights_reasonHarassment": "Ìyọlẹ́nu tàbí ìfipámúni",
+  "highlights_reasonSpam": "Spam",
+  "highlights_reasonChildSafety": "Àníyàn nípa ààbò ọmọdé",
+  "highlights_reasonNotMe": "Èmi ni ó wà nínú rẹ̀, mi kò fẹ́ kí ó wà níbẹ̀",
+  "highlights_reasonOther": "Nǹkan míràn",
+  "highlights_reportNoteLabel": "Ǹkan míràn? (kò pọndandan)",
+  "highlights_reportNotePlaceholder": "Fi àlàyé tí yóò ràn wá lọ́wọ́ láti ṣàyẹ̀wò rẹ̀ kún un",
+  "highlights_reportNoteTooLong": "Jẹ́ kí ó kéré sí lẹ́tà {max}.",
+  "@highlights_reportNoteTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportChildSafetyNote": "Tí ọmọdé kan bá wà nínú ewu lójú-ẹsẹ̀, kọ́kọ́ kàn sí iṣẹ́ pàjáwìrì tí ó wà nítòsí rẹ.",
+  "highlights_reportSend": "Fi ìjábọ̀ ránṣẹ́",
+  "highlights_reportSent": "O ṣé fún ìjábọ̀ rẹ",
+  "highlights_reportSentDetail": "Ikọ̀ SportPadi yóò ṣàyẹ̀wò rẹ̀.",
+  "highlights_statLink": "So ó mọ́ ìṣirò",
+  "highlights_statChange": "Yí ìṣirò tí ó so mọ́ padà",
+  "highlights_statRemove": "Yọ ìsopọ̀ ìṣirò kúrò",
+  "highlights_statRemoveWard": "Tú u kúrò lọ́wọ́ {name}",
+  "@highlights_statRemoveWard": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinkSaved": "Ó ti so mọ́ ìṣirò náà",
+  "highlights_statLinkRemoved": "Ìsopọ̀ ìṣirò ti kúrò",
+  "highlights_statLinkFailed": "A kò lè yí ìsopọ̀ ìṣirò náà padà.",
+  "highlights_statSheetTitle": "So ó mọ́ ìṣirò",
+  "highlights_statSheetText": "Yan ìṣẹ́jú tí ìṣẹ́jú pàtàkì yìí fi hàn. Yóò hàn lórí eré náà àti lórí pírófáìlì eléré náà.",
+  "highlights_statsEmptyTitle": "Kò tíì sí ìṣirò tí o lè so mọ́",
+  "highlights_statsEmptyText": "Àwọn gọ́ọ̀lù, ìrànwọ́ àti ìṣirò míràn tí a kọ sílẹ̀ fún ọ nínú eré yóò hàn níbí.",
+  "highlights_statsLoadFailed": "A kò lè gbé àwọn ìṣirò rẹ wọlé.",
+  "highlights_statsMore": "Fi púpọ̀ sí i hàn",
+  "highlights_statFor": "Fún {name}",
+  "@highlights_statFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinked": "Ó ti so mọ́",
+  "highlights_statTaken": "Ó ní ìṣẹ́jú pàtàkì",
+  "highlights_statTakenMine": "Ó ní ìṣẹ́jú pàtàkì rẹ",
+  "highlights_statOptionalTitle": "So ó mọ́ ìṣirò",
+  "highlights_statOptionalText": "Kò pọndandan — so ó mọ́ gọ́ọ̀lù, ìrànwọ́ tàbí ìṣirò míràn tí ó fi hàn.",
+  "highlights_statLinkedHint": "Ó hàn lórí eré náà àti lórí pírófáìlì rẹ.",
+  "highlights_statPreselectMissed": "Ìṣirò náà kò lè gba ìṣẹ́jú pàtàkì ní ìsinsìnyí. Yan òmíràn, tàbí gbé e jáde láìsí ìṣirò.",
+  "highlights_statGoneKept": "A ti yọ ìṣirò náà kúrò nínú eré, nítorí náà ìsopọ̀ rẹ̀ ti kúrò. Àwọn fáìlì rẹ ṣì wà níbẹ̀ — tẹ Gbìyànjú lẹ́ẹ̀kan sí i láti gbé e jáde láìsí ìṣirò, tàbí yan òmíràn kọ́kọ́.",
+  "highlights_wardLinkTitle": "Yí ẹni tí ìṣẹ́jú pàtàkì yìí jẹ́ nípa rẹ̀ padà?",
+  "highlights_wardLinkText": "Ní ìsinsìnyí ìṣẹ́jú pàtàkì yìí jẹ́ nípa {name}, àwọn tí ó lè rí pírófáìlì {name} nìkan sì ni ó lè rí i. Tí o bá tẹ̀síwájú, yóò di ìgbéjáde nípa ìwọ — gbogbo àwọn tí ó lè rí pírófáìlì rẹ yóò rí i, nínú Àwọn tí o ń tẹ̀lé àti Ṣàwárí.",
+  "@highlights_wardLinkText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextOther": "Ní ìsinsìnyí ìṣẹ́jú pàtàkì yìí jẹ́ nípa {name}, àwọn tí ó lè rí pírófáìlì {name} nìkan sì ni ó lè rí i. Tí o bá tẹ̀síwájú, yóò jẹ́ nípa {other} — àwọn tí ó lè rí pírófáìlì {other} yóò rí i.",
+  "@highlights_wardLinkTextOther": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      },
+      "other": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextInto": "Ní ìsinsìnyí ìṣẹ́jú pàtàkì yìí jẹ́ nípa ìwọ. Tí o bá tẹ̀síwájú, yóò di ìṣẹ́jú pàtàkì {name}: yóò kó lọ sí pírófáìlì àti eré {name}, àwọn tí ó lè rí pírófáìlì {name} sì ni yóò rí i.",
+  "@highlights_wardLinkTextInto": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkConfirm": "Bẹ́ẹ̀ni, tẹ̀síwájú",
+  "highlights_statChoose": "Yan",
+  "highlights_statChangeShort": "Yí padà",
+  "highlights_newTitle": "Ìṣẹ́jú pàtàkì tuntun",
+  "highlights_quotaErrorTitle": "A kò lè ṣàyẹ̀wò iye tí ó kù fún ọ",
+  "highlights_quotaLeft": "{count, plural, =0{Kò sí ìgbéjáde tí ó kù ní ọ̀sẹ̀ yìí.} one{Ìgbéjáde {count} ló kù ní ọ̀sẹ̀ yìí.} other{Ìgbéjáde {count} ló kù ní ọ̀sẹ̀ yìí.}}",
+  "@highlights_quotaLeft": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_quotaRule": "{limit, plural, one{O lè gbé ìṣẹ́jú pàtàkì {limit} jáde ní gbogbo} other{O lè gbé ìṣẹ́jú pàtàkì {limit} jáde ní gbogbo}} {days, plural, one{ọjọ́ {days}} other{ọjọ́ {days}}}.",
+  "@highlights_quotaRule": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedPausedTitle": "Ìgbéjáde ti dúró",
+  "highlights_blockedPausedText": "Gbígbé ìṣẹ́jú pàtàkì jáde ti dúró fún ìsinsìnyí. O ṣì lè wò, fẹ́ràn àti sọ ọ̀rọ̀.",
+  "highlights_blockedLimitTitle": "O ti lo àwọn ìgbéjáde ọ̀sẹ̀ yìí tán",
+  "highlights_blockedLimitText": "{limit, plural, one{O lè gbé ìṣẹ́jú pàtàkì {limit} jáde ní gbogbo} other{O lè gbé ìṣẹ́jú pàtàkì {limit} jáde ní gbogbo}} {days, plural, one{ọjọ́ {days}} other{ọjọ́ {days}}}, {limit, plural, one{o sì ti lo gbogbo rẹ̀} other{o sì ti lo gbogbo rẹ̀}}.",
+  "@highlights_blockedLimitText": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedLimitTextUntil": "{limit, plural, one{O lè gbé ìṣẹ́jú pàtàkì {limit} jáde ní gbogbo} other{O lè gbé ìṣẹ́jú pàtàkì {limit} jáde ní gbogbo}} {days, plural, one{ọjọ́ {days}} other{ọjọ́ {days}}}, {limit, plural, one{o sì ti lo gbogbo rẹ̀} other{o sì ti lo gbogbo rẹ̀}}. O lè gbé jáde lẹ́ẹ̀kan sí i láti {when}.",
+  "@highlights_blockedLimitTextUntil": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      },
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_blockedOtherTitle": "O kò lè gbé jáde ní ìsinsìnyí",
+  "highlights_blockedOtherText": "Gbígbé ìṣẹ́jú pàtàkì jáde kò sí lórí àkáǹtì rẹ ní àsìkò yìí.",
+  "highlights_videoBlockedDaily": "O ti gbé fídíò púpọ̀ jáde lónìí, nítorí náà fídíò ti dúró títí di ọ̀la. O ṣì lè gbé àwòrán jáde.",
+  "highlights_videoBlockedDailyUntil": "O ti gbé fídíò púpọ̀ jáde lónìí. O lè gbé òmíràn jáde láti {when} — ṣáájú ìgbà náà, o ṣì lè gbé àwòrán jáde.",
+  "@highlights_videoBlockedDailyUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoBlockedProcessing": "À ń ṣiṣẹ́ lórí àwọn fídíò rẹ tí ó kọjá. Nígbà tí wọ́n bá ṣe tán o lè gbé òmíràn jáde — ṣáájú ìgbà náà, o ṣì lè gbé àwòrán jáde.",
+  "highlights_videoBlockedOther": "O kò lè gbé fídíò jáde ní ìsinsìnyí. O ṣì lè gbé àwòrán jáde.",
+  "highlights_videoBlockedRecheck": "Ṣàyẹ̀wò lẹ́ẹ̀kan sí i",
+  "highlights_pickVideo": "Fídíò",
+  "highlights_pickVideoHint": "Fídíò kan, tí ó tó ìṣẹ́jú-àáyá {seconds} àti {max} MB (MP4, MOV tàbí WebM)",
+  "@highlights_pickVideoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pickPhotos": "Àwòrán",
+  "highlights_pickPhotosHint": "Àwòrán tí ó tó {max}, tí o ń fà sẹ́gbẹ̀ẹ́",
+  "@highlights_pickPhotosHint": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_preparing": "À ń tọ́jú àwọn fáìlì rẹ…",
+  "highlights_videoTypeRefused": "Irú fáìlì yìí kò ṣiṣẹ́. Yan fídíò MP4, MOV tàbí WebM.",
+  "highlights_videoTooLarge": "Fídíò yìí jẹ́ {size} MB. Òdiwọ̀n náà jẹ́ {max} MB — gé e kúrú tàbí mú kí ó kéré, lẹ́yìn náà gbìyànjú lẹ́ẹ̀kan sí i.",
+  "@highlights_videoTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoTooLong": "Fídíò yìí jẹ́ ìṣẹ́jú-àáyá {seconds}. Ìṣẹ́jú pàtàkì lè tó ìṣẹ́jú-àáyá {max} — gé e kúrú kí o sì gbìyànjú lẹ́ẹ̀kan sí i.",
+  "@highlights_videoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoNoPreview": "Ẹ̀rọ aṣàwákiri yìí kò lè fi fídíò yìí hàn ṣáájú. O ṣì lè gbé e jáde — a ó ṣàyẹ̀wò rẹ̀ lẹ́yìn tí ó bá gùn sókè.",
+  "highlights_videoSeconds": "{seconds} s",
+  "@highlights_videoSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_fileMb": "{size} MB",
+  "@highlights_fileMb": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_replace": "Rọ́pò",
+  "highlights_remove": "Yọ kúrò",
+  "highlights_photosCount": "{count, plural, one{Àwòrán {count}} other{Àwòrán {count}}} · tí ó tó {max}",
+  "@highlights_photosCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoNumber": "Àwòrán {n}",
+  "@highlights_photoNumber": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_removePhoto": "Yọ àwòrán {n} kúrò",
+  "@highlights_removePhoto": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_addPhotos": "Fi àwòrán kún un",
+  "highlights_photosUnreadable": "{count, plural, one{A kò lè ka àwòrán {count}, nítorí náà kò wọlé.} other{A kò lè ka àwòrán {count}, nítorí náà kò wọlé.}}",
+  "@highlights_photosUnreadable": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosTooMany": "Ìṣẹ́jú pàtàkì kan lè gba àwòrán tí ó tó {max}. Àwọn tí ó ṣẹ́kù kò wọlé.",
+  "@highlights_photosTooMany": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoTooLarge": "Àwòrán kan ṣì pọ̀ ju {max} MB lẹ́yìn tí a mú kí ó kéré. Gbìyànjú òmíràn.",
+  "@highlights_photoTooLarge": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoUnreadable": "A kò lè ka ọ̀kan nínú àwọn àwòrán náà. Gbìyànjú òmíràn.",
+  "highlights_captionLabel": "Àkọlé",
+  "highlights_captionPlaceholder": "Sọ ohun tí ó ṣẹlẹ̀ (kò pọndandan)",
+  "highlights_privacyNote": "A tún fi àwọn àwòrán pamọ́ sórí ẹ̀rọ yìí kí wọ́n tó gùn sókè, SportPadi sì tún ṣe fídíò kí ẹnikẹ́ni mìíràn tó rí i — nítorí náà kò sí ìkankan tí ó gbé àlàyé ibùdó tàbí kámẹ́rà lọ.",
+  "highlights_uploading": "Ń gùn sókè… {percent}%",
+  "@highlights_uploading": {
+    "placeholders": {
+      "percent": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_posting": "Ń gbé e jáde…",
+  "highlights_uploadFailed": "Ìgbésókè náà kò parí. Ṣàyẹ̀wò ìsopọ̀ rẹ kí o sì gbìyànjú lẹ́ẹ̀kan sí i.",
+  "highlights_uploadStalled": "Ìgbésókè náà dúró, nítorí náà a dá a dúró. Ṣàyẹ̀wò ìsopọ̀ rẹ kí o sì gbìyànjú lẹ́ẹ̀kan sí i — àwọn fáìlì tí ó ti gùn sókè tán kò ní lọ lẹ́ẹ̀kejì.",
+  "highlights_createNoAnswer": "A kò rí èsì, nítorí náà a kò lè sọ bóyá a gbé ìṣẹ́jú pàtàkì rẹ jáde tàbí bẹ́ẹ̀ kọ́. Tẹ Gbìyànjú lẹ́ẹ̀kan sí i: tí ó bá ti lọ, ìgbéjáde náà ni ìwọ yóò rí, kì í ṣe ìkejì.",
+  "highlights_postedThenRemoved": "Ìgbìyànjú rẹ tí ó kọjá gbé ìṣẹ́jú pàtàkì yìí jáde, a sì ti yọ ìgbéjáde náà kúrò láti ìgbà náà. Tẹ Gbìyànjú lẹ́ẹ̀kan sí i láti gbé e jáde bí tuntun.",
+  "highlights_uploadCancel": "Fagilé ìgbésókè",
+  "highlights_leaveTitle": "Dá ìgbésókè dúró kí o kúrò?",
+  "highlights_leaveText": "A kò tíì gbé ìṣẹ́jú pàtàkì rẹ jáde. Tí o bá kúrò nísinsìnyí ìgbésókè náà yóò dúró, o ó sì bẹ̀rẹ̀ rẹ̀ láti ìbẹ̀rẹ̀.",
+  "highlights_leaveStay": "Máa bá ìgbésókè lọ",
+  "highlights_leaveGo": "Kúrò",
+  "highlights_leaveTitlePosting": "Kúrò nígbà tí ó ń gbé e jáde?",
+  "highlights_leaveTextPosting": "Àwọn fáìlì rẹ ti gùn sókè, à sì ń gbé ìṣẹ́jú pàtàkì rẹ jáde — ó ṣeé ṣe kí ó ti wà níbẹ̀. Tí o bá kúrò nísinsìnyí o kò ní rí bóyá ó ṣiṣẹ́: wá a nínú Àwọn tí o ń tẹ̀lé tàbí lórí pírófáìlì rẹ.",
+  "highlights_leaveStayPosting": "Dúró síbí",
+  "highlights_posted": "A ti gbé ìṣẹ́jú pàtàkì náà jáde",
+  "highlights_postedProcessing": "Ó ti gùn sókè — à ń ṣiṣẹ́ lórí fídíò rẹ",
+  "highlights_postedEarlierTry": "Ìgbìyànjú rẹ tí ó kọjá ti lọ tán: ìgbéjáde náà ni èyí, láìsí àwọn àyípadà tí o ṣe lẹ́yìn rẹ̀. Tí o bá nílò wọn, pa á rẹ́ kí o sì gbé e jáde lẹ́ẹ̀kan sí i — ìyẹn yóò lo ọ̀kan mìíràn nínú àwọn ìgbéjáde ọ̀sẹ̀ yìí.",
+  "highlights_gridOpenVideo": "Ìṣẹ́jú pàtàkì fídíò",
+  "highlights_gridOpenPhotos": "{count, plural, one{Ìṣẹ́jú pàtàkì àwòrán, àwòrán {count}} other{Ìṣẹ́jú pàtàkì àwòrán, àwòrán {count}}}",
+  "@highlights_gridOpenPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_gridProcessing": "Ń ṣiṣẹ́ lé e lórí",
+  "highlights_gridFailed": "Ó kùnà",
+  "highlights_gridLoadFailed": "A kò lè gbé àwọn ìṣẹ́jú pàtàkì wọlé.",
+  "highlights_groupPostsTitle": "Láti inú àwọn ẹgbẹ́ wọn",
+  "highlights_profileEmptyMineTitle": "Kò tíì sí ìṣẹ́jú pàtàkì",
+  "highlights_profileEmptyMineText": "Gbé fídíò tàbí àwòrán àwọn ìṣẹ́jú rẹ tí ó dára jùlọ jáde — kí o sì so wọ́n mọ́ ìṣirò tí wọ́n fi hàn.",
+  "highlights_badgeWatch": "Wo ìṣẹ́jú pàtàkì {name}",
+  "@highlights_badgeWatch": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_badgeAdd": "Fi ìṣẹ́jú pàtàkì kún ìṣirò yìí",
+  "highlights_badgeAddFor": "Fi ìṣẹ́jú pàtàkì kún un fún {name}",
+  "@highlights_badgeAddFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_newPost": "Ìṣẹ́jú pàtàkì tuntun",
+  "highlights_post": "Gbé ìṣẹ́jú pàtàkì jáde",
+  "highlights_couldntLoad": "A kò lè gbé àwọn ìṣẹ́jú pàtàkì wọlé.",
+  "highlights_couldntLoadMore": "A kò lè gbé ìṣẹ́jú pàtàkì púpọ̀ sí i wọlé.",
+  "highlights_couldntLoadOne": "A kò lè gbé ìṣẹ́jú pàtàkì yìí wọlé.",
+  "highlights_couldntLoadAllowance": "A kò lè ṣàyẹ̀wò iye ìṣẹ́jú pàtàkì tí o lè gbé jáde.",
+  "highlights_couldntLoadStats": "A kò lè gbé àwọn ìṣirò wọlé.",
+  "highlights_couldntLoadComments": "A kò lè gbé àwọn ọ̀rọ̀ wọlé.",
+  "highlights_couldntLike": "A kò lè fi ìfẹ́ràn rẹ pamọ́.",
+  "highlights_couldntChangeLink": "A kò lè yí ìṣirò tí ó so mọ́ padà.",
+  "highlights_couldntDelete": "A kò lè pa ìṣẹ́jú pàtàkì náà rẹ́.",
+  "highlights_couldntPost": "A kò lè gbé ìṣẹ́jú pàtàkì rẹ jáde.",
+  "highlights_notFound": "A kò rí ìṣẹ́jú pàtàkì náà.",
+  "highlights_cantShowTitle": "A kò lè fi ìṣẹ́jú pàtàkì yìí hàn",
+  "highlights_cantShowBody": "Ó ṣeé ṣe kí a ti pa á rẹ́, tàbí àwọn ènìyàn kan nìkan ni ó lè rí i.",
+  "highlights_deleteBody": "Yóò kúrò lójú gbogbo ènìyàn, pẹ̀lú àwọn ìfẹ́ràn àti ọ̀rọ̀ rẹ̀. A kò lè yí èyí padà.",
+  "highlights_linkToStat": "So ó mọ́ ìṣirò",
+  "highlights_changeStat": "Yí ìṣirò tí ó so mọ́ padà",
+  "highlights_removeStat": "Yọ ìṣirò tí ó so mọ́ kúrò",
+  "highlights_linkHint": "Kò pọndandan — so ó mọ́ gọ́ọ̀lù, ìrànwọ́ tàbí ìṣirò míràn tí ó fi hàn.",
+  "highlights_linkSaved": "Ó ti so mọ́ ìṣirò náà.",
+  "highlights_linkRemoved": "Ìsopọ̀ náà ti kúrò.",
+  "highlights_pickStatTitle": "Ìṣirò wo ni ó fi hàn?",
+  "highlights_pickStatSubtitle": "Àwọn ìṣirò tuntun láti inú eré tí onídàájọ́ ṣe. Eléré kọ̀ọ̀kan tí ó wà nínú ìṣirò lè fi ìṣẹ́jú pàtàkì kan kún un.",
+  "highlights_myStats": "Àwọn ìṣirò mi",
+  "highlights_noStatsYet": "Kò tíì sí ìṣirò tí o lè so mọ́. Wọ́n hàn níbí lẹ́yìn eré tí a kọ gọ́ọ̀lù, ìrànwọ́ tàbí ìṣirò míràn sílẹ̀.",
+  "highlights_noStatsFoundSoFar": "A kò rí nǹkan kan síbẹ̀.",
+  "highlights_keepLooking": "Máa wá kiri",
+  "highlights_statTakenByYou": "Ìṣẹ́jú pàtàkì rẹ mìíràn",
+  "highlights_reportSubtitle": "Àwọn ìjábọ̀ ń lọ sí ọ̀dọ̀ ikọ̀ SportPadi, àwọn tí yóò ṣàyẹ̀wò wọn.",
+  "highlights_reportNoteHint": "Ǹkan kan tí a gbọ́dọ̀ mọ̀? (kò pọndandan)",
+  "highlights_cantPlay": "Fídíò yìí kò lè ṣiṣẹ́ ní ìsinsìnyí.",
+  "highlights_processing": "À ṣì ń tọ́jú fídíò rẹ. Yóò ṣiṣẹ́ níbí ní kété tí ó bá ṣe tán.",
+  "highlights_failed": "A kò lè ṣiṣẹ́ lórí fídíò yìí.",
+  "highlights_aboutPerson": "Nípa {name}",
+  "@highlights_aboutPerson": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_commentsCount": "{count, plural, one{Ọ̀rọ̀ {count}} other{Ọ̀rọ̀ {count}}}",
+  "@highlights_commentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_noCommentsYet": "Kò tíì sí ọ̀rọ̀. Jẹ́ ẹni àkọ́kọ́.",
+  "highlights_moreComments": "Fi ọ̀rọ̀ púpọ̀ sí i hàn",
+  "highlights_commentsWhenReady": "Àwọn ọ̀rọ̀ yóò ṣí ní kété tí fídíò náà bá ṣe tán.",
+  "highlights_followingEmptyBody": "Àwọn ìṣẹ́jú pàtàkì láti ọ̀dọ̀ àwọn eléré tí o ń tẹ̀lé yóò hàn níbí, pẹ̀lú tìrẹ.",
+  "highlights_openDiscover": "Wo inú Ṣàwárí",
+  "highlights_discoverEmptyBody": "Jẹ́ ẹni àkọ́kọ́ tí yóò gbé ọ̀kan jáde.",
+  "highlights_noneFoundSoFar": "A kò rí nǹkan kan síbẹ̀",
+  "highlights_gridEmptyMine": "Kò tíì sí ìṣẹ́jú pàtàkì. Gbé ọ̀kan jáde láti inú ojú-ìwé Ìṣẹ́jú pàtàkì.",
+  "highlights_watchHighlight": "Wo ìṣẹ́jú pàtàkì náà",
+  "highlights_allowance": "{remaining, plural, one{Ìgbéjáde {remaining} ló kù} other{Ìgbéjáde {remaining} ló kù}} nínú {limit} ní gbogbo ọjọ́ {days}",
+  "@highlights_allowance": {
+    "placeholders": {
+      "remaining": {
+        "type": "num"
+      },
+      "limit": {
+        "type": "Object"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitTitle": "O ti lo àwọn ìṣẹ́jú pàtàkì rẹ fún ìsinsìnyí",
+  "highlights_limitBody": "{limit, plural, one{O lè gbé ìṣẹ́jú pàtàkì {limit} jáde ní gbogbo ọjọ́ {days}, o sì ti lo gbogbo rẹ̀.} other{O lè gbé ìṣẹ́jú pàtàkì {limit} jáde ní gbogbo ọjọ́ {days}, o sì ti lo gbogbo rẹ̀.}}",
+  "@highlights_limitBody": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitNext": "O lè gbé jáde lẹ́ẹ̀kan sí i láti {when}.",
+  "@highlights_limitNext": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pausedTitle": "Ìgbéjáde ti dúró",
+  "highlights_pausedBody": "Gbígbé ìṣẹ́jú pàtàkì jáde ti dúró fún ìsinsìnyí. O ṣì lè wò, fẹ́ràn àti sọ ọ̀rọ̀.",
+  "highlights_blockedTitle": "O kò lè gbé jáde ní ìsinsìnyí",
+  "highlights_blockedBody": "Gbígbé ìṣẹ́jú pàtàkì jáde kò sí fún àkáǹtì rẹ ní àsìkò yìí.",
+  "highlights_chooseVideo": "Yan fídíò",
+  "highlights_recordVideo": "Ya fídíò",
+  "highlights_choosePhotos": "Yan àwòrán",
+  "highlights_videoHint": "{seconds, plural, one{Ó tó ìṣẹ́jú-àáyá {seconds}} other{Ó tó ìṣẹ́jú-àáyá {seconds}}}",
+  "@highlights_videoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosHint": "{count, plural, one{Ó tó àwòrán {count} nínú ìgbéjáde kan} other{Ó tó àwòrán {count} nínú ìgbéjáde kan}}",
+  "@highlights_photosHint": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_chooseAnother": "Yan òmíràn",
+  "highlights_captionHint": "Sọ nǹkan kan nípa rẹ̀ (kò pọndandan)",
+  "highlights_preparingVideo": "À ń tọ́jú fídíò rẹ…",
+  "highlights_preparingPhotos": "À ń tọ́jú àwọn àwòrán rẹ…",
+  "highlights_preparingNote": "Èyí ń ṣẹlẹ̀ lórí fóònù rẹ, kí nǹkan kan tó gùn sókè. A ó yọ àlàyé ibùdó tí ó wà nínú fáìlì náà kúrò.",
+  "highlights_videoReady": "Fídíò ti ṣe tán",
+  "highlights_pickFailed": "A kò lè ṣí ìyẹn. Ṣàyẹ̀wò nínú ètò fóònù rẹ pé SportPadi lè lo kámẹ́rà àti àwọn àwòrán rẹ.",
+  "highlights_appPhotoTooLarge": "Àwòrán náà tóbi jù, àní lẹ́yìn tí a mú kí ó kéré.",
+  "highlights_videoBusy": "À ṣì ń tọ́jú fídíò mìíràn. Fún un ní ìṣẹ́jú kan.",
+  "highlights_appVideoTooLong": "{seconds, plural, one{Fídíò lè tó ìṣẹ́jú-àáyá {seconds}.} other{Fídíò lè tó ìṣẹ́jú-àáyá {seconds}.}}",
+  "@highlights_appVideoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_videoFailed": "A kò lè tọ́jú fídíò náà lórí fóònù yìí. Gbìyànjú òmíràn.",
+  "highlights_appEncoderStuck": "Ohun èlò fídíò fóònù yìí ti dáwọ́ ìdáhùn dúró, nítorí náà SportPadi kò lè tọ́jú fídíò mìíràn. Pa áàpù náà pátápátá kí o sì tún ṣí i.",
+  "highlights_appVideoTooLarge": "Fídíò náà tóbi jù láti gbé jáde, àní lẹ́yìn tí a tẹ̀ ẹ́ mọ́lẹ̀. Gbìyànjú ọ̀kan tí ó kúrú.",
+  "highlights_subjectChangeTitle": "Yí ẹni tí ìṣẹ́jú pàtàkì yìí jẹ́ nípa rẹ̀ padà?",
+  "highlights_subjectChangeBody": "Ní ìsinsìnyí ó jẹ́ nípa {from}, ẹnikẹ́ni tí ó lè rí pírófáìlì {from} sì lè rí i. Lẹ́yìn èyí yóò jẹ́ nípa {to}, ẹnikẹ́ni tí ó lè rí pírófáìlì {to} sì ni yóò rí i.",
+  "@highlights_subjectChangeBody": {
+    "placeholders": {
+      "from": {
+        "type": "Object"
+      },
+      "to": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_subjectChangeConfirm": "Bẹ́ẹ̀ni, yí i padà",
+  "highlights_appDeleteBodyFailed": "Ó ti kúrò pátápátá. A kò lè yí èyí padà.",
+  "highlights_appDeleteKeepsPlace": "Ó ṣì ká sínú àwọn ìgbéjáde rẹ fún ọ̀sẹ̀ náà — pípa á rẹ́ kò dá àyè sílẹ̀.",
+  "highlights_appDiscardTitle": "Sọ ìṣẹ́jú pàtàkì yìí nù?",
+  "highlights_appDiscardBody": "Ohun tí o tọ́jú síbí kò ní lọ jáde, a kò sì ní fi í pamọ́.",
+  "highlights_appDiscardKeep": "Máa bá a lọ",
+  "highlights_appDiscardConfirm": "Sọ ọ́ nù",
+  "highlights_appStatGoneWardKept": "A ti yọ ìṣirò náà kúrò nínú eré. Àwọn fáìlì rẹ ṣì wà níbẹ̀, ìsopọ̀ náà sì ṣì wà — yan ìṣirò òmíràn ti eléré yìí, tàbí tú ìsopọ̀ náà kúrò kí o gbé e jáde gẹ́gẹ́ bí ìṣẹ́jú pàtàkì tìrẹ.",
+  "highlights_appStatGoneKept": "A ti yọ ìṣirò náà kúrò nínú eré, nítorí náà ìsopọ̀ rẹ̀ ti kúrò. Àwọn fáìlì rẹ ṣì wà níbẹ̀ — tẹ Gbé ìṣẹ́jú pàtàkì jáde lẹ́ẹ̀kan sí i láti gbé e jáde láìsí ìṣirò, tàbí yan òmíràn kọ́kọ́.",
+  "highlights_appUploadStalled": "Ìgbésókè náà dúró. Ṣàyẹ̀wò ìsopọ̀ rẹ kí o sì gbìyànjú lẹ́ẹ̀kan sí i.",
+  "highlights_appVideoDailyLimit": "O ti gbé fídíò púpọ̀ jáde lónìí. Gbìyànjú lọ́la.",
+  "highlights_appVideoDailyLimitUntil": "O ti gbé fídíò púpọ̀ jáde lónìí. O lè gbé òmíràn jáde láti {when}.",
+  "@highlights_appVideoDailyLimitUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_appVideoWaitProcessing": "A ṣì ń ṣiṣẹ́ lórí àwọn fídíò rẹ. Dúró kí wọ́n parí, lẹ́yìn náà gbìyànjú lẹ́ẹ̀kan sí i.",
+  "highlights_appVideoUnavailable": "A kò lè gbé fídíò jáde ní ìsinsìnyí.",
+  "highlights_appPhotosStillOk": "O ṣì lè gbé àwòrán jáde.",
+  "highlights_appKeepOpen": "Ó dúró nígbà tí SportPadi wà lẹ́yìn ìbòjú. Jẹ́ kí áàpù náà wà lójú ìbòjú títí ó fi parí, lẹ́yìn náà gbìyànjú lẹ́ẹ̀kan sí i.",
+  "highlights_appLostVideoTitle": "Lo fídíò tí ó ṣáájú?",
+  "highlights_appLostVideoBody": "SportPadi ti pa kí a lè fi fídíò yìí kún ìṣẹ́jú pàtàkì.",
+  "highlights_appLostVideoUse": "Lo ó"
 }

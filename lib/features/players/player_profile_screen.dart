@@ -7,6 +7,7 @@ import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
+import 'package:sportpadi_mobile/features/highlights/highlights_grid.dart';
 import 'package:sportpadi_mobile/features/players/player_record.dart';
 import 'package:sportpadi_mobile/features/players/scout_header.dart';
 import 'package:sportpadi_mobile/features/profile/social_links.dart';
@@ -105,6 +106,8 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
     ref.invalidate(identityProvider(userId));
     ref.invalidate(playerHonoursProvider(userId));
     ref.invalidate(followStateProvider(userId));
+    // The highlights grid pages with its own state, not a provider.
+    reloadHighlightGrids();
     return settleAll([
       ref.read(playerProfileProvider(userId).future),
       if (shown) ref.read(playerStatsProvider(userId).future),
@@ -176,6 +179,8 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
               // No sport picker any more (2026 sport records): the tabs list
               // everything, across all sports.
               final groups = listOf(m['groups']);
+              // Photos they posted in their groups (older than Highlights);
+              // shown under the highlights grid, as on the web.
               final posts = listOf(m['posts']);
 
               return RefreshIndicator(
@@ -237,10 +242,12 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                                   count: tournaments.length,
                                   selected: _tab == 1,
                                   onTap: () => setState(() => _tab = 1)),
+                              // No count: the grid pages itself
+                              // (features/highlights/highlights_grid.dart).
                               _PillTab(
-                                  icon: Icons.photo_library_outlined,
+                                  icon: Icons.movie_filter_outlined,
                                   label: context.l10n.profile_highlights,
-                                  count: posts.length,
+                                  count: 0,
                                   selected: _tab == 2,
                                   onTap: () => setState(() => _tab = 2)),
                             ]),
@@ -251,7 +258,17 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                           else if (_tab == 1)
                             ..._tournamentsTab(tournaments)
                           else
-                            ..._posts(p, posts),
+                            // Highlights about this player (reels), newest
+                            // first; a tile opens the post.
+                            ...[
+                              HighlightsGrid(userId: userId),
+                              if (posts.isNotEmpty) ...[
+                                const SizedBox(height: 18),
+                                Eyebrow(context.l10n.highlights_groupPostsTitle),
+                                const SizedBox(height: 8),
+                                _posts(p, posts),
+                              ],
+                            ],
                           RecordFootnote(games: parseInt(honours?['games'])),
                         ],
                       ),
@@ -393,42 +410,38 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
     return [TournamentList(rows: rows, playerId: userId)];
   }
 
-  List<Widget> _posts(AppPalette p, List<Map<String, dynamic>> posts) {
-    if (posts.isEmpty) {
-      return [
-        _Empty(icon: Icons.photo_library_outlined, text: context.l10n.profile_noHighlightsYet),
-      ];
-    }
-    return [
-      GridView.count(
-        crossAxisCount: 3,
-        shrinkWrap: true,
-        padding: EdgeInsets.zero,
-        physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: 6,
-        mainAxisSpacing: 6,
-        children: [
-          for (final post in posts)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: parseStr(post['contentUrl']) != null &&
-                      parseStr(post['contentType']) == 'image'
-                  ? Image.network(post['contentUrl'] as String,
-                      fit: BoxFit.cover)
-                  : Container(
-                      color: p.surface2,
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.all(8),
-                      child: Text(parseStr(post['caption']) ?? context.l10n.profile_highlight,
-                          maxLines: 4,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: p.muted, fontSize: 11)),
-                    ),
-            ),
-        ],
-      ),
-    ];
+  /// Group posts (`posts` on the profile payload): a plain grid, not opened.
+  Widget _posts(AppPalette p, List<Map<String, dynamic>> posts) {
+    return GridView.count(
+      crossAxisCount: 3,
+      shrinkWrap: true,
+      padding: EdgeInsets.zero,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 6,
+      mainAxisSpacing: 6,
+      children: [
+        for (final post in posts)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: parseStr(post['contentUrl']) != null &&
+                    parseStr(post['contentType']) == 'image'
+                ? Image.network(post['contentUrl'] as String,
+                    fit: BoxFit.cover)
+                : Container(
+                    color: p.surface2,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.all(8),
+                    child: Text(
+                        parseStr(post['caption']) ??
+                            context.l10n.profile_highlight,
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: p.muted, fontSize: 11)),
+                  ),
+          ),
+      ],
+    );
   }
 }
 

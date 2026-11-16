@@ -22,6 +22,7 @@ import 'package:sportpadi_mobile/data/wards/wards_repository.dart'
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_dock.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_audience.dart';
 import 'package:sportpadi_mobile/features/home/suggested_events_section.dart';
 import 'package:sportpadi_mobile/features/home/past_events_section.dart';
@@ -171,7 +172,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ref.read(meProvider.future),
             ]);
           },
-          child: PullableState(child: child),
+          child: PullableState(
+              bottomPadding: SpDock.spaceBelow(context), child: child),
         ),
       );
 
@@ -242,7 +244,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   onRefresh: () => _refresh(sportCategoryId),
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                    // The dock floats over the feed: leave it room, or the
+                    // last card ends up under it.
+                    padding: EdgeInsets.fromLTRB(
+                        20, 12, 20, SpDock.spaceBelowList(context)),
                     children: [
                       const _HomeHeader(),
 

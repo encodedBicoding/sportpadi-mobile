@@ -15,6 +15,7 @@ import 'package:sportpadi_mobile/features/home/suggested_events_section.dart';
 import 'package:sportpadi_mobile/features/shell/home_shell.dart'
     show homeTabIndexProvider;
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_dock.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/features/onboarding/intent_cards.dart';
 import 'package:sportpadi_mobile/core/i18n/l10n.dart';
@@ -98,7 +99,9 @@ class _GuestHomeScreenState extends ConsumerState<GuestHomeScreen> {
           },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            // Room for the floating dock the body runs behind.
+            padding:
+                EdgeInsets.fromLTRB(20, 12, 20, SpDock.spaceBelowList(context)),
             children: [
               _GuestHeader(onSignIn: _signIn),
 

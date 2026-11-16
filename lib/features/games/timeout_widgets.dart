@@ -149,7 +149,10 @@ class _TimeoutBarState extends State<TimeoutBar> {
                             ? null
                             : () => onAction(active.teamId, 'end'),
                         style: FilledButton.styleFrom(
-                            backgroundColor: p.ink, foregroundColor: p.bg),
+                            backgroundColor: p.ink,
+                            foregroundColor: p.bg,
+                            // The theme's filled buttons are full-width — not in a Row.
+                            minimumSize: const Size(0, 44)),
                         child: Text(context.l10n.game_endTimeout),
                       ),
                       const SizedBox(width: 8),
@@ -340,6 +343,8 @@ class _ShotClockPanelState extends State<ShotClockPanel> {
                   ? p.accentDeep
                   : (widget.dark ? p.onHero.withAlpha(25) : p.surface),
               foregroundColor: primary ? Colors.white : ink,
+              // The theme's filled buttons are full-width — not in a Row.
+              minimumSize: const Size(0, 44),
             ),
           ),
         );

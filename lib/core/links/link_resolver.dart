@@ -17,12 +17,15 @@
 /// that's the Home screen (a deep link) or the notification inbox (a push).
 library;
 
-/// Bottom-tab indices, as HomeShell switches on them.
+/// Bottom-tab indices, as HomeShell switches on them. Always use these names
+/// for anything past Browse: Highlights joined the dock between Browse and
+/// Tournaments, which moved the two after it.
 class HomeTab {
   static const home = 0;
   static const browse = 1;
-  static const tournaments = 2;
-  static const profile = 3;
+  static const highlights = 2;
+  static const tournaments = 3;
+  static const profile = 4;
 }
 
 typedef LinkTarget = ({String? route, int? tab, bool web});
@@ -207,6 +210,19 @@ LinkTarget resolveLink(String? url) {
   // The canonical thread link; comment and reply notifications carry it.
   m = RegExp(r'^/discussions/([^/]+)/?$').firstMatch(path);
   if (m != null) return _route('/discussions/${m[1]}');
+
+  // ── Highlights ────────────────────────────────────────────────────────────
+  // The feed is a tab; the composer and one post are pages. `/highlights/<id>`
+  // is what like / comment / "added a highlight to your assist"
+  // notifications carry, and what Share copies.
+  if (RegExp(r'^/highlights/?$').hasMatch(path)) {
+    return _tab(HomeTab.highlights);
+  }
+  if (RegExp(r'^/highlights/new/?$').hasMatch(path)) {
+    return _route('/highlights/new');
+  }
+  m = RegExp(r'^/highlights/([A-Za-z0-9_-]+)/?$').firstMatch(path);
+  if (m != null) return _route('/highlights/${m[1]}');
 
   // ── Players ───────────────────────────────────────────────────────────────
   m = RegExp(r'^/players/([^/]+)/groups/([^/]+)/?$').firstMatch(path);

@@ -40,13 +40,18 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>SportPadi uses the camera to scan event check-in QR codes.</string>
+	<string>SportPadi uses the camera to scan event check-in QR codes and to take photos and videos for your highlights.</string>
+	<!-- Highlights: a video filmed in the app (image_picker's camera) records
+	     sound. Without this key iOS closes the app when the camera opens in
+	     video mode. -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>SportPadi records sound with the videos you film for your highlights.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>SportPadi uses your location to recommend sports events and groups near you. Location is only used while you are using the app.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>SportPadi uses your location to recommend sports events near you.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>SportPadi lets you pick photos to add to your events.</string>
+	<string>SportPadi lets you pick photos and videos for your events, your profile and your highlights.</string>
 	<!-- Sign in with Google (google_sign_in). Fill in from the project's
 	     *iOS* OAuth client (Google Cloud → Credentials): GIDClientID is the
 	     client id, the URL scheme is its REVERSED form (the plugin opens

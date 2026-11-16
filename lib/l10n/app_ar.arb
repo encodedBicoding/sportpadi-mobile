@@ -614,6 +614,24 @@
   "common_proFeaturesOfferTerms": "شروط عرض ميزات Pro",
   "common_groupNotFound": "المجموعة غير موجودة.",
   "common_cantReachTheServer": "يتعذّر الوصول إلى الخادم.",
+  "common_theServerIsTakingTooLong": "يستغرق الخادم وقتًا طويلًا.",
+  "common_notFound": "غير موجود.",
+  "common_theServerHadAProblem": "حدثت مشكلة في الخادم ({status}).",
+  "@common_theServerHadAProblem": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
+  "common_theRequestWasRefused": "تم رفض الطلب ({status}).",
+  "@common_theRequestWasRefused": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
   "common_couldNotLoadGroups": "تعذّر تحميل المجموعات.",
   "common_teamNotFound": "الفريق غير موجود.",
   "common_couldNotStartThePayment": "تعذّر بدء الدفع.",
@@ -8961,8 +8979,6 @@
   "profile_youreNotInAnyGroups": "لست في أي مجموعة بعد.",
   "profile_browseGroups": "استكشف المجموعات",
   "profile_myTournaments": "بطولاتي",
-  "profile_highlightsAreComing": "اللقطات المميزة قادمة",
-  "profile_yourBestMomentsPhotosAnd": "أفضل لحظاتك — صور ومقاطع من مبارياتك — ستكون هنا. قريبًا.",
   "profile_progressAchievements": "التقدم والإنجازات",
   "profile_myRecords": "سجلاتي",
   "profile_yourNumbersSportBySport": "أرقامك، رياضةً برياضة",
@@ -20287,5 +20303,665 @@
         "type": "Object"
       }
     }
-  }
+  },
+  "highlights_title": "اللقطات المميزة",
+  "highlights_navLabel": "اللقطات المميزة",
+  "highlights_tabFollowing": "المتابَعون",
+  "highlights_tabDiscover": "اكتشف",
+  "highlights_postHighlight": "انشر لقطة مميزة",
+  "highlights_seeDiscover": "عرض اكتشف",
+  "highlights_backToHighlights": "رجوع إلى اللقطات المميزة",
+  "highlights_followingEmptyTitle": "لا شيء هنا بعد",
+  "highlights_followingEmptyText": "لقطات اللاعبين الذين تتابعهم — ولقطاتك أنت — تظهر هنا. ألقِ نظرة على اكتشف للعثور على لاعبين تتابعهم.",
+  "highlights_discoverEmptyTitle": "لا توجد لقطات مميزة بعد",
+  "highlights_discoverEmptyText": "كن أول من ينشر واحدة.",
+  "highlights_followingEndTitle": "أنت على آخر المستجدات",
+  "highlights_followingEndText": "هذا كل ما نشره اللاعبون الذين تتابعهم. هناك المزيد في اكتشف.",
+  "highlights_discoverEndTitle": "رأيت كل شيء",
+  "highlights_discoverEndText": "هذا كل ما يمكنك رؤيته في الوقت الحالي.",
+  "highlights_feedErrorTitle": "تعذّر تحميل اللقطات المميزة",
+  "highlights_feedErrorText": "تحقّق من اتصالك وحاول مجددًا.",
+  "highlights_feedMoreErrorTitle": "تعذّر تحميل المزيد",
+  "highlights_notFoundTitle": "اللقطة المميزة غير موجودة",
+  "highlights_notFoundText": "ربما حُذفت، أو أنها غير مرئية لك.",
+  "highlights_goneToast": "هذه اللقطة المميزة لم تعد متاحة.",
+  "highlights_postBy": "لقطة مميزة من {name}",
+  "@highlights_postBy": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_aboutSubject": "عن <link>{name}</link>",
+  "@highlights_aboutSubject": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statMinute": "{minute}’",
+  "@highlights_statMinute": {
+    "placeholders": {
+      "minute": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statOpenMatch": "فتح المباراة",
+  "highlights_like": "إعجاب",
+  "highlights_unlike": "إلغاء الإعجاب",
+  "highlights_likeFailed": "تعذّر حفظ إعجابك.",
+  "highlights_commentsOpen": "{count, plural, =0{التعليقات} one{تعليق واحد} two{تعليقان} few{{count} تعليقات} many{{count} تعليقًا} other{{count} تعليق}}",
+  "@highlights_commentsOpen": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_share": "مشاركة",
+  "highlights_shareTitle": "لقطة {name} المميزة على SportPadi",
+  "@highlights_shareTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_linkCopied": "تم نسخ الرابط",
+  "highlights_linkCopyFailed": "تعذّر نسخ الرابط.",
+  "highlights_more": "المزيد",
+  "highlights_menuEmpty": "لا توجد إجراءات لهذه اللقطة المميزة.",
+  "highlights_report": "إبلاغ",
+  "highlights_delete": "حذف",
+  "highlights_deleteTitle": "حذف هذه اللقطة المميزة؟",
+  "highlights_deleteText": "تختفي عن الجميع وتُحذف ملفاتها. لا يمكن التراجع عن هذا، وحذفها لا يعيد لك منشورًا من منشورات هذا الأسبوع.",
+  "highlights_deleteTextFailed": "تُحذف نهائيًا — لا يمكن التراجع عن هذا. الفيديو الذي فشل لا يُحسب من منشورات هذا الأسبوع.",
+  "highlights_deleteTextGuardian": "تختفي عن الجميع — ومن ملف {name} الشخصي أيضًا — وتُحذف ملفاتها. لا يمكن التراجع عن هذا.",
+  "@highlights_deleteTextGuardian": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_deleted": "تم حذف اللقطة المميزة",
+  "highlights_deleteFailed": "تعذّر حذف اللقطة المميزة.",
+  "highlights_play": "تشغيل",
+  "highlights_soundOn": "تشغيل الصوت",
+  "highlights_soundOff": "كتم الصوت",
+  "highlights_videoCantPlay": "تعذّر تشغيل هذا الفيديو.",
+  "highlights_photoAlt": "صورة {n} من {total} — {name}",
+  "@highlights_photoAlt": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      },
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoCount": "صورة {n} من {total}",
+  "@highlights_photoCount": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_previousPhoto": "الصورة السابقة",
+  "highlights_nextPhoto": "الصورة التالية",
+  "highlights_processingTitle": "جارٍ معالجة الفيديو",
+  "highlights_processingText": "لا يراه غيرك حتى يصبح جاهزًا. تتحدّث هذه الصفحة من تلقاء نفسها — ولا حاجة لانتظارك هنا: المعالجة تمضي بدونك، وقد تطول في أوقات الانشغال.",
+  "highlights_failedTitle": "تعذّر نشر هذا الفيديو",
+  "highlights_failedText": "حدث خطأ أثناء معالجته.",
+  "highlights_failedNote": "لا يُحسب من منشورات هذا الأسبوع. إذا تركته هنا، يُزال تلقائيًا بعد 7 أيام.",
+  "highlights_failedPostAgain": "انشره مرة أخرى",
+  "highlights_failedDelete": "احذفه",
+  "highlights_takenDownTitle": "أزال SportPadi هذا الفيديو",
+  "highlights_takenDownText": "عثر فحص من SportPadi على مشكلة في هذا الفيديو، فلم يعد يُعرض. إذا رأيت هنا شيئًا يقلقك، فلا يزال بإمكانك الإبلاغ عنه.",
+  "highlights_takenDownTextPlain": "عثر فحص من SportPadi على مشكلة في هذا الفيديو، فلم يعد يُعرض.",
+  "highlights_commentsTitle": "{count, plural, =0{التعليقات} one{تعليق واحد} two{تعليقان} few{{count} تعليقات} many{{count} تعليقًا} other{{count} تعليق}}",
+  "@highlights_commentsTitle": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_commentsDescription": "التعليقات على هذه اللقطة المميزة، الأقدم أولًا.",
+  "highlights_commentsEmpty": "لا توجد تعليقات بعد. كن أول من يقول شيئًا.",
+  "highlights_commentsLoadFailed": "تعذّر تحميل التعليقات.",
+  "highlights_commentsMore": "عرض مزيد من التعليقات",
+  "highlights_commentLabel": "أضف تعليقًا",
+  "highlights_commentPlaceholder": "أضف تعليقًا…",
+  "highlights_commentSend": "إرسال التعليق",
+  "highlights_commentDelete": "حذف التعليق",
+  "highlights_commentDeleteTitle": "حذف هذا التعليق؟",
+  "highlights_commentDeleteText": "يُزال عن الجميع. لا يمكن التراجع عن هذا.",
+  "highlights_commentReport": "الإبلاغ عن التعليق",
+  "highlights_charCount": "{count} / {max}",
+  "@highlights_charCount": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportTitle": "الإبلاغ عن هذه اللقطة المميزة",
+  "highlights_reportCommentTitle": "الإبلاغ عن هذا التعليق",
+  "highlights_reportIntro": "يذهب البلاغ إلى فريق SportPadi، الذي يراجعه.",
+  "highlights_reportWhatsWrong": "ما المشكلة؟",
+  "highlights_reasonInappropriate": "غير لائق",
+  "highlights_reasonHarassment": "مضايقة أو تنمّر",
+  "highlights_reasonSpam": "رسائل مزعجة",
+  "highlights_reasonChildSafety": "مخاوف على سلامة طفل",
+  "highlights_reasonNotMe": "أنا ظاهر فيها ولا أريدها منشورة",
+  "highlights_reasonOther": "سبب آخر",
+  "highlights_reportNoteLabel": "شيء آخر؟ (اختياري)",
+  "highlights_reportNotePlaceholder": "أضف تفاصيل تساعدنا على مراجعته",
+  "highlights_reportNoteTooLong": "أبقِه أقل من {max} حرفًا.",
+  "@highlights_reportNoteTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportChildSafetyNote": "إذا كان طفل في خطر داهم، فاتصل بخدمات الطوارئ المحلية أولًا.",
+  "highlights_reportSend": "إرسال البلاغ",
+  "highlights_reportSent": "شكرًا على الإبلاغ",
+  "highlights_reportSentDetail": "سيراجعه فريق SportPadi.",
+  "highlights_statLink": "اربطها بإحصاء",
+  "highlights_statChange": "تغيير الإحصاء المرتبط",
+  "highlights_statRemove": "إزالة الربط بالإحصاء",
+  "highlights_statRemoveWard": "إلغاء ربطها بـ{name}",
+  "@highlights_statRemoveWard": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinkSaved": "تم الربط بالإحصاء",
+  "highlights_statLinkRemoved": "تمت إزالة الربط",
+  "highlights_statLinkFailed": "تعذّر تغيير الإحصاء المرتبط.",
+  "highlights_statSheetTitle": "اربطها بإحصاء",
+  "highlights_statSheetText": "اختر اللحظة التي تظهرها هذه اللقطة. تظهر في المباراة وفي ملف اللاعب الشخصي.",
+  "highlights_statsEmptyTitle": "لا توجد إحصاءات للربط بعد",
+  "highlights_statsEmptyText": "الأهداف والتمريرات الحاسمة وغيرها من الإحصاءات المسجّلة لك في مباراة تظهر هنا.",
+  "highlights_statsLoadFailed": "تعذّر تحميل إحصاءاتك.",
+  "highlights_statsMore": "عرض المزيد",
+  "highlights_statFor": "لـ{name}",
+  "@highlights_statFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinked": "مرتبطة",
+  "highlights_statTaken": "له لقطة مميزة",
+  "highlights_statTakenMine": "له لقطتك المميزة",
+  "highlights_statOptionalTitle": "اربطها بإحصاء",
+  "highlights_statOptionalText": "اختياري — ثبّتها على الهدف أو التمريرة الحاسمة أو الإحصاء الذي تظهره.",
+  "highlights_statLinkedHint": "تظهر في المباراة وفي ملفك الشخصي.",
+  "highlights_statPreselectMissed": "هذا الإحصاء لا يقبل لقطة مميزة الآن. اختر غيره، أو انشر بدون إحصاء.",
+  "highlights_statGoneKept": "أُزيل هذا الإحصاء من المباراة، فأُلغي الربط. ملفاتك ما زالت مرفوعة — اضغط حاول مجددًا للنشر بدون إحصاء، أو اختر إحصاءً آخر أولًا.",
+  "highlights_wardLinkTitle": "تغيير صاحب هذه اللقطة المميزة؟",
+  "highlights_wardLinkText": "هذه اللقطة الآن عن {name}، ولا يراها إلا من يمكنه رؤية ملف {name} الشخصي. إذا تابعت، تصبح منشورًا عنك — يراه كل من يمكنه رؤية ملفك الشخصي، في المتابَعون وفي اكتشف.",
+  "@highlights_wardLinkText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextOther": "هذه اللقطة الآن عن {name}، ولا يراها إلا من يمكنه رؤية ملف {name} الشخصي. إذا تابعت، ستصبح عن {other} — ويراها من يمكنه رؤية ملف {other} الشخصي.",
+  "@highlights_wardLinkTextOther": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      },
+      "other": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextInto": "هذه اللقطة الآن عنك. إذا تابعت، تصبح لقطة {name} المميزة: تنتقل إلى ملف {name} الشخصي وإلى مباراته، وتُعرض لمن يمكنهم رؤية ملف {name} الشخصي.",
+  "@highlights_wardLinkTextInto": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkConfirm": "نعم، تابِع",
+  "highlights_statChoose": "اختيار",
+  "highlights_statChangeShort": "تغيير",
+  "highlights_newTitle": "لقطة مميزة جديدة",
+  "highlights_quotaErrorTitle": "تعذّر التحقّق من رصيدك",
+  "highlights_quotaLeft": "{count, plural, =0{لم تبقَ منشورات هذا الأسبوع.} one{بقي منشور واحد هذا الأسبوع.} two{بقي منشوران هذا الأسبوع.} few{بقيت {count} منشورات هذا الأسبوع.} many{بقي {count} منشورًا هذا الأسبوع.} other{بقي {count} منشور هذا الأسبوع.}}",
+  "@highlights_quotaLeft": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_quotaRule": "{limit, plural, one{يمكنك نشر لقطة مميزة واحدة كل} two{يمكنك نشر لقطتين مميزتين كل} few{يمكنك نشر {limit} لقطات مميزة كل} many{يمكنك نشر {limit} لقطة مميزة كل} other{يمكنك نشر {limit} لقطة مميزة كل}} {days, plural, one{يوم} two{يومين} few{{days} أيام} many{{days} يومًا} other{{days} يوم}}.",
+  "@highlights_quotaRule": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedPausedTitle": "النشر متوقف مؤقتًا",
+  "highlights_blockedPausedText": "نشر اللقطات المميزة متوقف مؤقتًا. لا يزال بإمكانك المشاهدة والإعجاب والتعليق.",
+  "highlights_blockedLimitTitle": "استخدمت منشورات هذا الأسبوع",
+  "highlights_blockedLimitText": "{limit, plural, one{يمكنك نشر لقطة مميزة واحدة كل} two{يمكنك نشر لقطتين مميزتين كل} few{يمكنك نشر {limit} لقطات مميزة كل} many{يمكنك نشر {limit} لقطة مميزة كل} other{يمكنك نشر {limit} لقطة مميزة كل}} {days, plural, one{يوم} two{يومين} few{{days} أيام} many{{days} يومًا} other{{days} يوم}}، و{limit, plural, one{قد استخدمتها} two{قد استخدمتهما} few{قد استخدمتها كلها} many{قد استخدمتها كلها} other{قد استخدمتها كلها}}.",
+  "@highlights_blockedLimitText": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedLimitTextUntil": "{limit, plural, one{يمكنك نشر لقطة مميزة واحدة كل} two{يمكنك نشر لقطتين مميزتين كل} few{يمكنك نشر {limit} لقطات مميزة كل} many{يمكنك نشر {limit} لقطة مميزة كل} other{يمكنك نشر {limit} لقطة مميزة كل}} {days, plural, one{يوم} two{يومين} few{{days} أيام} many{{days} يومًا} other{{days} يوم}}، و{limit, plural, one{قد استخدمتها} two{قد استخدمتهما} few{قد استخدمتها كلها} many{قد استخدمتها كلها} other{قد استخدمتها كلها}}. يمكنك النشر مرة أخرى من {when}.",
+  "@highlights_blockedLimitTextUntil": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      },
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_blockedOtherTitle": "لا يمكنك النشر الآن",
+  "highlights_blockedOtherText": "نشر اللقطات المميزة غير متاح على حسابك في الوقت الحالي.",
+  "highlights_videoBlockedDaily": "نشرت كثيرًا من الفيديوهات اليوم، لذا الفيديو موقوف حتى الغد. لا يزال بإمكانك نشر الصور.",
+  "highlights_videoBlockedDailyUntil": "نشرت كثيرًا من الفيديوهات اليوم. يمكنك نشر واحد آخر من {when} — وحتى ذلك الحين يمكنك نشر الصور.",
+  "@highlights_videoBlockedDailyUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoBlockedProcessing": "فيديوهاتك السابقة لا تزال قيد المعالجة. عندما تنتهي يمكنك نشر واحد آخر — وحتى ذلك الحين يمكنك نشر الصور.",
+  "highlights_videoBlockedOther": "لا يمكنك نشر فيديو الآن. لا يزال بإمكانك نشر الصور.",
+  "highlights_videoBlockedRecheck": "تحقّق مرة أخرى",
+  "highlights_pickVideo": "فيديو",
+  "highlights_pickVideoHint": "مقطع واحد، حتى {seconds} ثانية و{max} ميغابايت (MP4 أو MOV أو WebM)",
+  "@highlights_pickVideoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pickPhotos": "صور",
+  "highlights_pickPhotosHint": "حتى {max} صور، تُمرَّر جانبًا",
+  "@highlights_pickPhotosHint": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_preparing": "جارٍ تحضير ملفاتك…",
+  "highlights_videoTypeRefused": "نوع الملف هذا غير مدعوم. اختر فيديو MP4 أو MOV أو WebM.",
+  "highlights_videoTooLarge": "حجم هذا الفيديو {size} ميغابايت. الحد هو {max} ميغابايت — اقتصّه أو صدّره بجودة أقل ثم حاول مجددًا.",
+  "@highlights_videoTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoTooLong": "مدة هذا الفيديو {seconds} ثانية. اللقطة المميزة تصل إلى {max} ثانية — اقتصّه وحاول مجددًا.",
+  "@highlights_videoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoNoPreview": "هذا المتصفح لا يستطيع معاينة الفيديو. يمكنك نشره مع ذلك — يُفحص بعد رفعه.",
+  "highlights_videoSeconds": "{seconds} ث",
+  "@highlights_videoSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_fileMb": "{size} ميغابايت",
+  "@highlights_fileMb": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_replace": "استبدال",
+  "highlights_remove": "إزالة",
+  "highlights_photosCount": "{count, plural, one{صورة واحدة} two{صورتان} few{{count} صور} many{{count} صورة} other{{count} صورة}} · حتى {max}",
+  "@highlights_photosCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoNumber": "صورة {n}",
+  "@highlights_photoNumber": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_removePhoto": "إزالة الصورة {n}",
+  "@highlights_removePhoto": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_addPhotos": "إضافة صور",
+  "highlights_photosUnreadable": "{count, plural, one{تعذّر قراءة صورة واحدة فتُركت.} two{تعذّر قراءة صورتين فتُركتا.} few{تعذّر قراءة {count} صور فتُركت.} many{تعذّر قراءة {count} صورة فتُركت.} other{تعذّر قراءة {count} صورة فتُركت.}}",
+  "@highlights_photosUnreadable": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosTooMany": "اللقطة المميزة تتسع حتى {max} صور. تُركت الصور الزائدة.",
+  "@highlights_photosTooMany": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoTooLarge": "إحدى الصور لا تزال تتجاوز {max} ميغابايت بعد تصغيرها. جرّب صورة أخرى.",
+  "@highlights_photoTooLarge": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoUnreadable": "تعذّر قراءة إحدى الصور. جرّب صورة أخرى.",
+  "highlights_captionLabel": "التعليق التوضيحي",
+  "highlights_captionPlaceholder": "اكتب ما حدث (اختياري)",
+  "highlights_privacyNote": "تُحفظ الصور من جديد على هذا الجهاز قبل رفعها، ويعيد SportPadi ترميز الفيديو قبل أن يراه أحد — فلا يحمل أيٌّ منهما بيانات الموقع أو الكاميرا.",
+  "highlights_uploading": "جارٍ الرفع… {percent}%",
+  "@highlights_uploading": {
+    "placeholders": {
+      "percent": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_posting": "جارٍ النشر…",
+  "highlights_uploadFailed": "لم يكتمل الرفع. تحقّق من اتصالك وحاول مجددًا.",
+  "highlights_uploadStalled": "توقّف الرفع عن التقدّم فأُلغي. تحقّق من اتصالك وحاول مجددًا — الملفات التي اكتمل رفعها لا تُرسل مرة أخرى.",
+  "highlights_createNoAnswer": "لم نتلقَّ ردًا، فلا نعرف إن كانت لقطتك قد نُشرت. اضغط حاول مجددًا: إن كانت قد نُشرت فستحصل على ذلك المنشور، لا منشور ثانٍ.",
+  "highlights_postedThenRemoved": "محاولتك السابقة نشرت هذه اللقطة فعلًا، وقد أُزيل ذلك المنشور بعدها. اضغط حاول مجددًا لنشرها كمنشور جديد.",
+  "highlights_uploadCancel": "إلغاء الرفع",
+  "highlights_leaveTitle": "إيقاف الرفع والخروج؟",
+  "highlights_leaveText": "لم تُنشر لقطتك المميزة بعد. إذا خرجت الآن يتوقف الرفع وسيلزمك البدء من جديد.",
+  "highlights_leaveStay": "متابعة الرفع",
+  "highlights_leaveGo": "خروج",
+  "highlights_leaveTitlePosting": "الخروج أثناء النشر؟",
+  "highlights_leaveTextPosting": "ملفاتك مرفوعة ولقطتك قيد النشر — وربما نُشرت بالفعل. إذا خرجت الآن لن ترى إن نجح الأمر: ابحث عنها في المتابَعون أو في ملفك الشخصي.",
+  "highlights_leaveStayPosting": "البقاء هنا",
+  "highlights_posted": "تم نشر اللقطة المميزة",
+  "highlights_postedProcessing": "تم الرفع — الفيديو قيد المعالجة",
+  "highlights_postedEarlierTry": "محاولتك السابقة كانت قد نجحت: هذا هو ذلك المنشور، بدون التغييرات التي أجريتها بعده. إذا كنت تحتاجها، احذفه وانشر من جديد — وهذا يستهلك منشورًا آخر من منشورات هذا الأسبوع.",
+  "highlights_gridOpenVideo": "لقطة فيديو",
+  "highlights_gridOpenPhotos": "{count, plural, one{لقطة صور} two{لقطة صور، صورتان} few{لقطة صور، {count} صور} many{لقطة صور، {count} صورة} other{لقطة صور، {count} صورة}}",
+  "@highlights_gridOpenPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_gridProcessing": "قيد المعالجة",
+  "highlights_gridFailed": "فشل",
+  "highlights_gridLoadFailed": "تعذّر تحميل اللقطات المميزة.",
+  "highlights_groupPostsTitle": "من مجموعاته",
+  "highlights_profileEmptyMineTitle": "لا توجد لقطات مميزة بعد",
+  "highlights_profileEmptyMineText": "انشر فيديو أو صورًا من أفضل لحظاتك — وثبّتها على الإحصاء الذي تظهره.",
+  "highlights_badgeWatch": "مشاهدة لقطة {name} المميزة",
+  "@highlights_badgeWatch": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_badgeAdd": "إضافة لقطة مميزة لهذا الإحصاء",
+  "highlights_badgeAddFor": "إضافة لقطة مميزة لـ{name}",
+  "@highlights_badgeAddFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_newPost": "لقطة مميزة جديدة",
+  "highlights_post": "نشر اللقطة المميزة",
+  "highlights_couldntLoad": "تعذّر تحميل اللقطات المميزة.",
+  "highlights_couldntLoadMore": "تعذّر تحميل مزيد من اللقطات المميزة.",
+  "highlights_couldntLoadOne": "تعذّر تحميل هذه اللقطة المميزة.",
+  "highlights_couldntLoadAllowance": "تعذّر التحقّق من عدد اللقطات التي يمكنك نشرها.",
+  "highlights_couldntLoadStats": "تعذّر تحميل الإحصاءات.",
+  "highlights_couldntLoadComments": "تعذّر تحميل التعليقات.",
+  "highlights_couldntLike": "تعذّر حفظ إعجابك.",
+  "highlights_couldntChangeLink": "تعذّر تغيير الإحصاء المرتبط.",
+  "highlights_couldntDelete": "تعذّر حذف اللقطة المميزة.",
+  "highlights_couldntPost": "تعذّر نشر لقطتك المميزة.",
+  "highlights_notFound": "اللقطة المميزة غير موجودة.",
+  "highlights_cantShowTitle": "لا يمكن عرض هذه اللقطة المميزة",
+  "highlights_cantShowBody": "ربما حُذفت، أو أنها مرئية لأشخاص معيّنين فقط.",
+  "highlights_deleteBody": "تُزال عن الجميع، مع إعجاباتها وتعليقاتها. لا يمكن التراجع عن هذا.",
+  "highlights_linkToStat": "اربطها بإحصاء",
+  "highlights_changeStat": "تغيير الإحصاء المرتبط",
+  "highlights_removeStat": "إزالة الإحصاء المرتبط",
+  "highlights_linkHint": "اختياري — ثبّتها على الهدف أو التمريرة الحاسمة أو الإحصاء الذي تظهره.",
+  "highlights_linkSaved": "تم الربط بالإحصاء.",
+  "highlights_linkRemoved": "تمت إزالة الربط.",
+  "highlights_pickStatTitle": "أي إحصاء تظهره؟",
+  "highlights_pickStatSubtitle": "إحصاءات حديثة من مباريات بحكم. كل لاعب في إحصاء يمكنه إضافة لقطة مميزة واحدة إليه.",
+  "highlights_myStats": "إحصاءاتي",
+  "highlights_noStatsYet": "لا توجد إحصاءات للربط بعد. تظهر هنا بعد مباراة سُجّل فيها هدف أو تمريرة حاسمة أو إحصاء آخر.",
+  "highlights_noStatsFoundSoFar": "لم نجد شيئًا حتى الآن.",
+  "highlights_keepLooking": "واصل البحث",
+  "highlights_statTakenByYou": "لقطتك المميزة الأخرى",
+  "highlights_reportSubtitle": "تذهب البلاغات إلى فريق SportPadi، الذي يراجعها.",
+  "highlights_reportNoteHint": "هل من شيء ينبغي أن نعرفه؟ (اختياري)",
+  "highlights_cantPlay": "لا يمكن تشغيل هذا الفيديو الآن.",
+  "highlights_processing": "ما زال فيديوك قيد التحضير. سيُشغَّل هنا بمجرد أن يجهز.",
+  "highlights_failed": "تعذّرت معالجة هذا الفيديو.",
+  "highlights_aboutPerson": "عن {name}",
+  "@highlights_aboutPerson": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_commentsCount": "{count, plural, one{تعليق واحد} two{تعليقان} few{{count} تعليقات} many{{count} تعليقًا} other{{count} تعليق}}",
+  "@highlights_commentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_noCommentsYet": "لا توجد تعليقات بعد. كن أول من يعلّق.",
+  "highlights_moreComments": "عرض مزيد من التعليقات",
+  "highlights_commentsWhenReady": "تُفتح التعليقات بمجرد أن يجهز الفيديو.",
+  "highlights_followingEmptyBody": "لقطات اللاعبين الذين تتابعهم تظهر هنا، مع لقطاتك أنت.",
+  "highlights_openDiscover": "ابحث في اكتشف",
+  "highlights_discoverEmptyBody": "كن أول من ينشر واحدة.",
+  "highlights_noneFoundSoFar": "لم نجد شيئًا حتى الآن",
+  "highlights_gridEmptyMine": "لا توجد لقطات مميزة بعد. انشر واحدة من تبويب اللقطات المميزة.",
+  "highlights_watchHighlight": "مشاهدة اللقطة المميزة",
+  "highlights_allowance": "{remaining, plural, one{بقي منشور واحد} two{بقي منشوران} few{بقيت {remaining} منشورات} many{بقي {remaining} منشورًا} other{بقي {remaining} منشور}} من {limit} كل {days} أيام",
+  "@highlights_allowance": {
+    "placeholders": {
+      "remaining": {
+        "type": "num"
+      },
+      "limit": {
+        "type": "Object"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitTitle": "استخدمت لقطاتك المميزة في الوقت الحالي",
+  "highlights_limitBody": "{limit, plural, one{يمكنك نشر لقطة مميزة واحدة كل {days} أيام، وقد استخدمتها.} two{يمكنك نشر لقطتين مميزتين كل {days} أيام، وقد استخدمتهما.} few{يمكنك نشر {limit} لقطات مميزة كل {days} أيام، وقد استخدمتها كلها.} many{يمكنك نشر {limit} لقطة مميزة كل {days} أيام، وقد استخدمتها كلها.} other{يمكنك نشر {limit} لقطة مميزة كل {days} أيام، وقد استخدمتها كلها.}}",
+  "@highlights_limitBody": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitNext": "يمكنك النشر مرة أخرى من {when}.",
+  "@highlights_limitNext": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pausedTitle": "النشر متوقف مؤقتًا",
+  "highlights_pausedBody": "نشر اللقطات المميزة متوقف مؤقتًا. لا يزال بإمكانك المشاهدة والإعجاب والتعليق.",
+  "highlights_blockedTitle": "لا يمكنك النشر الآن",
+  "highlights_blockedBody": "نشر اللقطات المميزة غير متاح لحسابك في الوقت الحالي.",
+  "highlights_chooseVideo": "اختر فيديو",
+  "highlights_recordVideo": "سجّل فيديو",
+  "highlights_choosePhotos": "اختر صورًا",
+  "highlights_videoHint": "{seconds, plural, one{حتى ثانية واحدة} two{حتى ثانيتين} few{حتى {seconds} ثوانٍ} many{حتى {seconds} ثانية} other{حتى {seconds} ثانية}}",
+  "@highlights_videoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosHint": "{count, plural, one{صورة واحدة في المنشور} two{حتى صورتين في المنشور} few{حتى {count} صور في المنشور} many{حتى {count} صورة في المنشور} other{حتى {count} صورة في المنشور}}",
+  "@highlights_photosHint": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_chooseAnother": "اختر غيره",
+  "highlights_captionHint": "قل شيئًا عنها (اختياري)",
+  "highlights_preparingVideo": "جارٍ تحضير الفيديو…",
+  "highlights_preparingPhotos": "جارٍ تحضير صورك…",
+  "highlights_preparingNote": "يحدث هذا على هاتفك، قبل رفع أي شيء. تُزال بيانات الموقع المحفوظة في الملف.",
+  "highlights_videoReady": "الفيديو جاهز",
+  "highlights_pickFailed": "تعذّر فتح ذلك. تحقّق في إعدادات هاتفك من أن SportPadi يمكنه استخدام الكاميرا وصورك.",
+  "highlights_appPhotoTooLarge": "حجم هذه الصورة كبير جدًا، حتى بعد تصغيرها.",
+  "highlights_videoBusy": "ما زال فيديو آخر قيد التحضير. أمهله لحظة.",
+  "highlights_appVideoTooLong": "{seconds, plural, one{يمكن أن تصل مدة الفيديو إلى ثانية واحدة.} two{يمكن أن تصل مدة الفيديو إلى ثانيتين.} few{يمكن أن تصل مدة الفيديو إلى {seconds} ثوانٍ.} many{يمكن أن تصل مدة الفيديو إلى {seconds} ثانية.} other{يمكن أن تصل مدة الفيديو إلى {seconds} ثانية.}}",
+  "@highlights_appVideoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_videoFailed": "تعذّر تحضير هذا الفيديو على هذا الهاتف. جرّب غيره.",
+  "highlights_appEncoderStuck": "توقّفت أداة الفيديو في هذا الهاتف عن الاستجابة، لذا لا يستطيع SportPadi تحضير فيديو آخر. أغلق التطبيق تمامًا ثم افتحه من جديد.",
+  "highlights_appVideoTooLarge": "حجم هذا الفيديو أكبر من أن يُنشر، حتى بعد ضغطه. جرّب فيديو أقصر.",
+  "highlights_subjectChangeTitle": "تغيير صاحب هذه اللقطة المميزة؟",
+  "highlights_subjectChangeBody": "هي الآن عن {from}، ويراها كل من يمكنه رؤية ملف {from} الشخصي. بعد ذلك ستكون عن {to}، ويراها كل من يمكنه رؤية ملف {to} الشخصي.",
+  "@highlights_subjectChangeBody": {
+    "placeholders": {
+      "from": {
+        "type": "Object"
+      },
+      "to": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_subjectChangeConfirm": "نعم، غيّرها",
+  "highlights_appDeleteBodyFailed": "تُحذف نهائيًا. لا يمكن التراجع عن هذا.",
+  "highlights_appDeleteKeepsPlace": "تبقى محسوبة كأحد منشوراتك لهذا الأسبوع — حذفها لا يُفرّغ مكانًا.",
+  "highlights_appDiscardTitle": "إلغاء هذه اللقطة المميزة؟",
+  "highlights_appDiscardBody": "ما حضّرته هنا لن يُنشر ولن يُحفظ.",
+  "highlights_appDiscardKeep": "المتابعة",
+  "highlights_appDiscardConfirm": "إلغاء",
+  "highlights_appStatGoneWardKept": "أُزيل هذا الإحصاء من المباراة. ملفاتك ما زالت مرفوعة، والربط ما زال موجودًا — اختر إحصاءً آخر لهذا اللاعب، أو ألغِ الربط لتنشرها كلقطة مميزة خاصة بك.",
+  "highlights_appStatGoneKept": "أُزيل هذا الإحصاء من المباراة، فأُلغي الربط. ملفاتك ما زالت مرفوعة — اضغط نشر اللقطة المميزة مرة أخرى للنشر بدون إحصاء، أو اختر إحصاءً آخر أولًا.",
+  "highlights_appUploadStalled": "توقّف الرفع عن التقدّم. تحقّق من اتصالك وحاول مجددًا.",
+  "highlights_appVideoDailyLimit": "نشرت كثيرًا من الفيديوهات اليوم. حاول غدًا.",
+  "highlights_appVideoDailyLimitUntil": "نشرت كثيرًا من الفيديوهات اليوم. يمكنك نشر واحد آخر من {when}.",
+  "@highlights_appVideoDailyLimitUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_appVideoWaitProcessing": "لديك فيديوهات قيد المعالجة بالفعل. انتظر حتى تنتهي ثم حاول مجددًا.",
+  "highlights_appVideoUnavailable": "لا يمكن نشر الفيديوهات الآن.",
+  "highlights_appPhotosStillOk": "لا يزال بإمكانك نشر الصور.",
+  "highlights_appKeepOpen": "توقّف الرفع بينما كان SportPadi في الخلفية. أبقِ التطبيق مفتوحًا على الشاشة حتى ينتهي، ثم حاول مجددًا.",
+  "highlights_appLostVideoTitle": "استخدام الفيديو السابق؟",
+  "highlights_appLostVideoBody": "أُغلق SportPadi قبل أن يُضاف هذا الفيديو إلى لقطة مميزة.",
+  "highlights_appLostVideoUse": "استخدمه"
 }

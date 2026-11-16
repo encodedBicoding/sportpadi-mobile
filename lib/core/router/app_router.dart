@@ -18,6 +18,8 @@ import 'package:sportpadi_mobile/features/discussions/my_discussions_screen.dart
 import 'package:sportpadi_mobile/features/events/event_detail_screen.dart';
 import 'package:sportpadi_mobile/features/groups/group_detail_screen.dart';
 import 'package:sportpadi_mobile/features/groups/groups_list_screen.dart';
+import 'package:sportpadi_mobile/features/highlights/highlight_create_screen.dart';
+import 'package:sportpadi_mobile/features/highlights/highlight_detail_screen.dart';
 import 'package:sportpadi_mobile/features/groups/pro_offer.dart' show ProOfferScreen;
 import 'package:sportpadi_mobile/features/join/join_group_screen.dart';
 import 'package:sportpadi_mobile/features/notifications/notifications_screen.dart';
@@ -106,8 +108,12 @@ class _AuthRefresh extends ChangeNotifier {
       // page would simply stay on screen without a session. Land on the
       // guest dashboard, stack cleared, like the web's sign-out.
       final wasIn = prev?.valueOrNull?.isAuthenticated ?? false;
-      final isIn = next.valueOrNull?.isAuthenticated ?? false;
-      if (wasIn && !isIn) {
+      final now = next.valueOrNull;
+      final isIn = now?.isAuthenticated ?? false;
+      // A session we could not CHECK is not a sign-out (SessionState.unknown):
+      // clearing the stack onto the guest dashboard because one request timed
+      // out is the bounce this guard must not cause.
+      if (wasIn && !isIn && !(now?.isUnknown ?? false)) {
         WidgetsBinding.instance
             .addPostFrameCallback((_) => router?.go('/home'));
       }
@@ -167,6 +173,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       final loc = state.matchedLocation;
       if (auth.isLoading || !auth.hasValue) return loc == '/' ? null : '/';
       final session = auth.value;
+      // The session could not be CHECKED — the request asking for it timed
+      // out, or there was no network (SessionState.unknown,
+      // features/auth/auth_controller.dart). That is not a sign-out, so it
+      // moves nobody: the user stays on the page they asked for and that
+      // page's OWN request decides, carrying the bearer token a timeout left
+      // untouched. It unlocks nothing — `isAuthenticated` is false for an
+      // unknown session, so every screen that asks still reads it as signed
+      // out — and a token the server rejects comes back 401, which clears it
+      // (core/network/auth_interceptor.dart).
+      if (session?.isUnknown ?? false) {
+        // `/` is the splash and has nothing to stay on, so that one still has
+        // to go somewhere: the guest dashboard, the only honest place while
+        // we cannot prove a session. The controller's background re-check
+        // swaps the member shell in underneath them if one turns up
+        // (_HomeGate), with no route change.
+        return loc == '/' ? '/home' : null;
+      }
       final signedIn = session?.isAuthenticated ?? false;
       if (!signedIn) {
         // Signed out is not a wall any more. Home (the guest dashboard),
@@ -260,6 +283,29 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/inbox/messages/:id',
         builder: (_, st) => ConversationScreen(id: st.pathParameters['id']!),
+      ),
+      // Highlights (reels). The feed is a dock tab; these are its pages: the
+      // composer (declared first so "new" isn't read as an id) and one post
+      // — where notifications, shared links, timeline badges and profile
+      // tiles land.
+      GoRoute(
+        path: '/highlights/new',
+        builder: (_, __) => const HighlightCreateScreen(),
+      ),
+      // `?gameId=` and `?activityId=` — the web's reel address — are added
+      // by a match timeline's play badge and by nothing else: the page is
+      // then the match reel, and running off its end goes back to that
+      // timeline, onto the stat's own row. A notification, a shared link and
+      // a profile tile carry no query, and the page is the one post it was
+      // (`link_resolver` builds the plain path from a web link, reel
+      // address or not).
+      GoRoute(
+        path: '/highlights/:id',
+        builder: (_, st) => HighlightDetailScreen(
+          id: st.pathParameters['id']!,
+          fromGameId: st.uri.queryParameters['gameId'],
+          fromActivityId: st.uri.queryParameters['activityId'],
+        ),
       ),
       // Gamification (docs/gamification/phase-2.md).
       GoRoute(path: '/progress', builder: (_, __) => const ProgressScreen()),
@@ -591,7 +637,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/games/:id',
-        builder: (_, st) => GameScreen(gameId: st.pathParameters['id']!),
+        builder: (_, st) => GameScreen(
+          gameId: st.pathParameters['id']!,
+          // `?stat=<activityId>`: the timeline row to land on. A match reel
+          // with nothing to pop sends the viewer here with it, and the web
+          // writes the same parameter on the same path (`gameStatHref`), so
+          // one grammar covers both clients.
+          stat: st.uri.queryParameters['stat'],
+        ),
       ),
       GoRoute(
         path: '/events/:slug',

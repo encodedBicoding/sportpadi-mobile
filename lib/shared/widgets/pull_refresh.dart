@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
 /// Pull-to-refresh helpers — every RefreshIndicator in the app follows the
@@ -23,8 +25,24 @@ Future<void> settleAll(Iterable<Future<Object?>> futures) async {
 /// pullable when it's the RefreshIndicator's child: wraps it in an
 /// always-scrollable list that fills the viewport.
 class PullableState extends StatelessWidget {
-  const PullableState({super.key, required this.child});
+  const PullableState(
+      {super.key, required this.child, this.bottomPadding = 0});
   final Widget child;
+
+  /// Room to keep free at the bottom. On a bottom-tab screen that is the
+  /// floating dock the body now runs behind (`SpDock.spaceBelow`): the state
+  /// stays centred in what can actually be SEEN, instead of drifting down
+  /// behind the dock.
+  ///
+  /// It is SUBTRACTED from the viewport and never added to the list: this
+  /// `ListView` is given no `padding:` of its own, so
+  /// `BoxScrollView.buildSlivers` already pads it by
+  /// `MediaQuery.padding.bottom` — which inside a tab IS this same number —
+  /// and a trailing box of ours would reserve the room a second time, which
+  /// is scrollable slack a loader or an empty state can be dragged up into
+  /// (and stays in, on Android). Left at 0 the list is exactly what it
+  /// always was.
+  final double bottomPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +51,8 @@ class PullableState extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           ConstrainedBox(
-            constraints: BoxConstraints(minHeight: box.maxHeight),
+            constraints: BoxConstraints(
+                minHeight: math.max(0.0, box.maxHeight - bottomPadding)),
             child: Center(child: child),
           ),
         ],

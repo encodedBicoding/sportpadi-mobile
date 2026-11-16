@@ -27,13 +27,34 @@ class AuthUser {
 }
 
 class SessionState {
-  const SessionState({this.user});
+  const SessionState({this.user, this.unreachable = false});
 
   final AuthUser? user;
+
+  /// The session could not be CHECKED: the request asking for it never came
+  /// back with an answer (a receive timeout, no network, a firewall's HTML
+  /// page, a 5xx). None of those says anything about the session, so this is
+  /// neither signed in nor signed out — see [isUnknown].
+  final bool unreachable;
+
   bool get isAuthenticated => user != null;
+
+  /// "Don't know": nothing says this device has a session, and nothing says
+  /// it hasn't. [isAuthenticated] stays false on purpose — an unchecked
+  /// session must never open a screen that shows somebody's data — but the
+  /// router reads this as "leave them where they are" instead of as a
+  /// sign-out, so a slow server can't move a user off the page they asked
+  /// for (core/router/app_router.dart).
+  bool get isUnknown => user == null && unreachable;
+
   bool get needsEmailVerification => user != null && !user!.emailVerified;
 
+  /// The server answered, and the answer was "no session" (or there was no
+  /// token to ask with). This is the only signed-OUT state.
   static const SessionState unauthenticated = SessionState();
+
+  /// The server could not be asked. Only [AuthController.build] makes one.
+  static const SessionState unknown = SessionState(unreachable: true);
 }
 
 /// Settings → Sign-in methods (GET /api/mobile/sign-in-methods).

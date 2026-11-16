@@ -21,12 +21,14 @@ import 'package:sportpadi_mobile/data/messages/messages_repository.dart'
 import 'package:sportpadi_mobile/data/attention/attention_repository.dart'
     show attentionProvider;
 import 'package:sportpadi_mobile/core/links/deep_links.dart';
+import 'package:sportpadi_mobile/core/links/link_resolver.dart' show HomeTab;
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/home/home_screen.dart';
 import 'package:sportpadi_mobile/features/notifications/notification_permission_sheet.dart';
 import 'package:sportpadi_mobile/features/settings/timezone_provider.dart';
 import 'package:sportpadi_mobile/features/shell/notification_target.dart';
 import 'package:sportpadi_mobile/features/browse/browse_screen.dart';
+import 'package:sportpadi_mobile/features/highlights/highlights_screen.dart';
 import 'package:sportpadi_mobile/features/profile/profile_screen.dart';
 import 'package:sportpadi_mobile/features/tournaments/my_tournaments_screen.dart';
 import 'package:sportpadi_mobile/core/referral/referral.dart';
@@ -213,13 +215,17 @@ class _HomeShellState extends ConsumerState<HomeShell>
     }
   }
 
+  // Indices are HomeTab's (core/links/link_resolver.dart) — the dock items
+  // below are in the same order.
   Widget _tab(int i) {
     switch (i) {
-      case 1:
+      case HomeTab.browse:
         return const BrowseScreen();
-      case 2:
+      case HomeTab.highlights:
+        return const HighlightsScreen();
+      case HomeTab.tournaments:
         return const MyTournamentsScreen();
-      case 3:
+      case HomeTab.profile:
         return const ProfileScreen();
       default:
         return const HomeScreen();
@@ -242,6 +248,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
       const names = [
         '/tab/home',
         '/tab/browse',
+        '/tab/highlights',
         '/tab/tournaments',
         '/tab/profile'
       ];
@@ -253,6 +260,13 @@ class _HomeShellState extends ConsumerState<HomeShell>
     final p = context.palette;
     return Scaffold(
       backgroundColor: p.bg,
+      // The dock FLOATS: the tab carries on behind it, so what is behind
+      // the pill is the tab's own background — the page canvas, or the
+      // Highlights reel's black — never a band of page colour under a dark
+      // reel. Every tab leaves [SpDock.spaceBelow] at the bottom of its
+      // scrollables in exchange (and the reel ends its video there), so
+      // nothing of theirs ends up under the dock.
+      extendBody: true,
       body: _tab(index),
       bottomNavigationBar: ShellBottomBar(
         index: index,
@@ -262,12 +276,16 @@ class _HomeShellState extends ConsumerState<HomeShell>
   }
 }
 
-/// The app's bottom bar: the floating dock on the page canvas, then the
-/// anchored ad strip under it (it collapses to nothing until an ad loads).
-/// The system inset goes under the ad, not between the dock and the ad.
+/// The app's bottom bar: the floating dock, and what is kept of the system
+/// inset under it ([SpDock.insetBelow]).
+/// NOTHING paints behind it — the tab shows through, which is why the shell
+/// sets `extendBody: true` and every tab's scrollable leaves
+/// [SpDock.spaceBelow] at its bottom. (An anchored ad strip used to sit
+/// under the dock; it is gone, and the inset is all that is left of it.)
 ///
-/// Used by the shell, and by pushed screens that should keep the dock in
-/// reach (the group page) — those pass [onSelect] to jump back to a tab.
+/// Used by the shell. A pushed screen that wanted the dock in reach would
+/// pass [onSelect] and pad itself the same way — [goToTab] is here for one —
+/// but none does today.
 class ShellBottomBar extends ConsumerWidget {
   const ShellBottomBar(
       {super.key, required this.index, required this.onSelect});
@@ -286,10 +304,17 @@ class ShellBottomBar extends ConsumerWidget {
     // of the user's teams — an invitation to look, never a number.
     final tournamentDot =
         ref.watch(myTournamentsActiveProvider).valueOrNull ?? false;
-    final p = context.palette;
     final l = context.l10n;
-    return ColoredBox(
-      color: p.bg,
+    // The bar paints nothing, so nothing of its own would absorb a tap: a
+    // dock button is 48 tall inside the 64 pill, which leaves the bands above
+    // and below it, the gaps between the icons, the gutters beside the pill
+    // and the inset strip passing taps through to the tab underneath — on
+    // Highlights straight into the reel's play/pause. The ColoredBox that
+    // used to paint here was opaque to hit tests; this is that and nothing
+    // else (a Listener hit-tests the dock's own buttons first, then swallows
+    // whatever missed them).
+    return Listener(
+      behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -307,6 +332,12 @@ class ShellBottomBar extends ConsumerWidget {
                 selectedIcon: Icons.explore_rounded,
                 label: l.nav_browse,
               ),
+              // Highlights (reels): between Browse and Tournaments.
+              SpDockItem(
+                icon: Icons.movie_filter_outlined,
+                selectedIcon: Icons.movie_filter_rounded,
+                label: l.highlights_title,
+              ),
               SpDockItem(
                 icon: Icons.emoji_events_outlined,
                 selectedIcon: Icons.emoji_events_rounded,
@@ -320,7 +351,7 @@ class ShellBottomBar extends ConsumerWidget {
               ),
             ],
           ),
-          SizedBox(height: MediaQuery.paddingOf(context).bottom),
+          SizedBox(height: SpDock.insetBelow(context)),
         ],
       ),
     );

@@ -614,6 +614,24 @@
   "common_proFeaturesOfferTerms": "Conditions de l’offre Fonctions Pro",
   "common_groupNotFound": "Groupe introuvable.",
   "common_cantReachTheServer": "Impossible de joindre le serveur.",
+  "common_theServerIsTakingTooLong": "Le serveur met trop de temps à répondre.",
+  "common_notFound": "Introuvable.",
+  "common_theServerHadAProblem": "Le serveur a rencontré un problème ({status}).",
+  "@common_theServerHadAProblem": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
+  "common_theRequestWasRefused": "La demande a été refusée ({status}).",
+  "@common_theRequestWasRefused": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
   "common_couldNotLoadGroups": "Impossible de charger les groupes.",
   "common_teamNotFound": "Équipe introuvable.",
   "common_couldNotStartThePayment": "Impossible de lancer le paiement.",
@@ -8961,8 +8979,6 @@
   "profile_youreNotInAnyGroups": "Vous n’êtes dans aucun groupe pour l’instant.",
   "profile_browseGroups": "Explorer les groupes",
   "profile_myTournaments": "Mes tournois",
-  "profile_highlightsAreComing": "Les temps forts arrivent",
-  "profile_yourBestMomentsPhotosAnd": "Vos meilleurs moments — photos et vidéos de vos matchs — seront ici. Bientôt disponible.",
   "profile_progressAchievements": "Progression & succès",
   "profile_myRecords": "Mes bilans",
   "profile_yourNumbersSportBySport": "Vos chiffres, sport par sport",
@@ -20287,5 +20303,665 @@
         "type": "Object"
       }
     }
-  }
+  },
+  "highlights_title": "Temps forts",
+  "highlights_navLabel": "Temps forts",
+  "highlights_tabFollowing": "Abonnements",
+  "highlights_tabDiscover": "Découvrir",
+  "highlights_postHighlight": "Publier un temps fort",
+  "highlights_seeDiscover": "Voir Découvrir",
+  "highlights_backToHighlights": "Retour aux temps forts",
+  "highlights_followingEmptyTitle": "Rien pour l’instant",
+  "highlights_followingEmptyText": "Les temps forts des joueurs que vous suivez — et les vôtres — apparaissent ici. Faites un tour dans Découvrir pour trouver des joueurs à suivre.",
+  "highlights_discoverEmptyTitle": "Aucun temps fort pour l’instant",
+  "highlights_discoverEmptyText": "Soyez le premier à en publier un.",
+  "highlights_followingEndTitle": "Vous êtes à jour",
+  "highlights_followingEndText": "C’est tout ce qu’ont publié les joueurs que vous suivez. Il y en a d’autres dans Découvrir.",
+  "highlights_discoverEndTitle": "Vous avez tout vu",
+  "highlights_discoverEndText": "C’est tout ce que vous pouvez voir pour l’instant.",
+  "highlights_feedErrorTitle": "Impossible de charger les temps forts",
+  "highlights_feedErrorText": "Vérifiez votre connexion et réessayez.",
+  "highlights_feedMoreErrorTitle": "Impossible d’en charger plus",
+  "highlights_notFoundTitle": "Temps fort introuvable",
+  "highlights_notFoundText": "Il a peut-être été supprimé, ou il ne vous est pas visible.",
+  "highlights_goneToast": "Ce temps fort n’est plus disponible.",
+  "highlights_postBy": "Temps fort de {name}",
+  "@highlights_postBy": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_aboutSubject": "à propos de <link>{name}</link>",
+  "@highlights_aboutSubject": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statMinute": "{minute}’",
+  "@highlights_statMinute": {
+    "placeholders": {
+      "minute": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statOpenMatch": "Ouvrir le match",
+  "highlights_like": "J’aime",
+  "highlights_unlike": "Je n’aime plus",
+  "highlights_likeFailed": "Impossible d’enregistrer votre mention j’aime.",
+  "highlights_commentsOpen": "{count, plural, =0{Commentaires} one{{count} commentaire} other{{count} commentaires}}",
+  "@highlights_commentsOpen": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_share": "Partager",
+  "highlights_shareTitle": "Le temps fort de {name} sur SportPadi",
+  "@highlights_shareTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_linkCopied": "Lien copié",
+  "highlights_linkCopyFailed": "Impossible de copier le lien.",
+  "highlights_more": "Plus",
+  "highlights_menuEmpty": "Aucune action pour ce temps fort.",
+  "highlights_report": "Signaler",
+  "highlights_delete": "Supprimer",
+  "highlights_deleteTitle": "Supprimer ce temps fort ?",
+  "highlights_deleteText": "Il disparaît pour tout le monde et ses fichiers sont supprimés. C’est irréversible, et le supprimer ne vous rend pas une des publications de la semaine.",
+  "highlights_deleteTextFailed": "Il est supprimé définitivement — c’est irréversible. Une vidéo qui a échoué ne compte pas dans les publications de la semaine.",
+  "highlights_deleteTextGuardian": "Il disparaît pour tout le monde — du profil de {name} aussi — et ses fichiers sont supprimés. C’est irréversible.",
+  "@highlights_deleteTextGuardian": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_deleted": "Temps fort supprimé",
+  "highlights_deleteFailed": "Impossible de supprimer le temps fort.",
+  "highlights_play": "Lecture",
+  "highlights_soundOn": "Activer le son",
+  "highlights_soundOff": "Couper le son",
+  "highlights_videoCantPlay": "Cette vidéo n’a pas pu être lue.",
+  "highlights_photoAlt": "Photo {n} sur {total} — {name}",
+  "@highlights_photoAlt": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      },
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoCount": "Photo {n} sur {total}",
+  "@highlights_photoCount": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_previousPhoto": "Photo précédente",
+  "highlights_nextPhoto": "Photo suivante",
+  "highlights_processingTitle": "Traitement de votre vidéo",
+  "highlights_processingText": "Vous seul la voyez jusqu’à ce qu’elle soit prête. Cette page se met à jour toute seule — et vous n’avez pas besoin d’attendre ici : le traitement continue sans vous, et peut prendre un moment aux heures chargées.",
+  "highlights_failedTitle": "Cette vidéo n’a pas pu être publiée",
+  "highlights_failedText": "Un problème est survenu pendant son traitement.",
+  "highlights_failedNote": "Elle ne compte pas dans les publications de la semaine. Si vous la laissez ici, elle est supprimée d’elle-même au bout de 7 jours.",
+  "highlights_failedPostAgain": "La publier à nouveau",
+  "highlights_failedDelete": "La supprimer",
+  "highlights_takenDownTitle": "SportPadi a retiré cette vidéo",
+  "highlights_takenDownText": "Une vérification de SportPadi a trouvé un problème avec cette vidéo, elle n’est donc plus affichée. Si vous avez vu ici quelque chose qui vous inquiète, vous pouvez toujours la signaler.",
+  "highlights_takenDownTextPlain": "Une vérification de SportPadi a trouvé un problème avec cette vidéo, elle n’est donc plus affichée.",
+  "highlights_commentsTitle": "{count, plural, =0{Commentaires} one{{count} commentaire} other{{count} commentaires}}",
+  "@highlights_commentsTitle": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_commentsDescription": "Commentaires sur ce temps fort, du plus ancien au plus récent.",
+  "highlights_commentsEmpty": "Aucun commentaire pour l’instant. Soyez le premier à réagir.",
+  "highlights_commentsLoadFailed": "Impossible de charger les commentaires.",
+  "highlights_commentsMore": "Afficher plus de commentaires",
+  "highlights_commentLabel": "Ajouter un commentaire",
+  "highlights_commentPlaceholder": "Ajouter un commentaire…",
+  "highlights_commentSend": "Envoyer le commentaire",
+  "highlights_commentDelete": "Supprimer le commentaire",
+  "highlights_commentDeleteTitle": "Supprimer ce commentaire ?",
+  "highlights_commentDeleteText": "Il est retiré pour tout le monde. C’est irréversible.",
+  "highlights_commentReport": "Signaler le commentaire",
+  "highlights_charCount": "{count} / {max}",
+  "@highlights_charCount": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportTitle": "Signaler ce temps fort",
+  "highlights_reportCommentTitle": "Signaler ce commentaire",
+  "highlights_reportIntro": "Le signalement part à l’équipe SportPadi, qui l’examine.",
+  "highlights_reportWhatsWrong": "Que se passe-t-il ?",
+  "highlights_reasonInappropriate": "Inapproprié",
+  "highlights_reasonHarassment": "Harcèlement ou intimidation",
+  "highlights_reasonSpam": "Spam",
+  "highlights_reasonChildSafety": "Sécurité d’un enfant",
+  "highlights_reasonNotMe": "On me voit et je ne veux pas que ce soit en ligne",
+  "highlights_reasonOther": "Autre chose",
+  "highlights_reportNoteLabel": "Autre chose à nous dire ? (facultatif)",
+  "highlights_reportNotePlaceholder": "Ajoutez des détails qui nous aideront à l’examiner",
+  "highlights_reportNoteTooLong": "Restez sous {max} caractères.",
+  "@highlights_reportNoteTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportChildSafetyNote": "Si un enfant est en danger immédiat, contactez d’abord les services d’urgence locaux.",
+  "highlights_reportSend": "Envoyer le signalement",
+  "highlights_reportSent": "Merci pour votre signalement",
+  "highlights_reportSentDetail": "L’équipe SportPadi va l’examiner.",
+  "highlights_statLink": "Associer à une stat",
+  "highlights_statChange": "Changer la stat associée",
+  "highlights_statRemove": "Retirer l’association",
+  "highlights_statRemoveWard": "Dissocier de {name}",
+  "@highlights_statRemoveWard": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinkSaved": "Associé à la stat",
+  "highlights_statLinkRemoved": "Association retirée",
+  "highlights_statLinkFailed": "Impossible de changer la stat associée.",
+  "highlights_statSheetTitle": "Associer à une stat",
+  "highlights_statSheetText": "Choisissez le moment que montre ce temps fort. Il apparaît sur le match et sur le profil du joueur.",
+  "highlights_statsEmptyTitle": "Aucune stat à associer pour l’instant",
+  "highlights_statsEmptyText": "Les buts, passes décisives et autres stats enregistrées pour vous dans un match apparaissent ici.",
+  "highlights_statsLoadFailed": "Impossible de charger vos stats.",
+  "highlights_statsMore": "Afficher plus",
+  "highlights_statFor": "Pour {name}",
+  "@highlights_statFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinked": "Associé",
+  "highlights_statTaken": "A déjà un temps fort",
+  "highlights_statTakenMine": "A votre temps fort",
+  "highlights_statOptionalTitle": "Associer à une stat",
+  "highlights_statOptionalText": "Facultatif — associez-le au but, à la passe décisive ou à la stat qu’il montre.",
+  "highlights_statLinkedHint": "Affiché sur le match et sur votre profil.",
+  "highlights_statPreselectMissed": "Cette stat ne peut pas recevoir de temps fort pour le moment. Choisissez-en une autre, ou publiez sans stat.",
+  "highlights_statGoneKept": "Cette stat a été retirée du match, l’association a donc été supprimée. Vos fichiers sont toujours envoyés — appuyez sur Réessayer pour publier sans stat, ou choisissez-en une autre d’abord.",
+  "highlights_wardLinkTitle": "Changer la personne concernée par ce temps fort ?",
+  "highlights_wardLinkText": "Pour l’instant ce temps fort concerne {name}, et seules les personnes qui voient le profil de {name} peuvent le voir. Si vous continuez, il devient une publication sur vous — montrée à tous ceux qui voient votre profil, dans Abonnements et Découvrir.",
+  "@highlights_wardLinkText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextOther": "Pour l’instant ce temps fort concerne {name}, et seules les personnes qui voient le profil de {name} peuvent le voir. Si vous continuez, il concernera {other} — et sera montré aux personnes qui voient le profil de {other}.",
+  "@highlights_wardLinkTextOther": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      },
+      "other": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextInto": "Pour l’instant ce temps fort vous concerne. Si vous continuez, il devient le temps fort de {name} : il passe sur le profil et le match de {name}, et il est montré aux personnes qui voient le profil de {name}.",
+  "@highlights_wardLinkTextInto": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkConfirm": "Oui, continuer",
+  "highlights_statChoose": "Choisir",
+  "highlights_statChangeShort": "Changer",
+  "highlights_newTitle": "Nouveau temps fort",
+  "highlights_quotaErrorTitle": "Impossible de vérifier ce qu’il vous reste",
+  "highlights_quotaLeft": "{count, plural, =0{Plus aucune publication cette semaine.} one{{count} publication restante cette semaine.} other{{count} publications restantes cette semaine.}}",
+  "@highlights_quotaLeft": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_quotaRule": "{limit, plural, one{Vous pouvez publier {limit} temps fort tous les} other{Vous pouvez publier {limit} temps forts tous les}} {days, plural, one{{days} jour} other{{days} jours}}.",
+  "@highlights_quotaRule": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedPausedTitle": "Les publications sont en pause",
+  "highlights_blockedPausedText": "La publication de temps forts est en pause pour le moment. Vous pouvez toujours regarder, aimer et commenter.",
+  "highlights_blockedLimitTitle": "Vous avez utilisé vos publications de la semaine",
+  "highlights_blockedLimitText": "{limit, plural, one{Vous pouvez publier {limit} temps fort tous les} other{Vous pouvez publier {limit} temps forts tous les}} {days, plural, one{{days} jour} other{{days} jours}}, et {limit, plural, one{vous l’avez utilisé} other{vous les avez tous utilisés}}.",
+  "@highlights_blockedLimitText": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedLimitTextUntil": "{limit, plural, one{Vous pouvez publier {limit} temps fort tous les} other{Vous pouvez publier {limit} temps forts tous les}} {days, plural, one{{days} jour} other{{days} jours}}, et {limit, plural, one{vous l’avez utilisé} other{vous les avez tous utilisés}}. Vous pourrez publier à nouveau à partir de {when}.",
+  "@highlights_blockedLimitTextUntil": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      },
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_blockedOtherTitle": "Vous ne pouvez pas publier pour le moment",
+  "highlights_blockedOtherText": "La publication de temps forts n’est pas disponible sur votre compte pour le moment.",
+  "highlights_videoBlockedDaily": "Vous avez publié beaucoup de vidéos aujourd’hui, la vidéo est donc coupée jusqu’à demain. Vous pouvez toujours publier des photos.",
+  "highlights_videoBlockedDailyUntil": "Vous avez publié beaucoup de vidéos aujourd’hui. Vous pourrez en publier une autre à partir de {when} — d’ici là, vous pouvez toujours publier des photos.",
+  "@highlights_videoBlockedDailyUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoBlockedProcessing": "Vos vidéos précédentes sont encore en traitement. Dès qu’elles seront prêtes, vous pourrez en publier une autre — d’ici là, vous pouvez toujours publier des photos.",
+  "highlights_videoBlockedOther": "Vous ne pouvez pas publier de vidéo pour le moment. Vous pouvez toujours publier des photos.",
+  "highlights_videoBlockedRecheck": "Vérifier à nouveau",
+  "highlights_pickVideo": "Vidéo",
+  "highlights_pickVideoHint": "Un seul clip, jusqu’à {seconds} secondes et {max} Mo (MP4, MOV ou WebM)",
+  "@highlights_pickVideoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pickPhotos": "Photos",
+  "highlights_pickPhotosHint": "Jusqu’à {max} photos, à faire défiler",
+  "@highlights_pickPhotosHint": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_preparing": "Préparation de vos fichiers…",
+  "highlights_videoTypeRefused": "Ce type de fichier n’est pas pris en charge. Choisissez une vidéo MP4, MOV ou WebM.",
+  "highlights_videoTooLarge": "Cette vidéo pèse {size} Mo. La limite est de {max} Mo — raccourcissez-la ou exportez-la dans une qualité plus basse, puis réessayez.",
+  "@highlights_videoTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoTooLong": "Cette vidéo dure {seconds} secondes. Un temps fort peut aller jusqu’à {max} secondes — raccourcissez-la et réessayez.",
+  "@highlights_videoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoNoPreview": "Ce navigateur ne peut pas prévisualiser cette vidéo. Vous pouvez quand même la publier — elle est vérifiée après l’envoi.",
+  "highlights_videoSeconds": "{seconds} s",
+  "@highlights_videoSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_fileMb": "{size} Mo",
+  "@highlights_fileMb": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_replace": "Remplacer",
+  "highlights_remove": "Retirer",
+  "highlights_photosCount": "{count, plural, one{{count} photo} other{{count} photos}} · jusqu’à {max}",
+  "@highlights_photosCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoNumber": "Photo {n}",
+  "@highlights_photoNumber": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_removePhoto": "Retirer la photo {n}",
+  "@highlights_removePhoto": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_addPhotos": "Ajouter des photos",
+  "highlights_photosUnreadable": "{count, plural, one{{count} photo n’a pas pu être lue et a été laissée de côté.} other{{count} photos n’ont pas pu être lues et ont été laissées de côté.}}",
+  "@highlights_photosUnreadable": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosTooMany": "Un temps fort peut contenir jusqu’à {max} photos. Les photos en trop ont été laissées de côté.",
+  "@highlights_photosTooMany": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoTooLarge": "Une photo dépasse encore {max} Mo après redimensionnement. Essayez-en une autre.",
+  "@highlights_photoTooLarge": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoUnreadable": "Une des photos n’a pas pu être lue. Essayez-en une autre.",
+  "highlights_captionLabel": "Légende",
+  "highlights_captionPlaceholder": "Racontez ce qui s’est passé (facultatif)",
+  "highlights_privacyNote": "Les photos sont réenregistrées sur cet appareil avant leur envoi, et une vidéo est réencodée par SportPadi avant que quiconque puisse la voir — ni l’une ni l’autre ne transporte de données de localisation ou d’appareil.",
+  "highlights_uploading": "Envoi… {percent} %",
+  "@highlights_uploading": {
+    "placeholders": {
+      "percent": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_posting": "Publication…",
+  "highlights_uploadFailed": "L’envoi ne s’est pas terminé. Vérifiez votre connexion et réessayez.",
+  "highlights_uploadStalled": "L’envoi n’avançait plus, il a donc été arrêté. Vérifiez votre connexion et réessayez — les fichiers déjà envoyés ne repartent pas.",
+  "highlights_createNoAnswer": "Nous n’avons pas eu de réponse, impossible de dire si votre temps fort a été publié. Appuyez sur Réessayer : s’il est bien passé, vous retrouverez cette publication, pas une deuxième.",
+  "highlights_postedThenRemoved": "Votre essai précédent avait bien publié ce temps fort, et cette publication a depuis été retirée. Appuyez sur Réessayer pour le publier comme nouvelle publication.",
+  "highlights_uploadCancel": "Annuler l’envoi",
+  "highlights_leaveTitle": "Arrêter l’envoi et quitter ?",
+  "highlights_leaveText": "Votre temps fort n’est pas encore publié. Si vous partez maintenant, l’envoi s’arrête et il faudra tout recommencer.",
+  "highlights_leaveStay": "Continuer l’envoi",
+  "highlights_leaveGo": "Quitter",
+  "highlights_leaveTitlePosting": "Quitter pendant la publication ?",
+  "highlights_leaveTextPosting": "Vos fichiers sont envoyés et votre temps fort est en cours de publication — il est peut-être déjà en ligne. Si vous partez maintenant, vous ne verrez pas si ça a marché : cherchez-le dans Abonnements ou sur votre profil.",
+  "highlights_leaveStayPosting": "Rester ici",
+  "highlights_posted": "Temps fort publié",
+  "highlights_postedProcessing": "Envoyé — votre vidéo est en traitement",
+  "highlights_postedEarlierTry": "Votre essai précédent était déjà passé : voici cette publication, sans les changements faits ensuite. Si vous y tenez, supprimez-la et publiez à nouveau — cela prend une autre publication de la semaine.",
+  "highlights_gridOpenVideo": "Temps fort vidéo",
+  "highlights_gridOpenPhotos": "{count, plural, one{Temps fort photo} other{Temps fort photo, {count} photos}}",
+  "@highlights_gridOpenPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_gridProcessing": "En traitement",
+  "highlights_gridFailed": "Échec",
+  "highlights_gridLoadFailed": "Impossible de charger les temps forts.",
+  "highlights_groupPostsTitle": "De leurs groupes",
+  "highlights_profileEmptyMineTitle": "Aucun temps fort pour l’instant",
+  "highlights_profileEmptyMineText": "Publiez une vidéo ou des photos de vos meilleurs moments — et associez-les à la stat qu’elles montrent.",
+  "highlights_badgeWatch": "Voir le temps fort de {name}",
+  "@highlights_badgeWatch": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_badgeAdd": "Ajouter un temps fort pour cette stat",
+  "highlights_badgeAddFor": "Ajouter un temps fort pour {name}",
+  "@highlights_badgeAddFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_newPost": "Nouveau temps fort",
+  "highlights_post": "Publier le temps fort",
+  "highlights_couldntLoad": "Impossible de charger les temps forts.",
+  "highlights_couldntLoadMore": "Impossible de charger d’autres temps forts.",
+  "highlights_couldntLoadOne": "Impossible de charger ce temps fort.",
+  "highlights_couldntLoadAllowance": "Impossible de vérifier combien de temps forts vous pouvez publier.",
+  "highlights_couldntLoadStats": "Impossible de charger les stats.",
+  "highlights_couldntLoadComments": "Impossible de charger les commentaires.",
+  "highlights_couldntLike": "Impossible d’enregistrer votre mention j’aime.",
+  "highlights_couldntChangeLink": "Impossible de changer la stat associée.",
+  "highlights_couldntDelete": "Impossible de supprimer le temps fort.",
+  "highlights_couldntPost": "Impossible de publier votre temps fort.",
+  "highlights_notFound": "Temps fort introuvable.",
+  "highlights_cantShowTitle": "Ce temps fort ne peut pas être affiché",
+  "highlights_cantShowBody": "Il a peut-être été supprimé, ou il n’est visible que par certaines personnes.",
+  "highlights_deleteBody": "Il est retiré pour tout le monde, avec ses mentions j’aime et ses commentaires. C’est irréversible.",
+  "highlights_linkToStat": "Associer à une stat",
+  "highlights_changeStat": "Changer la stat associée",
+  "highlights_removeStat": "Retirer la stat associée",
+  "highlights_linkHint": "Facultatif — associez-le au but, à la passe décisive ou à la stat qu’il montre.",
+  "highlights_linkSaved": "Associé à la stat.",
+  "highlights_linkRemoved": "L’association a été retirée.",
+  "highlights_pickStatTitle": "Quelle stat montre-t-il ?",
+  "highlights_pickStatSubtitle": "Stats récentes de matchs arbitrés. Chaque joueur concerné par une stat peut y ajouter un temps fort.",
+  "highlights_myStats": "Mes stats",
+  "highlights_noStatsYet": "Aucune stat à associer pour l’instant. Elles apparaissent ici après un match où un but, une passe décisive ou une autre stat a été enregistré.",
+  "highlights_noStatsFoundSoFar": "Rien trouvé pour l’instant.",
+  "highlights_keepLooking": "Continuer à chercher",
+  "highlights_statTakenByYou": "Votre autre temps fort",
+  "highlights_reportSubtitle": "Les signalements partent à l’équipe SportPadi, qui les examine.",
+  "highlights_reportNoteHint": "Autre chose à nous dire ? (facultatif)",
+  "highlights_cantPlay": "Cette vidéo ne peut pas être lue pour le moment.",
+  "highlights_processing": "Votre vidéo est encore en préparation. Elle se lira ici dès qu’elle sera prête.",
+  "highlights_failed": "Cette vidéo n’a pas pu être traitée.",
+  "highlights_aboutPerson": "À propos de {name}",
+  "@highlights_aboutPerson": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_commentsCount": "{count, plural, one{{count} commentaire} other{{count} commentaires}}",
+  "@highlights_commentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_noCommentsYet": "Aucun commentaire pour l’instant. Soyez le premier.",
+  "highlights_moreComments": "Afficher plus de commentaires",
+  "highlights_commentsWhenReady": "Les commentaires s’ouvrent dès que la vidéo est prête.",
+  "highlights_followingEmptyBody": "Les temps forts des joueurs que vous suivez apparaissent ici, avec les vôtres.",
+  "highlights_openDiscover": "Voir dans Découvrir",
+  "highlights_discoverEmptyBody": "Soyez le premier à en publier un.",
+  "highlights_noneFoundSoFar": "Rien trouvé pour l’instant",
+  "highlights_gridEmptyMine": "Aucun temps fort pour l’instant. Publiez-en un depuis l’onglet Temps forts.",
+  "highlights_watchHighlight": "Voir le temps fort",
+  "highlights_allowance": "{remaining, plural, one{{remaining} publication restante} other{{remaining} publications restantes}} sur {limit} tous les {days} jours",
+  "@highlights_allowance": {
+    "placeholders": {
+      "remaining": {
+        "type": "num"
+      },
+      "limit": {
+        "type": "Object"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitTitle": "Vous avez utilisé vos temps forts pour le moment",
+  "highlights_limitBody": "{limit, plural, one{Vous pouvez publier {limit} temps fort tous les {days} jours, et vous l’avez utilisé.} other{Vous pouvez publier {limit} temps forts tous les {days} jours, et vous les avez tous utilisés.}}",
+  "@highlights_limitBody": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitNext": "Vous pourrez publier à nouveau à partir de {when}.",
+  "@highlights_limitNext": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pausedTitle": "Les publications sont en pause",
+  "highlights_pausedBody": "La publication de temps forts est en pause pour le moment. Vous pouvez toujours regarder, aimer et commenter.",
+  "highlights_blockedTitle": "Vous ne pouvez pas publier pour le moment",
+  "highlights_blockedBody": "La publication de temps forts n’est pas disponible pour votre compte pour le moment.",
+  "highlights_chooseVideo": "Choisir une vidéo",
+  "highlights_recordVideo": "Filmer une vidéo",
+  "highlights_choosePhotos": "Choisir des photos",
+  "highlights_videoHint": "{seconds, plural, one{Jusqu’à {seconds} seconde} other{Jusqu’à {seconds} secondes}}",
+  "@highlights_videoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosHint": "{count, plural, one{{count} photo par publication} other{Jusqu’à {count} photos par publication}}",
+  "@highlights_photosHint": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_chooseAnother": "En choisir une autre",
+  "highlights_captionHint": "Dites-en un mot (facultatif)",
+  "highlights_preparingVideo": "Préparation de votre vidéo…",
+  "highlights_preparingPhotos": "Préparation de vos photos…",
+  "highlights_preparingNote": "Cela se passe sur votre téléphone, avant tout envoi. Les données de localisation enregistrées dans le fichier sont retirées.",
+  "highlights_videoReady": "Vidéo prête",
+  "highlights_pickFailed": "Impossible d’ouvrir ça. Vérifiez dans les réglages de votre téléphone que SportPadi peut utiliser l’appareil photo et vos photos.",
+  "highlights_appPhotoTooLarge": "Cette photo est trop lourde, même après réduction.",
+  "highlights_videoBusy": "Une autre vidéo est encore en préparation. Laissez-lui un instant.",
+  "highlights_appVideoTooLong": "{seconds, plural, one{Une vidéo peut durer jusqu’à {seconds} seconde.} other{Une vidéo peut durer jusqu’à {seconds} secondes.}}",
+  "@highlights_appVideoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_videoFailed": "Cette vidéo n’a pas pu être préparée sur ce téléphone. Essayez-en une autre.",
+  "highlights_appEncoderStuck": "L’outil vidéo de ce téléphone ne répond plus, SportPadi ne peut donc pas préparer une autre vidéo. Fermez complètement l’app et rouvrez-la.",
+  "highlights_appVideoTooLarge": "Cette vidéo est trop lourde à publier, même après compression. Essayez-en une plus courte.",
+  "highlights_subjectChangeTitle": "Changer la personne concernée par ce temps fort ?",
+  "highlights_subjectChangeBody": "Pour l’instant il concerne {from}, et quiconque voit le profil de {from} peut le voir. Ensuite il concernera {to}, et quiconque voit le profil de {to} pourra le voir.",
+  "@highlights_subjectChangeBody": {
+    "placeholders": {
+      "from": {
+        "type": "Object"
+      },
+      "to": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_subjectChangeConfirm": "Oui, changer",
+  "highlights_appDeleteBodyFailed": "Il est supprimé définitivement. C’est irréversible.",
+  "highlights_appDeleteKeepsPlace": "Il compte toujours comme une de vos publications de la semaine — le supprimer ne libère pas de place.",
+  "highlights_appDiscardTitle": "Abandonner ce temps fort ?",
+  "highlights_appDiscardBody": "Ce que vous avez préparé ici ne sera ni publié ni enregistré.",
+  "highlights_appDiscardKeep": "Continuer",
+  "highlights_appDiscardConfirm": "Abandonner",
+  "highlights_appStatGoneWardKept": "Cette stat a été retirée du match. Vos fichiers sont toujours envoyés et l’association est toujours là — choisissez une autre stat de ce joueur, ou retirez l’association pour le publier comme votre propre temps fort.",
+  "highlights_appStatGoneKept": "Cette stat a été retirée du match, l’association a donc été supprimée. Vos fichiers sont toujours envoyés — appuyez de nouveau sur Publier le temps fort pour publier sans stat, ou choisissez-en une autre d’abord.",
+  "highlights_appUploadStalled": "L’envoi n’avance plus. Vérifiez votre connexion et réessayez.",
+  "highlights_appVideoDailyLimit": "Vous avez publié beaucoup de vidéos aujourd’hui. Réessayez demain.",
+  "highlights_appVideoDailyLimitUntil": "Vous avez publié beaucoup de vidéos aujourd’hui. Vous pourrez en publier une autre à partir de {when}.",
+  "@highlights_appVideoDailyLimitUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_appVideoWaitProcessing": "Des vidéos à vous sont déjà en traitement. Attendez qu’elles finissent, puis réessayez.",
+  "highlights_appVideoUnavailable": "Les vidéos ne peuvent pas être publiées pour le moment.",
+  "highlights_appPhotosStillOk": "Vous pouvez toujours publier des photos.",
+  "highlights_appKeepOpen": "Ça s’est arrêté pendant que SportPadi était en arrière-plan. Gardez l’app ouverte à l’écran jusqu’à la fin, puis réessayez.",
+  "highlights_appLostVideoTitle": "Utiliser la vidéo de tout à l’heure ?",
+  "highlights_appLostVideoBody": "SportPadi a été fermé avant que cette vidéo puisse être ajoutée à un temps fort.",
+  "highlights_appLostVideoUse": "L’utiliser"
 }

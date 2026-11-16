@@ -15,6 +15,7 @@ import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/core/push/push_service.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_dock.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
@@ -392,8 +393,9 @@ class _AppUpdateGateState extends ConsumerState<AppUpdateGate>
         Positioned(
           left: 12,
           right: 12,
-          // Just above the dock (6 + 64 + 10 tall).
-          bottom: MediaQuery.paddingOf(context).bottom + 92,
+          // Just above the dock: 12 over the shell's bottom bar, wherever
+          // the dock puts it.
+          bottom: SpDock.barHeight(context) + 12,
           child: _UpdateCard(
             check: c,
             android: _android,
@@ -495,24 +497,44 @@ class _UpdateCard extends StatelessWidget {
                       child: Text(
                           android == _Android.downloading ? context.l10n.common_hideLabel : context.l10n.common_notNow),
                     ),
-                    const Spacer(),
-                    if (android != _Android.downloading)
-                      FilledButton.icon(
-                        onPressed: onUpdate,
-                        style: FilledButton.styleFrom(
-                            backgroundColor: p.accentDeep,
-                            foregroundColor: Colors.white,
-                            visualDensity: VisualDensity.compact,
-                            shape: const StadiumBorder()),
-                        icon: Icon(
-                            android == _Android.downloaded
-                                ? Icons.restart_alt_rounded
-                                : Icons.download_rounded,
-                            size: 16),
-                        label: Text(android == _Android.downloaded
-                            ? context.l10n.common_restart
-                            : context.l10n.common_updateIn(AppUpdateRepository.storeName)),
-                      ),
+                    // The button takes the rest of the row, right-aligned.
+                    // Its own minimumSize matters: the app theme's filled
+                    // buttons are full-width (Size.fromHeight → infinite
+                    // minimum width), which can't be laid out inside a Row —
+                    // in a release build the button simply didn't appear,
+                    // leaving "Not now" on its own.
+                    Expanded(
+                      child: android == _Android.downloading
+                          ? const SizedBox.shrink()
+                          : Align(
+                              alignment: Alignment.centerRight,
+                              child: FilledButton.icon(
+                                onPressed: onUpdate,
+                                style: FilledButton.styleFrom(
+                                    backgroundColor: p.accentDeep,
+                                    foregroundColor: Colors.white,
+                                    minimumSize: const Size(0, 40),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14),
+                                    textStyle: const TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700),
+                                    shape: const StadiumBorder()),
+                                icon: Icon(
+                                    android == _Android.downloaded
+                                        ? Icons.restart_alt_rounded
+                                        : Icons.download_rounded,
+                                    size: 16),
+                                label: Text(
+                                    android == _Android.downloaded
+                                        ? context.l10n.common_restart
+                                        : context.l10n.common_updateIn(
+                                            AppUpdateRepository.storeName),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis),
+                              ),
+                            ),
+                    ),
                   ]),
                 ]),
           ),

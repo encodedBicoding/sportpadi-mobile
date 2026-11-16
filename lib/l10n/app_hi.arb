@@ -614,6 +614,24 @@
   "common_proFeaturesOfferTerms": "Pro सुविधाओं के ऑफ़र की शर्तें",
   "common_groupNotFound": "ग्रुप नहीं मिला।",
   "common_cantReachTheServer": "सर्वर से संपर्क नहीं हो पा रहा।",
+  "common_theServerIsTakingTooLong": "सर्वर बहुत समय ले रहा है।",
+  "common_notFound": "नहीं मिला।",
+  "common_theServerHadAProblem": "सर्वर में समस्या आ गई ({status})।",
+  "@common_theServerHadAProblem": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
+  "common_theRequestWasRefused": "अनुरोध अस्वीकार कर दिया गया ({status})।",
+  "@common_theRequestWasRefused": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
   "common_couldNotLoadGroups": "ग्रुप लोड नहीं हो सके।",
   "common_teamNotFound": "टीम नहीं मिली।",
   "common_couldNotStartThePayment": "भुगतान शुरू नहीं हो सका।",
@@ -8961,8 +8979,6 @@
   "profile_youreNotInAnyGroups": "आप अभी किसी ग्रुप में नहीं हैं।",
   "profile_browseGroups": "ग्रुप खोजें",
   "profile_myTournaments": "मेरे टूर्नामेंट",
-  "profile_highlightsAreComing": "हाइलाइट्स जल्द आ रहे हैं",
-  "profile_yourBestMomentsPhotosAnd": "आपके बेहतरीन पल — आपके मैचों की फ़ोटो और क्लिप — यहाँ रहेंगे। जल्द आ रहा है।",
   "profile_progressAchievements": "प्रगति और उपलब्धियाँ",
   "profile_myRecords": "मेरे रिकॉर्ड",
   "profile_yourNumbersSportBySport": "आपके आँकड़े, हर खेल के लिए",
@@ -20287,5 +20303,665 @@
         "type": "Object"
       }
     }
-  }
+  },
+  "highlights_title": "हाइलाइट्स",
+  "highlights_navLabel": "हाइलाइट्स",
+  "highlights_tabFollowing": "फ़ॉलोइंग",
+  "highlights_tabDiscover": "खोजें",
+  "highlights_postHighlight": "हाइलाइट पोस्ट करें",
+  "highlights_seeDiscover": "खोजें देखें",
+  "highlights_backToHighlights": "हाइलाइट्स पर वापस",
+  "highlights_followingEmptyTitle": "अभी यहाँ कुछ नहीं है",
+  "highlights_followingEmptyText": "आप जिन खिलाड़ियों को फ़ॉलो करते हैं उनके — और आपके खुद के — हाइलाइट यहाँ दिखेंगे। फ़ॉलो करने के लिए खिलाड़ी ढूँढने के लिए खोजें में देखें।",
+  "highlights_discoverEmptyTitle": "अभी कोई हाइलाइट नहीं",
+  "highlights_discoverEmptyText": "पहला पोस्ट करने वाले बनें।",
+  "highlights_followingEndTitle": "आप पूरी तरह अपडेट हैं",
+  "highlights_followingEndText": "आप जिन खिलाड़ियों को फ़ॉलो करते हैं, उनका सब कुछ यही है। खोजें में और भी है।",
+  "highlights_discoverEndTitle": "आपने सब देख लिया",
+  "highlights_discoverEndText": "अभी के लिए आप जो देख सकते हैं, वह सब यही है।",
+  "highlights_feedErrorTitle": "हाइलाइट लोड नहीं हो सके",
+  "highlights_feedErrorText": "अपना कनेक्शन जाँचें और फिर कोशिश करें।",
+  "highlights_feedMoreErrorTitle": "और लोड नहीं हो सके",
+  "highlights_notFoundTitle": "हाइलाइट नहीं मिला",
+  "highlights_notFoundText": "हो सकता है इसे हटा दिया गया हो, या यह आपको न दिखे।",
+  "highlights_goneToast": "यह हाइलाइट अब उपलब्ध नहीं है।",
+  "highlights_postBy": "{name} का हाइलाइट",
+  "@highlights_postBy": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_aboutSubject": "<link>{name}</link> के बारे में",
+  "@highlights_aboutSubject": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statMinute": "{minute}’",
+  "@highlights_statMinute": {
+    "placeholders": {
+      "minute": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statOpenMatch": "मैच खोलें",
+  "highlights_like": "लाइक",
+  "highlights_unlike": "लाइक हटाएँ",
+  "highlights_likeFailed": "आपका लाइक सेव नहीं हो सका।",
+  "highlights_commentsOpen": "{count, plural, =0{कमेंट} one{{count} कमेंट} other{{count} कमेंट}}",
+  "@highlights_commentsOpen": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_share": "शेयर करें",
+  "highlights_shareTitle": "SportPadi पर {name} का हाइलाइट",
+  "@highlights_shareTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_linkCopied": "लिंक कॉपी हो गया",
+  "highlights_linkCopyFailed": "लिंक कॉपी नहीं हो सका।",
+  "highlights_more": "और",
+  "highlights_menuEmpty": "इस हाइलाइट के लिए कोई विकल्प नहीं।",
+  "highlights_report": "रिपोर्ट करें",
+  "highlights_delete": "हटाएँ",
+  "highlights_deleteTitle": "यह हाइलाइट हटाएँ?",
+  "highlights_deleteText": "यह सबके लिए हट जाता है और इसकी फ़ाइलें मिट जाती हैं। इसे वापस नहीं किया जा सकता, और हटाने से इस हफ़्ते की एक पोस्ट वापस नहीं मिलती।",
+  "highlights_deleteTextFailed": "यह हमेशा के लिए हट जाता है — इसे वापस नहीं किया जा सकता। जो वीडियो विफल हुआ, वह इस हफ़्ते की पोस्ट में नहीं गिना जाता।",
+  "highlights_deleteTextGuardian": "यह सबके लिए हट जाता है — {name} की प्रोफ़ाइल से भी — और इसकी फ़ाइलें मिट जाती हैं। इसे वापस नहीं किया जा सकता।",
+  "@highlights_deleteTextGuardian": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_deleted": "हाइलाइट हटा दिया गया",
+  "highlights_deleteFailed": "हाइलाइट हटाया नहीं जा सका।",
+  "highlights_play": "चलाएँ",
+  "highlights_soundOn": "आवाज़ चालू करें",
+  "highlights_soundOff": "आवाज़ बंद करें",
+  "highlights_videoCantPlay": "यह वीडियो चलाया नहीं जा सका।",
+  "highlights_photoAlt": "फ़ोटो {n} / {total} — {name}",
+  "@highlights_photoAlt": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      },
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoCount": "फ़ोटो {n} / {total}",
+  "@highlights_photoCount": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_previousPhoto": "पिछली फ़ोटो",
+  "highlights_nextPhoto": "अगली फ़ोटो",
+  "highlights_processingTitle": "आपका वीडियो प्रोसेस हो रहा है",
+  "highlights_processingText": "तैयार होने तक यह सिर्फ़ आपको दिखता है। यह पेज अपने-आप अपडेट होता रहता है — और आपको यहाँ रुकना ज़रूरी नहीं: प्रोसेसिंग आपके बिना भी चलती रहती है, और भीड़ के समय थोड़ा वक़्त ले सकती है।",
+  "highlights_failedTitle": "यह वीडियो पब्लिश नहीं हो सका",
+  "highlights_failedText": "प्रोसेस करते समय कुछ गड़बड़ हो गई।",
+  "highlights_failedNote": "यह इस हफ़्ते की पोस्ट में नहीं गिना जाता। अगर आप इसे यहीं छोड़ देते हैं, तो 7 दिन बाद यह अपने-आप हट जाता है।",
+  "highlights_failedPostAgain": "दोबारा पोस्ट करें",
+  "highlights_failedDelete": "इसे हटाएँ",
+  "highlights_takenDownTitle": "SportPadi ने यह वीडियो हटा दिया",
+  "highlights_takenDownText": "SportPadi की जाँच में इस वीडियो में समस्या मिली, इसलिए यह अब नहीं दिखाया जा रहा। अगर आपने यहाँ कुछ ऐसा देखा जो आपको परेशान करता है, तो आप अब भी इसकी रिपोर्ट कर सकते हैं।",
+  "highlights_takenDownTextPlain": "SportPadi की जाँच में इस वीडियो में समस्या मिली, इसलिए यह अब नहीं दिखाया जा रहा।",
+  "highlights_commentsTitle": "{count, plural, =0{कमेंट} one{{count} कमेंट} other{{count} कमेंट}}",
+  "@highlights_commentsTitle": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_commentsDescription": "इस हाइलाइट पर कमेंट, पहले के पहले।",
+  "highlights_commentsEmpty": "अभी कोई कमेंट नहीं। सबसे पहले कुछ कहें।",
+  "highlights_commentsLoadFailed": "कमेंट लोड नहीं हो सके।",
+  "highlights_commentsMore": "और कमेंट दिखाएँ",
+  "highlights_commentLabel": "कमेंट जोड़ें",
+  "highlights_commentPlaceholder": "कमेंट जोड़ें…",
+  "highlights_commentSend": "कमेंट भेजें",
+  "highlights_commentDelete": "कमेंट हटाएँ",
+  "highlights_commentDeleteTitle": "यह कमेंट हटाएँ?",
+  "highlights_commentDeleteText": "यह सबके लिए हट जाता है। इसे वापस नहीं किया जा सकता।",
+  "highlights_commentReport": "कमेंट रिपोर्ट करें",
+  "highlights_charCount": "{count} / {max}",
+  "@highlights_charCount": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportTitle": "इस हाइलाइट की रिपोर्ट करें",
+  "highlights_reportCommentTitle": "इस कमेंट की रिपोर्ट करें",
+  "highlights_reportIntro": "यह SportPadi टीम के पास जाती है, जो इसकी समीक्षा करती है।",
+  "highlights_reportWhatsWrong": "क्या गड़बड़ है?",
+  "highlights_reasonInappropriate": "अनुचित",
+  "highlights_reasonHarassment": "उत्पीड़न या धमकाना",
+  "highlights_reasonSpam": "स्पैम",
+  "highlights_reasonChildSafety": "बच्चे की सुरक्षा से जुड़ी चिंता",
+  "highlights_reasonNotMe": "इसमें मैं हूँ और मुझे यह यहाँ नहीं चाहिए",
+  "highlights_reasonOther": "कुछ और",
+  "highlights_reportNoteLabel": "और कुछ? (वैकल्पिक)",
+  "highlights_reportNotePlaceholder": "ऐसी जानकारी जोड़ें जिससे समीक्षा में मदद मिले",
+  "highlights_reportNoteTooLong": "{max} अक्षरों से कम रखें।",
+  "@highlights_reportNoteTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportChildSafetyNote": "अगर कोई बच्चा तुरंत खतरे में है, तो पहले अपने इलाके की इमरजेंसी सेवाओं से संपर्क करें।",
+  "highlights_reportSend": "रिपोर्ट भेजें",
+  "highlights_reportSent": "रिपोर्ट करने के लिए धन्यवाद",
+  "highlights_reportSentDetail": "SportPadi टीम इसकी समीक्षा करेगी।",
+  "highlights_statLink": "किसी आँकड़े से जोड़ें",
+  "highlights_statChange": "जुड़ा आँकड़ा बदलें",
+  "highlights_statRemove": "आँकड़े का लिंक हटाएँ",
+  "highlights_statRemoveWard": "{name} से अलग करें",
+  "@highlights_statRemoveWard": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinkSaved": "आँकड़े से जोड़ दिया",
+  "highlights_statLinkRemoved": "आँकड़े का लिंक हट गया",
+  "highlights_statLinkFailed": "जुड़ा आँकड़ा बदला नहीं जा सका।",
+  "highlights_statSheetTitle": "किसी आँकड़े से जोड़ें",
+  "highlights_statSheetText": "वह पल चुनें जो यह हाइलाइट दिखाता है। यह मैच पर और खिलाड़ी की प्रोफ़ाइल पर दिखता है।",
+  "highlights_statsEmptyTitle": "अभी जोड़ने के लिए कोई आँकड़ा नहीं",
+  "highlights_statsEmptyText": "किसी मैच में आपके लिए दर्ज हुए गोल, असिस्ट और दूसरे आँकड़े यहाँ दिखेंगे।",
+  "highlights_statsLoadFailed": "आपके आँकड़े लोड नहीं हो सके।",
+  "highlights_statsMore": "और दिखाएँ",
+  "highlights_statFor": "{name} के लिए",
+  "@highlights_statFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinked": "जुड़ा हुआ",
+  "highlights_statTaken": "इस पर हाइलाइट है",
+  "highlights_statTakenMine": "इस पर आपका हाइलाइट है",
+  "highlights_statOptionalTitle": "किसी आँकड़े से जोड़ें",
+  "highlights_statOptionalText": "वैकल्पिक — इसे उस गोल, असिस्ट या आँकड़े से जोड़ दें जो यह दिखाता है।",
+  "highlights_statLinkedHint": "मैच पर और आपकी प्रोफ़ाइल पर दिखता है।",
+  "highlights_statPreselectMissed": "उस आँकड़े पर अभी हाइलाइट नहीं जोड़ा जा सकता। कोई दूसरा चुनें, या बिना आँकड़े के पोस्ट करें।",
+  "highlights_statGoneKept": "वह आँकड़ा मैच से हटा दिया गया है, इसलिए लिंक हट गया। आपकी फ़ाइलें अपलोड हो चुकी हैं — बिना आँकड़े के पोस्ट करने के लिए फिर कोशिश करें दबाएँ, या पहले कोई दूसरा आँकड़ा चुनें।",
+  "highlights_wardLinkTitle": "यह हाइलाइट किसके बारे में है, वह बदलें?",
+  "highlights_wardLinkText": "अभी यह हाइलाइट {name} के बारे में है, और इसे सिर्फ़ वही लोग देख सकते हैं जो {name} की प्रोफ़ाइल देख सकते हैं। आगे बढ़ने पर यह आपकी पोस्ट बन जाएगा — जो आपकी प्रोफ़ाइल देख सकने वाले सभी लोगों को, फ़ॉलोइंग और खोजें में दिखेगा।",
+  "@highlights_wardLinkText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextOther": "अभी यह हाइलाइट {name} के बारे में है, और इसे सिर्फ़ वही लोग देख सकते हैं जो {name} की प्रोफ़ाइल देख सकते हैं। आगे बढ़ने पर यह {other} के बारे में हो जाएगा — और उन लोगों को दिखेगा जो {other} की प्रोफ़ाइल देख सकते हैं।",
+  "@highlights_wardLinkTextOther": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      },
+      "other": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextInto": "अभी यह हाइलाइट आपके बारे में है। आगे बढ़ने पर यह {name} का हाइलाइट बन जाएगा: यह {name} की प्रोफ़ाइल और मैच पर चला जाएगा, और उन लोगों को दिखेगा जो {name} की प्रोफ़ाइल देख सकते हैं।",
+  "@highlights_wardLinkTextInto": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkConfirm": "हाँ, आगे बढ़ें",
+  "highlights_statChoose": "चुनें",
+  "highlights_statChangeShort": "बदलें",
+  "highlights_newTitle": "नया हाइलाइट",
+  "highlights_quotaErrorTitle": "आपकी बची हुई पोस्ट जाँची नहीं जा सकीं",
+  "highlights_quotaLeft": "{count, plural, =0{इस हफ़्ते कोई पोस्ट बाकी नहीं।} one{इस हफ़्ते {count} पोस्ट बाकी है।} other{इस हफ़्ते {count} पोस्ट बाकी हैं।}}",
+  "@highlights_quotaLeft": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_quotaRule": "{days, plural, one{हर {days} दिन में} other{हर {days} दिन में}} {limit, plural, one{आप {limit} हाइलाइट पोस्ट कर सकते हैं} other{आप {limit} हाइलाइट पोस्ट कर सकते हैं}}।",
+  "@highlights_quotaRule": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedPausedTitle": "पोस्ट करना रोका गया है",
+  "highlights_blockedPausedText": "हाइलाइट पोस्ट करना अभी रोका गया है। आप देख सकते हैं, लाइक और कमेंट कर सकते हैं।",
+  "highlights_blockedLimitTitle": "आपने इस हफ़्ते की पोस्ट इस्तेमाल कर लीं",
+  "highlights_blockedLimitText": "{days, plural, one{हर {days} दिन में} other{हर {days} दिन में}} {limit, plural, one{आप {limit} हाइलाइट पोस्ट कर सकते हैं, और आपने वह इस्तेमाल कर लिया} other{आप {limit} हाइलाइट पोस्ट कर सकते हैं, और आपने सब इस्तेमाल कर लिए}}।",
+  "@highlights_blockedLimitText": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedLimitTextUntil": "{days, plural, one{हर {days} दिन में} other{हर {days} दिन में}} {limit, plural, one{आप {limit} हाइलाइट पोस्ट कर सकते हैं, और आपने वह इस्तेमाल कर लिया} other{आप {limit} हाइलाइट पोस्ट कर सकते हैं, और आपने सब इस्तेमाल कर लिए}}। आप {when} से फिर पोस्ट कर सकते हैं।",
+  "@highlights_blockedLimitTextUntil": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      },
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_blockedOtherTitle": "आप अभी पोस्ट नहीं कर सकते",
+  "highlights_blockedOtherText": "आपके खाते पर हाइलाइट पोस्ट करना इस समय उपलब्ध नहीं है।",
+  "highlights_videoBlockedDaily": "आपने आज बहुत वीडियो पोस्ट किए हैं, इसलिए कल तक वीडियो बंद है। फ़ोटो आप अब भी पोस्ट कर सकते हैं।",
+  "highlights_videoBlockedDailyUntil": "आपने आज बहुत वीडियो पोस्ट किए हैं। {when} से आप एक और पोस्ट कर सकते हैं — तब तक फ़ोटो पोस्ट कर सकते हैं।",
+  "@highlights_videoBlockedDailyUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoBlockedProcessing": "आपके पिछले वीडियो अभी प्रोसेस हो रहे हैं। वे पूरे होने पर आप एक और पोस्ट कर सकते हैं — तब तक फ़ोटो पोस्ट कर सकते हैं।",
+  "highlights_videoBlockedOther": "आप अभी वीडियो पोस्ट नहीं कर सकते। फ़ोटो आप अब भी पोस्ट कर सकते हैं।",
+  "highlights_videoBlockedRecheck": "फिर जाँचें",
+  "highlights_pickVideo": "वीडियो",
+  "highlights_pickVideoHint": "एक क्लिप, {seconds} सेकंड और {max} MB तक (MP4, MOV या WebM)",
+  "@highlights_pickVideoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pickPhotos": "फ़ोटो",
+  "highlights_pickPhotosHint": "{max} फ़ोटो तक, बग़ल में स्वाइप करके",
+  "@highlights_pickPhotosHint": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_preparing": "आपकी फ़ाइलें तैयार हो रही हैं…",
+  "highlights_videoTypeRefused": "यह फ़ाइल टाइप नहीं चलेगा। MP4, MOV या WebM वीडियो चुनें।",
+  "highlights_videoTooLarge": "यह वीडियो {size} MB का है। सीमा {max} MB है — इसे छोटा करें या कम क्वालिटी में एक्सपोर्ट करें, फिर कोशिश करें।",
+  "@highlights_videoTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoTooLong": "यह वीडियो {seconds} सेकंड लंबा है। हाइलाइट {max} सेकंड तक का हो सकता है — इसे छोटा करें और फिर कोशिश करें।",
+  "@highlights_videoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoNoPreview": "यह ब्राउज़र इस वीडियो का प्रीव्यू नहीं दिखा सकता। आप इसे पोस्ट कर सकते हैं — अपलोड के बाद इसकी जाँच होती है।",
+  "highlights_videoSeconds": "{seconds} सेकंड",
+  "@highlights_videoSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_fileMb": "{size} MB",
+  "@highlights_fileMb": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_replace": "बदलें",
+  "highlights_remove": "हटाएँ",
+  "highlights_photosCount": "{count, plural, one{{count} फ़ोटो} other{{count} फ़ोटो}} · {max} तक",
+  "@highlights_photosCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoNumber": "फ़ोटो {n}",
+  "@highlights_photoNumber": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_removePhoto": "फ़ोटो {n} हटाएँ",
+  "@highlights_removePhoto": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_addPhotos": "फ़ोटो जोड़ें",
+  "highlights_photosUnreadable": "{count, plural, one{{count} फ़ोटो पढ़ी नहीं जा सकी और छोड़ दी गई।} other{{count} फ़ोटो पढ़ी नहीं जा सकीं और छोड़ दी गईं।}}",
+  "@highlights_photosUnreadable": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosTooMany": "एक हाइलाइट में {max} फ़ोटो तक हो सकती हैं। बाकी छोड़ दी गईं।",
+  "@highlights_photosTooMany": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoTooLarge": "आकार घटाने के बाद भी एक फ़ोटो {max} MB से ऊपर है। कोई दूसरी आज़माएँ।",
+  "@highlights_photoTooLarge": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoUnreadable": "एक फ़ोटो पढ़ी नहीं जा सकी। कोई दूसरी आज़माएँ।",
+  "highlights_captionLabel": "कैप्शन",
+  "highlights_captionPlaceholder": "बताएँ क्या हुआ (वैकल्पिक)",
+  "highlights_privacyNote": "फ़ोटो अपलोड से पहले इसी डिवाइस पर दोबारा सेव होती हैं, और वीडियो किसी और को दिखने से पहले SportPadi उसे फिर से एनकोड करता है — इसलिए दोनों में लोकेशन या कैमरे की जानकारी नहीं जाती।",
+  "highlights_uploading": "अपलोड हो रहा है… {percent}%",
+  "@highlights_uploading": {
+    "placeholders": {
+      "percent": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_posting": "पोस्ट हो रहा है…",
+  "highlights_uploadFailed": "अपलोड पूरा नहीं हुआ। अपना कनेक्शन जाँचें और फिर कोशिश करें।",
+  "highlights_uploadStalled": "अपलोड आगे नहीं बढ़ रहा था, इसलिए रोक दिया गया। अपना कनेक्शन जाँचें और फिर कोशिश करें — जो फ़ाइलें अपलोड हो चुकी थीं, वे दोबारा नहीं भेजी जातीं।",
+  "highlights_createNoAnswer": "हमें कोई जवाब नहीं मिला, इसलिए हम नहीं बता सकते कि आपका हाइलाइट पोस्ट हुआ या नहीं। फिर कोशिश करें दबाएँ: अगर वह चला गया था, तो आपको वही पोस्ट मिलेगी, दूसरी नहीं।",
+  "highlights_postedThenRemoved": "आपकी पिछली कोशिश में यह हाइलाइट पोस्ट हो गया था, और वह पोस्ट उसके बाद हटा दी गई। इसे नई पोस्ट के रूप में डालने के लिए फिर कोशिश करें दबाएँ।",
+  "highlights_uploadCancel": "अपलोड रद्द करें",
+  "highlights_leaveTitle": "अपलोड रोककर बाहर जाएँ?",
+  "highlights_leaveText": "आपका हाइलाइट अभी पोस्ट नहीं हुआ है। अगर आप अभी चले जाते हैं तो अपलोड रुक जाएगा और आपको फिर से शुरू करना पड़ेगा।",
+  "highlights_leaveStay": "अपलोड जारी रखें",
+  "highlights_leaveGo": "बाहर जाएँ",
+  "highlights_leaveTitlePosting": "पोस्ट होते समय बाहर जाएँ?",
+  "highlights_leaveTextPosting": "आपकी फ़ाइलें अपलोड हो चुकी हैं और हाइलाइट पोस्ट हो रहा है — हो सकता है वह पहले से लग गया हो। अभी जाने पर आप देख नहीं पाएँगे कि हुआ या नहीं: इसे फ़ॉलोइंग में या अपनी प्रोफ़ाइल पर देखें।",
+  "highlights_leaveStayPosting": "यहीं रहें",
+  "highlights_posted": "हाइलाइट पोस्ट हो गया",
+  "highlights_postedProcessing": "अपलोड हो गया — आपका वीडियो प्रोसेस हो रहा है",
+  "highlights_postedEarlierTry": "आपकी पिछली कोशिश पहले ही पूरी हो गई थी: यह वही पोस्ट है, उसके बाद किए बदलावों के बिना। अगर वे चाहिए, तो इसे हटाकर दोबारा पोस्ट करें — इसमें इस हफ़्ते की एक और पोस्ट लगेगी।",
+  "highlights_gridOpenVideo": "वीडियो हाइलाइट",
+  "highlights_gridOpenPhotos": "{count, plural, one{फ़ोटो हाइलाइट} other{फ़ोटो हाइलाइट, {count} फ़ोटो}}",
+  "@highlights_gridOpenPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_gridProcessing": "प्रोसेस हो रहा है",
+  "highlights_gridFailed": "विफल",
+  "highlights_gridLoadFailed": "हाइलाइट लोड नहीं हो सके।",
+  "highlights_groupPostsTitle": "उनके ग्रुप से",
+  "highlights_profileEmptyMineTitle": "अभी कोई हाइलाइट नहीं",
+  "highlights_profileEmptyMineText": "अपने बेहतरीन पलों का वीडियो या फ़ोटो पोस्ट करें — और उन्हें उस आँकड़े से जोड़ दें जो वे दिखाते हैं।",
+  "highlights_badgeWatch": "{name} का हाइलाइट देखें",
+  "@highlights_badgeWatch": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_badgeAdd": "इस आँकड़े के लिए हाइलाइट जोड़ें",
+  "highlights_badgeAddFor": "{name} के लिए हाइलाइट जोड़ें",
+  "@highlights_badgeAddFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_newPost": "नया हाइलाइट",
+  "highlights_post": "हाइलाइट पोस्ट करें",
+  "highlights_couldntLoad": "हाइलाइट लोड नहीं हो सके।",
+  "highlights_couldntLoadMore": "और हाइलाइट लोड नहीं हो सके।",
+  "highlights_couldntLoadOne": "यह हाइलाइट लोड नहीं हो सका।",
+  "highlights_couldntLoadAllowance": "आप कितने हाइलाइट पोस्ट कर सकते हैं, यह जाँचा नहीं जा सका।",
+  "highlights_couldntLoadStats": "आँकड़े लोड नहीं हो सके।",
+  "highlights_couldntLoadComments": "कमेंट लोड नहीं हो सके।",
+  "highlights_couldntLike": "आपका लाइक सेव नहीं हो सका।",
+  "highlights_couldntChangeLink": "जुड़ा आँकड़ा बदला नहीं जा सका।",
+  "highlights_couldntDelete": "हाइलाइट हटाया नहीं जा सका।",
+  "highlights_couldntPost": "आपका हाइलाइट पोस्ट नहीं हो सका।",
+  "highlights_notFound": "हाइलाइट नहीं मिला।",
+  "highlights_cantShowTitle": "यह हाइलाइट दिखाया नहीं जा सकता",
+  "highlights_cantShowBody": "हो सकता है इसे हटा दिया गया हो, या यह सिर्फ़ कुछ लोगों को दिखता हो।",
+  "highlights_deleteBody": "यह सबके लिए हट जाता है, इसके लाइक और कमेंट के साथ। इसे वापस नहीं किया जा सकता।",
+  "highlights_linkToStat": "किसी आँकड़े से जोड़ें",
+  "highlights_changeStat": "जुड़ा आँकड़ा बदलें",
+  "highlights_removeStat": "जुड़ा आँकड़ा हटाएँ",
+  "highlights_linkHint": "वैकल्पिक — इसे उस गोल, असिस्ट या आँकड़े से जोड़ दें जो यह दिखाता है।",
+  "highlights_linkSaved": "आँकड़े से जोड़ दिया।",
+  "highlights_linkRemoved": "लिंक हटा दिया गया।",
+  "highlights_pickStatTitle": "यह कौन सा आँकड़ा दिखाता है?",
+  "highlights_pickStatSubtitle": "रेफ़री वाले मैचों के हाल के आँकड़े। किसी आँकड़े में शामिल हर खिलाड़ी उस पर एक हाइलाइट जोड़ सकता है।",
+  "highlights_myStats": "मेरे आँकड़े",
+  "highlights_noStatsYet": "अभी जोड़ने के लिए कोई आँकड़ा नहीं। जिस मैच में गोल, असिस्ट या कोई दूसरा आँकड़ा दर्ज होता है, उसके बाद वे यहाँ दिखते हैं।",
+  "highlights_noStatsFoundSoFar": "अब तक कुछ नहीं मिला।",
+  "highlights_keepLooking": "और देखें",
+  "highlights_statTakenByYou": "आपका दूसरा हाइलाइट",
+  "highlights_reportSubtitle": "रिपोर्ट SportPadi टीम के पास जाती हैं, जो उनकी समीक्षा करती है।",
+  "highlights_reportNoteHint": "हमें कुछ और बताना है? (वैकल्पिक)",
+  "highlights_cantPlay": "यह वीडियो अभी चलाया नहीं जा सकता।",
+  "highlights_processing": "आपका वीडियो अभी तैयार हो रहा है। तैयार होने पर यह यहीं चलेगा।",
+  "highlights_failed": "यह वीडियो प्रोसेस नहीं हो सका।",
+  "highlights_aboutPerson": "{name} के बारे में",
+  "@highlights_aboutPerson": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_commentsCount": "{count, plural, one{{count} कमेंट} other{{count} कमेंट}}",
+  "@highlights_commentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_noCommentsYet": "अभी कोई कमेंट नहीं। सबसे पहले आप कहें।",
+  "highlights_moreComments": "और कमेंट दिखाएँ",
+  "highlights_commentsWhenReady": "वीडियो तैयार होने पर कमेंट खुल जाते हैं।",
+  "highlights_followingEmptyBody": "आप जिन खिलाड़ियों को फ़ॉलो करते हैं उनके हाइलाइट, आपके खुद के साथ, यहाँ दिखेंगे।",
+  "highlights_openDiscover": "खोजें में देखें",
+  "highlights_discoverEmptyBody": "पहला पोस्ट करने वाले बनें।",
+  "highlights_noneFoundSoFar": "अब तक कुछ नहीं मिला",
+  "highlights_gridEmptyMine": "अभी कोई हाइलाइट नहीं। हाइलाइट्स टैब से एक पोस्ट करें।",
+  "highlights_watchHighlight": "हाइलाइट देखें",
+  "highlights_allowance": "हर {days} दिन में {limit} में से {remaining, plural, one{{remaining} पोस्ट बाकी} other{{remaining} पोस्ट बाकी}}",
+  "@highlights_allowance": {
+    "placeholders": {
+      "remaining": {
+        "type": "num"
+      },
+      "limit": {
+        "type": "Object"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitTitle": "अभी के लिए आपने अपने हाइलाइट इस्तेमाल कर लिए",
+  "highlights_limitBody": "{limit, plural, one{हर {days} दिन में आप {limit} हाइलाइट पोस्ट कर सकते हैं, और आपने वह इस्तेमाल कर लिया।} other{हर {days} दिन में आप {limit} हाइलाइट पोस्ट कर सकते हैं, और आपने सब इस्तेमाल कर लिए।}}",
+  "@highlights_limitBody": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitNext": "आप {when} से फिर पोस्ट कर सकते हैं।",
+  "@highlights_limitNext": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pausedTitle": "पोस्ट करना रोका गया है",
+  "highlights_pausedBody": "हाइलाइट पोस्ट करना अभी रोका गया है। आप देख सकते हैं, लाइक और कमेंट कर सकते हैं।",
+  "highlights_blockedTitle": "आप अभी पोस्ट नहीं कर सकते",
+  "highlights_blockedBody": "आपके खाते के लिए हाइलाइट पोस्ट करना इस समय उपलब्ध नहीं है।",
+  "highlights_chooseVideo": "वीडियो चुनें",
+  "highlights_recordVideo": "वीडियो रिकॉर्ड करें",
+  "highlights_choosePhotos": "फ़ोटो चुनें",
+  "highlights_videoHint": "{seconds, plural, one{{seconds} सेकंड तक} other{{seconds} सेकंड तक}}",
+  "@highlights_videoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosHint": "{count, plural, one{एक पोस्ट में {count} फ़ोटो} other{एक पोस्ट में {count} फ़ोटो तक}}",
+  "@highlights_photosHint": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_chooseAnother": "दूसरा चुनें",
+  "highlights_captionHint": "इसके बारे में कुछ कहें (वैकल्पिक)",
+  "highlights_preparingVideo": "आपका वीडियो तैयार हो रहा है…",
+  "highlights_preparingPhotos": "आपकी फ़ोटो तैयार हो रही हैं…",
+  "highlights_preparingNote": "यह आपके फ़ोन पर होता है, कुछ भी अपलोड होने से पहले। फ़ाइल में सेव लोकेशन की जानकारी हटा दी जाती है।",
+  "highlights_videoReady": "वीडियो तैयार",
+  "highlights_pickFailed": "वह खुल नहीं सका। अपने फ़ोन की सेटिंग्स में जाँचें कि SportPadi कैमरा और आपकी फ़ोटो इस्तेमाल कर सकता है।",
+  "highlights_appPhotoTooLarge": "वह फ़ोटो बहुत बड़ी है, छोटा करने के बाद भी।",
+  "highlights_videoBusy": "एक और वीडियो अभी तैयार हो रहा है। ज़रा रुकें।",
+  "highlights_appVideoTooLong": "{seconds, plural, one{वीडियो {seconds} सेकंड तक लंबा हो सकता है।} other{वीडियो {seconds} सेकंड तक लंबा हो सकता है।}}",
+  "@highlights_appVideoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_videoFailed": "वह वीडियो इस फ़ोन पर तैयार नहीं हो सका। कोई दूसरा आज़माएँ।",
+  "highlights_appEncoderStuck": "इस फ़ोन का वीडियो टूल जवाब देना बंद कर चुका है, इसलिए SportPadi कोई और वीडियो तैयार नहीं कर सकता। ऐप को पूरी तरह बंद करें और फिर खोलें।",
+  "highlights_appVideoTooLarge": "वह वीडियो पोस्ट करने के लिए बहुत बड़ा है, कंप्रेस करने के बाद भी। कोई छोटा आज़माएँ।",
+  "highlights_subjectChangeTitle": "यह हाइलाइट किसके बारे में है, वह बदलें?",
+  "highlights_subjectChangeBody": "अभी यह {from} के बारे में है, और जो {from} की प्रोफ़ाइल देख सकता है वही इसे देख सकता है। इसके बाद यह {to} के बारे में होगा, और जो {to} की प्रोफ़ाइल देख सकता है वही इसे देख सकेगा।",
+  "@highlights_subjectChangeBody": {
+    "placeholders": {
+      "from": {
+        "type": "Object"
+      },
+      "to": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_subjectChangeConfirm": "हाँ, बदलें",
+  "highlights_appDeleteBodyFailed": "यह हमेशा के लिए हट जाता है। इसे वापस नहीं किया जा सकता।",
+  "highlights_appDeleteKeepsPlace": "यह अब भी इस हफ़्ते की आपकी एक पोस्ट में गिना जाता है — हटाने से जगह खाली नहीं होती।",
+  "highlights_appDiscardTitle": "यह हाइलाइट छोड़ दें?",
+  "highlights_appDiscardBody": "आपने यहाँ जो तैयार किया है, वह न पोस्ट होगा न सेव।",
+  "highlights_appDiscardKeep": "जारी रखें",
+  "highlights_appDiscardConfirm": "छोड़ दें",
+  "highlights_appStatGoneWardKept": "वह आँकड़ा मैच से हटा दिया गया है। आपकी फ़ाइलें अपलोड हो चुकी हैं, और लिंक अभी भी बना हुआ है — इस खिलाड़ी का कोई दूसरा आँकड़ा चुनें, या लिंक हटा दें और इसे अपने खुद के हाइलाइट के तौर पर पोस्ट करें।",
+  "highlights_appStatGoneKept": "वह आँकड़ा मैच से हटा दिया गया है, इसलिए लिंक हट गया। आपकी फ़ाइलें अपलोड हो चुकी हैं — बिना आँकड़े के पोस्ट करने के लिए फिर से हाइलाइट पोस्ट करें दबाएँ, या पहले कोई दूसरा आँकड़ा चुनें।",
+  "highlights_appUploadStalled": "अपलोड आगे नहीं बढ़ रहा। अपना कनेक्शन जाँचें और फिर कोशिश करें।",
+  "highlights_appVideoDailyLimit": "आपने आज बहुत वीडियो पोस्ट किए हैं। कल कोशिश करें।",
+  "highlights_appVideoDailyLimitUntil": "आपने आज बहुत वीडियो पोस्ट किए हैं। {when} से आप एक और पोस्ट कर सकते हैं।",
+  "@highlights_appVideoDailyLimitUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_appVideoWaitProcessing": "आपके वीडियो पहले से प्रोसेस हो रहे हैं। उनके पूरे होने का इंतज़ार करें, फिर कोशिश करें।",
+  "highlights_appVideoUnavailable": "अभी वीडियो पोस्ट नहीं किए जा सकते।",
+  "highlights_appPhotosStillOk": "फ़ोटो आप अब भी पोस्ट कर सकते हैं।",
+  "highlights_appKeepOpen": "SportPadi बैकग्राउंड में था, तभी यह रुक गया। पूरा होने तक ऐप स्क्रीन पर खुला रखें और फिर कोशिश करें।",
+  "highlights_appLostVideoTitle": "पहले का वीडियो इस्तेमाल करें?",
+  "highlights_appLostVideoBody": "यह वीडियो किसी हाइलाइट में जुड़ने से पहले SportPadi बंद हो गया था।",
+  "highlights_appLostVideoUse": "इसे इस्तेमाल करें"
 }
