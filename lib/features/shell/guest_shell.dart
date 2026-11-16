@@ -95,10 +95,15 @@ class _GuestShellState extends ConsumerState<GuestShell> {
     final p = context.palette;
     return Scaffold(
       backgroundColor: p.bg,
+      // The dock floats here too, and the tab runs on behind it: the same
+      // bargain as the member shell (home_shell.dart).
+      extendBody: true,
       body: _tab(index),
       // The member dock (2026), with Sign in as its third button.
-      bottomNavigationBar: ColoredBox(
-        color: p.bg,
+      bottomNavigationBar: Listener(
+        // Opaque to hit tests, or every tap that misses a 48px dock button
+        // inside the 64px pill reaches the tab behind it (home_shell.dart).
+        behavior: HitTestBehavior.opaque,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -132,7 +137,7 @@ class _GuestShellState extends ConsumerState<GuestShell> {
                 ),
               ],
             ),
-            SizedBox(height: MediaQuery.paddingOf(context).bottom),
+            SizedBox(height: SpDock.insetBelow(context)),
           ],
         ),
       ),

@@ -1,7 +1,7 @@
 name: sportpadi_mobile
 description: sportpadi — native mobile client (Flutter).
 publish_to: "none"
-version: 1.3.61+59
+version: 1.3.62+60
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -43,6 +43,16 @@ dependencies:
   # Foreground pushes on Android are shown as system notifications with this.
   flutter_local_notifications: ">=17.0.0 <21.0.0"
   image_picker: ^1.1.2
+  # Highlights (reels). A video is compressed ON THE PHONE to 720p H.264 MP4
+  # before upload — the server takes at most 40 MB from the app and does not
+  # convert app uploads — and one frame becomes its poster
+  # (lib/data/highlights/highlight_media.dart).
+  video_compress: ^3.1.3
+  # Highlights: photos and posters are written out as new JPEGs from bare
+  # pixels (pure Dart, no native code), so no EXIF / GPS leaves the phone.
+  image: ^4.2.0
+  # The app's temp folder, for those prepared files.
+  path_provider: ^2.1.4
   url_launcher: ^6.3.0
   # App Store in-app purchase for the group plan. Anything unlocking in-app
   # functionality must be bought this way (App Store guideline 3.1.1); tickets,

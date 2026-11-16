@@ -13,6 +13,7 @@ import 'package:sportpadi_mobile/features/ads/ad_display.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/event_tile.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_dock.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/core/i18n/l10n.dart';
@@ -416,16 +417,20 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   Widget _listBody(AppPalette p) {
     if (_error != null && _items.isEmpty) {
       return PullableState(
+          bottomPadding: SpDock.spaceBelow(context),
           child: _emptyState(
               p, Icons.wifi_off_rounded, context.l10n.browse_couldntLoadEvents, _error!,
               action: SpButton(
                   label: context.l10n.browse_retry, onTap: () => _loadMore(reset: true))));
     }
     if (_items.isEmpty && _loading) {
-      return const PullableState(child: CircularProgressIndicator());
+      return PullableState(
+          bottomPadding: SpDock.spaceBelow(context),
+          child: const CircularProgressIndicator());
     }
     if (_items.isEmpty) {
       return PullableState(
+          bottomPadding: SpDock.spaceBelow(context),
           child: _emptyState(
         p,
         Icons.travel_explore_rounded,
@@ -498,7 +503,9 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 6, 20, 28),
+          // Room for the floating dock the grid now runs behind.
+          padding:
+              EdgeInsets.fromLTRB(20, 6, 20, SpDock.spaceBelowList(context)),
           sliver: SliverMainAxisGroup(slivers: slivers),
         ),
       ],

@@ -236,6 +236,8 @@ class _EventMvpCardState extends ConsumerState<EventMvpCard> {
                 foregroundColor: mine ? const Color(0xFF2B1F05) : p.onHero,
                 disabledBackgroundColor: mine ? _goldDeep : p.surface2,
                 disabledForegroundColor: mine ? const Color(0xFF2B1F05) : p.muted,
+                // The theme's filled buttons are full-width — not in a Row.
+                minimumSize: const Size(0, 38),
                 padding: const EdgeInsets.symmetric(horizontal: 14),
               ),
               onPressed: !canVote || mine || _voting != null ? null : () => _vote(id),

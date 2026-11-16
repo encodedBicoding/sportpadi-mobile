@@ -11,13 +11,79 @@ import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 /// can show the error locally; only a success mutates the global session, which
 /// keeps the router redirect stable.
 class AuthController extends AsyncNotifier<SessionState> {
+  /// A session check that could not REACH the server is asked again, this
+  /// long after each failure. The owner's dev server can take longer than
+  /// `dio_client.dart`'s 20 s receive budget to compile a cold route, and a
+  /// phone that has just woken up has no network for a second or two; both
+  /// answer on the second or third ask. Until one of them does, the session
+  /// is [SessionState.unknown] — never "signed out".
+  static const _recheckDelays = <Duration>[
+    Duration(seconds: 2),
+    Duration(seconds: 6),
+    Duration(seconds: 15),
+  ];
+
+  /// Set when the provider is disposed: a re-check still in flight must not
+  /// touch `state` after that (the idiom LiveGameController uses).
+  bool _closed = false;
+
   @override
   Future<SessionState> build() async {
+    _closed = false;
+    ref.onDispose(() {
+      _closed = true;
+    });
+    final first = await _check();
+    if (!first.isUnknown) return first;
+    // We could not reach the server. Say "don't know" straight away — the
+    // router then leaves the user on the page they asked for instead of
+    // bouncing them — and keep asking behind them, so a slow route turns
+    // into the real session without them doing anything.
+    // ignore: discarded_futures
+    _recheck();
+    return first;
+  }
+
+  /// Ask the server once. [SessionState.unknown] when it could not answer the
+  /// question, which is NOT the same as answering "no session".
+  Future<SessionState> _check() async {
     try {
+      // null means the answer really was "no session": no token to ask with,
+      // or a hard 401 (AuthRepository.currentUser).
       final user = await ref.read(authRepositoryProvider).currentUser();
       return SessionState(user: user);
     } catch (_) {
-      return SessionState.unauthenticated;
+      // Everything currentUser() THROWS is a failure to establish the
+      // session, never an answer about it — a 401 is the one answer it would
+      // have, and that comes back as null above. The transport failures (a
+      // receive timeout, a dead network) carry no status at all
+      // (`ApiException.statusCode` is null for them, core/network/
+      // api_exception.dart); a 5xx or a CDN challenge page carries one but
+      // still never said "signed out", so it is just as unknown. Reading any
+      // of these as a sign-out was the bug: one slow route signed the owner
+      // out of an app that still held a perfectly good token, and the router
+      // moved them off the match they had just opened.
+      return SessionState.unknown;
+    }
+  }
+
+  /// Keep asking, while the answer is still "don't know".
+  Future<void> _recheck() async {
+    for (final wait in _recheckDelays) {
+      await Future<void>.delayed(wait);
+      if (_closed) return;
+      // A sign-in, sign-up or sign-out landed while we waited: that answer is
+      // authoritative and ours is stale.
+      if (state.valueOrNull?.isUnknown != true) return;
+      final next = await _check();
+      if (_closed || state.valueOrNull?.isUnknown != true) return;
+      if (!next.isUnknown) {
+        // AsyncData, never AsyncLoading: the router pins every location to
+        // `/` while auth is loading, so going back to loading mid-session
+        // would drop the user onto the splash screen.
+        state = AsyncData(next);
+        return;
+      }
     }
   }
 

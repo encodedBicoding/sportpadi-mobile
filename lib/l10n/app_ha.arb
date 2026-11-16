@@ -614,6 +614,24 @@
   "common_proFeaturesOfferTerms": "Sharuɗɗan tayin Fasalolin Pro",
   "common_groupNotFound": "Ba a sami ƙungiyar ba.",
   "common_cantReachTheServer": "Ba a iya isa sabar ba.",
+  "common_theServerIsTakingTooLong": "Sabar tana ɗaukar lokaci da yawa.",
+  "common_notFound": "Ba a samu ba.",
+  "common_theServerHadAProblem": "Sabar ta samu matsala ({status}).",
+  "@common_theServerHadAProblem": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
+  "common_theRequestWasRefused": "An ƙi buƙatar ({status}).",
+  "@common_theRequestWasRefused": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
   "common_couldNotLoadGroups": "An kasa loda ƙungiyoyi.",
   "common_teamNotFound": "Ba a sami tawagar ba.",
   "common_couldNotStartThePayment": "An kasa fara biyan.",
@@ -8961,8 +8979,6 @@
   "profile_youreNotInAnyGroups": "Ba ka cikin wata ƙungiya tukuna.",
   "profile_browseGroups": "Bincika ƙungiyoyi",
   "profile_myTournaments": "Gasannina",
-  "profile_highlightsAreComing": "Fitattun lokuta suna zuwa",
-  "profile_yourBestMomentsPhotosAnd": "Mafi kyawun lokutanka — hotuna da gajerun bidiyo daga wasanninka — za su kasance a nan. Nan ba da jimawa ba.",
   "profile_progressAchievements": "Ci gaba & nasarori",
   "profile_myRecords": "Bayanan ƙwazona",
   "profile_yourNumbersSportBySport": "Lambobinka, wasa bayan wasa",
@@ -20287,5 +20303,665 @@
         "type": "Object"
       }
     }
-  }
+  },
+  "highlights_title": "Fitattun lokuta",
+  "highlights_navLabel": "Fitattun lokuta",
+  "highlights_tabFollowing": "Waɗanda kake bi",
+  "highlights_tabDiscover": "Gano",
+  "highlights_postHighlight": "Wallafa fitaccen lokaci",
+  "highlights_seeDiscover": "Duba Gano",
+  "highlights_backToHighlights": "Koma zuwa Fitattun lokuta",
+  "highlights_followingEmptyTitle": "Babu komai a nan tukuna",
+  "highlights_followingEmptyText": "Fitattun lokutan ’yan wasan da kake bi — da naka — za su bayyana a nan. Duba Gano don neman ’yan wasa da za ka bi.",
+  "highlights_discoverEmptyTitle": "Babu fitattun lokuta tukuna",
+  "highlights_discoverEmptyText": "Ka zama na farko da zai wallafa ɗaya.",
+  "highlights_followingEndTitle": "Ka ga kome",
+  "highlights_followingEndText": "Wannan shi ne duk abin da ’yan wasan da kake bi suka wallafa. Akwai ƙari a Gano.",
+  "highlights_discoverEndTitle": "Ka ga kome",
+  "highlights_discoverEndText": "Wannan shi ne duk abin da za ka iya ganin yanzu.",
+  "highlights_feedErrorTitle": "An kasa loda fitattun lokuta",
+  "highlights_feedErrorText": "Duba haɗin intanet ɗinka ka sake gwadawa.",
+  "highlights_feedMoreErrorTitle": "An kasa loda ƙari",
+  "highlights_notFoundTitle": "Ba a samu fitaccen lokacin ba",
+  "highlights_notFoundText": "Wataƙila an goge shi, ko kuma ba ya bayyana a gare ka.",
+  "highlights_goneToast": "Wannan fitaccen lokaci ba ya nan kuma.",
+  "highlights_postBy": "Fitaccen lokaci daga {name}",
+  "@highlights_postBy": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_aboutSubject": "game da <link>{name}</link>",
+  "@highlights_aboutSubject": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statMinute": "{minute}’",
+  "@highlights_statMinute": {
+    "placeholders": {
+      "minute": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statOpenMatch": "Buɗe wasan",
+  "highlights_like": "So",
+  "highlights_unlike": "Cire so",
+  "highlights_likeFailed": "An kasa ajiye son ɗinka.",
+  "highlights_commentsOpen": "{count, plural, =0{Sharhi} one{Sharhi {count}} other{Sharhi {count}}}",
+  "@highlights_commentsOpen": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_share": "Raba",
+  "highlights_shareTitle": "Fitaccen lokacin {name} a SportPadi",
+  "@highlights_shareTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_linkCopied": "An kwafi hanyar haɗi",
+  "highlights_linkCopyFailed": "An kasa kwafi hanyar haɗin.",
+  "highlights_more": "Ƙari",
+  "highlights_menuEmpty": "Babu abin da za ka yi da wannan fitaccen lokaci.",
+  "highlights_report": "Kai rahoto",
+  "highlights_delete": "Goge",
+  "highlights_deleteTitle": "A goge wannan fitaccen lokaci?",
+  "highlights_deleteText": "Zai ɓace ga kowa kuma za a goge fayilolinsa. Ba za a iya mayar da wannan ba, kuma gogewa ba ya mayar maka ɗaya daga cikin wallafe-wallafen wannan makon.",
+  "highlights_deleteTextFailed": "An cire shi gaba ɗaya — ba za a iya mayar da wannan ba. Bidiyon da ya gaza ba a lissafa shi cikin wallafe-wallafen wannan makon.",
+  "highlights_deleteTextGuardian": "Zai ɓace ga kowa — da kuma daga bayanan {name} — kuma za a goge fayilolinsa. Ba za a iya mayar da wannan ba.",
+  "@highlights_deleteTextGuardian": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_deleted": "An goge fitaccen lokacin",
+  "highlights_deleteFailed": "An kasa goge fitaccen lokacin.",
+  "highlights_play": "Kunna",
+  "highlights_soundOn": "Kunna sauti",
+  "highlights_soundOff": "Rufe sauti",
+  "highlights_videoCantPlay": "An kasa kunna wannan bidiyon.",
+  "highlights_photoAlt": "Hoto {n} daga {total} — {name}",
+  "@highlights_photoAlt": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      },
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoCount": "Hoto {n} daga {total}",
+  "@highlights_photoCount": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_previousPhoto": "Hoton da ya gabata",
+  "highlights_nextPhoto": "Hoto na gaba",
+  "highlights_processingTitle": "Ana sarrafa bidiyonka",
+  "highlights_processingText": "Kai kaɗai kake ganinsa har sai ya shirya. Wannan shafin yana sabunta kansa — kuma ba sai ka jira a nan ba: sarrafawar tana ci gaba ba tare da kai, kuma tana iya ɗaukar lokaci idan akwai cunkoso.",
+  "highlights_failedTitle": "An kasa wallafa wannan bidiyon",
+  "highlights_failedText": "Wani abu ya lalace yayin sarrafa shi.",
+  "highlights_failedNote": "Ba a lissafa shi cikin wallafe-wallafen wannan makon. Idan ka bar shi a nan, zai cire kansa bayan kwanaki 7.",
+  "highlights_failedPostAgain": "Sake wallafa shi",
+  "highlights_failedDelete": "Goge shi",
+  "highlights_takenDownTitle": "SportPadi ta cire wannan bidiyon",
+  "highlights_takenDownText": "Dubawar SportPadi ta gano matsala a wannan bidiyon, don haka ba a ƙara nuna shi. Idan ka ga wani abu a nan da ya dame ka, har yanzu za ka iya kai rahoto.",
+  "highlights_takenDownTextPlain": "Dubawar SportPadi ta gano matsala a wannan bidiyon, don haka ba a ƙara nuna shi.",
+  "highlights_commentsTitle": "{count, plural, =0{Sharhi} one{Sharhi {count}} other{Sharhi {count}}}",
+  "@highlights_commentsTitle": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_commentsDescription": "Sharhi kan wannan fitaccen lokaci, na farko tukuna.",
+  "highlights_commentsEmpty": "Babu sharhi tukuna. Ka zama na farko da zai faɗa wani abu.",
+  "highlights_commentsLoadFailed": "An kasa loda sharhin.",
+  "highlights_commentsMore": "Nuna ƙarin sharhi",
+  "highlights_commentLabel": "Ƙara sharhi",
+  "highlights_commentPlaceholder": "Ƙara sharhi…",
+  "highlights_commentSend": "Aika sharhi",
+  "highlights_commentDelete": "Goge sharhi",
+  "highlights_commentDeleteTitle": "A goge wannan sharhin?",
+  "highlights_commentDeleteText": "An cire shi ga kowa. Ba za a iya mayar da wannan ba.",
+  "highlights_commentReport": "Kai rahoton sharhin",
+  "highlights_charCount": "{count} / {max}",
+  "@highlights_charCount": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportTitle": "Kai rahoton wannan fitaccen lokaci",
+  "highlights_reportCommentTitle": "Kai rahoton wannan sharhin",
+  "highlights_reportIntro": "Yana tafiya ga tawagar SportPadi, su kuma za su duba shi.",
+  "highlights_reportWhatsWrong": "Mene ne matsalar?",
+  "highlights_reasonInappropriate": "Bai dace ba",
+  "highlights_reasonHarassment": "Tsangwama ko cin zali",
+  "highlights_reasonSpam": "Spam",
+  "highlights_reasonChildSafety": "Damuwa kan kariyar yaro",
+  "highlights_reasonNotMe": "Ni ne a cikinsa kuma ba na son ya kasance",
+  "highlights_reasonOther": "Wani abu dabam",
+  "highlights_reportNoteLabel": "Akwai wani abu? (na zaɓi)",
+  "highlights_reportNotePlaceholder": "Ƙara bayanan da za su taimaka mana mu duba shi",
+  "highlights_reportNoteTooLong": "Kada ya wuce haruffa {max}.",
+  "@highlights_reportNoteTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportChildSafetyNote": "Idan yaro yana cikin haɗari nan take, tuntuɓi ma’aikatan agajin gaggawa na kusa da kai da farko.",
+  "highlights_reportSend": "Aika rahoto",
+  "highlights_reportSent": "Mun gode da rahoton",
+  "highlights_reportSentDetail": "Tawagar SportPadi za su duba shi.",
+  "highlights_statLink": "Haɗa shi da ƙididdiga",
+  "highlights_statChange": "Canza ƙididdigar da aka haɗa",
+  "highlights_statRemove": "Cire haɗin ƙididdigar",
+  "highlights_statRemoveWard": "Cire haɗinsa da {name}",
+  "@highlights_statRemoveWard": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinkSaved": "An haɗa shi da ƙididdigar",
+  "highlights_statLinkRemoved": "An cire haɗin ƙididdigar",
+  "highlights_statLinkFailed": "An kasa canza ƙididdigar da aka haɗa.",
+  "highlights_statSheetTitle": "Haɗa shi da ƙididdiga",
+  "highlights_statSheetText": "Zaɓi lokacin da wannan fitaccen lokaci ke nunawa. Yana bayyana a wasan da kuma a bayanan ɗan wasan.",
+  "highlights_statsEmptyTitle": "Babu ƙididdiga da za a haɗa tukuna",
+  "highlights_statsEmptyText": "Ƙwallaye, taimako da sauran ƙididdigar da aka rubuta maka a wasa za su bayyana a nan.",
+  "highlights_statsLoadFailed": "An kasa loda ƙididdigarka.",
+  "highlights_statsMore": "Nuna ƙari",
+  "highlights_statFor": "Na {name}",
+  "@highlights_statFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinked": "An haɗa",
+  "highlights_statTaken": "Yana da fitaccen lokaci",
+  "highlights_statTakenMine": "Yana da fitaccen lokacinka",
+  "highlights_statOptionalTitle": "Haɗa shi da ƙididdiga",
+  "highlights_statOptionalText": "Na zaɓi — haɗa shi da ƙwallon, taimakon ko wata ƙididdigar da yake nunawa.",
+  "highlights_statLinkedHint": "Yana bayyana a wasan da kuma a bayananka.",
+  "highlights_statPreselectMissed": "Wannan ƙididdigar ba za ta iya ɗaukar fitaccen lokaci yanzu ba. Zaɓi wata, ko ka wallafa ba tare da ƙididdiga ba.",
+  "highlights_statGoneKept": "An cire wannan ƙididdigar daga wasan, don haka haɗin ya tafi. Fayilolinka har yanzu suna ɗora — taɓa Sake gwadawa don wallafa ba tare da ƙididdiga ba, ko ka fara zaɓar wata.",
+  "highlights_wardLinkTitle": "A canza wanda wannan fitaccen lokaci ya shafa?",
+  "highlights_wardLinkText": "A yanzu wannan fitaccen lokaci game da {name} ne, kuma waɗanda za su iya ganin bayanan {name} kawai ke ganinsa. Idan ka ci gaba, zai zama wallafa game da kai — kowa da zai iya ganin bayananka zai gan shi, a Waɗanda kake bi da kuma Gano.",
+  "@highlights_wardLinkText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextOther": "A yanzu wannan fitaccen lokaci game da {name} ne, kuma waɗanda za su iya ganin bayanan {name} kawai ke ganinsa. Idan ka ci gaba, zai zama game da {other} — waɗanda za su iya ganin bayanan {other} za su gan shi.",
+  "@highlights_wardLinkTextOther": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      },
+      "other": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextInto": "A yanzu wannan fitaccen lokaci game da kai ne. Idan ka ci gaba, zai zama fitaccen lokacin {name}: zai koma bayanan {name} da wasansa, kuma waɗanda za su iya ganin bayanan {name} za su gan shi.",
+  "@highlights_wardLinkTextInto": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkConfirm": "Eh, ci gaba",
+  "highlights_statChoose": "Zaɓi",
+  "highlights_statChangeShort": "Canza",
+  "highlights_newTitle": "Sabon fitaccen lokaci",
+  "highlights_quotaErrorTitle": "An kasa duba abin da ya rage maka",
+  "highlights_quotaLeft": "{count, plural, =0{Babu wallafa da ya rage wannan makon.} one{Wallafa {count} ya rage wannan makon.} other{Wallafe-wallafe {count} sun rage wannan makon.}}",
+  "@highlights_quotaLeft": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_quotaRule": "{limit, plural, one{Za ka iya wallafa fitaccen lokaci {limit} duk} other{Za ka iya wallafa fitattun lokuta {limit} duk}} {days, plural, one{kwana {days}} other{kwanaki {days}}}.",
+  "@highlights_quotaRule": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedPausedTitle": "An dakatar da wallafa",
+  "highlights_blockedPausedText": "An dakatar da wallafa fitattun lokuta a yanzu. Har yanzu za ka iya kallo, so da sharhi.",
+  "highlights_blockedLimitTitle": "Ka yi amfani da wallafe-wallafen wannan makon",
+  "highlights_blockedLimitText": "{limit, plural, one{Za ka iya wallafa fitaccen lokaci {limit} duk} other{Za ka iya wallafa fitattun lokuta {limit} duk}} {days, plural, one{kwana {days}} other{kwanaki {days}}}, {limit, plural, one{kuma ka yi amfani da shi} other{kuma ka yi amfani da su duka}}.",
+  "@highlights_blockedLimitText": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedLimitTextUntil": "{limit, plural, one{Za ka iya wallafa fitaccen lokaci {limit} duk} other{Za ka iya wallafa fitattun lokuta {limit} duk}} {days, plural, one{kwana {days}} other{kwanaki {days}}}, {limit, plural, one{kuma ka yi amfani da shi} other{kuma ka yi amfani da su duka}}. Za ka iya sake wallafa daga {when}.",
+  "@highlights_blockedLimitTextUntil": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      },
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_blockedOtherTitle": "Ba za ka iya wallafa yanzu ba",
+  "highlights_blockedOtherText": "Wallafa fitattun lokuta ba ya samuwa a asusunka a yanzu.",
+  "highlights_videoBlockedDaily": "Ka wallafa bidiyo da yawa yau, don haka bidiyo ya tsaya har gobe. Har yanzu za ka iya wallafa hotuna.",
+  "highlights_videoBlockedDailyUntil": "Ka wallafa bidiyo da yawa yau. Za ka iya wallafa wani daga {when} — kafin nan, har yanzu za ka iya wallafa hotuna.",
+  "@highlights_videoBlockedDailyUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoBlockedProcessing": "Ana sarrafa bidiyonka na baya har yanzu. Idan suka ƙare za ka iya wallafa wani — kafin nan, har yanzu za ka iya wallafa hotuna.",
+  "highlights_videoBlockedOther": "Ba za ka iya wallafa bidiyo yanzu ba. Har yanzu za ka iya wallafa hotuna.",
+  "highlights_videoBlockedRecheck": "Sake dubawa",
+  "highlights_pickVideo": "Bidiyo",
+  "highlights_pickVideoHint": "Bidiyo ɗaya, har sakan {seconds} da {max} MB (MP4, MOV ko WebM)",
+  "@highlights_pickVideoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pickPhotos": "Hotuna",
+  "highlights_pickPhotosHint": "Har hotuna {max}, da ake share a gefe",
+  "@highlights_pickPhotosHint": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_preparing": "Ana shirya fayilolinka…",
+  "highlights_videoTypeRefused": "Wannan nau’in fayil ba ya aiki. Zaɓi bidiyon MP4, MOV ko WebM.",
+  "highlights_videoTooLarge": "Wannan bidiyon {size} MB ne. Iyakar ita ce {max} MB — ka rage shi ko ka fitar da shi da ƙaramin inganci, sannan sake gwadawa.",
+  "@highlights_videoTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoTooLong": "Wannan bidiyon sakan {seconds} ne. Fitaccen lokaci zai iya kai sakan {max} — ka rage shi ka sake gwadawa.",
+  "@highlights_videoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoNoPreview": "Wannan burauzar ba za ta iya nuna wannan bidiyon tun da farko ba. Har yanzu za ka iya wallafa shi — ana duba shi bayan ɗorawa.",
+  "highlights_videoSeconds": "{seconds} s",
+  "@highlights_videoSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_fileMb": "{size} MB",
+  "@highlights_fileMb": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_replace": "Maye gurbi",
+  "highlights_remove": "Cire",
+  "highlights_photosCount": "{count, plural, one{Hoto {count}} other{Hotuna {count}}} · har {max}",
+  "@highlights_photosCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoNumber": "Hoto {n}",
+  "@highlights_photoNumber": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_removePhoto": "Cire hoto {n}",
+  "@highlights_removePhoto": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_addPhotos": "Ƙara hotuna",
+  "highlights_photosUnreadable": "{count, plural, one{An kasa karanta hoto {count}, an bar shi.} other{An kasa karanta hotuna {count}, an bar su.}}",
+  "@highlights_photosUnreadable": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosTooMany": "Fitaccen lokaci zai iya ɗaukar har hotuna {max}. An bar waɗanda suka wuce.",
+  "@highlights_photosTooMany": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoTooLarge": "Hoto ɗaya har yanzu ya wuce {max} MB bayan rage girmansa. Gwada wani.",
+  "@highlights_photoTooLarge": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoUnreadable": "An kasa karanta ɗaya daga hotunan. Gwada wani.",
+  "highlights_captionLabel": "Bayanin hoto",
+  "highlights_captionPlaceholder": "Faɗa abin da ya faru (na zaɓi)",
+  "highlights_privacyNote": "Ana sake ajiye hotuna a wannan na’urar kafin ɗora su, kuma SportPadi yana sake sarrafa bidiyo kafin kowa ya gan shi — don haka babu ɗaya daga cikinsu da ke ɗauke da bayanan wuri ko kyamara.",
+  "highlights_uploading": "Ana ɗorawa… {percent}%",
+  "@highlights_uploading": {
+    "placeholders": {
+      "percent": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_posting": "Ana wallafawa…",
+  "highlights_uploadFailed": "Ɗorawar ba ta kammala ba. Duba haɗin intanet ɗinka ka sake gwadawa.",
+  "highlights_uploadStalled": "Ɗorawar ta daina tafiya, don haka an tsayar da ita. Duba haɗin intanet ɗinka ka sake gwadawa — fayilolin da suka kammala ɗorawa ba a sake aika su ba.",
+  "highlights_createNoAnswer": "Ba mu samu amsa ba, don haka ba mu san ko an wallafa fitaccen lokacinka ba. Taɓa Sake gwadawa: idan ya shiga, wannan wallafar za ka samu, ba ta biyu ba.",
+  "highlights_postedThenRemoved": "Gwadawarka ta baya ta wallafa wannan fitaccen lokaci, kuma an cire wannan wallafar daga baya. Taɓa Sake gwadawa don wallafa shi a matsayin sabo.",
+  "highlights_uploadCancel": "Soke ɗorawa",
+  "highlights_leaveTitle": "A tsayar da ɗorawa a fita?",
+  "highlights_leaveText": "Ba a wallafa fitaccen lokacinka ba tukuna. Idan ka fita yanzu ɗorawar za ta tsaya, kuma za ka sake fara ta.",
+  "highlights_leaveStay": "Ci gaba da ɗorawa",
+  "highlights_leaveGo": "Fita",
+  "highlights_leaveTitlePosting": "A fita yayin da ake wallafawa?",
+  "highlights_leaveTextPosting": "An ɗora fayilolinka kuma ana wallafa fitaccen lokacinka — wataƙila ya riga ya shiga. Idan ka fita yanzu ba za ka ga ko ya yi aiki ba: nemo shi a Waɗanda kake bi ko a bayananka.",
+  "highlights_leaveStayPosting": "Zama a nan",
+  "highlights_posted": "An wallafa fitaccen lokacin",
+  "highlights_postedProcessing": "An ɗora — ana sarrafa bidiyonka",
+  "highlights_postedEarlierTry": "Gwadawarka ta baya ta riga ta shiga: wannan ita ce wannan wallafar, ba tare da canje-canjen da ka yi daga baya ba. Idan kana bukatarsu, goge ta ka sake wallafa — wannan zai yi amfani da wata wallafa ta wannan makon.",
+  "highlights_gridOpenVideo": "Fitaccen lokaci na bidiyo",
+  "highlights_gridOpenPhotos": "{count, plural, one{Fitaccen lokaci na hoto} other{Fitaccen lokaci na hoto, hotuna {count}}}",
+  "@highlights_gridOpenPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_gridProcessing": "Ana sarrafawa",
+  "highlights_gridFailed": "Ya gaza",
+  "highlights_gridLoadFailed": "An kasa loda fitattun lokuta.",
+  "highlights_groupPostsTitle": "Daga ƙungiyoyinsu",
+  "highlights_profileEmptyMineTitle": "Babu fitattun lokuta tukuna",
+  "highlights_profileEmptyMineText": "Wallafa bidiyo ko hotunan mafi kyawun lokutanka — ka kuma haɗa su da ƙididdigar da suke nunawa.",
+  "highlights_badgeWatch": "Kalli fitaccen lokacin {name}",
+  "@highlights_badgeWatch": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_badgeAdd": "Ƙara fitaccen lokaci ga wannan ƙididdigar",
+  "highlights_badgeAddFor": "Ƙara fitaccen lokaci ga {name}",
+  "@highlights_badgeAddFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_newPost": "Sabon fitaccen lokaci",
+  "highlights_post": "Wallafa fitaccen lokaci",
+  "highlights_couldntLoad": "An kasa loda fitattun lokuta.",
+  "highlights_couldntLoadMore": "An kasa loda ƙarin fitattun lokuta.",
+  "highlights_couldntLoadOne": "An kasa loda wannan fitaccen lokaci.",
+  "highlights_couldntLoadAllowance": "An kasa duba fitattun lokuta nawa za ka iya wallafa.",
+  "highlights_couldntLoadStats": "An kasa loda ƙididdigar.",
+  "highlights_couldntLoadComments": "An kasa loda sharhin.",
+  "highlights_couldntLike": "An kasa ajiye son ɗinka.",
+  "highlights_couldntChangeLink": "An kasa canza ƙididdigar da aka haɗa.",
+  "highlights_couldntDelete": "An kasa goge fitaccen lokacin.",
+  "highlights_couldntPost": "An kasa wallafa fitaccen lokacinka.",
+  "highlights_notFound": "Ba a samu fitaccen lokacin ba.",
+  "highlights_cantShowTitle": "Ba za a iya nuna wannan fitaccen lokaci ba",
+  "highlights_cantShowBody": "Wataƙila an goge shi, ko kuma wasu mutane kaɗai ke ganinsa.",
+  "highlights_deleteBody": "An cire shi ga kowa, tare da son da sharhin da yake da su. Ba za a iya mayar da wannan ba.",
+  "highlights_linkToStat": "Haɗa shi da ƙididdiga",
+  "highlights_changeStat": "Canza ƙididdigar da aka haɗa",
+  "highlights_removeStat": "Cire ƙididdigar da aka haɗa",
+  "highlights_linkHint": "Na zaɓi — haɗa shi da ƙwallon, taimakon ko wata ƙididdigar da yake nunawa.",
+  "highlights_linkSaved": "An haɗa shi da ƙididdigar.",
+  "highlights_linkRemoved": "An cire haɗin.",
+  "highlights_pickStatTitle": "Wace ƙididdiga yake nunawa?",
+  "highlights_pickStatSubtitle": "Ƙididdiga na kwanan nan daga wasannin da aka yi da alƙali. Kowane ɗan wasa a cikin ƙididdiga zai iya ƙara fitaccen lokaci ɗaya a kanta.",
+  "highlights_myStats": "Ƙididdigata",
+  "highlights_noStatsYet": "Babu ƙididdiga da za a haɗa tukuna. Suna bayyana a nan bayan wasan da aka rubuta ƙwallo, taimako ko wata ƙididdiga.",
+  "highlights_noStatsFoundSoFar": "Ba a samu komai har yanzu ba.",
+  "highlights_keepLooking": "Ci gaba da nema",
+  "highlights_statTakenByYou": "Ɗayan fitaccen lokacinka",
+  "highlights_reportSubtitle": "Rahotanni suna tafiya ga tawagar SportPadi, su kuma za su duba su.",
+  "highlights_reportNoteHint": "Akwai abin da ya kamata mu sani? (na zaɓi)",
+  "highlights_cantPlay": "Ba za a iya kunna wannan bidiyon yanzu ba.",
+  "highlights_processing": "Ana shirya bidiyonka har yanzu. Zai kunna a nan da zarar ya shirya.",
+  "highlights_failed": "An kasa sarrafa wannan bidiyon.",
+  "highlights_aboutPerson": "Game da {name}",
+  "@highlights_aboutPerson": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_commentsCount": "{count, plural, one{Sharhi {count}} other{Sharhi {count}}}",
+  "@highlights_commentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_noCommentsYet": "Babu sharhi tukuna. Ka zama na farko.",
+  "highlights_moreComments": "Nuna ƙarin sharhi",
+  "highlights_commentsWhenReady": "Sharhi yana buɗewa da zarar bidiyon ya shirya.",
+  "highlights_followingEmptyBody": "Fitattun lokutan ’yan wasan da kake bi za su bayyana a nan, tare da naka.",
+  "highlights_openDiscover": "Duba a Gano",
+  "highlights_discoverEmptyBody": "Ka zama na farko da zai wallafa ɗaya.",
+  "highlights_noneFoundSoFar": "Ba a samu komai har yanzu ba",
+  "highlights_gridEmptyMine": "Babu fitattun lokuta tukuna. Wallafa ɗaya daga shafin Fitattun lokuta.",
+  "highlights_watchHighlight": "Kalli fitaccen lokacin",
+  "highlights_allowance": "{remaining, plural, one{Wallafa {remaining} ya rage} other{Wallafe-wallafe {remaining} sun rage}} daga {limit} duk kwanaki {days}",
+  "@highlights_allowance": {
+    "placeholders": {
+      "remaining": {
+        "type": "num"
+      },
+      "limit": {
+        "type": "Object"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitTitle": "Ka yi amfani da fitattun lokutanka a yanzu",
+  "highlights_limitBody": "{limit, plural, one{Za ka iya wallafa fitaccen lokaci {limit} duk kwanaki {days}, kuma ka yi amfani da shi.} other{Za ka iya wallafa fitattun lokuta {limit} duk kwanaki {days}, kuma ka yi amfani da su duka.}}",
+  "@highlights_limitBody": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitNext": "Za ka iya sake wallafa daga {when}.",
+  "@highlights_limitNext": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pausedTitle": "An dakatar da wallafa",
+  "highlights_pausedBody": "An dakatar da wallafa fitattun lokuta a yanzu. Har yanzu za ka iya kallo, so da sharhi.",
+  "highlights_blockedTitle": "Ba za ka iya wallafa yanzu ba",
+  "highlights_blockedBody": "Wallafa fitattun lokuta ba ya samuwa ga asusunka a yanzu.",
+  "highlights_chooseVideo": "Zaɓi bidiyo",
+  "highlights_recordVideo": "Ɗauki bidiyo",
+  "highlights_choosePhotos": "Zaɓi hotuna",
+  "highlights_videoHint": "{seconds, plural, one{Har sakan {seconds}} other{Har sakan {seconds}}}",
+  "@highlights_videoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosHint": "{count, plural, one{Hoto {count} a wallafa ɗaya} other{Har hotuna {count} a wallafa ɗaya}}",
+  "@highlights_photosHint": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_chooseAnother": "Zaɓi wani",
+  "highlights_captionHint": "Faɗa wani abu game da shi (na zaɓi)",
+  "highlights_preparingVideo": "Ana shirya bidiyonka…",
+  "highlights_preparingPhotos": "Ana shirya hotunanka…",
+  "highlights_preparingNote": "Wannan yana faruwa a wayarka, kafin a ɗora kome. Ana cire bayanan wurin da aka ajiye a cikin fayil.",
+  "highlights_videoReady": "Bidiyo ya shirya",
+  "highlights_pickFailed": "An kasa buɗe wannan. Duba a saitunan wayarka cewa SportPadi na iya amfani da kyamara da hotunanka.",
+  "highlights_appPhotoTooLarge": "Wannan hoton ya yi girma, ko da bayan rage girmansa.",
+  "highlights_videoBusy": "Ana shirya wani bidiyo har yanzu. Ba shi ɗan lokaci.",
+  "highlights_appVideoTooLong": "{seconds, plural, one{Bidiyo zai iya kai sakan {seconds}.} other{Bidiyo zai iya kai sakan {seconds}.}}",
+  "@highlights_appVideoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_videoFailed": "An kasa shirya wannan bidiyon a wannan wayar. Gwada wani.",
+  "highlights_appEncoderStuck": "Kayan bidiyo na wannan wayar ya daina amsawa, don haka SportPadi ba za ta iya shirya wani bidiyo ba. Rufe app ɗin gaba ɗaya sannan ka sake buɗe shi.",
+  "highlights_appVideoTooLarge": "Wannan bidiyon ya yi girma don wallafawa, ko da bayan matsa shi. Gwada gajere.",
+  "highlights_subjectChangeTitle": "A canza wanda wannan fitaccen lokaci ya shafa?",
+  "highlights_subjectChangeBody": "A yanzu game da {from} ne, kuma duk wanda zai iya ganin bayanan {from} yana ganinsa. Bayan haka zai zama game da {to}, kuma duk wanda zai iya ganin bayanan {to} zai gan shi.",
+  "@highlights_subjectChangeBody": {
+    "placeholders": {
+      "from": {
+        "type": "Object"
+      },
+      "to": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_subjectChangeConfirm": "Eh, canza shi",
+  "highlights_appDeleteBodyFailed": "An cire shi gaba ɗaya. Ba za a iya mayar da wannan ba.",
+  "highlights_appDeleteKeepsPlace": "Har yanzu ana lissafa shi a cikin wallafe-wallafenka na makon — gogewa ba ya bar wuri.",
+  "highlights_appDiscardTitle": "A watsar da wannan fitaccen lokaci?",
+  "highlights_appDiscardBody": "Abin da ka shirya a nan ba za a wallafa shi ba kuma ba za a ajiye shi ba.",
+  "highlights_appDiscardKeep": "Ci gaba",
+  "highlights_appDiscardConfirm": "Watsar",
+  "highlights_appStatGoneWardKept": "An cire wannan ƙididdigar daga wasan. Fayilolinka har yanzu suna ɗora, haɗin kuma yana nan — zaɓi wata ƙididdiga ta wannan ɗan wasa, ko ka cire haɗin don wallafa shi a matsayin fitaccen lokacinka.",
+  "highlights_appStatGoneKept": "An cire wannan ƙididdigar daga wasan, don haka haɗin ya tafi. Fayilolinka har yanzu suna ɗora — sake taɓa Wallafa fitaccen lokaci don wallafa ba tare da ƙididdiga ba, ko ka fara zaɓar wata.",
+  "highlights_appUploadStalled": "Ɗorawar ta daina tafiya. Duba haɗin intanet ɗinka ka sake gwadawa.",
+  "highlights_appVideoDailyLimit": "Ka wallafa bidiyo da yawa yau. Gwada gobe.",
+  "highlights_appVideoDailyLimitUntil": "Ka wallafa bidiyo da yawa yau. Za ka iya wallafa wani daga {when}.",
+  "@highlights_appVideoDailyLimitUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_appVideoWaitProcessing": "Kana da bidiyoyin da ake sarrafa tuni. Jira su ƙare, sannan sake gwadawa.",
+  "highlights_appVideoUnavailable": "Ba za a iya wallafa bidiyo yanzu ba.",
+  "highlights_appPhotosStillOk": "Har yanzu za ka iya wallafa hotuna.",
+  "highlights_appKeepOpen": "Ya tsaya yayin da SportPadi ke baya. Ka bar app ɗin a buɗe a kan allo har sai ya ƙare, sannan sake gwadawa.",
+  "highlights_appLostVideoTitle": "A yi amfani da bidiyon da ya gabata?",
+  "highlights_appLostVideoBody": "An rufe SportPadi kafin a ƙara wannan bidiyon cikin fitaccen lokaci.",
+  "highlights_appLostVideoUse": "Yi amfani da shi"
 }

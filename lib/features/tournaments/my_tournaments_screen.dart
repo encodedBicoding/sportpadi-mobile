@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_dock.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_app_bar.dart'
     show SideMenuButton;
 import 'package:sportpadi_mobile/shared/widgets/team_tile.dart'
@@ -51,7 +52,7 @@ class MyTournamentsScreen extends ConsumerWidget {
         child: RefreshIndicator(
           onRefresh: refresh,
           // Loading / error aren't scrollable on their own.
-          child: _pullable(data, AsyncView(
+          child: _pullable(context, data, AsyncView(
           value: data,
           onRetry: () => ref.invalidate(myTeamCardsProvider),
           data: (teams) {
@@ -59,7 +60,9 @@ class MyTournamentsScreen extends ConsumerWidget {
             final upcoming = teams.fold<int>(0, (a, t) => a + t.upcoming);
             return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 36),
+                // Room for the floating dock the list runs behind.
+                padding: EdgeInsets.fromLTRB(
+                    20, 14, 20, SpDock.spaceBelowList(context)),
                 children: [
                   // Tab title, invitations, and the side menu.
                   Row(children: [
@@ -157,9 +160,12 @@ class MyTournamentsScreen extends ConsumerWidget {
 
 /// [child] as is when [value] renders its (scrollable) data branch, else
 /// wrapped so the loader / error can still be pulled.
-Widget _pullable(AsyncValue<Object?> value, Widget child) => value.maybeWhen(
+Widget _pullable(
+        BuildContext context, AsyncValue<Object?> value, Widget child) =>
+    value.maybeWhen(
       data: (_) => child,
-      orElse: () => PullableState(child: child),
+      orElse: () => PullableState(
+          bottomPadding: SpDock.spaceBelow(context), child: child),
     );
 
 Color? hexColor(String? hex) {

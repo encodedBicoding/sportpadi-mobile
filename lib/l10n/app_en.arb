@@ -614,6 +614,24 @@
   "common_proFeaturesOfferTerms": "Pro Features Offer Terms",
   "common_groupNotFound": "Group not found.",
   "common_cantReachTheServer": "Can't reach the server.",
+  "common_theServerIsTakingTooLong": "The server is taking too long.",
+  "common_notFound": "Not found.",
+  "common_theServerHadAProblem": "The server had a problem ({status}).",
+  "@common_theServerHadAProblem": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
+  "common_theRequestWasRefused": "The request was refused ({status}).",
+  "@common_theRequestWasRefused": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
   "common_couldNotLoadGroups": "Could not load groups.",
   "common_teamNotFound": "Team not found.",
   "common_couldNotStartThePayment": "Could not start the payment.",
@@ -8961,8 +8979,6 @@
   "profile_youreNotInAnyGroups": "You're not in any groups yet.",
   "profile_browseGroups": "Browse groups",
   "profile_myTournaments": "My tournaments",
-  "profile_highlightsAreComing": "Highlights are coming",
-  "profile_yourBestMomentsPhotosAnd": "Your best moments — photos and clips from your games — will live here. Coming soon.",
   "profile_progressAchievements": "Progress & achievements",
   "profile_myRecords": "My records",
   "profile_yourNumbersSportBySport": "Your numbers, sport by sport",
@@ -20287,5 +20303,665 @@
         "type": "Object"
       }
     }
-  }
+  },
+  "highlights_title": "Highlights",
+  "highlights_navLabel": "Highlights",
+  "highlights_tabFollowing": "Following",
+  "highlights_tabDiscover": "Discover",
+  "highlights_postHighlight": "Post a highlight",
+  "highlights_seeDiscover": "See Discover",
+  "highlights_backToHighlights": "Back to Highlights",
+  "highlights_followingEmptyTitle": "Nothing here yet",
+  "highlights_followingEmptyText": "Highlights from the players you follow — and your own — show up here. Have a look at Discover to find players to follow.",
+  "highlights_discoverEmptyTitle": "No highlights yet",
+  "highlights_discoverEmptyText": "Be the first to post one.",
+  "highlights_followingEndTitle": "You’re all caught up",
+  "highlights_followingEndText": "That’s everything from the players you follow. There’s more in Discover.",
+  "highlights_discoverEndTitle": "You’ve seen everything",
+  "highlights_discoverEndText": "That’s every highlight you can see for now.",
+  "highlights_feedErrorTitle": "Couldn’t load highlights",
+  "highlights_feedErrorText": "Check your connection and try again.",
+  "highlights_feedMoreErrorTitle": "Couldn’t load more",
+  "highlights_notFoundTitle": "Highlight not found",
+  "highlights_notFoundText": "It may have been deleted, or it isn’t visible to you.",
+  "highlights_goneToast": "This highlight is no longer available.",
+  "highlights_postBy": "Highlight by {name}",
+  "@highlights_postBy": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_aboutSubject": "about <link>{name}</link>",
+  "@highlights_aboutSubject": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statMinute": "{minute}’",
+  "@highlights_statMinute": {
+    "placeholders": {
+      "minute": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statOpenMatch": "Open the match",
+  "highlights_like": "Like",
+  "highlights_unlike": "Unlike",
+  "highlights_likeFailed": "Couldn’t save your like.",
+  "highlights_commentsOpen": "{count, plural, =0{Comments} one{{count} comment} other{{count} comments}}",
+  "@highlights_commentsOpen": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_share": "Share",
+  "highlights_shareTitle": "{name}’s highlight on SportPadi",
+  "@highlights_shareTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_linkCopied": "Link copied",
+  "highlights_linkCopyFailed": "Couldn’t copy the link.",
+  "highlights_more": "More",
+  "highlights_menuEmpty": "No actions for this highlight.",
+  "highlights_report": "Report",
+  "highlights_delete": "Delete",
+  "highlights_deleteTitle": "Delete this highlight?",
+  "highlights_deleteText": "It disappears for everyone and its files are deleted. This can’t be undone, and deleting it doesn’t give you back one of this week’s posts.",
+  "highlights_deleteTextFailed": "It’s removed for good — this can’t be undone. A video that failed doesn’t count towards this week’s posts.",
+  "highlights_deleteTextGuardian": "It disappears for everyone — from {name}’s profile too — and its files are deleted. This can’t be undone.",
+  "@highlights_deleteTextGuardian": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_deleted": "Highlight deleted",
+  "highlights_deleteFailed": "Couldn’t delete the highlight.",
+  "highlights_play": "Play",
+  "highlights_soundOn": "Turn sound on",
+  "highlights_soundOff": "Turn sound off",
+  "highlights_videoCantPlay": "This video couldn’t be played.",
+  "highlights_photoAlt": "Photo {n} of {total} — {name}",
+  "@highlights_photoAlt": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      },
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoCount": "Photo {n} of {total}",
+  "@highlights_photoCount": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_previousPhoto": "Previous photo",
+  "highlights_nextPhoto": "Next photo",
+  "highlights_processingTitle": "Processing your video",
+  "highlights_processingText": "Only you can see it until it’s ready. This page updates by itself — and you don’t have to wait here: processing carries on without you, and can take a while when things are busy.",
+  "highlights_failedTitle": "This video couldn’t be published",
+  "highlights_failedText": "Something went wrong while it was being processed.",
+  "highlights_failedNote": "It doesn’t count towards this week’s posts. If you leave it here, it’s removed by itself after 7 days.",
+  "highlights_failedPostAgain": "Post it again",
+  "highlights_failedDelete": "Delete it",
+  "highlights_takenDownTitle": "SportPadi took this video down",
+  "highlights_takenDownText": "A check by SportPadi found a problem with this video, so it isn’t being shown any more. If you saw something here that worries you, you can still report it.",
+  "highlights_takenDownTextPlain": "A check by SportPadi found a problem with this video, so it isn’t being shown any more.",
+  "highlights_commentsTitle": "{count, plural, =0{Comments} one{{count} comment} other{{count} comments}}",
+  "@highlights_commentsTitle": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_commentsDescription": "Comments on this highlight, oldest first.",
+  "highlights_commentsEmpty": "No comments yet. Be the first to say something.",
+  "highlights_commentsLoadFailed": "Couldn’t load the comments.",
+  "highlights_commentsMore": "Show more comments",
+  "highlights_commentLabel": "Add a comment",
+  "highlights_commentPlaceholder": "Add a comment…",
+  "highlights_commentSend": "Send comment",
+  "highlights_commentDelete": "Delete comment",
+  "highlights_commentDeleteTitle": "Delete this comment?",
+  "highlights_commentDeleteText": "It’s removed for everyone. This can’t be undone.",
+  "highlights_commentReport": "Report comment",
+  "highlights_charCount": "{count} / {max}",
+  "@highlights_charCount": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportTitle": "Report this highlight",
+  "highlights_reportCommentTitle": "Report this comment",
+  "highlights_reportIntro": "It goes to the SportPadi team, who review it.",
+  "highlights_reportWhatsWrong": "What’s wrong?",
+  "highlights_reasonInappropriate": "Inappropriate",
+  "highlights_reasonHarassment": "Harassment or bullying",
+  "highlights_reasonSpam": "Spam",
+  "highlights_reasonChildSafety": "Child safety concern",
+  "highlights_reasonNotMe": "It shows me and I don’t want it up",
+  "highlights_reasonOther": "Something else",
+  "highlights_reportNoteLabel": "Anything else? (optional)",
+  "highlights_reportNotePlaceholder": "Add details that will help us review it",
+  "highlights_reportNoteTooLong": "Keep it under {max} characters.",
+  "@highlights_reportNoteTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportChildSafetyNote": "If a child is in immediate danger, contact your local emergency services first.",
+  "highlights_reportSend": "Send report",
+  "highlights_reportSent": "Thanks for reporting",
+  "highlights_reportSentDetail": "The SportPadi team will review it.",
+  "highlights_statLink": "Link to a stat",
+  "highlights_statChange": "Change the linked stat",
+  "highlights_statRemove": "Remove the stat link",
+  "highlights_statRemoveWard": "Unlink it from {name}",
+  "@highlights_statRemoveWard": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinkSaved": "Linked to the stat",
+  "highlights_statLinkRemoved": "Stat link removed",
+  "highlights_statLinkFailed": "Couldn’t change the stat link.",
+  "highlights_statSheetTitle": "Link to a stat",
+  "highlights_statSheetText": "Pick the moment this highlight shows. It appears on the match and on the player’s profile.",
+  "highlights_statsEmptyTitle": "No stats to link yet",
+  "highlights_statsEmptyText": "Goals, assists and other stats recorded for you in a match show up here.",
+  "highlights_statsLoadFailed": "Couldn’t load your stats.",
+  "highlights_statsMore": "Show more",
+  "highlights_statFor": "For {name}",
+  "@highlights_statFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinked": "Linked",
+  "highlights_statTaken": "Has a highlight",
+  "highlights_statTakenMine": "Has your highlight",
+  "highlights_statOptionalTitle": "Link to a stat",
+  "highlights_statOptionalText": "Optional — pin it to the goal, assist or other stat it shows.",
+  "highlights_statLinkedHint": "Shown on the match and on your profile.",
+  "highlights_statPreselectMissed": "That stat can’t take a highlight right now. Pick another, or post without one.",
+  "highlights_statGoneKept": "That stat has been removed from the match, so the link was taken off. Your files are still uploaded — tap Try again to post without a stat, or choose another one first.",
+  "highlights_wardLinkTitle": "Change who this highlight is about?",
+  "highlights_wardLinkText": "Right now this highlight is about {name}, and only people who can see {name}’s profile can see it. If you go on, it becomes a post about you — shown to everyone who can see your profile, in Following and Discover.",
+  "@highlights_wardLinkText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextOther": "Right now this highlight is about {name}, and only people who can see {name}’s profile can see it. If you go on, it will be about {other} instead — shown to people who can see {other}’s profile.",
+  "@highlights_wardLinkTextOther": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      },
+      "other": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextInto": "Right now this highlight is about you. If you go on, it becomes {name}’s highlight: it moves to {name}’s profile and match, and is shown to the people who can see {name}’s profile.",
+  "@highlights_wardLinkTextInto": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkConfirm": "Yes, go on",
+  "highlights_statChoose": "Choose",
+  "highlights_statChangeShort": "Change",
+  "highlights_newTitle": "New highlight",
+  "highlights_quotaErrorTitle": "Couldn’t check your allowance",
+  "highlights_quotaLeft": "{count, plural, =0{No posts left this week.} one{{count} post left this week.} other{{count} posts left this week.}}",
+  "@highlights_quotaLeft": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_quotaRule": "{limit, plural, one{You can post {limit} highlight every} other{You can post {limit} highlights every}} {days, plural, one{{days} day} other{{days} days}}.",
+  "@highlights_quotaRule": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedPausedTitle": "Posting is paused",
+  "highlights_blockedPausedText": "Posting highlights is paused for now. You can still watch, like and comment.",
+  "highlights_blockedLimitTitle": "You’ve used this week’s posts",
+  "highlights_blockedLimitText": "{limit, plural, one{You can post {limit} highlight every} other{You can post {limit} highlights every}} {days, plural, one{{days} day} other{{days} days}}, and {limit, plural, one{you’ve used it} other{you’ve used them all}}.",
+  "@highlights_blockedLimitText": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedLimitTextUntil": "{limit, plural, one{You can post {limit} highlight every} other{You can post {limit} highlights every}} {days, plural, one{{days} day} other{{days} days}}, and {limit, plural, one{you’ve used it} other{you’ve used them all}}. You can post again from {when}.",
+  "@highlights_blockedLimitTextUntil": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      },
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_blockedOtherTitle": "You can’t post right now",
+  "highlights_blockedOtherText": "Posting highlights isn’t available on your account at the moment.",
+  "highlights_videoBlockedDaily": "You’ve posted a lot of videos today, so video is off until tomorrow. You can still post photos.",
+  "highlights_videoBlockedDailyUntil": "You’ve posted a lot of videos today. You can post another from {when} — until then you can still post photos.",
+  "@highlights_videoBlockedDailyUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoBlockedProcessing": "Your earlier videos are still being processed. When they’re done you can post another — until then you can still post photos.",
+  "highlights_videoBlockedOther": "You can’t post a video right now. You can still post photos.",
+  "highlights_videoBlockedRecheck": "Check again",
+  "highlights_pickVideo": "Video",
+  "highlights_pickVideoHint": "One clip, up to {seconds} seconds and {max} MB (MP4, MOV or WebM)",
+  "@highlights_pickVideoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pickPhotos": "Photos",
+  "highlights_pickPhotosHint": "Up to {max} photos, swiped sideways",
+  "@highlights_pickPhotosHint": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_preparing": "Getting your files ready…",
+  "highlights_videoTypeRefused": "That file type isn’t supported. Choose an MP4, MOV or WebM video.",
+  "highlights_videoTooLarge": "That video is {size} MB. The limit is {max} MB — trim it or export it at a lower quality, then try again.",
+  "@highlights_videoTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoTooLong": "That video is {seconds} seconds long. Highlights can be up to {max} seconds — trim it and try again.",
+  "@highlights_videoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoNoPreview": "This browser can’t preview this video. You can still post it — it’s checked after it’s uploaded.",
+  "highlights_videoSeconds": "{seconds} s",
+  "@highlights_videoSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_fileMb": "{size} MB",
+  "@highlights_fileMb": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_replace": "Replace",
+  "highlights_remove": "Remove",
+  "highlights_photosCount": "{count, plural, one{{count} photo} other{{count} photos}} · up to {max}",
+  "@highlights_photosCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoNumber": "Photo {n}",
+  "@highlights_photoNumber": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_removePhoto": "Remove photo {n}",
+  "@highlights_removePhoto": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_addPhotos": "Add photos",
+  "highlights_photosUnreadable": "{count, plural, one{{count} photo couldn’t be read and was left out.} other{{count} photos couldn’t be read and were left out.}}",
+  "@highlights_photosUnreadable": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosTooMany": "A highlight can have up to {max} photos. The extra ones were left out.",
+  "@highlights_photosTooMany": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoTooLarge": "A photo is still over {max} MB after resizing. Try a different one.",
+  "@highlights_photoTooLarge": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoUnreadable": "One of the photos couldn’t be read. Try a different one.",
+  "highlights_captionLabel": "Caption",
+  "highlights_captionPlaceholder": "Say what happened (optional)",
+  "highlights_privacyNote": "Photos are re-saved on this device before they’re uploaded, and a video is re-encoded by SportPadi before anyone else can see it — so neither carries location or camera data.",
+  "highlights_uploading": "Uploading… {percent}%",
+  "@highlights_uploading": {
+    "placeholders": {
+      "percent": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_posting": "Posting…",
+  "highlights_uploadFailed": "The upload didn’t finish. Check your connection and try again.",
+  "highlights_uploadStalled": "The upload stopped moving, so it was stopped. Check your connection and try again — files that had finished uploading aren’t sent again.",
+  "highlights_createNoAnswer": "We didn’t get an answer, so we can’t tell whether your highlight was posted. Tap Try again: if it did go through you’ll get that post, not a second one.",
+  "highlights_postedThenRemoved": "Your earlier try did post this highlight, and that post has since been removed. Tap Try again to post it as a new one.",
+  "highlights_uploadCancel": "Cancel upload",
+  "highlights_leaveTitle": "Stop the upload and leave?",
+  "highlights_leaveText": "Your highlight hasn’t been posted yet. If you leave now the upload stops, and you’ll have to start it again.",
+  "highlights_leaveStay": "Keep uploading",
+  "highlights_leaveGo": "Leave",
+  "highlights_leaveTitlePosting": "Leave while it’s posting?",
+  "highlights_leaveTextPosting": "Your files are uploaded and your highlight is being posted — it may already be up. If you leave now you won’t see whether it worked: look for it in Following or on your profile.",
+  "highlights_leaveStayPosting": "Stay here",
+  "highlights_posted": "Highlight posted",
+  "highlights_postedProcessing": "Uploaded — your video is being processed",
+  "highlights_postedEarlierTry": "Your earlier try had already gone through: this is that post, without the changes you made after it. If you need them, delete it and post again — that uses another of this week’s posts.",
+  "highlights_gridOpenVideo": "Video highlight",
+  "highlights_gridOpenPhotos": "{count, plural, one{Photo highlight} other{Photo highlight, {count} photos}}",
+  "@highlights_gridOpenPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_gridProcessing": "Processing",
+  "highlights_gridFailed": "Failed",
+  "highlights_gridLoadFailed": "Couldn’t load highlights.",
+  "highlights_groupPostsTitle": "From their groups",
+  "highlights_profileEmptyMineTitle": "No highlights yet",
+  "highlights_profileEmptyMineText": "Post a video or photos of your best moments — and pin them to the stat they show.",
+  "highlights_badgeWatch": "Watch {name}’s highlight",
+  "@highlights_badgeWatch": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_badgeAdd": "Add a highlight for this stat",
+  "highlights_badgeAddFor": "Add a highlight for {name}",
+  "@highlights_badgeAddFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_newPost": "New highlight",
+  "highlights_post": "Post highlight",
+  "highlights_couldntLoad": "Couldn’t load highlights.",
+  "highlights_couldntLoadMore": "Couldn’t load more highlights.",
+  "highlights_couldntLoadOne": "Couldn’t load this highlight.",
+  "highlights_couldntLoadAllowance": "Couldn’t check how many highlights you can post.",
+  "highlights_couldntLoadStats": "Couldn’t load the stats.",
+  "highlights_couldntLoadComments": "Couldn’t load the comments.",
+  "highlights_couldntLike": "Couldn’t save your like.",
+  "highlights_couldntChangeLink": "Couldn’t change the linked stat.",
+  "highlights_couldntDelete": "Couldn’t delete the highlight.",
+  "highlights_couldntPost": "Couldn’t post your highlight.",
+  "highlights_notFound": "Highlight not found.",
+  "highlights_cantShowTitle": "This highlight can’t be shown",
+  "highlights_cantShowBody": "It may have been deleted, or it’s only visible to certain people.",
+  "highlights_deleteBody": "It’s removed for everyone, with its likes and comments. This can’t be undone.",
+  "highlights_linkToStat": "Link to a stat",
+  "highlights_changeStat": "Change the linked stat",
+  "highlights_removeStat": "Remove the linked stat",
+  "highlights_linkHint": "Optional — pin it to the goal, assist or other stat it shows.",
+  "highlights_linkSaved": "Linked to the stat.",
+  "highlights_linkRemoved": "The link was removed.",
+  "highlights_pickStatTitle": "Which stat does it show?",
+  "highlights_pickStatSubtitle": "Recent stats from officiated matches. Each player on a stat can add one highlight to it.",
+  "highlights_myStats": "My stats",
+  "highlights_noStatsYet": "No stats to link yet. They appear here after a match where a goal, assist or other stat was recorded.",
+  "highlights_noStatsFoundSoFar": "Nothing found so far.",
+  "highlights_keepLooking": "Keep looking",
+  "highlights_statTakenByYou": "Your other highlight",
+  "highlights_reportSubtitle": "Reports go to the SportPadi team, who review them.",
+  "highlights_reportNoteHint": "Anything we should know? (optional)",
+  "highlights_cantPlay": "This video can’t be played right now.",
+  "highlights_processing": "Still getting your video ready. It will play here once it’s done.",
+  "highlights_failed": "This video couldn’t be processed.",
+  "highlights_aboutPerson": "About {name}",
+  "@highlights_aboutPerson": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_commentsCount": "{count, plural, one{{count} comment} other{{count} comments}}",
+  "@highlights_commentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_noCommentsYet": "No comments yet. Be the first.",
+  "highlights_moreComments": "Show more comments",
+  "highlights_commentsWhenReady": "Comments open once the video is ready.",
+  "highlights_followingEmptyBody": "Highlights from players you follow show up here, along with your own.",
+  "highlights_openDiscover": "Look in Discover",
+  "highlights_discoverEmptyBody": "Be the first to post one.",
+  "highlights_noneFoundSoFar": "Nothing found so far",
+  "highlights_gridEmptyMine": "No highlights yet. Post one from the Highlights tab.",
+  "highlights_watchHighlight": "Watch the highlight",
+  "highlights_allowance": "{remaining, plural, one{{remaining} post left} other{{remaining} posts left}} of {limit} every {days} days",
+  "@highlights_allowance": {
+    "placeholders": {
+      "remaining": {
+        "type": "num"
+      },
+      "limit": {
+        "type": "Object"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitTitle": "You’ve used your highlights for now",
+  "highlights_limitBody": "{limit, plural, one{You can post {limit} highlight every {days} days, and you’ve used it.} other{You can post {limit} highlights every {days} days, and you’ve used them all.}}",
+  "@highlights_limitBody": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitNext": "You can post again from {when}.",
+  "@highlights_limitNext": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pausedTitle": "Posting is paused",
+  "highlights_pausedBody": "Posting highlights is paused for now. You can still watch, like and comment.",
+  "highlights_blockedTitle": "You can’t post right now",
+  "highlights_blockedBody": "Posting highlights isn’t available for your account at the moment.",
+  "highlights_chooseVideo": "Choose a video",
+  "highlights_recordVideo": "Record a video",
+  "highlights_choosePhotos": "Choose photos",
+  "highlights_videoHint": "{seconds, plural, one{Up to {seconds} second} other{Up to {seconds} seconds}}",
+  "@highlights_videoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosHint": "{count, plural, one{{count} photo in one post} other{Up to {count} photos in one post}}",
+  "@highlights_photosHint": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_chooseAnother": "Choose another",
+  "highlights_captionHint": "Say something about it (optional)",
+  "highlights_preparingVideo": "Getting your video ready…",
+  "highlights_preparingPhotos": "Getting your photos ready…",
+  "highlights_preparingNote": "This happens on your phone, before anything is uploaded. Location details saved in the file are removed.",
+  "highlights_videoReady": "Video ready",
+  "highlights_pickFailed": "Couldn’t open that. Check in your phone’s settings that SportPadi may use the camera and your photos.",
+  "highlights_appPhotoTooLarge": "That photo is too large, even after shrinking it.",
+  "highlights_videoBusy": "Another video is still being prepared. Give it a moment.",
+  "highlights_appVideoTooLong": "{seconds, plural, one{Videos can be up to {seconds} second long.} other{Videos can be up to {seconds} seconds long.}}",
+  "@highlights_appVideoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_videoFailed": "That video couldn’t be prepared on this phone. Try another one.",
+  "highlights_appEncoderStuck": "This phone’s video tool has stopped answering, so SportPadi can’t prepare another video. Close the app completely and open it again.",
+  "highlights_appVideoTooLarge": "That video is too large to post, even after compressing it. Try a shorter one.",
+  "highlights_subjectChangeTitle": "Change who this highlight is about?",
+  "highlights_subjectChangeBody": "Right now it’s about {from}, and whoever can see {from}’s profile can see it. After this it will be about {to}, and whoever can see {to}’s profile can see it.",
+  "@highlights_subjectChangeBody": {
+    "placeholders": {
+      "from": {
+        "type": "Object"
+      },
+      "to": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_subjectChangeConfirm": "Yes, change it",
+  "highlights_appDeleteBodyFailed": "It’s removed for good. This can’t be undone.",
+  "highlights_appDeleteKeepsPlace": "It still counts as one of your posts for the week — deleting it doesn’t free up a place.",
+  "highlights_appDiscardTitle": "Discard this highlight?",
+  "highlights_appDiscardBody": "What you’ve prepared here won’t be posted or saved.",
+  "highlights_appDiscardKeep": "Keep going",
+  "highlights_appDiscardConfirm": "Discard",
+  "highlights_appStatGoneWardKept": "That stat has been removed from the match. Your files are still uploaded, and the link is still here — pick another of this player’s stats, or take the link off to post it as your own highlight.",
+  "highlights_appStatGoneKept": "That stat has been removed from the match, so the link was taken off. Your files are still uploaded — tap Post highlight again to post without a stat, or choose another one first.",
+  "highlights_appUploadStalled": "The upload stopped moving. Check your connection and try again.",
+  "highlights_appVideoDailyLimit": "You’ve posted a lot of videos today. Try again tomorrow.",
+  "highlights_appVideoDailyLimitUntil": "You’ve posted a lot of videos today. You can post another from {when}.",
+  "@highlights_appVideoDailyLimitUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_appVideoWaitProcessing": "You already have videos being processed. Wait for them to finish, then try again.",
+  "highlights_appVideoUnavailable": "Videos can’t be posted right now.",
+  "highlights_appPhotosStillOk": "You can still post photos.",
+  "highlights_appKeepOpen": "It stopped while SportPadi was in the background. Keep the app open on screen until it’s done, and try again.",
+  "highlights_appLostVideoTitle": "Use the video from earlier?",
+  "highlights_appLostVideoBody": "SportPadi was closed before this video could be added to a highlight.",
+  "highlights_appLostVideoUse": "Use it"
 }

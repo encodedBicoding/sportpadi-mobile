@@ -614,6 +614,24 @@
   "common_proFeaturesOfferTerms": "Pro Features Offer Terms",
   "common_groupNotFound": "We no see the group.",
   "common_cantReachTheServer": "We no fit reach the server.",
+  "common_theServerIsTakingTooLong": "The server dey take too long.",
+  "common_notFound": "We no see am.",
+  "common_theServerHadAProblem": "The server get problem ({status}).",
+  "@common_theServerHadAProblem": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
+  "common_theRequestWasRefused": "Dem reject the request ({status}).",
+  "@common_theRequestWasRefused": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
   "common_couldNotLoadGroups": "We no fit load groups.",
   "common_teamNotFound": "We no see the team.",
   "common_couldNotStartThePayment": "We no fit start the payment.",
@@ -8961,8 +8979,6 @@
   "profile_youreNotInAnyGroups": "You never dey any group yet.",
   "profile_browseGroups": "Look around groups",
   "profile_myTournaments": "My tournaments",
-  "profile_highlightsAreComing": "Highlights dey come",
-  "profile_yourBestMomentsPhotosAnd": "Your best moments — photos and clips from your games — go dey here. E dey come soon.",
   "profile_progressAchievements": "Progress & achievements",
   "profile_myRecords": "My records",
   "profile_yourNumbersSportBySport": "Your numbers, sport by sport",
@@ -20287,5 +20303,665 @@
         "type": "Object"
       }
     }
-  }
+  },
+  "highlights_title": "Highlights",
+  "highlights_navLabel": "Highlights",
+  "highlights_tabFollowing": "Following",
+  "highlights_tabDiscover": "Discover",
+  "highlights_postHighlight": "Post highlight",
+  "highlights_seeDiscover": "See Discover",
+  "highlights_backToHighlights": "Go back to Highlights",
+  "highlights_followingEmptyTitle": "Nothing dey here yet",
+  "highlights_followingEmptyText": "Highlights from the players wey you follow — and your own — go show here. Check Discover make you find players to follow.",
+  "highlights_discoverEmptyTitle": "No highlights yet",
+  "highlights_discoverEmptyText": "Be the first person to post one.",
+  "highlights_followingEndTitle": "You don see everything",
+  "highlights_followingEndText": "Na everything from the players wey you follow be that. More dey Discover.",
+  "highlights_discoverEndTitle": "You don see all",
+  "highlights_discoverEndText": "Na all the highlights wey you fit see for now be that.",
+  "highlights_feedErrorTitle": "We no fit load highlights",
+  "highlights_feedErrorText": "Check your connection and try again.",
+  "highlights_feedMoreErrorTitle": "We no fit load more",
+  "highlights_notFoundTitle": "We no see this highlight",
+  "highlights_notFoundText": "Dem fit delete am, or e no show for you.",
+  "highlights_goneToast": "This highlight no dey available again.",
+  "highlights_postBy": "Highlight from {name}",
+  "@highlights_postBy": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_aboutSubject": "about <link>{name}</link>",
+  "@highlights_aboutSubject": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statMinute": "{minute}’",
+  "@highlights_statMinute": {
+    "placeholders": {
+      "minute": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statOpenMatch": "Open the match",
+  "highlights_like": "Like",
+  "highlights_unlike": "Unlike",
+  "highlights_likeFailed": "We no fit save your like.",
+  "highlights_commentsOpen": "{count, plural, =0{Comments} one{{count} comment} other{{count} comments}}",
+  "@highlights_commentsOpen": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_share": "Share",
+  "highlights_shareTitle": "{name} highlight for SportPadi",
+  "@highlights_shareTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_linkCopied": "Link copied",
+  "highlights_linkCopyFailed": "We no fit copy the link.",
+  "highlights_more": "More",
+  "highlights_menuEmpty": "No action dey for this highlight.",
+  "highlights_report": "Report",
+  "highlights_delete": "Delete",
+  "highlights_deleteTitle": "Delete this highlight?",
+  "highlights_deleteText": "E go comot for everybody and im files go delete. You no fit undo am, and deleting am no go give you back one of this week post.",
+  "highlights_deleteTextFailed": "E don comot for good — you no fit undo am. Video wey fail no count for this week post.",
+  "highlights_deleteTextGuardian": "E go comot for everybody — from {name} profile too — and im files go delete. You no fit undo am.",
+  "@highlights_deleteTextGuardian": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_deleted": "Highlight deleted",
+  "highlights_deleteFailed": "We no fit delete the highlight.",
+  "highlights_play": "Play",
+  "highlights_soundOn": "Put sound on",
+  "highlights_soundOff": "Put sound off",
+  "highlights_videoCantPlay": "This video no play.",
+  "highlights_photoAlt": "Photo {n} of {total} — {name}",
+  "@highlights_photoAlt": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      },
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoCount": "Photo {n} of {total}",
+  "@highlights_photoCount": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_previousPhoto": "Photo wey pass",
+  "highlights_nextPhoto": "Next photo",
+  "highlights_processingTitle": "We dey process your video",
+  "highlights_processingText": "Na only you dey see am until e ready. This page dey update by itself — and you no need wait here: the processing go continue without you, and e fit take time when plenty people dey post.",
+  "highlights_failedTitle": "This video no publish",
+  "highlights_failedText": "Something spoil while we dey process am.",
+  "highlights_failedNote": "E no count for this week post. If you leave am here, e go comot by itself after 7 days.",
+  "highlights_failedPostAgain": "Post am again",
+  "highlights_failedDelete": "Delete am",
+  "highlights_takenDownTitle": "SportPadi don comot this video",
+  "highlights_takenDownText": "SportPadi check this video and see problem, so we no dey show am again. If you see something here wey worry you, you still fit report am.",
+  "highlights_takenDownTextPlain": "SportPadi check this video and see problem, so we no dey show am again.",
+  "highlights_commentsTitle": "{count, plural, =0{Comments} one{{count} comment} other{{count} comments}}",
+  "@highlights_commentsTitle": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_commentsDescription": "Comments for this highlight, the old ones first.",
+  "highlights_commentsEmpty": "No comment yet. Be the first to talk something.",
+  "highlights_commentsLoadFailed": "We no fit load the comments.",
+  "highlights_commentsMore": "Show more comments",
+  "highlights_commentLabel": "Add comment",
+  "highlights_commentPlaceholder": "Add comment…",
+  "highlights_commentSend": "Send comment",
+  "highlights_commentDelete": "Delete comment",
+  "highlights_commentDeleteTitle": "Delete this comment?",
+  "highlights_commentDeleteText": "E go comot for everybody. You no fit undo am.",
+  "highlights_commentReport": "Report comment",
+  "highlights_charCount": "{count} / {max}",
+  "@highlights_charCount": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportTitle": "Report this highlight",
+  "highlights_reportCommentTitle": "Report this comment",
+  "highlights_reportIntro": "E dey go to the SportPadi team, and dem go check am.",
+  "highlights_reportWhatsWrong": "Wetin happen?",
+  "highlights_reasonInappropriate": "E no fit",
+  "highlights_reasonHarassment": "Harassment or bullying",
+  "highlights_reasonSpam": "Spam",
+  "highlights_reasonChildSafety": "Child safety concern",
+  "highlights_reasonNotMe": "Na me dey inside and I no want am up",
+  "highlights_reasonOther": "Another thing",
+  "highlights_reportNoteLabel": "Anything else? (if you want)",
+  "highlights_reportNotePlaceholder": "Add details wey go help us check am",
+  "highlights_reportNoteTooLong": "Make e no pass {max} characters.",
+  "@highlights_reportNoteTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportChildSafetyNote": "If pikin dey for danger now now, call emergency services near you first.",
+  "highlights_reportSend": "Send report",
+  "highlights_reportSent": "Thank you say you report am",
+  "highlights_reportSentDetail": "The SportPadi team go check am.",
+  "highlights_statLink": "Link am to stat",
+  "highlights_statChange": "Change the stat wey e link to",
+  "highlights_statRemove": "Remove the stat link",
+  "highlights_statRemoveWard": "Unlink am from {name}",
+  "@highlights_statRemoveWard": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinkSaved": "E don link to the stat",
+  "highlights_statLinkRemoved": "Stat link don comot",
+  "highlights_statLinkFailed": "We no fit change the stat link.",
+  "highlights_statSheetTitle": "Link am to stat",
+  "highlights_statSheetText": "Pick the moment wey this highlight show. E go appear for the match and for the player profile.",
+  "highlights_statsEmptyTitle": "No stat to link yet",
+  "highlights_statsEmptyText": "Goals, assists and other stats wey dem record for you inside match go show here.",
+  "highlights_statsLoadFailed": "We no fit load your stats.",
+  "highlights_statsMore": "Show more",
+  "highlights_statFor": "For {name}",
+  "@highlights_statFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinked": "Linked",
+  "highlights_statTaken": "E get highlight already",
+  "highlights_statTakenMine": "E get your highlight",
+  "highlights_statOptionalTitle": "Link am to stat",
+  "highlights_statOptionalText": "If you want — put am on the goal, assist or other stat wey e show.",
+  "highlights_statLinkedHint": "E dey show for the match and for your profile.",
+  "highlights_statPreselectMissed": "That stat no fit take highlight right now. Pick another one, or post without stat.",
+  "highlights_statGoneKept": "Dem don remove that stat from the match, so the link comot. Your files still dey uploaded — tap Try again make you post without stat, or pick another one first.",
+  "highlights_wardLinkTitle": "Change who this highlight talk about?",
+  "highlights_wardLinkText": "Right now this highlight na about {name}, and only people wey fit see {name} profile dey see am. If you continue, e go turn post about you — everybody wey fit see your profile go see am, for Following and Discover.",
+  "@highlights_wardLinkText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextOther": "Right now this highlight na about {name}, and only people wey fit see {name} profile dey see am. If you continue, e go be about {other} instead — people wey fit see {other} profile go see am.",
+  "@highlights_wardLinkTextOther": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      },
+      "other": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextInto": "Right now this highlight na about you. If you continue, e go turn {name} highlight: e go move to {name} profile and match, and people wey fit see {name} profile go see am.",
+  "@highlights_wardLinkTextInto": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkConfirm": "Yes, continue",
+  "highlights_statChoose": "Choose",
+  "highlights_statChangeShort": "Change",
+  "highlights_newTitle": "New highlight",
+  "highlights_quotaErrorTitle": "We no fit check wetin remain for you",
+  "highlights_quotaLeft": "{count, plural, =0{No post remain this week.} one{{count} post remain this week.} other{{count} posts remain this week.}}",
+  "@highlights_quotaLeft": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_quotaRule": "{limit, plural, one{You fit post {limit} highlight every} other{You fit post {limit} highlights every}} {days, plural, one{{days} day} other{{days} days}}.",
+  "@highlights_quotaRule": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedPausedTitle": "Posting don pause",
+  "highlights_blockedPausedText": "Posting highlights don pause for now. You still fit watch, like and comment.",
+  "highlights_blockedLimitTitle": "You don use this week post finish",
+  "highlights_blockedLimitText": "{limit, plural, one{You fit post {limit} highlight every} other{You fit post {limit} highlights every}} {days, plural, one{{days} day} other{{days} days}}, and {limit, plural, one{you don use am} other{you don use all of dem}}.",
+  "@highlights_blockedLimitText": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedLimitTextUntil": "{limit, plural, one{You fit post {limit} highlight every} other{You fit post {limit} highlights every}} {days, plural, one{{days} day} other{{days} days}}, and {limit, plural, one{you don use am} other{you don use all of dem}}. You fit post again from {when}.",
+  "@highlights_blockedLimitTextUntil": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      },
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_blockedOtherTitle": "You no fit post right now",
+  "highlights_blockedOtherText": "Posting highlights no dey available for your account right now.",
+  "highlights_videoBlockedDaily": "You don post plenty video today, so video dey off till tomorrow. You still fit post photos.",
+  "highlights_videoBlockedDailyUntil": "You don post plenty video today. You fit post another one from {when} — till then, you still fit post photos.",
+  "@highlights_videoBlockedDailyUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoBlockedProcessing": "Your other videos still dey process. When dem finish you fit post another one — till then, you still fit post photos.",
+  "highlights_videoBlockedOther": "You no fit post video right now. You still fit post photos.",
+  "highlights_videoBlockedRecheck": "Check again",
+  "highlights_pickVideo": "Video",
+  "highlights_pickVideoHint": "One clip, up to {seconds} seconds and {max} MB (MP4, MOV or WebM)",
+  "@highlights_pickVideoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pickPhotos": "Photos",
+  "highlights_pickPhotosHint": "Up to {max} photos, wey you go swipe sideways",
+  "@highlights_pickPhotosHint": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_preparing": "We dey ready your files…",
+  "highlights_videoTypeRefused": "This file type no work. Choose MP4, MOV or WebM video.",
+  "highlights_videoTooLarge": "This video na {size} MB. The limit na {max} MB — cut am or export am with lower quality, then try again.",
+  "@highlights_videoTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoTooLong": "This video na {seconds} seconds. Highlights fit reach {max} seconds — cut am and try again.",
+  "@highlights_videoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoNoPreview": "This browser no fit show you this video before you post. You still fit post am — we go check am after e upload.",
+  "highlights_videoSeconds": "{seconds} s",
+  "@highlights_videoSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_fileMb": "{size} MB",
+  "@highlights_fileMb": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_replace": "Change am",
+  "highlights_remove": "Remove",
+  "highlights_photosCount": "{count, plural, one{{count} photo} other{{count} photos}} · up to {max}",
+  "@highlights_photosCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoNumber": "Photo {n}",
+  "@highlights_photoNumber": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_removePhoto": "Remove photo {n}",
+  "@highlights_removePhoto": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_addPhotos": "Add photos",
+  "highlights_photosUnreadable": "{count, plural, one{We no fit read {count} photo, so we leave am out.} other{We no fit read {count} photos, so we leave dem out.}}",
+  "@highlights_photosUnreadable": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosTooMany": "One highlight fit carry up to {max} photos. The extra ones no enter.",
+  "@highlights_photosTooMany": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoTooLarge": "One photo still pass {max} MB after we shrink am. Try another one.",
+  "@highlights_photoTooLarge": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoUnreadable": "We no fit read one of the photos. Try another one.",
+  "highlights_captionLabel": "Caption",
+  "highlights_captionPlaceholder": "Talk wetin happen (if you want)",
+  "highlights_privacyNote": "We save photos again on this device before dem upload, and SportPadi re-encode video before anybody else fit see am — so the two no carry location or camera data.",
+  "highlights_uploading": "Uploading… {percent}%",
+  "@highlights_uploading": {
+    "placeholders": {
+      "percent": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_posting": "Posting…",
+  "highlights_uploadFailed": "The upload no finish. Check your connection and try again.",
+  "highlights_uploadStalled": "The upload stop moving, so we stop am. Check your connection and try again — files wey don upload finish no go send again.",
+  "highlights_createNoAnswer": "We no get answer, so we no sabi whether your highlight post or not. Tap Try again: if e enter before, you go get that same post, no second one.",
+  "highlights_postedThenRemoved": "Your first try actually post this highlight, and dem don remove that post since then. Tap Try again make you post am as new one.",
+  "highlights_uploadCancel": "Cancel upload",
+  "highlights_leaveTitle": "Stop the upload and comot?",
+  "highlights_leaveText": "Your highlight no post yet. If you comot now the upload go stop, and you go start am again.",
+  "highlights_leaveStay": "Continue the upload",
+  "highlights_leaveGo": "Comot",
+  "highlights_leaveTitlePosting": "Comot while e dey post?",
+  "highlights_leaveTextPosting": "Your files don upload and your highlight dey post — e fit don enter already. If you comot now you no go see whether e work: look for am for Following or for your profile.",
+  "highlights_leaveStayPosting": "Stay here",
+  "highlights_posted": "Highlight posted",
+  "highlights_postedProcessing": "E don upload — we dey process your video",
+  "highlights_postedEarlierTry": "Your first try don enter already: na that post be this, without the changes wey you make after. If you need dem, delete am and post again — that one go use another of this week post.",
+  "highlights_gridOpenVideo": "Video highlight",
+  "highlights_gridOpenPhotos": "{count, plural, one{Photo highlight} other{Photo highlight, {count} photos}}",
+  "@highlights_gridOpenPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_gridProcessing": "E dey process",
+  "highlights_gridFailed": "E fail",
+  "highlights_gridLoadFailed": "We no fit load highlights.",
+  "highlights_groupPostsTitle": "From their groups",
+  "highlights_profileEmptyMineTitle": "No highlights yet",
+  "highlights_profileEmptyMineText": "Post video or photos of your best moments — and put dem on the stat wey dem show.",
+  "highlights_badgeWatch": "Watch {name} highlight",
+  "@highlights_badgeWatch": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_badgeAdd": "Add highlight for this stat",
+  "highlights_badgeAddFor": "Add highlight for {name}",
+  "@highlights_badgeAddFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_newPost": "New highlight",
+  "highlights_post": "Post highlight",
+  "highlights_couldntLoad": "We no fit load highlights.",
+  "highlights_couldntLoadMore": "We no fit load more highlights.",
+  "highlights_couldntLoadOne": "We no fit load this highlight.",
+  "highlights_couldntLoadAllowance": "We no fit check how many highlights you fit post.",
+  "highlights_couldntLoadStats": "We no fit load the stats.",
+  "highlights_couldntLoadComments": "We no fit load the comments.",
+  "highlights_couldntLike": "We no fit save your like.",
+  "highlights_couldntChangeLink": "We no fit change the stat wey e link to.",
+  "highlights_couldntDelete": "We no fit delete the highlight.",
+  "highlights_couldntPost": "We no fit post your highlight.",
+  "highlights_notFound": "We no see this highlight.",
+  "highlights_cantShowTitle": "We no fit show this highlight",
+  "highlights_cantShowBody": "Dem fit delete am, or na only some people dey see am.",
+  "highlights_deleteBody": "E go comot for everybody, with im likes and comments. You no fit undo am.",
+  "highlights_linkToStat": "Link am to stat",
+  "highlights_changeStat": "Change the stat wey e link to",
+  "highlights_removeStat": "Remove the stat wey e link to",
+  "highlights_linkHint": "If you want — put am on the goal, assist or other stat wey e show.",
+  "highlights_linkSaved": "E don link to the stat.",
+  "highlights_linkRemoved": "The link don comot.",
+  "highlights_pickStatTitle": "Which stat e show?",
+  "highlights_pickStatSubtitle": "Recent stats from matches wey get referee. Every player wey dey inside one stat fit add one highlight to am.",
+  "highlights_myStats": "My stats",
+  "highlights_noStatsYet": "No stat to link yet. Dem go show here after match where dem record goal, assist or other stat.",
+  "highlights_noStatsFoundSoFar": "We no see anything so far.",
+  "highlights_keepLooking": "Keep looking",
+  "highlights_statTakenByYou": "Your other highlight",
+  "highlights_reportSubtitle": "Reports dey go to the SportPadi team, and dem go check dem.",
+  "highlights_reportNoteHint": "Anything we suppose know? (if you want)",
+  "highlights_cantPlay": "This video no fit play right now.",
+  "highlights_processing": "We still dey ready your video. E go play here once e done.",
+  "highlights_failed": "We no fit process this video.",
+  "highlights_aboutPerson": "About {name}",
+  "@highlights_aboutPerson": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_commentsCount": "{count, plural, one{{count} comment} other{{count} comments}}",
+  "@highlights_commentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_noCommentsYet": "No comment yet. Be the first.",
+  "highlights_moreComments": "Show more comments",
+  "highlights_commentsWhenReady": "Comments go open once the video ready.",
+  "highlights_followingEmptyBody": "Highlights from players wey you follow go show here, with your own too.",
+  "highlights_openDiscover": "Look inside Discover",
+  "highlights_discoverEmptyBody": "Be the first person to post one.",
+  "highlights_noneFoundSoFar": "We no see anything so far",
+  "highlights_gridEmptyMine": "No highlights yet. Post one from the Highlights tab.",
+  "highlights_watchHighlight": "Watch the highlight",
+  "highlights_allowance": "{remaining, plural, one{{remaining} post remain} other{{remaining} posts remain}} out of {limit} every {days} days",
+  "@highlights_allowance": {
+    "placeholders": {
+      "remaining": {
+        "type": "num"
+      },
+      "limit": {
+        "type": "Object"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitTitle": "You don use your highlights for now",
+  "highlights_limitBody": "{limit, plural, one{You fit post {limit} highlight every {days} days, and you don use am.} other{You fit post {limit} highlights every {days} days, and you don use all of dem.}}",
+  "@highlights_limitBody": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitNext": "You fit post again from {when}.",
+  "@highlights_limitNext": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pausedTitle": "Posting don pause",
+  "highlights_pausedBody": "Posting highlights don pause for now. You still fit watch, like and comment.",
+  "highlights_blockedTitle": "You no fit post right now",
+  "highlights_blockedBody": "Posting highlights no dey available for your account right now.",
+  "highlights_chooseVideo": "Choose video",
+  "highlights_recordVideo": "Record video",
+  "highlights_choosePhotos": "Choose photos",
+  "highlights_videoHint": "{seconds, plural, one{Up to {seconds} second} other{Up to {seconds} seconds}}",
+  "@highlights_videoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosHint": "{count, plural, one{{count} photo for one post} other{Up to {count} photos for one post}}",
+  "@highlights_photosHint": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_chooseAnother": "Choose another one",
+  "highlights_captionHint": "Talk something about am (if you want)",
+  "highlights_preparingVideo": "We dey ready your video…",
+  "highlights_preparingPhotos": "We dey ready your photos…",
+  "highlights_preparingNote": "This one happen on your phone, before anything upload. Location details inside the file dey comot.",
+  "highlights_videoReady": "Video ready",
+  "highlights_pickFailed": "We no fit open that one. Check for your phone settings say SportPadi fit use the camera and your photos.",
+  "highlights_appPhotoTooLarge": "That photo too big, even after we shrink am.",
+  "highlights_videoBusy": "Another video still dey ready. Give am small time.",
+  "highlights_appVideoTooLong": "{seconds, plural, one{Video fit reach {seconds} second.} other{Video fit reach {seconds} seconds.}}",
+  "@highlights_appVideoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_videoFailed": "We no fit ready that video on this phone. Try another one.",
+  "highlights_appEncoderStuck": "This phone video tool don stop to answer, so SportPadi no fit ready another video. Close the app well well and open am again.",
+  "highlights_appVideoTooLarge": "That video too big to post, even after we compress am. Try shorter one.",
+  "highlights_subjectChangeTitle": "Change who this highlight talk about?",
+  "highlights_subjectChangeBody": "Right now na about {from}, and anybody wey fit see {from} profile dey see am. After this e go be about {to}, and anybody wey fit see {to} profile go see am.",
+  "@highlights_subjectChangeBody": {
+    "placeholders": {
+      "from": {
+        "type": "Object"
+      },
+      "to": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_subjectChangeConfirm": "Yes, change am",
+  "highlights_appDeleteBodyFailed": "E don comot for good. You no fit undo am.",
+  "highlights_appDeleteKeepsPlace": "E still count as one of your post for the week — deleting am no go free space.",
+  "highlights_appDiscardTitle": "Throw away this highlight?",
+  "highlights_appDiscardBody": "Wetin you ready here no go post and e no go save.",
+  "highlights_appDiscardKeep": "Continue",
+  "highlights_appDiscardConfirm": "Throw am away",
+  "highlights_appStatGoneWardKept": "Dem don remove that stat from the match. Your files still dey uploaded, and the link still dey — pick another stat wey belong to this player, or comot the link make you post am as your own highlight.",
+  "highlights_appStatGoneKept": "Dem don remove that stat from the match, so the link comot. Your files still dey uploaded — tap Post highlight again make you post without stat, or pick another one first.",
+  "highlights_appUploadStalled": "The upload stop moving. Check your connection and try again.",
+  "highlights_appVideoDailyLimit": "You don post plenty video today. Try tomorrow.",
+  "highlights_appVideoDailyLimitUntil": "You don post plenty video today. You fit post another one from {when}.",
+  "@highlights_appVideoDailyLimitUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_appVideoWaitProcessing": "You get videos wey dey process already. Wait make dem finish, then try again.",
+  "highlights_appVideoUnavailable": "You no fit post video right now.",
+  "highlights_appPhotosStillOk": "You still fit post photos.",
+  "highlights_appKeepOpen": "E stop while SportPadi dey background. Make the app dey open on screen till e finish, then try again.",
+  "highlights_appLostVideoTitle": "Use the video from before?",
+  "highlights_appLostVideoBody": "SportPadi close before dem fit add this video to highlight.",
+  "highlights_appLostVideoUse": "Use am"
 }

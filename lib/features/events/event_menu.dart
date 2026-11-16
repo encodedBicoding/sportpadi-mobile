@@ -403,6 +403,9 @@ class _MessageSheetState extends ConsumerState<_MessageSheet> {
           ),
           const Spacer(),
           FilledButton.icon(
+            // Own minimumSize: the theme's filled buttons are full-width,
+            // which can't be laid out in a Row (the button didn't appear).
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
             onPressed: canSend ? () => _send(urgentAllowed) : null,
             icon: _busy
                 ? const SizedBox(

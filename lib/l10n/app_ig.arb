@@ -614,6 +614,24 @@
   "common_proFeaturesOfferTerms": "Usoro onyinye ihe Pro",
   "common_groupNotFound": "Achọtaghị otu ahụ.",
   "common_cantReachTheServer": "Enweghị ike iru sava.",
+  "common_theServerIsTakingTooLong": "Sava ahụ na-ewe ogologo oge.",
+  "common_notFound": "Ahụghị ya.",
+  "common_theServerHadAProblem": "Sava ahụ nwere nsogbu ({status}).",
+  "@common_theServerHadAProblem": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
+  "common_theRequestWasRefused": "Ajụrụ arịrịọ ahụ ({status}).",
+  "@common_theRequestWasRefused": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
   "common_couldNotLoadGroups": "Enweghị ike ibudata otu.",
   "common_teamNotFound": "Achọtaghị tiim ahụ.",
   "common_couldNotStartThePayment": "Enweghị ike ịmalite ịkwụ ụgwọ ahụ.",
@@ -8961,8 +8979,6 @@
   "profile_youreNotInAnyGroups": "Ị nọbeghị n’otu ọ bụla.",
   "profile_browseGroups": "Chọgharịa otu",
   "profile_myTournaments": "Asọmpi m",
-  "profile_highlightsAreComing": "Ihe ndị kachasị na-abịa",
-  "profile_yourBestMomentsPhotosAnd": "Oge kacha mma gị — foto na vidiyo sitere n’egwuregwu gị — ga-anọ ebe a. Ọ na-abịa n’oge na-adịghị anya.",
   "profile_progressAchievements": "Ọganihu & mmeri",
   "profile_myRecords": "Ndekọ m",
   "profile_yourNumbersSportBySport": "Ọnụ ọgụgụ gị, egwuregwu n’otu n’otu",
@@ -20287,5 +20303,665 @@
         "type": "Object"
       }
     }
-  }
+  },
+  "highlights_title": "Ihe ndị kachasị",
+  "highlights_navLabel": "Ihe ndị kachasị",
+  "highlights_tabFollowing": "Ndị ị na-eso",
+  "highlights_tabDiscover": "Chọpụta",
+  "highlights_postHighlight": "Bipụta ihe kachasị",
+  "highlights_seeDiscover": "Lee Chọpụta",
+  "highlights_backToHighlights": "Laghachi na Ihe ndị kachasị",
+  "highlights_followingEmptyTitle": "Ọ dịbeghị ihe ebe a",
+  "highlights_followingEmptyText": "Ihe ndị kachasị sitere n’aka ndị egwuregwu ị na-eso — na nke gị — na-apụta ebe a. Lee na Chọpụta ka ị chọta ndị egwuregwu ị ga-eso.",
+  "highlights_discoverEmptyTitle": "Enwebeghị ihe ndị kachasị",
+  "highlights_discoverEmptyText": "Bụrụ onye mbụ bipụtara otu.",
+  "highlights_followingEndTitle": "Ị hụrụla ihe niile",
+  "highlights_followingEndText": "Nke ahụ bụ ihe niile sitere n’aka ndị ị na-eso. Enwere ndị ọzọ na Chọpụta.",
+  "highlights_discoverEndTitle": "Ị hụrụla ihe niile",
+  "highlights_discoverEndText": "Nke ahụ bụ ihe niile ị nwere ike ịhụ ugbu a.",
+  "highlights_feedErrorTitle": "Enweghị ike ibudata ihe ndị kachasị",
+  "highlights_feedErrorText": "Lelee njikọ ịntanetị gị ma nwaa ọzọ.",
+  "highlights_feedMoreErrorTitle": "Enweghị ike ibudata ndị ọzọ",
+  "highlights_notFoundTitle": "Ahụghị ihe kachasị ahụ",
+  "highlights_notFoundText": "O nwere ike na ehichapụrụ ya, ma ọ bụ na ọ naghị apụta gị.",
+  "highlights_goneToast": "Ihe kachasị a adịghị adị ọzọ.",
+  "highlights_postBy": "Ihe kachasị sitere n’aka {name}",
+  "@highlights_postBy": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_aboutSubject": "gbasara <link>{name}</link>",
+  "@highlights_aboutSubject": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statMinute": "{minute}’",
+  "@highlights_statMinute": {
+    "placeholders": {
+      "minute": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statOpenMatch": "Mepee egwuregwu ahụ",
+  "highlights_like": "Masị",
+  "highlights_unlike": "Wepụ mmasị",
+  "highlights_likeFailed": "Enweghị ike ịchekwa mmasị gị.",
+  "highlights_commentsOpen": "{count, plural, =0{Nkwupụta} one{nkwupụta {count}} other{nkwupụta {count}}}",
+  "@highlights_commentsOpen": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_share": "Kesaa",
+  "highlights_shareTitle": "Ihe kachasị nke {name} na SportPadi",
+  "@highlights_shareTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_linkCopied": "Edepụtala njikọ ahụ",
+  "highlights_linkCopyFailed": "Enweghị ike idepụta njikọ ahụ.",
+  "highlights_more": "Ọzọ",
+  "highlights_menuEmpty": "Ọ dịghị ihe ị ga-eme na ihe kachasị a.",
+  "highlights_report": "Kọọ",
+  "highlights_delete": "Hichapụ",
+  "highlights_deleteTitle": "Hichapụ ihe kachasị a?",
+  "highlights_deleteText": "Ọ na-apụ n’anya mmadụ niile, a na-ehichapụ faịlụ ya. Enweghị ike ịgbanwe nke a, na ihichapụ ya anaghị enyeghachi gị otu n’ime ihe ị ga-ebipụta n’izu a.",
+  "highlights_deleteTextFailed": "Ọ pụọla kpamkpam — enweghị ike ịgbanwe nke a. Vidiyo dara anaghị agụ n’ihe ị bipụtara n’izu a.",
+  "highlights_deleteTextGuardian": "Ọ na-apụ n’anya mmadụ niile — na profaịlụ {name} kwa — a na-ehichapụ faịlụ ya. Enweghị ike ịgbanwe nke a.",
+  "@highlights_deleteTextGuardian": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_deleted": "Ehichapụla ihe kachasị ahụ",
+  "highlights_deleteFailed": "Enweghị ike ihichapụ ihe kachasị ahụ.",
+  "highlights_play": "Kpọọ",
+  "highlights_soundOn": "Kwụnye ụda",
+  "highlights_soundOff": "Mechie ụda",
+  "highlights_videoCantPlay": "Vidiyo a akpọghị.",
+  "highlights_photoAlt": "Foto {n} n’ime {total} — {name}",
+  "@highlights_photoAlt": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      },
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoCount": "Foto {n} n’ime {total}",
+  "@highlights_photoCount": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_previousPhoto": "Foto gara aga",
+  "highlights_nextPhoto": "Foto na-esote",
+  "highlights_processingTitle": "Na-ahazi vidiyo gị",
+  "highlights_processingText": "Naanị gị na-ahụ ya ruo mgbe ọ dị njikere. Ibe a na-emelite onwe ya — ọ dịghịkwa mkpa ka ị chere ebe a: nhazi ahụ na-aga n’ihu n’enweghị gị, o nwekwara ike iwe oge mgbe ọtụtụ ihe na-eme.",
+  "highlights_failedTitle": "Enweghị ike ibipụta vidiyo a",
+  "highlights_failedText": "Ihe mebiri mgbe a na-ahazi ya.",
+  "highlights_failedNote": "Ọ naghị agụ n’ihe ị bipụtara n’izu a. Ọ bụrụ na ị hapụ ya ebe a, ọ na-apụ n’onwe ya mgbe ụbọchị 7 gachara.",
+  "highlights_failedPostAgain": "Bipụta ya ọzọ",
+  "highlights_failedDelete": "Hichapụ ya",
+  "highlights_takenDownTitle": "SportPadi ewepụla vidiyo a",
+  "highlights_takenDownText": "Nyocha SportPadi chọpụtara nsogbu na vidiyo a, ya mere anaghị egosi ya ọzọ. Ọ bụrụ na ị hụrụ ihe ebe a na-echegbu gị, ị ka nwere ike ịkọ ya.",
+  "highlights_takenDownTextPlain": "Nyocha SportPadi chọpụtara nsogbu na vidiyo a, ya mere anaghị egosi ya ọzọ.",
+  "highlights_commentsTitle": "{count, plural, =0{Nkwupụta} one{nkwupụta {count}} other{nkwupụta {count}}}",
+  "@highlights_commentsTitle": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_commentsDescription": "Nkwupụta dị n’ihe kachasị a, nke ochie bu ụzọ.",
+  "highlights_commentsEmpty": "Enwebeghị nkwupụta. Bụrụ onye mbụ kwuru okwu.",
+  "highlights_commentsLoadFailed": "Enweghị ike ibudata nkwupụta.",
+  "highlights_commentsMore": "Gosi nkwupụta ndị ọzọ",
+  "highlights_commentLabel": "Tinye nkwupụta",
+  "highlights_commentPlaceholder": "Tinye nkwupụta…",
+  "highlights_commentSend": "Ziga nkwupụta",
+  "highlights_commentDelete": "Hichapụ nkwupụta",
+  "highlights_commentDeleteTitle": "Hichapụ nkwupụta a?",
+  "highlights_commentDeleteText": "A na-ewepụ ya n’ebe mmadụ niile nọ. Enweghị ike ịgbanwe nke a.",
+  "highlights_commentReport": "Kọọ nkwupụta a",
+  "highlights_charCount": "{count} / {max}",
+  "@highlights_charCount": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportTitle": "Kọọ ihe kachasị a",
+  "highlights_reportCommentTitle": "Kọọ nkwupụta a",
+  "highlights_reportIntro": "Ọ na-aga n’aka ndị ọrụ SportPadi, ndị na-enyocha ya.",
+  "highlights_reportWhatsWrong": "Gịnị na-ezighị ezi?",
+  "highlights_reasonInappropriate": "Ekwesịghị ekwesị",
+  "highlights_reasonHarassment": "Mmegbu ma ọ bụ mkpagbu",
+  "highlights_reasonSpam": "Spam",
+  "highlights_reasonChildSafety": "Nchegbu gbasara nchekwa nwata",
+  "highlights_reasonNotMe": "Ọ bụ m ka ọ na-egosi ma achọghị m ka ọ dịrị ebe a",
+  "highlights_reasonOther": "Ihe ọzọ",
+  "highlights_reportNoteLabel": "Ihe ọzọ? (ọ dịghị mkpa)",
+  "highlights_reportNotePlaceholder": "Tinye nkọwa ga-enyere anyị aka inyocha ya",
+  "highlights_reportNoteTooLong": "Mee ka ọ dị n’okpuru mkpụrụedemede {max}.",
+  "@highlights_reportNoteTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportChildSafetyNote": "Ọ bụrụ na nwata nọ n’ihe ize ndụ ozugbo, buru ụzọ kpọtụrụ ndị ọrụ mberede nọ gị nso.",
+  "highlights_reportSend": "Ziga akụkọ ahụ",
+  "highlights_reportSent": "Daalụ maka ịkọ ya",
+  "highlights_reportSentDetail": "Ndị ọrụ SportPadi ga-enyocha ya.",
+  "highlights_statLink": "Jikọọ ya na ọnụ ọgụgụ",
+  "highlights_statChange": "Gbanwee ọnụ ọgụgụ e jikọrọ ya",
+  "highlights_statRemove": "Wepụ njikọ ọnụ ọgụgụ",
+  "highlights_statRemoveWard": "Tọpụ ya na {name}",
+  "@highlights_statRemoveWard": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinkSaved": "Ejikọọla ya na ọnụ ọgụgụ ahụ",
+  "highlights_statLinkRemoved": "Ewepụla njikọ ọnụ ọgụgụ",
+  "highlights_statLinkFailed": "Enweghị ike ịgbanwe njikọ ọnụ ọgụgụ ahụ.",
+  "highlights_statSheetTitle": "Jikọọ ya na ọnụ ọgụgụ",
+  "highlights_statSheetText": "Họrọ oge ihe kachasị a na-egosi. Ọ na-apụta n’egwuregwu ahụ na na profaịlụ onye egwuregwu ahụ.",
+  "highlights_statsEmptyTitle": "Enwebeghị ọnụ ọgụgụ ị ga-ejikọ",
+  "highlights_statsEmptyText": "Gool, enyemaka na ọnụ ọgụgụ ndị ọzọ e dekọrọ maka gị n’egwuregwu na-apụta ebe a.",
+  "highlights_statsLoadFailed": "Enweghị ike ibudata ọnụ ọgụgụ gị.",
+  "highlights_statsMore": "Gosi ndị ọzọ",
+  "highlights_statFor": "Maka {name}",
+  "@highlights_statFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinked": "Ejikọrọ",
+  "highlights_statTaken": "O nwere ihe kachasị",
+  "highlights_statTakenMine": "O nwere ihe kachasị gị",
+  "highlights_statOptionalTitle": "Jikọọ ya na ọnụ ọgụgụ",
+  "highlights_statOptionalText": "Ọ dịghị mkpa — jikọọ ya na gool, enyemaka ma ọ bụ ọnụ ọgụgụ ọzọ ọ na-egosi.",
+  "highlights_statLinkedHint": "Ọ na-apụta n’egwuregwu ahụ na na profaịlụ gị.",
+  "highlights_statPreselectMissed": "Ọnụ ọgụgụ ahụ enweghị ike ịnara ihe kachasị ugbu a. Họrọ nke ọzọ, ma ọ bụ bipụta n’enweghị ọnụ ọgụgụ.",
+  "highlights_statGoneKept": "E wepụla ọnụ ọgụgụ ahụ n’egwuregwu, ya mere njikọ ya apụọla. Faịlụ gị ka bulitere — pịa Nwaa ọzọ ka ị bipụta n’enweghị ọnụ ọgụgụ, ma ọ bụ buru ụzọ họrọ nke ọzọ.",
+  "highlights_wardLinkTitle": "Gbanwee onye ihe kachasị a gbasara?",
+  "highlights_wardLinkText": "Ugbu a ihe kachasị a gbasara {name}, naanị ndị nwere ike ịhụ profaịlụ {name} na-ahụ ya. Ọ bụrụ na ị gaa n’ihu, ọ ga-abụ ihe e bipụtara gbasara gị — ndị niile nwere ike ịhụ profaịlụ gị ga-ahụ ya, na Ndị ị na-eso na na Chọpụta.",
+  "@highlights_wardLinkText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextOther": "Ugbu a ihe kachasị a gbasara {name}, naanị ndị nwere ike ịhụ profaịlụ {name} na-ahụ ya. Ọ bụrụ na ị gaa n’ihu, ọ ga-abụ gbasara {other} — ndị nwere ike ịhụ profaịlụ {other} ga-ahụ ya.",
+  "@highlights_wardLinkTextOther": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      },
+      "other": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextInto": "Ugbu a ihe kachasị a gbasara gị. Ọ bụrụ na ị gaa n’ihu, ọ ga-abụ ihe kachasị nke {name}: ọ ga-aga na profaịlụ na egwuregwu {name}, ndị nwere ike ịhụ profaịlụ {name} ga-ahụkwa ya.",
+  "@highlights_wardLinkTextInto": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkConfirm": "Ee, gaa n’ihu",
+  "highlights_statChoose": "Họrọ",
+  "highlights_statChangeShort": "Gbanwee",
+  "highlights_newTitle": "Ihe kachasị ọhụrụ",
+  "highlights_quotaErrorTitle": "Enweghị ike ịlele ihe fọdụụrụ gị",
+  "highlights_quotaLeft": "{count, plural, =0{Ọ dịghị mbipụta fọdụrụ n’izu a.} one{Mbipụta {count} fọdụrụ n’izu a.} other{Mbipụta {count} fọdụrụ n’izu a.}}",
+  "@highlights_quotaLeft": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_quotaRule": "{limit, plural, one{Ị nwere ike ibipụta ihe kachasị {limit} kwa} other{Ị nwere ike ibipụta ihe kachasị {limit} kwa}} {days, plural, one{ụbọchị {days}} other{ụbọchị {days}}}.",
+  "@highlights_quotaRule": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedPausedTitle": "Akwụsịtụla ibipụta",
+  "highlights_blockedPausedText": "Ibipụta ihe ndị kachasị kwụsịtụrụ ugbu a. Ị ka nwere ike ikiri, imasị na ikwu okwu.",
+  "highlights_blockedLimitTitle": "I jirila ihe niile ị ga-ebipụta n’izu a",
+  "highlights_blockedLimitText": "{limit, plural, one{Ị nwere ike ibipụta ihe kachasị {limit} kwa} other{Ị nwere ike ibipụta ihe kachasị {limit} kwa}} {days, plural, one{ụbọchị {days}} other{ụbọchị {days}}}, {limit, plural, one{i jirila ya} other{i jirila ya}}.",
+  "@highlights_blockedLimitText": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedLimitTextUntil": "{limit, plural, one{Ị nwere ike ibipụta ihe kachasị {limit} kwa} other{Ị nwere ike ibipụta ihe kachasị {limit} kwa}} {days, plural, one{ụbọchị {days}} other{ụbọchị {days}}}, {limit, plural, one{i jirila ya} other{i jirila ya}}. Ị nwere ike ibipụta ọzọ site na {when}.",
+  "@highlights_blockedLimitTextUntil": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      },
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_blockedOtherTitle": "Ị nweghị ike ibipụta ugbu a",
+  "highlights_blockedOtherText": "Ibipụta ihe ndị kachasị adịghị maka akaụntụ gị ugbu a.",
+  "highlights_videoBlockedDaily": "I bipụtara ọtụtụ vidiyo taa, ya mere vidiyo gbanyụrụ ruo echi. Ị ka nwere ike ibipụta foto.",
+  "highlights_videoBlockedDailyUntil": "I bipụtara ọtụtụ vidiyo taa. Ị nwere ike ibipụta nke ọzọ site na {when} — tupu mgbe ahụ, ị ka nwere ike ibipụta foto.",
+  "@highlights_videoBlockedDailyUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoBlockedProcessing": "A ka na-ahazi vidiyo gị ndị gara aga. Mgbe ha gwụchara, ị nwere ike ibipụta nke ọzọ — tupu mgbe ahụ, ị ka nwere ike ibipụta foto.",
+  "highlights_videoBlockedOther": "Ị nweghị ike ibipụta vidiyo ugbu a. Ị ka nwere ike ibipụta foto.",
+  "highlights_videoBlockedRecheck": "Lelee ọzọ",
+  "highlights_pickVideo": "Vidiyo",
+  "highlights_pickVideoHint": "Otu vidiyo, ruo sekọnd {seconds} na {max} MB (MP4, MOV ma ọ bụ WebM)",
+  "@highlights_pickVideoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pickPhotos": "Foto",
+  "highlights_pickPhotosHint": "Ruo foto {max}, nke a na-asụgharị n’akụkụ",
+  "@highlights_pickPhotosHint": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_preparing": "Na-akwadebe faịlụ gị…",
+  "highlights_videoTypeRefused": "Ụdị faịlụ ahụ anaghị arụ ọrụ. Họrọ vidiyo MP4, MOV ma ọ bụ WebM.",
+  "highlights_videoTooLarge": "Vidiyo ahụ bụ {size} MB. Oke ya bụ {max} MB — belata ya ma ọ bụ bupụta ya n’ụdị dị ala, wee nwaa ọzọ.",
+  "@highlights_videoTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoTooLong": "Vidiyo ahụ ruru sekọnd {seconds}. Ihe kachasị nwere ike iru sekọnd {max} — belata ya ma nwaa ọzọ.",
+  "@highlights_videoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoNoPreview": "Ihe nchọgharị a enweghị ike igosi vidiyo a tupu oge. Ị ka nwere ike ibipụta ya — a na-enyocha ya mgbe o bulitere.",
+  "highlights_videoSeconds": "{seconds} s",
+  "@highlights_videoSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_fileMb": "{size} MB",
+  "@highlights_fileMb": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_replace": "Dochie",
+  "highlights_remove": "Wepụ",
+  "highlights_photosCount": "{count, plural, one{foto {count}} other{foto {count}}} · ruo {max}",
+  "@highlights_photosCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoNumber": "Foto {n}",
+  "@highlights_photoNumber": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_removePhoto": "Wepụ foto {n}",
+  "@highlights_removePhoto": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_addPhotos": "Tinye foto",
+  "highlights_photosUnreadable": "{count, plural, one{Enweghị ike ịgụ foto {count}, ya mere na ọ banyeghị.} other{Enweghị ike ịgụ foto {count}, ya mere na ọ banyeghị.}}",
+  "@highlights_photosUnreadable": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosTooMany": "Ihe kachasị nwere ike inwe ruo foto {max}. E hapụrụ ndị fọdụrụ.",
+  "@highlights_photosTooMany": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoTooLarge": "Otu foto ka karịrị {max} MB mgbe e belatara ya. Nwaa nke ọzọ.",
+  "@highlights_photoTooLarge": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoUnreadable": "Enweghị ike ịgụ otu n’ime foto ndị ahụ. Nwaa nke ọzọ.",
+  "highlights_captionLabel": "Okwu nkọwa",
+  "highlights_captionPlaceholder": "Kwuo ihe mere (ọ dịghị mkpa)",
+  "highlights_privacyNote": "A na-echekwa foto ọzọ na ngwaọrụ a tupu e bulite ha, SportPadi na-emekwa vidiyo ọzọ tupu onye ọ bụla hụ ya — ya mere nke ọ bụla n’ime ha anaghị ebu data ọnọdụ ma ọ bụ kamera.",
+  "highlights_uploading": "Na-ebulite… {percent}%",
+  "@highlights_uploading": {
+    "placeholders": {
+      "percent": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_posting": "Na-ebipụta…",
+  "highlights_uploadFailed": "Ibulite ahụ agwụchaghị. Lelee njikọ ịntanetị gị ma nwaa ọzọ.",
+  "highlights_uploadStalled": "Ibulite ahụ kwụsịrị ịga n’ihu, ya mere e kwụsịrị ya. Lelee njikọ ịntanetị gị ma nwaa ọzọ — faịlụ ndị bulitere agwụchaa anaghị aga ọzọ.",
+  "highlights_createNoAnswer": "Anyị enwetaghị nzaghachi, ya mere anyị amaghị ma e bipụtara ihe kachasị gị ma ọ bụ na e bipụtaghị. Pịa Nwaa ọzọ: ọ bụrụ na ọ gafere, ị ga-enweta nke ahụ, ọ bụghị nke abụọ.",
+  "highlights_postedThenRemoved": "Mgbalị gị gara aga bipụtara ihe kachasị a, e wepụkwala nke ahụ kemgbe. Pịa Nwaa ọzọ ka ị bipụta ya dị ka nke ọhụrụ.",
+  "highlights_uploadCancel": "Kagbuo ibulite",
+  "highlights_leaveTitle": "Kwụsị ibulite ma pụọ?",
+  "highlights_leaveText": "E bipụtabeghị ihe kachasị gị. Ọ bụrụ na ị pụọ ugbu a ibulite ahụ ga-akwụsị, ị ga-amalitekwa ya ọzọ.",
+  "highlights_leaveStay": "Gaa n’ihu na ibulite",
+  "highlights_leaveGo": "Pụọ",
+  "highlights_leaveTitlePosting": "Pụọ mgbe a na-ebipụta ya?",
+  "highlights_leaveTextPosting": "E bulitere faịlụ gị, a na-ebipụtakwa ihe kachasị gị — o nwere ike na ọ dịla. Ọ bụrụ na ị pụọ ugbu a ị gaghị ahụ ma ọ rụrụ ọrụ: chọọ ya na Ndị ị na-eso ma ọ bụ na profaịlụ gị.",
+  "highlights_leaveStayPosting": "Nọrọ ebe a",
+  "highlights_posted": "E bipụtala ihe kachasị ahụ",
+  "highlights_postedProcessing": "E bulitela — a na-ahazi vidiyo gị",
+  "highlights_postedEarlierTry": "Mgbalị gị gara aga agafereworị: nke a bụ ya, n’enweghị mgbanwe ndị i mere mgbe emechara. Ọ bụrụ na ị chọrọ ha, hichapụ ya ma bipụta ọzọ — nke ahụ na-ewe otu n’ime ihe ị ga-ebipụta n’izu a.",
+  "highlights_gridOpenVideo": "Ihe kachasị nke vidiyo",
+  "highlights_gridOpenPhotos": "{count, plural, one{Ihe kachasị nke foto, foto {count}} other{Ihe kachasị nke foto, foto {count}}}",
+  "@highlights_gridOpenPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_gridProcessing": "Na-ahazi",
+  "highlights_gridFailed": "Ọ dara",
+  "highlights_gridLoadFailed": "Enweghị ike ibudata ihe ndị kachasị.",
+  "highlights_groupPostsTitle": "Site n’otu ha",
+  "highlights_profileEmptyMineTitle": "Enwebeghị ihe ndị kachasị",
+  "highlights_profileEmptyMineText": "Bipụta vidiyo ma ọ bụ foto nke oge gị kacha mma — ma jikọọ ha na ọnụ ọgụgụ ha na-egosi.",
+  "highlights_badgeWatch": "Kiri ihe kachasị nke {name}",
+  "@highlights_badgeWatch": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_badgeAdd": "Tinye ihe kachasị maka ọnụ ọgụgụ a",
+  "highlights_badgeAddFor": "Tinye ihe kachasị maka {name}",
+  "@highlights_badgeAddFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_newPost": "Ihe kachasị ọhụrụ",
+  "highlights_post": "Bipụta ihe kachasị",
+  "highlights_couldntLoad": "Enweghị ike ibudata ihe ndị kachasị.",
+  "highlights_couldntLoadMore": "Enweghị ike ibudata ihe ndị kachasị ọzọ.",
+  "highlights_couldntLoadOne": "Enweghị ike ibudata ihe kachasị a.",
+  "highlights_couldntLoadAllowance": "Enweghị ike ịlele ole ihe kachasị ị nwere ike ibipụta.",
+  "highlights_couldntLoadStats": "Enweghị ike ibudata ọnụ ọgụgụ.",
+  "highlights_couldntLoadComments": "Enweghị ike ibudata nkwupụta.",
+  "highlights_couldntLike": "Enweghị ike ịchekwa mmasị gị.",
+  "highlights_couldntChangeLink": "Enweghị ike ịgbanwe ọnụ ọgụgụ e jikọrọ ya.",
+  "highlights_couldntDelete": "Enweghị ike ihichapụ ihe kachasị ahụ.",
+  "highlights_couldntPost": "Enweghị ike ibipụta ihe kachasị gị.",
+  "highlights_notFound": "Ahụghị ihe kachasị ahụ.",
+  "highlights_cantShowTitle": "Enweghị ike igosi ihe kachasị a",
+  "highlights_cantShowBody": "O nwere ike na ehichapụrụ ya, ma ọ bụ na naanị ụfọdụ mmadụ na-ahụ ya.",
+  "highlights_deleteBody": "A na-ewepụ ya n’ebe mmadụ niile nọ, ya na mmasị na nkwupụta ya. Enweghị ike ịgbanwe nke a.",
+  "highlights_linkToStat": "Jikọọ ya na ọnụ ọgụgụ",
+  "highlights_changeStat": "Gbanwee ọnụ ọgụgụ e jikọrọ ya",
+  "highlights_removeStat": "Wepụ ọnụ ọgụgụ e jikọrọ ya",
+  "highlights_linkHint": "Ọ dịghị mkpa — jikọọ ya na gool, enyemaka ma ọ bụ ọnụ ọgụgụ ọzọ ọ na-egosi.",
+  "highlights_linkSaved": "Ejikọọla ya na ọnụ ọgụgụ ahụ.",
+  "highlights_linkRemoved": "Ewepụla njikọ ahụ.",
+  "highlights_pickStatTitle": "Ọnụ ọgụgụ ole ka ọ na-egosi?",
+  "highlights_pickStatSubtitle": "Ọnụ ọgụgụ ọhụrụ sitere n’egwuregwu ndị onye ọkàikpe lekọtara. Onye egwuregwu ọ bụla dị n’otu ọnụ ọgụgụ nwere ike itinye otu ihe kachasị na ya.",
+  "highlights_myStats": "Ọnụ ọgụgụ m",
+  "highlights_noStatsYet": "Enwebeghị ọnụ ọgụgụ ị ga-ejikọ. Ha na-apụta ebe a mgbe egwuregwu gasịrị bụ ebe e dekọrọ gool, enyemaka ma ọ bụ ọnụ ọgụgụ ọzọ.",
+  "highlights_noStatsFoundSoFar": "Ahụghị ihe ọ bụla ruo ugbu a.",
+  "highlights_keepLooking": "Gaa n’ihu na nchọ",
+  "highlights_statTakenByYou": "Ihe kachasị gị nke ọzọ",
+  "highlights_reportSubtitle": "Akụkọ na-aga n’aka ndị ọrụ SportPadi, ndị na-enyocha ha.",
+  "highlights_reportNoteHint": "Ọ dị ihe anyị kwesịrị ịma? (ọ dịghị mkpa)",
+  "highlights_cantPlay": "Enweghị ike ịkpọ vidiyo a ugbu a.",
+  "highlights_processing": "A ka na-akwadebe vidiyo gị. Ọ ga-akpọ ebe a ozugbo o dị njikere.",
+  "highlights_failed": "Enweghị ike ịhazi vidiyo a.",
+  "highlights_aboutPerson": "Gbasara {name}",
+  "@highlights_aboutPerson": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_commentsCount": "{count, plural, one{nkwupụta {count}} other{nkwupụta {count}}}",
+  "@highlights_commentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_noCommentsYet": "Enwebeghị nkwupụta. Bụrụ onye mbụ.",
+  "highlights_moreComments": "Gosi nkwupụta ndị ọzọ",
+  "highlights_commentsWhenReady": "Nkwupụta na-emeghe ozugbo vidiyo ahụ dị njikere.",
+  "highlights_followingEmptyBody": "Ihe ndị kachasị sitere n’aka ndị egwuregwu ị na-eso na-apụta ebe a, ya na nke gị.",
+  "highlights_openDiscover": "Lee na Chọpụta",
+  "highlights_discoverEmptyBody": "Bụrụ onye mbụ bipụtara otu.",
+  "highlights_noneFoundSoFar": "Ahụghị ihe ọ bụla ruo ugbu a",
+  "highlights_gridEmptyMine": "Enwebeghị ihe ndị kachasị. Bipụta otu site na taabụ Ihe ndị kachasị.",
+  "highlights_watchHighlight": "Kiri ihe kachasị ahụ",
+  "highlights_allowance": "{remaining, plural, one{mbipụta {remaining} fọdụrụ} other{mbipụta {remaining} fọdụrụ}} n’ime {limit} kwa ụbọchị {days}",
+  "@highlights_allowance": {
+    "placeholders": {
+      "remaining": {
+        "type": "num"
+      },
+      "limit": {
+        "type": "Object"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitTitle": "I jirila ihe ndị kachasị gị ugbu a",
+  "highlights_limitBody": "{limit, plural, one{Ị nwere ike ibipụta ihe kachasị {limit} kwa ụbọchị {days}, i jirila ya.} other{Ị nwere ike ibipụta ihe kachasị {limit} kwa ụbọchị {days}, i jirila ya.}}",
+  "@highlights_limitBody": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitNext": "Ị nwere ike ibipụta ọzọ site na {when}.",
+  "@highlights_limitNext": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pausedTitle": "Akwụsịtụla ibipụta",
+  "highlights_pausedBody": "Ibipụta ihe ndị kachasị kwụsịtụrụ ugbu a. Ị ka nwere ike ikiri, imasị na ikwu okwu.",
+  "highlights_blockedTitle": "Ị nweghị ike ibipụta ugbu a",
+  "highlights_blockedBody": "Ibipụta ihe ndị kachasị adịghị maka akaụntụ gị ugbu a.",
+  "highlights_chooseVideo": "Họrọ vidiyo",
+  "highlights_recordVideo": "Sere vidiyo",
+  "highlights_choosePhotos": "Họrọ foto",
+  "highlights_videoHint": "{seconds, plural, one{Ruo sekọnd {seconds}} other{Ruo sekọnd {seconds}}}",
+  "@highlights_videoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosHint": "{count, plural, one{Ruo foto {count} n’otu nke e bipụtara} other{Ruo foto {count} n’otu nke e bipụtara}}",
+  "@highlights_photosHint": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_chooseAnother": "Họrọ nke ọzọ",
+  "highlights_captionHint": "Kwuo ihe gbasara ya (ọ dịghị mkpa)",
+  "highlights_preparingVideo": "Na-akwadebe vidiyo gị…",
+  "highlights_preparingPhotos": "Na-akwadebe foto gị…",
+  "highlights_preparingNote": "Nke a na-eme n’ekwentị gị, tupu e bulite ihe ọ bụla. A na-ewepụ nkọwa ọnọdụ echekwara na faịlụ ahụ.",
+  "highlights_videoReady": "Vidiyo dị njikere",
+  "highlights_pickFailed": "Enweghị ike imepe nke ahụ. Lelee na ntọala ekwentị gị na SportPadi nwere ike iji kamera na foto gị.",
+  "highlights_appPhotoTooLarge": "Foto ahụ buru ibu, ọbụna mgbe e belatara ya.",
+  "highlights_videoBusy": "A ka na-akwadebe vidiyo ọzọ. Chere ya ntakịrị.",
+  "highlights_appVideoTooLong": "{seconds, plural, one{Vidiyo nwere ike iru sekọnd {seconds}.} other{Vidiyo nwere ike iru sekọnd {seconds}.}}",
+  "@highlights_appVideoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_videoFailed": "Enweghị ike ịkwadebe vidiyo ahụ n’ekwentị a. Nwaa nke ọzọ.",
+  "highlights_appEncoderStuck": "Ngwá vidiyo nke ekwentị a akwụsịla ịza, ya mere SportPadi enweghị ike ịkwadebe vidiyo ọzọ. Mechie app ahụ kpamkpam ma meghee ya ọzọ.",
+  "highlights_appVideoTooLarge": "Vidiyo ahụ buru ibu karịa ka e bipụta ya, ọbụna mgbe e belatara ya. Nwaa nke dị mkpụmkpụ.",
+  "highlights_subjectChangeTitle": "Gbanwee onye ihe kachasị a gbasara?",
+  "highlights_subjectChangeBody": "Ugbu a ọ gbasara {from}, onye ọ bụla nwere ike ịhụ profaịlụ {from} na-ahụ ya. Mgbe nke a gasịrị ọ ga-agbasa {to}, onye ọ bụla nwere ike ịhụ profaịlụ {to} ga-ahụ ya.",
+  "@highlights_subjectChangeBody": {
+    "placeholders": {
+      "from": {
+        "type": "Object"
+      },
+      "to": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_subjectChangeConfirm": "Ee, gbanwee ya",
+  "highlights_appDeleteBodyFailed": "Ọ pụọla kpamkpam. Enweghị ike ịgbanwe nke a.",
+  "highlights_appDeleteKeepsPlace": "Ọ ka na-agụ dị ka otu n’ime ihe ị bipụtara n’izu ahụ — ihichapụ ya anaghị atọpụ ọnọdụ.",
+  "highlights_appDiscardTitle": "Tụfuo ihe kachasị a?",
+  "highlights_appDiscardBody": "Ihe i kwadebere ebe a agaghị apụta, a gaghịkwa echekwa ya.",
+  "highlights_appDiscardKeep": "Gaa n’ihu",
+  "highlights_appDiscardConfirm": "Tụfuo",
+  "highlights_appStatGoneWardKept": "E wepụla ọnụ ọgụgụ ahụ n’egwuregwu. Faịlụ gị ka bulitere, njikọ ahụ ka dịkwa — họrọ ọnụ ọgụgụ ọzọ nke onye egwuregwu a, ma ọ bụ wepụ njikọ ahụ ka ị bipụta ya dị ka ihe kachasị nke gị.",
+  "highlights_appStatGoneKept": "E wepụla ọnụ ọgụgụ ahụ n’egwuregwu, ya mere njikọ ya apụọla. Faịlụ gị ka bulitere — pịa Bipụta ihe kachasị ugboro ọzọ ka ị bipụta n’enweghị ọnụ ọgụgụ, ma ọ bụ buru ụzọ họrọ nke ọzọ.",
+  "highlights_appUploadStalled": "Ibulite ahụ kwụsịrị ịga n’ihu. Lelee njikọ ịntanetị gị ma nwaa ọzọ.",
+  "highlights_appVideoDailyLimit": "I bipụtara ọtụtụ vidiyo taa. Nwaa echi.",
+  "highlights_appVideoDailyLimitUntil": "I bipụtara ọtụtụ vidiyo taa. Ị nwere ike ibipụta nke ọzọ site na {when}.",
+  "@highlights_appVideoDailyLimitUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_appVideoWaitProcessing": "Ị nwere vidiyo ndị a na-ahazi ugbu a. Chere ka ha gwụchaa, wee nwaa ọzọ.",
+  "highlights_appVideoUnavailable": "Enweghị ike ibipụta vidiyo ugbu a.",
+  "highlights_appPhotosStillOk": "Ị ka nwere ike ibipụta foto.",
+  "highlights_appKeepOpen": "Ọ kwụsịrị mgbe SportPadi nọ n’azụ. Hapụ app ahụ ka ọ nọrọ na ihuenyo ruo mgbe ọ gwụchara, wee nwaa ọzọ.",
+  "highlights_appLostVideoTitle": "Jiri vidiyo nke mbụ?",
+  "highlights_appLostVideoBody": "Emechiri SportPadi tupu e tinye vidiyo a n’ihe kachasị.",
+  "highlights_appLostVideoUse": "Jiri ya"
 }

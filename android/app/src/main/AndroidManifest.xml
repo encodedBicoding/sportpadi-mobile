@@ -1,5 +1,12 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Highlights: the video_compress plugin's own manifest asks for this,
+         and the build would merge it into the app. Nothing here needs it
+         (the plugin writes to the app's own folder), so it is taken out
+         again rather than shown to people on the Play listing. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        tools:node="remove" />
     <!-- Android 13+: runtime permission for push notifications. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Ads (google_mobile_ads) + Firebase Analytics use the advertising ID.
@@ -74,6 +81,9 @@
                 <data android:pathPrefix="/inbox"/>
                 <data android:pathPrefix="/discussions/"/>
                 <data android:path="/discussions"/>
+                <!-- Highlights: the feed, and one post (/highlights/<id>,
+                     what Share copies and notifications carry). -->
+                <data android:pathPrefix="/highlights"/>
                 <data android:pathPrefix="/my-qr"/>
                 <data android:pathPrefix="/scan"/>
                 <data android:pathPrefix="/profile"/>

@@ -17,6 +17,7 @@ import 'package:sportpadi_mobile/features/sports/sport_record_card.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/features/groups/my_groups_menu.dart';
+import 'package:sportpadi_mobile/features/highlights/highlights_grid.dart';
 import 'package:sportpadi_mobile/core/links/link_resolver.dart' show HomeTab;
 import 'package:sportpadi_mobile/features/players/aka_card.dart';
 import 'package:sportpadi_mobile/features/players/player_profile_screen.dart'
@@ -25,6 +26,7 @@ import 'package:sportpadi_mobile/features/players/player_record.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_dock.dart';
 import 'package:sportpadi_mobile/shared/widgets/sheet_scroll.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
@@ -70,6 +72,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     ref.invalidate(myWardsProvider);
     if (userId != null) ref.invalidate(playerHonoursProvider(userId));
     if (userId != null) ref.invalidate(followStateProvider(userId));
+    // The highlights grid pages with its own state, not a provider.
+    reloadHighlightGrids();
     return settleAll([
       ref.read(meProvider.future),
       // The rest is only on screen (watched) once the profile is.
@@ -110,6 +114,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Scaffold(
       backgroundColor: p.bg,
       body: _pullableUnlessData(
+        context,
         me,
         _refresh,
         AsyncView(
@@ -119,7 +124,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           if (profile == null) {
             return RefreshIndicator(
               onRefresh: _refresh,
-              child: PullableState(child: Text(context.l10n.profile_noProfileFound)),
+              child: PullableState(
+                  bottomPadding: SpDock.spaceBelow(context),
+                  child: Text(context.l10n.profile_noProfileFound)),
             );
           }
           final userId = profile.userId;
@@ -219,7 +226,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                // The last sliver: room for the floating dock the page now
+                // runs behind.
+                padding: EdgeInsets.fromLTRB(
+                    16, 12, 16, SpDock.spaceBelowList(context)),
                 sliver: SliverList(
                     delegate: SliverChildListDelegate([
                   if (_tab == 0)
@@ -235,11 +245,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       title: context.l10n.profile_myTournaments,
                     )
                   else
-                    _EmptyNote(
-                      icon: Icons.image_outlined,
-                      title: context.l10n.profile_highlightsAreComing,
-                      text: context.l10n.profile_yourBestMomentsPhotosAnd,
-                    ),
+                    // Highlights about me (reels), newest first; a tile
+                    // opens the post. Posting is on the Highlights tab.
+                    HighlightsGrid(userId: userId ?? '', mine: true),
                 ])),
               ),
             ]),
@@ -581,11 +589,10 @@ class _Grabber extends StatelessWidget {
       );
 }
 
-/// Icon tile + title + line — the 2026 empty state.
+/// Icon tile + line — the 2026 empty state.
 class _EmptyNote extends StatelessWidget {
-  const _EmptyNote({required this.icon, required this.text, this.title});
+  const _EmptyNote({required this.icon, required this.text});
   final IconData icon;
-  final String? title;
   final String text;
 
   @override
@@ -595,13 +602,6 @@ class _EmptyNote extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
       child: Column(children: [
         SpIconTile(icon, bg: p.surface2, fg: p.muted, size: 52, iconSize: 24),
-        if (title != null) ...[
-          const SizedBox(height: 12),
-          Text(title!,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: p.ink, fontSize: 15, fontWeight: FontWeight.w800)),
-        ],
         const SizedBox(height: 6),
         Text(text,
             textAlign: TextAlign.center,
@@ -1010,7 +1010,7 @@ class _ProfileTabs extends StatelessWidget {
       child: Row(children: [
         pill(0, Icons.groups_outlined, context.l10n.profile_groups),
         pill(1, Icons.emoji_events_outlined, context.l10n.profile_tournaments),
-        pill(2, Icons.image_outlined, context.l10n.profile_highlights),
+        pill(2, Icons.movie_filter_outlined, context.l10n.profile_highlights),
       ]),
     );
   }
@@ -1155,9 +1155,11 @@ class _PinnedProfileTabs extends SliverPersistentHeaderDelegate {
 
 /// Loading / error aren't scrollable on their own, so they get a pullable
 /// wrapper; once the data shows, its own RefreshIndicator takes over.
-Widget _pullableUnlessData(
-        AsyncValue<Object?> v, Future<void> Function() onRefresh, Widget child) =>
+Widget _pullableUnlessData(BuildContext context, AsyncValue<Object?> v,
+        Future<void> Function() onRefresh, Widget child) =>
     v.hasValue && !v.hasError
         ? child
         : RefreshIndicator(
-            onRefresh: onRefresh, child: PullableState(child: child));
+            onRefresh: onRefresh,
+            child: PullableState(
+                bottomPadding: SpDock.spaceBelow(context), child: child));

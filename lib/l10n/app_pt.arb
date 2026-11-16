@@ -614,6 +614,24 @@
   "common_proFeaturesOfferTerms": "Termos da oferta de recursos Pro",
   "common_groupNotFound": "Grupo não encontrado.",
   "common_cantReachTheServer": "Não foi possível conectar ao servidor.",
+  "common_theServerIsTakingTooLong": "O servidor está demorando muito.",
+  "common_notFound": "Não encontrado.",
+  "common_theServerHadAProblem": "O servidor teve um problema ({status}).",
+  "@common_theServerHadAProblem": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
+  "common_theRequestWasRefused": "O pedido foi recusado ({status}).",
+  "@common_theRequestWasRefused": {
+    "placeholders": {
+      "status": {
+        "type": "Object"
+      }
+    }
+  },
   "common_couldNotLoadGroups": "Não foi possível carregar os grupos.",
   "common_teamNotFound": "Time não encontrado.",
   "common_couldNotStartThePayment": "Não foi possível iniciar o pagamento.",
@@ -8961,8 +8979,6 @@
   "profile_youreNotInAnyGroups": "Você ainda não está em nenhum grupo.",
   "profile_browseGroups": "Explorar grupos",
   "profile_myTournaments": "Meus torneios",
-  "profile_highlightsAreComing": "Destaques em breve",
-  "profile_yourBestMomentsPhotosAnd": "Seus melhores momentos — fotos e vídeos dos seus jogos — vão ficar aqui. Em breve.",
   "profile_progressAchievements": "Progresso & conquistas",
   "profile_myRecords": "Meus registros",
   "profile_yourNumbersSportBySport": "Seus números, esporte por esporte",
@@ -20287,5 +20303,665 @@
         "type": "Object"
       }
     }
-  }
+  },
+  "highlights_title": "Destaques",
+  "highlights_navLabel": "Destaques",
+  "highlights_tabFollowing": "Seguindo",
+  "highlights_tabDiscover": "Descobrir",
+  "highlights_postHighlight": "Publicar um destaque",
+  "highlights_seeDiscover": "Ver Descobrir",
+  "highlights_backToHighlights": "Voltar para Destaques",
+  "highlights_followingEmptyTitle": "Nada por aqui ainda",
+  "highlights_followingEmptyText": "Os destaques dos jogadores que você segue — e os seus — aparecem aqui. Dê uma olhada em Descobrir para encontrar jogadores para seguir.",
+  "highlights_discoverEmptyTitle": "Nenhum destaque ainda",
+  "highlights_discoverEmptyText": "Seja o primeiro a publicar um.",
+  "highlights_followingEndTitle": "Você está em dia",
+  "highlights_followingEndText": "Isso é tudo dos jogadores que você segue. Tem mais em Descobrir.",
+  "highlights_discoverEndTitle": "Você já viu tudo",
+  "highlights_discoverEndText": "Isso é tudo o que você pode ver por enquanto.",
+  "highlights_feedErrorTitle": "Não foi possível carregar os destaques",
+  "highlights_feedErrorText": "Verifique sua conexão e tente de novo.",
+  "highlights_feedMoreErrorTitle": "Não foi possível carregar mais",
+  "highlights_notFoundTitle": "Destaque não encontrado",
+  "highlights_notFoundText": "Ele pode ter sido excluído, ou não está visível para você.",
+  "highlights_goneToast": "Este destaque não está mais disponível.",
+  "highlights_postBy": "Destaque de {name}",
+  "@highlights_postBy": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_aboutSubject": "sobre <link>{name}</link>",
+  "@highlights_aboutSubject": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statMinute": "{minute}’",
+  "@highlights_statMinute": {
+    "placeholders": {
+      "minute": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statOpenMatch": "Abrir o jogo",
+  "highlights_like": "Curtir",
+  "highlights_unlike": "Descurtir",
+  "highlights_likeFailed": "Não foi possível salvar sua curtida.",
+  "highlights_commentsOpen": "{count, plural, =0{Comentários} one{{count} comentário} other{{count} comentários}}",
+  "@highlights_commentsOpen": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_share": "Compartilhar",
+  "highlights_shareTitle": "O destaque de {name} no SportPadi",
+  "@highlights_shareTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_linkCopied": "Link copiado",
+  "highlights_linkCopyFailed": "Não foi possível copiar o link.",
+  "highlights_more": "Mais",
+  "highlights_menuEmpty": "Nenhuma ação para este destaque.",
+  "highlights_report": "Denunciar",
+  "highlights_delete": "Excluir",
+  "highlights_deleteTitle": "Excluir este destaque?",
+  "highlights_deleteText": "Ele desaparece para todos e os arquivos são apagados. Isso não pode ser desfeito, e excluir não devolve uma das publicações desta semana.",
+  "highlights_deleteTextFailed": "Ele é removido de vez — isso não pode ser desfeito. Um vídeo que falhou não conta para as publicações desta semana.",
+  "highlights_deleteTextGuardian": "Ele desaparece para todos — do perfil de {name} também — e os arquivos são apagados. Isso não pode ser desfeito.",
+  "@highlights_deleteTextGuardian": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_deleted": "Destaque excluído",
+  "highlights_deleteFailed": "Não foi possível excluir o destaque.",
+  "highlights_play": "Reproduzir",
+  "highlights_soundOn": "Ligar o som",
+  "highlights_soundOff": "Desligar o som",
+  "highlights_videoCantPlay": "Não foi possível reproduzir este vídeo.",
+  "highlights_photoAlt": "Foto {n} de {total} — {name}",
+  "@highlights_photoAlt": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      },
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoCount": "Foto {n} de {total}",
+  "@highlights_photoCount": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_previousPhoto": "Foto anterior",
+  "highlights_nextPhoto": "Próxima foto",
+  "highlights_processingTitle": "Processando seu vídeo",
+  "highlights_processingText": "Só você vê o vídeo até ele ficar pronto. Esta página se atualiza sozinha — e você não precisa esperar aqui: o processamento continua sem você e pode demorar quando está movimentado.",
+  "highlights_failedTitle": "Não foi possível publicar este vídeo",
+  "highlights_failedText": "Algo deu errado durante o processamento.",
+  "highlights_failedNote": "Ele não conta para as publicações desta semana. Se você deixar aqui, ele é removido sozinho depois de 7 dias.",
+  "highlights_failedPostAgain": "Publicar de novo",
+  "highlights_failedDelete": "Excluir",
+  "highlights_takenDownTitle": "O SportPadi removeu este vídeo",
+  "highlights_takenDownText": "Uma verificação do SportPadi encontrou um problema neste vídeo, então ele não é mais exibido. Se você viu aqui algo que te preocupa, ainda pode denunciá-lo.",
+  "highlights_takenDownTextPlain": "Uma verificação do SportPadi encontrou um problema neste vídeo, então ele não é mais exibido.",
+  "highlights_commentsTitle": "{count, plural, =0{Comentários} one{{count} comentário} other{{count} comentários}}",
+  "@highlights_commentsTitle": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_commentsDescription": "Comentários deste destaque, dos mais antigos aos mais novos.",
+  "highlights_commentsEmpty": "Nenhum comentário ainda. Seja o primeiro a falar algo.",
+  "highlights_commentsLoadFailed": "Não foi possível carregar os comentários.",
+  "highlights_commentsMore": "Mostrar mais comentários",
+  "highlights_commentLabel": "Adicionar um comentário",
+  "highlights_commentPlaceholder": "Adicionar um comentário…",
+  "highlights_commentSend": "Enviar comentário",
+  "highlights_commentDelete": "Excluir comentário",
+  "highlights_commentDeleteTitle": "Excluir este comentário?",
+  "highlights_commentDeleteText": "Ele é removido para todos. Isso não pode ser desfeito.",
+  "highlights_commentReport": "Denunciar comentário",
+  "highlights_charCount": "{count} / {max}",
+  "@highlights_charCount": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportTitle": "Denunciar este destaque",
+  "highlights_reportCommentTitle": "Denunciar este comentário",
+  "highlights_reportIntro": "A denúncia vai para a equipe do SportPadi, que analisa.",
+  "highlights_reportWhatsWrong": "O que está errado?",
+  "highlights_reasonInappropriate": "Inadequado",
+  "highlights_reasonHarassment": "Assédio ou bullying",
+  "highlights_reasonSpam": "Spam",
+  "highlights_reasonChildSafety": "Segurança de uma criança",
+  "highlights_reasonNotMe": "Eu apareço e não quero isso publicado",
+  "highlights_reasonOther": "Outro motivo",
+  "highlights_reportNoteLabel": "Mais alguma coisa? (opcional)",
+  "highlights_reportNotePlaceholder": "Adicione detalhes que ajudem na análise",
+  "highlights_reportNoteTooLong": "Use no máximo {max} caracteres.",
+  "@highlights_reportNoteTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reportChildSafetyNote": "Se uma criança estiver em perigo imediato, contate primeiro os serviços de emergência da sua região.",
+  "highlights_reportSend": "Enviar denúncia",
+  "highlights_reportSent": "Obrigado pela denúncia",
+  "highlights_reportSentDetail": "A equipe do SportPadi vai analisar.",
+  "highlights_statLink": "Vincular a uma estatística",
+  "highlights_statChange": "Trocar a estatística vinculada",
+  "highlights_statRemove": "Remover o vínculo",
+  "highlights_statRemoveWard": "Desvincular de {name}",
+  "@highlights_statRemoveWard": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinkSaved": "Vinculado à estatística",
+  "highlights_statLinkRemoved": "Vínculo removido",
+  "highlights_statLinkFailed": "Não foi possível trocar a estatística vinculada.",
+  "highlights_statSheetTitle": "Vincular a uma estatística",
+  "highlights_statSheetText": "Escolha o momento que este destaque mostra. Ele aparece no jogo e no perfil do jogador.",
+  "highlights_statsEmptyTitle": "Nenhuma estatística para vincular ainda",
+  "highlights_statsEmptyText": "Gols, assistências e outras estatísticas registradas para você em um jogo aparecem aqui.",
+  "highlights_statsLoadFailed": "Não foi possível carregar suas estatísticas.",
+  "highlights_statsMore": "Mostrar mais",
+  "highlights_statFor": "De {name}",
+  "@highlights_statFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_statLinked": "Vinculado",
+  "highlights_statTaken": "Já tem um destaque",
+  "highlights_statTakenMine": "Tem o seu destaque",
+  "highlights_statOptionalTitle": "Vincular a uma estatística",
+  "highlights_statOptionalText": "Opcional — fixe no gol, na assistência ou na estatística que ele mostra.",
+  "highlights_statLinkedHint": "Aparece no jogo e no seu perfil.",
+  "highlights_statPreselectMissed": "Essa estatística não pode receber um destaque agora. Escolha outra ou publique sem nenhuma.",
+  "highlights_statGoneKept": "Essa estatística foi removida do jogo, então o vínculo saiu. Seus arquivos continuam enviados — toque em Tentar de novo para publicar sem estatística, ou escolha outra primeiro.",
+  "highlights_wardLinkTitle": "Mudar de quem é este destaque?",
+  "highlights_wardLinkText": "Agora este destaque é sobre {name}, e só quem vê o perfil de {name} pode vê-lo. Se você continuar, ele passa a ser uma publicação sua — mostrada a todos que veem seu perfil, em Seguindo e em Descobrir.",
+  "@highlights_wardLinkText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextOther": "Agora este destaque é sobre {name}, e só quem vê o perfil de {name} pode vê-lo. Se você continuar, ele passa a ser sobre {other} — mostrado a quem vê o perfil de {other}.",
+  "@highlights_wardLinkTextOther": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      },
+      "other": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkTextInto": "Agora este destaque é sobre você. Se você continuar, ele passa a ser o destaque de {name}: vai para o perfil e o jogo de {name}, e é mostrado a quem vê o perfil de {name}.",
+  "@highlights_wardLinkTextInto": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_wardLinkConfirm": "Sim, continuar",
+  "highlights_statChoose": "Escolher",
+  "highlights_statChangeShort": "Trocar",
+  "highlights_newTitle": "Novo destaque",
+  "highlights_quotaErrorTitle": "Não foi possível verificar quantos você ainda tem",
+  "highlights_quotaLeft": "{count, plural, =0{Nenhuma publicação restante esta semana.} one{{count} publicação restante esta semana.} other{{count} publicações restantes esta semana.}}",
+  "@highlights_quotaLeft": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_quotaRule": "{limit, plural, one{Você pode publicar {limit} destaque a cada} other{Você pode publicar {limit} destaques a cada}} {days, plural, one{{days} dia} other{{days} dias}}.",
+  "@highlights_quotaRule": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedPausedTitle": "As publicações estão pausadas",
+  "highlights_blockedPausedText": "Publicar destaques está pausado por enquanto. Você ainda pode assistir, curtir e comentar.",
+  "highlights_blockedLimitTitle": "Você já usou as publicações desta semana",
+  "highlights_blockedLimitText": "{limit, plural, one{Você pode publicar {limit} destaque a cada} other{Você pode publicar {limit} destaques a cada}} {days, plural, one{{days} dia} other{{days} dias}}, e {limit, plural, one{você já usou} other{você já usou todos}}.",
+  "@highlights_blockedLimitText": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_blockedLimitTextUntil": "{limit, plural, one{Você pode publicar {limit} destaque a cada} other{Você pode publicar {limit} destaques a cada}} {days, plural, one{{days} dia} other{{days} dias}}, e {limit, plural, one{você já usou} other{você já usou todos}}. Você pode publicar de novo a partir de {when}.",
+  "@highlights_blockedLimitTextUntil": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "num"
+      },
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_blockedOtherTitle": "Você não pode publicar agora",
+  "highlights_blockedOtherText": "Publicar destaques não está disponível na sua conta neste momento.",
+  "highlights_videoBlockedDaily": "Você publicou muitos vídeos hoje, então vídeo está desligado até amanhã. Você ainda pode publicar fotos.",
+  "highlights_videoBlockedDailyUntil": "Você publicou muitos vídeos hoje. Pode publicar outro a partir de {when} — até lá, ainda pode publicar fotos.",
+  "@highlights_videoBlockedDailyUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoBlockedProcessing": "Seus vídeos anteriores ainda estão sendo processados. Quando terminarem, você pode publicar outro — até lá, ainda pode publicar fotos.",
+  "highlights_videoBlockedOther": "Você não pode publicar vídeo agora. Ainda pode publicar fotos.",
+  "highlights_videoBlockedRecheck": "Verificar de novo",
+  "highlights_pickVideo": "Vídeo",
+  "highlights_pickVideoHint": "Um clipe, de até {seconds} segundos e {max} MB (MP4, MOV ou WebM)",
+  "@highlights_pickVideoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pickPhotos": "Fotos",
+  "highlights_pickPhotosHint": "Até {max} fotos, passadas de lado",
+  "@highlights_pickPhotosHint": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_preparing": "Preparando seus arquivos…",
+  "highlights_videoTypeRefused": "Esse tipo de arquivo não é aceito. Escolha um vídeo MP4, MOV ou WebM.",
+  "highlights_videoTooLarge": "Esse vídeo tem {size} MB. O limite é {max} MB — corte-o ou exporte em qualidade menor e tente de novo.",
+  "@highlights_videoTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoTooLong": "Esse vídeo tem {seconds} segundos. Um destaque pode ter até {max} segundos — corte-o e tente de novo.",
+  "@highlights_videoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_videoNoPreview": "Este navegador não consegue pré-visualizar o vídeo. Você pode publicar mesmo assim — ele é verificado depois do envio.",
+  "highlights_videoSeconds": "{seconds} s",
+  "@highlights_videoSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_fileMb": "{size} MB",
+  "@highlights_fileMb": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_replace": "Substituir",
+  "highlights_remove": "Remover",
+  "highlights_photosCount": "{count, plural, one{{count} foto} other{{count} fotos}} · até {max}",
+  "@highlights_photosCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      },
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoNumber": "Foto {n}",
+  "@highlights_photoNumber": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_removePhoto": "Remover a foto {n}",
+  "@highlights_removePhoto": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_addPhotos": "Adicionar fotos",
+  "highlights_photosUnreadable": "{count, plural, one{Não foi possível ler {count} foto, e ela ficou de fora.} other{Não foi possível ler {count} fotos, e elas ficaram de fora.}}",
+  "@highlights_photosUnreadable": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosTooMany": "Um destaque pode ter até {max} fotos. As que passaram ficaram de fora.",
+  "@highlights_photosTooMany": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoTooLarge": "Uma foto continua acima de {max} MB depois de redimensionada. Tente outra.",
+  "@highlights_photoTooLarge": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_photoUnreadable": "Não foi possível ler uma das fotos. Tente outra.",
+  "highlights_captionLabel": "Legenda",
+  "highlights_captionPlaceholder": "Conte o que aconteceu (opcional)",
+  "highlights_privacyNote": "As fotos são salvas de novo neste aparelho antes do envio, e o vídeo é recodificado pelo SportPadi antes de qualquer pessoa ver — então nenhum dos dois leva dados de localização ou da câmera.",
+  "highlights_uploading": "Enviando… {percent}%",
+  "@highlights_uploading": {
+    "placeholders": {
+      "percent": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_posting": "Publicando…",
+  "highlights_uploadFailed": "O envio não terminou. Verifique sua conexão e tente de novo.",
+  "highlights_uploadStalled": "O envio parou de andar, então foi interrompido. Verifique sua conexão e tente de novo — os arquivos que já tinham subido não são enviados outra vez.",
+  "highlights_createNoAnswer": "Não recebemos resposta, então não sabemos se seu destaque foi publicado. Toque em Tentar de novo: se tiver dado certo, você verá aquela publicação, não uma segunda.",
+  "highlights_postedThenRemoved": "Sua tentativa anterior publicou este destaque, e essa publicação já foi removida. Toque em Tentar de novo para publicá-lo como um novo.",
+  "highlights_uploadCancel": "Cancelar o envio",
+  "highlights_leaveTitle": "Parar o envio e sair?",
+  "highlights_leaveText": "Seu destaque ainda não foi publicado. Se você sair agora o envio para, e você terá que começar de novo.",
+  "highlights_leaveStay": "Continuar enviando",
+  "highlights_leaveGo": "Sair",
+  "highlights_leaveTitlePosting": "Sair enquanto publica?",
+  "highlights_leaveTextPosting": "Seus arquivos já subiram e seu destaque está sendo publicado — ele pode até já estar no ar. Se você sair agora não vai ver se deu certo: procure por ele em Seguindo ou no seu perfil.",
+  "highlights_leaveStayPosting": "Ficar aqui",
+  "highlights_posted": "Destaque publicado",
+  "highlights_postedProcessing": "Enviado — seu vídeo está sendo processado",
+  "highlights_postedEarlierTry": "Sua tentativa anterior já tinha dado certo: esta é aquela publicação, sem as mudanças que você fez depois. Se precisar delas, exclua e publique de novo — isso usa outra publicação desta semana.",
+  "highlights_gridOpenVideo": "Destaque em vídeo",
+  "highlights_gridOpenPhotos": "{count, plural, one{Destaque em fotos} other{Destaque em fotos, {count} fotos}}",
+  "@highlights_gridOpenPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_gridProcessing": "Processando",
+  "highlights_gridFailed": "Falhou",
+  "highlights_gridLoadFailed": "Não foi possível carregar os destaques.",
+  "highlights_groupPostsTitle": "Dos grupos",
+  "highlights_profileEmptyMineTitle": "Nenhum destaque ainda",
+  "highlights_profileEmptyMineText": "Publique um vídeo ou fotos dos seus melhores momentos — e fixe na estatística que eles mostram.",
+  "highlights_badgeWatch": "Ver o destaque de {name}",
+  "@highlights_badgeWatch": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_badgeAdd": "Adicionar um destaque para esta estatística",
+  "highlights_badgeAddFor": "Adicionar um destaque para {name}",
+  "@highlights_badgeAddFor": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_newPost": "Novo destaque",
+  "highlights_post": "Publicar destaque",
+  "highlights_couldntLoad": "Não foi possível carregar os destaques.",
+  "highlights_couldntLoadMore": "Não foi possível carregar mais destaques.",
+  "highlights_couldntLoadOne": "Não foi possível carregar este destaque.",
+  "highlights_couldntLoadAllowance": "Não foi possível verificar quantos destaques você pode publicar.",
+  "highlights_couldntLoadStats": "Não foi possível carregar as estatísticas.",
+  "highlights_couldntLoadComments": "Não foi possível carregar os comentários.",
+  "highlights_couldntLike": "Não foi possível salvar sua curtida.",
+  "highlights_couldntChangeLink": "Não foi possível trocar a estatística vinculada.",
+  "highlights_couldntDelete": "Não foi possível excluir o destaque.",
+  "highlights_couldntPost": "Não foi possível publicar seu destaque.",
+  "highlights_notFound": "Destaque não encontrado.",
+  "highlights_cantShowTitle": "Este destaque não pode ser mostrado",
+  "highlights_cantShowBody": "Ele pode ter sido excluído, ou só algumas pessoas podem vê-lo.",
+  "highlights_deleteBody": "Ele é removido para todos, com as curtidas e os comentários. Isso não pode ser desfeito.",
+  "highlights_linkToStat": "Vincular a uma estatística",
+  "highlights_changeStat": "Trocar a estatística vinculada",
+  "highlights_removeStat": "Remover a estatística vinculada",
+  "highlights_linkHint": "Opcional — fixe no gol, na assistência ou na estatística que ele mostra.",
+  "highlights_linkSaved": "Vinculado à estatística.",
+  "highlights_linkRemoved": "O vínculo foi removido.",
+  "highlights_pickStatTitle": "Qual estatística ele mostra?",
+  "highlights_pickStatSubtitle": "Estatísticas recentes de jogos com arbitragem. Cada jogador de uma estatística pode adicionar um destaque a ela.",
+  "highlights_myStats": "Minhas estatísticas",
+  "highlights_noStatsYet": "Nenhuma estatística para vincular ainda. Elas aparecem aqui depois de um jogo em que um gol, uma assistência ou outra estatística foi registrada.",
+  "highlights_noStatsFoundSoFar": "Nada encontrado até agora.",
+  "highlights_keepLooking": "Continuar procurando",
+  "highlights_statTakenByYou": "Seu outro destaque",
+  "highlights_reportSubtitle": "As denúncias vão para a equipe do SportPadi, que analisa.",
+  "highlights_reportNoteHint": "Algo que devemos saber? (opcional)",
+  "highlights_cantPlay": "Este vídeo não pode ser reproduzido agora.",
+  "highlights_processing": "Seu vídeo ainda está sendo preparado. Ele toca aqui assim que estiver pronto.",
+  "highlights_failed": "Não foi possível processar este vídeo.",
+  "highlights_aboutPerson": "Sobre {name}",
+  "@highlights_aboutPerson": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_commentsCount": "{count, plural, one{{count} comentário} other{{count} comentários}}",
+  "@highlights_commentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_noCommentsYet": "Nenhum comentário ainda. Seja o primeiro.",
+  "highlights_moreComments": "Mostrar mais comentários",
+  "highlights_commentsWhenReady": "Os comentários abrem quando o vídeo estiver pronto.",
+  "highlights_followingEmptyBody": "Os destaques dos jogadores que você segue aparecem aqui, junto com os seus.",
+  "highlights_openDiscover": "Olhar em Descobrir",
+  "highlights_discoverEmptyBody": "Seja o primeiro a publicar um.",
+  "highlights_noneFoundSoFar": "Nada encontrado até agora",
+  "highlights_gridEmptyMine": "Nenhum destaque ainda. Publique um pela aba Destaques.",
+  "highlights_watchHighlight": "Ver o destaque",
+  "highlights_allowance": "{remaining, plural, one{{remaining} publicação restante} other{{remaining} publicações restantes}} de {limit} a cada {days} dias",
+  "@highlights_allowance": {
+    "placeholders": {
+      "remaining": {
+        "type": "num"
+      },
+      "limit": {
+        "type": "Object"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitTitle": "Você já usou seus destaques por enquanto",
+  "highlights_limitBody": "{limit, plural, one{Você pode publicar {limit} destaque a cada {days} dias, e já usou.} other{Você pode publicar {limit} destaques a cada {days} dias, e já usou todos.}}",
+  "@highlights_limitBody": {
+    "placeholders": {
+      "limit": {
+        "type": "num"
+      },
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_limitNext": "Você pode publicar de novo a partir de {when}.",
+  "@highlights_limitNext": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_pausedTitle": "As publicações estão pausadas",
+  "highlights_pausedBody": "Publicar destaques está pausado por enquanto. Você ainda pode assistir, curtir e comentar.",
+  "highlights_blockedTitle": "Você não pode publicar agora",
+  "highlights_blockedBody": "Publicar destaques não está disponível para sua conta neste momento.",
+  "highlights_chooseVideo": "Escolher um vídeo",
+  "highlights_recordVideo": "Gravar um vídeo",
+  "highlights_choosePhotos": "Escolher fotos",
+  "highlights_videoHint": "{seconds, plural, one{Até {seconds} segundo} other{Até {seconds} segundos}}",
+  "@highlights_videoHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_photosHint": "{count, plural, one{{count} foto por publicação} other{Até {count} fotos por publicação}}",
+  "@highlights_photosHint": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_chooseAnother": "Escolher outro",
+  "highlights_captionHint": "Fale algo sobre isso (opcional)",
+  "highlights_preparingVideo": "Preparando seu vídeo…",
+  "highlights_preparingPhotos": "Preparando suas fotos…",
+  "highlights_preparingNote": "Isso acontece no seu celular, antes de qualquer envio. Os dados de localização salvos no arquivo são removidos.",
+  "highlights_videoReady": "Vídeo pronto",
+  "highlights_pickFailed": "Não foi possível abrir. Verifique nas configurações do celular se o SportPadi pode usar a câmera e suas fotos.",
+  "highlights_appPhotoTooLarge": "Essa foto é grande demais, mesmo depois de reduzida.",
+  "highlights_videoBusy": "Outro vídeo ainda está sendo preparado. Dê um instante.",
+  "highlights_appVideoTooLong": "{seconds, plural, one{Vídeos podem ter até {seconds} segundo.} other{Vídeos podem ter até {seconds} segundos.}}",
+  "@highlights_appVideoTooLong": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "highlights_videoFailed": "Não foi possível preparar esse vídeo neste celular. Tente outro.",
+  "highlights_appEncoderStuck": "A ferramenta de vídeo deste celular parou de responder, então o SportPadi não consegue preparar outro vídeo. Feche o app completamente e abra de novo.",
+  "highlights_appVideoTooLarge": "Esse vídeo é grande demais para publicar, mesmo depois de comprimido. Tente um mais curto.",
+  "highlights_subjectChangeTitle": "Mudar de quem é este destaque?",
+  "highlights_subjectChangeBody": "Agora ele é sobre {from}, e quem vê o perfil de {from} pode vê-lo. Depois disso ele será sobre {to}, e quem vê o perfil de {to} poderá vê-lo.",
+  "@highlights_subjectChangeBody": {
+    "placeholders": {
+      "from": {
+        "type": "Object"
+      },
+      "to": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_subjectChangeConfirm": "Sim, mudar",
+  "highlights_appDeleteBodyFailed": "Ele é removido de vez. Isso não pode ser desfeito.",
+  "highlights_appDeleteKeepsPlace": "Ele continua contando como uma das suas publicações da semana — excluir não libera uma vaga.",
+  "highlights_appDiscardTitle": "Descartar este destaque?",
+  "highlights_appDiscardBody": "O que você preparou aqui não será publicado nem salvo.",
+  "highlights_appDiscardKeep": "Continuar",
+  "highlights_appDiscardConfirm": "Descartar",
+  "highlights_appStatGoneWardKept": "Essa estatística foi removida do jogo. Seus arquivos continuam enviados e o vínculo continua aqui — escolha outra estatística deste jogador, ou remova o vínculo para publicá-lo como seu próprio destaque.",
+  "highlights_appStatGoneKept": "Essa estatística foi removida do jogo, então o vínculo saiu. Seus arquivos continuam enviados — toque em Publicar destaque de novo para publicar sem estatística, ou escolha outra primeiro.",
+  "highlights_appUploadStalled": "O envio parou de andar. Verifique sua conexão e tente de novo.",
+  "highlights_appVideoDailyLimit": "Você publicou muitos vídeos hoje. Tente amanhã.",
+  "highlights_appVideoDailyLimitUntil": "Você publicou muitos vídeos hoje. Pode publicar outro a partir de {when}.",
+  "@highlights_appVideoDailyLimitUntil": {
+    "placeholders": {
+      "when": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_appVideoWaitProcessing": "Você já tem vídeos em processamento. Espere terminarem e tente de novo.",
+  "highlights_appVideoUnavailable": "Não é possível publicar vídeos agora.",
+  "highlights_appPhotosStillOk": "Você ainda pode publicar fotos.",
+  "highlights_appKeepOpen": "Parou enquanto o SportPadi estava em segundo plano. Deixe o app aberto na tela até terminar e tente de novo.",
+  "highlights_appLostVideoTitle": "Usar o vídeo de antes?",
+  "highlights_appLostVideoBody": "O SportPadi foi fechado antes de este vídeo ser adicionado a um destaque.",
+  "highlights_appLostVideoUse": "Usar"
 }

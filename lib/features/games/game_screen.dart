@@ -9,6 +9,10 @@ import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
 import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
+import 'package:sportpadi_mobile/data/highlights/highlight_models.dart'
+    show GameHighlightRef;
+import 'package:sportpadi_mobile/data/highlights/highlights_repository.dart'
+    show gameHighlightsProvider;
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/events/event_mvp_card.dart';
 import 'package:sportpadi_mobile/features/games/basketball_widgets.dart';
@@ -26,18 +30,147 @@ import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
+/// `?stat=` — and the stat a reel hands back on its pop — is an activity
+/// uuid or nothing: anything else names no row, so nothing is walked. The
+/// rule the web keeps (`isUuid(stat)`, `components/highlights/shared.ts`) and
+/// the reel's own (`highlight_detail_screen.dart` `_reelUuid`), so one
+/// grammar is read the same way on both clients (T8 review LOW-F).
+final _statUuid = RegExp(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    caseSensitive: false);
+
 /// Live game screen — a faithful port of the web GameClient layout:
 /// scoreboard card with the clock strip, draw-resolution + shootout cards,
 /// officiants, admin controls, timeline, and side-by-side lineups.
-class GameScreen extends ConsumerWidget {
-  const GameScreen({super.key, required this.gameId});
+class GameScreen extends ConsumerStatefulWidget {
+  const GameScreen({super.key, required this.gameId, this.stat});
   final String gameId;
 
+  /// `?stat=<activityId>` — a timeline row to land on, not just the match.
+  /// A match reel that had nothing to pop sends the viewer here with it, and
+  /// the web writes the same parameter on the same path (`gameStatHref`), so
+  /// both clients come back the same way (docs/wiki/highlights.md, "The
+  /// match reel").
+  final String? stat;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends ConsumerState<GameScreen> {
+  /// The page's own scroller, so a stat's row can be brought into view.
+  final _scroll = ScrollController();
+
+  /// One key per timeline row, by stat id. The screen keeps them because a
+  /// GlobalKey minted in `build` would be a new one every build; the rows
+  /// themselves are `_TimelineCard`'s.
+  final _rowKeys = <String, GlobalKey>{};
+
+  /// `?stat=` is honoured once: the live subscription hands the match back
+  /// on every score (the web's `jumpedToStat`, for the same reason).
+  bool _jumpedToStat = false;
+
+  /// Which walk owns the scroller. Two at once — a `?stat=` arrival and a
+  /// reel's pop return, or two quick taps — fought over it, and the loser
+  /// putting the offset back undid the winner's landing (T8 review LOW-H).
+  /// The newest wins; an older one stops at its next step and restores
+  /// nothing.
+  int _walk = 0;
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  /// Bring a stat's timeline row into view — where a match reel ends.
+  ///
+  /// Popping the reel restores the timeline's scroll OFFSET, not a row, so
+  /// anything that changed height above the stat while they watched (a stat
+  /// recorded, a stat voided) leaves them in the wrong place: the row itself
+  /// is re-found. The page's list builds lazily, so a row off screen has no
+  /// context yet — walk a screen at a time until it has one: DOWN from where
+  /// they are (which also covers arriving at the top with `?stat=`), then
+  /// back UP from there, because a timeline that SHRANK leaves the restored
+  /// offset BELOW the row — the very case this was built for, and the one it
+  /// used to miss (T8 review LOW-G). Bounded both ways: a timeline that
+  /// never reaches the row is put back where they left it.
+  Future<void> _scrollToStat(String activityId) async {
+    if (!_statUuid.hasMatch(activityId)) return;
+    final walk = ++_walk;
+    // A `?stat=` arrival can land before the match has: there is no list to
+    // walk yet.
+    for (var wait = 0; wait < 24; wait++) {
+      if (!mounted || walk != _walk) return;
+      if (_scroll.hasClients || _rowKeys[activityId]?.currentContext != null) {
+        break;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    if (!mounted || walk != _walk) return;
+    final from = _scroll.hasClients ? _scroll.position.pixels : null;
+    var row = await _walkToStat(activityId, walk, down: true);
+    if (row == null) {
+      if (!mounted || walk != _walk) return;
+      // Not below them, so try above: back to where they were first, or the
+      // walk up would start from the bottom of the match.
+      if (from != null && _scroll.hasClients) _scroll.jumpTo(from);
+      row = await _walkToStat(activityId, walk, down: false);
+    }
+    if (!mounted || walk != _walk) return;
+    // The context belongs to the ROW, not to this State: this State's
+    // `mounted` says nothing about it (T8 review LOW-I).
+    if (row != null && row.mounted) {
+      await Scrollable.ensureVisible(row,
+          alignment: 0.35, duration: const Duration(milliseconds: 250));
+      return;
+    }
+    // The row never turned up — its stat was voided while they watched, say.
+    // Leave the page where they left it, not at an end of the match.
+    if (from != null && _scroll.hasClients) _scroll.jumpTo(from);
+  }
+
+  /// One direction of [_scrollToStat]'s walk: a bounded number of 80 %-of-a-
+  /// viewport jumps, one per frame, until the row has a context. Answers that
+  /// context — or null, the scroller having reached its edge, the list having
+  /// gone, or a newer walk having taken over.
+  Future<BuildContext?> _walkToStat(String activityId, int walk,
+      {required bool down}) async {
+    for (var step = 0; step < 24; step++) {
+      if (!mounted || walk != _walk) return null;
+      final row = _rowKeys[activityId]?.currentContext;
+      if (row != null && row.mounted) return row;
+      if (!_scroll.hasClients) return null;
+      final pos = _scroll.position;
+      final edge = down ? pos.maxScrollExtent : pos.minScrollExtent;
+      if (down ? pos.pixels >= edge : pos.pixels <= edge) return null;
+      final step80 = pos.viewportDimension * 0.8;
+      final to = down ? pos.pixels + step80 : pos.pixels - step80;
+      _scroll.jumpTo(down ? (to > edge ? edge : to) : (to < edge ? edge : to));
+      await WidgetsBinding.instance.endOfFrame;
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final gameId = widget.gameId;
     final p = context.palette;
     final game = ref.watch(liveGameProvider(gameId));
     final g0 = game.valueOrNull;
+    // Coming back from a match reel with nothing to pop (a link that opened
+    // straight into one): `?stat=` is the row whose badge opened it. Once
+    // the match has loaded, and once only.
+    final stat = widget.stat;
+    if (!_jumpedToStat &&
+        g0 != null &&
+        stat != null &&
+        _statUuid.hasMatch(stat)) {
+      _jumpedToStat = true;
+      // Named, so the closure takes a plain String and not a promoted one.
+      final row = stat;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToStat(row));
+    }
     final kind = g0 == null
         ? null
         : g0.leagueSlug != null
@@ -84,9 +217,13 @@ class GameScreen extends ConsumerWidget {
               value: game,
               onRetry: () => ref.invalidate(liveGameProvider(gameId)),
               data: (g) => RefreshIndicator(
-                onRefresh: () =>
-                    ref.read(liveGameProvider(gameId).notifier).refresh(),
+                onRefresh: () {
+                  // The timeline's highlight badges come from their own read.
+                  ref.invalidate(gameHighlightsProvider(gameId));
+                  return ref.read(liveGameProvider(gameId).notifier).refresh();
+                },
                 child: ListView(
+                  controller: _scroll,
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
                   children: [
                     _Scoreboard(game: g),
@@ -245,7 +382,12 @@ class GameScreen extends ConsumerWidget {
                       OfficiantPanel(gameId: gameId, game: g),
                     ],
                     const SizedBox(height: 12),
-                    _TimelineCard(game: g, gameId: gameId),
+                    _TimelineCard(
+                      game: g,
+                      gameId: gameId,
+                      rowKeys: _rowKeys,
+                      onStatReturn: _scrollToStat,
+                    ),
                     // Basketball: line score + box score while it's played.
                     if (g.isBasketball && g.isLive) ...[
                       const SizedBox(height: 12),
@@ -954,9 +1096,21 @@ class _ShootoutCard extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 
 class _TimelineCard extends ConsumerWidget {
-  const _TimelineCard({required this.game, required this.gameId});
+  const _TimelineCard({
+    required this.game,
+    required this.gameId,
+    required this.rowKeys,
+    required this.onStatReturn,
+  });
   final GameDetail game;
   final String gameId;
+
+  /// The screen's key per stat id, so the reel can come back to a row
+  /// (`_GameScreenState._scrollToStat`).
+  final Map<String, GlobalKey> rowKeys;
+
+  /// A reel pushed from a row here has handed back the stat it started on.
+  final ValueChanged<String> onStatReturn;
 
   String _jn(int? jersey) => jersey != null ? '#$jersey ' : '';
 
@@ -997,7 +1151,13 @@ class _TimelineCard extends ConsumerWidget {
     final def = g.defFor(a.type);
     final team = g.teams.where((t) => t.teamId == a.teamId).toList();
     final isSub = a.type == 'substitution';
+    // Highlights pinned to this stat — one per player on it, so at most two
+    // (docs/wiki/highlights.md). Nothing until the read lands, or if it fails.
+    final clips = ref.watch(gameHighlightsProvider(gameId)).valueOrNull?[a.id] ??
+        const <GameHighlightRef>[];
     return Padding(
+      // What the way back out of a reel scrolls to (the web's `data-stat`).
+      key: rowKeys.putIfAbsent(a.id, () => GlobalKey()),
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1094,6 +1254,37 @@ class _TimelineCard extends ConsumerWidget {
                     ],
                   ),
           ),
+          // A play badge per highlight. It opens that post — and says
+          // where it came from, so the post is the first of the whole
+          // EVENT's reel and scrolling off its end comes back to this
+          // timeline, on this row (docs/wiki/highlights.md). The same
+          // address the web makes (`highlightReelHref`).
+          for (final clip in clips)
+            Tooltip(
+              message: context.l10n.highlights_watchHighlight,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () async {
+                  // The timeline underneath is still scrolled to where
+                  // they tapped, but an OFFSET is not a row — a match that
+                  // gained or lost stats meanwhile has moved it. The reel's
+                  // own way out hands the stat back on its pop; an exit that
+                  // does not go through it — the iOS back-swipe, Android's
+                  // predictive back — pops with no result, and the row is
+                  // then the one this badge opened. Either way it is known,
+                  // so no exit can leave the timeline on an offset alone
+                  // (T8 review LOW-E, T10 review MED-1).
+                  final from = await context.push<String>(
+                      '/highlights/${clip.id}?gameId=$gameId&activityId=${a.id}');
+                  onStatReturn(from ?? a.id);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(6, 0, 2, 4),
+                  child: Icon(Icons.play_circle_fill_rounded,
+                      size: 19, color: p.accent),
+                ),
+              ),
+            ),
           // ✎ corrects who it was (keeps the stat and its minute); 🗑 deletes.
           if (g.canScore && (g.isLive || g.status == 'completed')) ...[
             if (!isSub)

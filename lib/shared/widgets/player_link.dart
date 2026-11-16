@@ -17,7 +17,7 @@ void openPlayerProfile(BuildContext context, WidgetRef ref, String? userId) {
   if (userId == null || userId.isEmpty) return;
   final me = ref.read(authControllerProvider).valueOrNull?.user?.id;
   if (me != null && me == userId) {
-    // Profile is tab 4 of the signed-in shell.
+    // Profile is the last tab of the signed-in shell.
     ref.read(homeTabIndexProvider.notifier).state = HomeTab.profile;
     context.go('/home');
     return;
