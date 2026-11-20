@@ -21043,6 +21043,8 @@
   "highlights_reelEndText": "You’ve seen every one of their highlights you can watch.",
   "highlights_reelEndKeepWatching": "Keep watching",
   "highlights_appReelEndSignIn": "Sign in to see their profile",
+  "highlights_previousHighlight": "Previous highlight",
+  "highlights_nextHighlight": "Next highlight",
   "share_share": "Share",
   "share_sendTo": "Send to",
   "share_searchPeople": "Search people",

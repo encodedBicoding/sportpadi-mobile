@@ -21043,6 +21043,8 @@
   "highlights_reelEndText": "Du hast alle Highlights gesehen, die du dir von dieser Person ansehen kannst.",
   "highlights_reelEndKeepWatching": "Weiterschauen",
   "highlights_appReelEndSignIn": "Melde dich an, um das Profil zu sehen",
+  "highlights_previousHighlight": "Vorheriges Highlight",
+  "highlights_nextHighlight": "Nächstes Highlight",
   "share_share": "Teilen",
   "share_sendTo": "Senden an",
   "share_searchPeople": "Personen suchen",

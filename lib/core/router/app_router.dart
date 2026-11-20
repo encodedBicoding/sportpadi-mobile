@@ -74,6 +74,7 @@ import 'package:sportpadi_mobile/features/shell/home_shell.dart';
 import 'package:sportpadi_mobile/features/billing/group_plan_screen.dart';
 import 'package:sportpadi_mobile/features/splash/splash_screen.dart';
 import 'package:sportpadi_mobile/features/teams/team_detail_screen.dart';
+import 'package:sportpadi_mobile/shared/widgets/route_not_found.dart';
 import 'package:sportpadi_mobile/features/tournaments/tournament_invitations_screen.dart';
 import 'package:sportpadi_mobile/features/tournaments/my_team_tournaments_screen.dart';
 import 'package:sportpadi_mobile/features/tournaments/tournament_detail_screen.dart';
@@ -175,6 +176,9 @@ final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: '/',
     refreshListenable: refresh,
+    // A path no route matches: the app's own honest page (back / Home),
+    // never go_router's bare exception screen.
+    errorBuilder: (_, __) => const RouteNotFoundScreen(),
     redirect: (context, state) {
       final auth = ref.read(authControllerProvider);
       final loc = state.matchedLocation;
@@ -455,6 +459,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/groups/:id/teams/sport/:sport',
         builder: (_, s) => SportTeamsScreen(
             groupId: s.pathParameters['id']!, sport: s.pathParameters['sport']!),
+      ),
+      // The web's address for a group team (/groups/<group>/teams/<team> —
+      // the profile's team chips, shares, pasted links): the app's team page
+      // is /teams/<team>, as link_resolver already maps it. Kept as a route
+      // too, so a tap that pushes the web's shape lands on the team instead
+      // of "page not found". After `teams/sport/:sport` (five segments; this
+      // is four, so the two never compete).
+      GoRoute(
+        path: '/groups/:id/teams/:teamId',
+        redirect: (_, s) => '/teams/${s.pathParameters['teamId']}',
       ),
       GoRoute(
         path: '/groups/:id/new-team',

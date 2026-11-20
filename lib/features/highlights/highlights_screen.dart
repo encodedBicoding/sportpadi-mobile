@@ -53,6 +53,21 @@ class HighlightFeedMemory {
   /// The posts in [unsettled] that have had the first of those two reads.
   final Set<String> settledOnce = {};
 
+  /// How many times each feed was forgotten from OUTSIDE the Highlights tab
+  /// ([forgetFromOutside]). A feed remembers the count it was built under
+  /// and saves nothing once it has moved on: were the tab ever kept alive
+  /// offstage, its old list would otherwise be written straight back over
+  /// the forgetting (review three-fixes LOW-5). The screen keys its feed by
+  /// it too, so its next build starts that feed afresh. (Not for a change
+  /// made ON the tab — a follow there — where the feed on screen keeps
+  /// saving itself and is never reloaded under the viewer's thumb.)
+  final Map<String, int> _forgotten = {};
+  int forgotten(String tab) => _forgotten[tab] ?? 0;
+  void forgetFromOutside(String tab) {
+    feeds.remove(tab);
+    _forgotten[tab] = forgotten(tab) + 1;
+  }
+
   /// Put a newer copy of a post into every remembered feed.
   void patch(HighlightItem item) {
     for (final snap in feeds.values) {
@@ -205,7 +220,8 @@ class _HighlightsScreenState extends ConsumerState<HighlightsScreen> {
           // the dock to leave room for in here.
           Positioned.fill(
             child: HighlightFeed(
-              key: ValueKey('${_tabs[tab]}-$_reload-${visitor ? 'v' : 'm'}'),
+              key: ValueKey('${_tabs[tab]}-$_reload-${visitor ? 'v' : 'm'}'
+                  '-${memory.forgotten(_tabs[tab])}'),
               tab: _tabs[tab],
               memory: memory,
               topInset: top + 52,
@@ -320,9 +336,13 @@ class _HighlightFeedState extends ConsumerState<HighlightFeed> {
   /// When each still-processing post was last read again.
   final Map<String, DateTime> _polled = {};
 
+  /// [HighlightFeedMemory.forgotten] for this feed when it was built.
+  late final int _forgottenAt;
+
   @override
   void initState() {
     super.initState();
+    _forgottenAt = widget.memory.forgotten(widget.tab);
     _settleTimer =
         Timer.periodic(const Duration(seconds: 5), (_) => _settle());
     final snap = widget.memory.feeds[widget.tab];
@@ -420,6 +440,9 @@ class _HighlightFeedState extends ConsumerState<HighlightFeed> {
   }
 
   void _remember() {
+    // Forgotten from elsewhere since this feed was built: its list is the
+    // stale one, and must not be put back.
+    if (widget.memory.forgotten(widget.tab) != _forgottenAt) return;
     widget.memory.feeds[widget.tab] = HighlightFeedSnapshot(
       items: List.of(_items),
       cursor: _cursor,

@@ -187,8 +187,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               ? null
               : ref.watch(followStateProvider(userId)).valueOrNull;
           // No sport picker here any more: the tabs cover every sport.
-          final groups =
-              ref.watch(myGroupsProvider).valueOrNull ?? const <GroupSummary>[];
+          final groupsAsync = ref.watch(myGroupsProvider);
+          final groups = groupsAsync.valueOrNull ?? const <GroupSummary>[];
           final akas = ref.watch(myGroupAkasProvider).valueOrNull ??
               const <String, String>{};
 
@@ -248,13 +248,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     delegate: SliverChildListDelegate([
                   if (_tabs.index == 0)
                     // Highlights about me (reels), newest first; a tile
-                    // opens the post. Posting is on the Highlights tab.
+                    // opens the post. "Post a highlight" sits above the
+                    // tiles and in the empty state (the web profile's pill).
                     HighlightsGrid(userId: userId ?? '', mine: true)
                   else if (_tabs.index == 1)
                     _MyGroupsList(
                       groups: groups,
                       akas: akas,
                       userId: userId,
+                      // A list still loading, or one that failed, is not an
+                      // empty one: neither says "You're not in any groups".
+                      loading: !groupsAsync.hasValue && !groupsAsync.hasError,
+                      failed: !groupsAsync.hasValue && groupsAsync.hasError,
+                      // A retry keeps the error (riverpod keeps it while it
+                      // re-reads), so the pill shows the re-read itself.
+                      retrying: groupsAsync.isLoading,
+                      onRetry: () => ref.invalidate(myGroupsProvider),
                     )
                   else ...[
                     // Records — your top three honours and last five
@@ -912,15 +921,49 @@ class _MyGroupsList extends StatelessWidget {
     required this.groups,
     required this.akas,
     required this.userId,
+    required this.loading,
+    required this.failed,
+    required this.retrying,
+    required this.onRetry,
   });
 
   final List<GroupSummary> groups;
   final Map<String, String> akas;
   final String? userId;
 
+  /// No answer yet / the request failed (and nothing was loaded before).
+  final bool loading;
+  final bool failed;
+
+  /// Try again was tapped and the re-read is on its way.
+  final bool retrying;
+  final VoidCallback onRetry;
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    if (loading) {
+      return _EmptyNote(
+        icon: Icons.groups_outlined,
+        text: context.l10n.profile_loading,
+      );
+    }
+    if (failed) {
+      return Column(children: [
+        _EmptyNote(
+          icon: Icons.groups_outlined,
+          text: context.l10n.common_couldNotLoadGroups,
+        ),
+        const SizedBox(height: 10),
+        ProfilePill(
+          label: context.l10n.profile_tryAgain,
+          icon: Icons.refresh_rounded,
+          compact: true,
+          busy: retrying,
+          onTap: onRetry,
+        ),
+      ]);
+    }
     if (groups.isEmpty) {
       return _EmptyNote(
         icon: Icons.groups_outlined,
