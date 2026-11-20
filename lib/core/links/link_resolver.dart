@@ -30,6 +30,17 @@ class HomeTab {
 
 typedef LinkTarget = ({String? route, int? tab, bool web});
 
+/// A uuid, the way the screens and the web read a match origin.
+final _uuid = RegExp(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    caseSensitive: false);
+
+/// A player reel's origin as the web writes it (`?from=player:<uuid>`), and
+/// nothing looser.
+final _fromPlayer = RegExp(
+    r'^player:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$',
+    caseSensitive: false);
+
 const LinkTarget _none = (route: null, tab: null, web: false);
 const LinkTarget _web = (route: null, tab: null, web: true);
 LinkTarget _route(String r) => (route: r, tab: null, web: false);
@@ -218,11 +229,49 @@ LinkTarget resolveLink(String? url) {
   if (RegExp(r'^/highlights/?$').hasMatch(path)) {
     return _tab(HomeTab.highlights);
   }
+  // The composer keeps `?gameId=&activityId=` (the web's `newHighlightHref`,
+  // a match row's "+"): it starts with that stat picked. Passed on as given;
+  // the screen takes them only as uuids.
   if (RegExp(r'^/highlights/new/?$').hasMatch(path)) {
+    final game = query['gameId'];
+    final stat = query['activityId'];
+    if (game != null && game.isNotEmpty && stat != null && stat.isNotEmpty) {
+      return _route(Uri(
+          path: '/highlights/new',
+          queryParameters: {'gameId': game, 'activityId': stat}).toString());
+    }
     return _route('/highlights/new');
   }
+  // A reel address (`?gameId=&activityId=` — the web's `highlightReelHref`)
+  // and `?comments=1` are KEPT (2026-11-19, the visitor fix round; until then
+  // the query was dropped by design): a visitor who is sent a reel lands in
+  // it, and a comment link opens on the comments. The screen reads each id
+  // as a uuid or nothing, so anything else is still one post. So is a
+  // player reel's `?from=player:<id>` (the web's `playerReelHref`) — but
+  // only in exactly that shape, a player's uuid and nothing else, and only
+  // without a match origin (which wins, as on the web): `from` can never
+  // carry a link anywhere but a player's highlights.
   m = RegExp(r'^/highlights/([A-Za-z0-9_-]+)/?$').firstMatch(path);
-  if (m != null) return _route('/highlights/${m[1]}');
+  if (m != null) {
+    final game = query['gameId'];
+    final stat = query['activityId'];
+    final player = _fromPlayer.firstMatch(query['from'] ?? '')?.group(1);
+    final keep = <String, String>{
+      if (game != null && game.isNotEmpty) 'gameId': game,
+      if (game != null && game.isNotEmpty && stat != null && stat.isNotEmpty)
+        'activityId': stat,
+      // A match origin wins only when it IS one (a uuid), as on the web and
+      // in the screen: `?gameId=junk&from=player:<id>` is a player reel
+      // there, so it is one here (review context-reels-app.md LOW-4).
+      if ((game == null || !_uuid.hasMatch(game)) && player != null)
+        'from': 'player:${player.toLowerCase()}',
+      if (query['comments'] == '1') 'comments': '1',
+    };
+    return _route(Uri(
+            path: '/highlights/${m[1]}',
+            queryParameters: keep.isEmpty ? null : keep)
+        .toString());
+  }
 
   // ── Players ───────────────────────────────────────────────────────────────
   m = RegExp(r'^/players/([^/]+)/groups/([^/]+)/?$').firstMatch(path);
@@ -250,6 +299,11 @@ LinkTarget resolveLink(String? url) {
   if (m != null) return _route('/teams/${m[1]}/${m[2]}');
   m = RegExp(r'^/teams/([^/]+)/?$').firstMatch(path);
   if (m != null) return _route('/teams/${m[1]}');
+  // A team's join link carries a secret code; an old link with the team's id
+  // in it joins nobody any more (review H2) — it is just the team.
+  m = RegExp(r'^/join-team/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/?$')
+      .firstMatch(path);
+  if (m != null) return _route('/teams/${m[1]!.toLowerCase()}');
   m = RegExp(r'^/join-team/([^/]+)').firstMatch(path);
   if (m != null) return _route('/join-team/${m[1]}');
   // Tournament registration link (/register/<token>) — the call-for-teams post.
@@ -257,6 +311,16 @@ LinkTarget resolveLink(String? url) {
   if (m != null) return _route('/register/${m[1]}');
 
   // ── Events, games, invites ────────────────────────────────────────────────
+  // The public event page — what every Share sends (/e/<slug>) — and the
+  // legacy /share/event/<slug> redirect: the same event screen as /events/.
+  m = RegExp(r'^/(?:e|share/event)/([^/]+)/?$').firstMatch(path);
+  if (m != null) return _route('/events/${m[1]}');
+  // The public group page: by id it is the group; by slug the app has no
+  // screen (its group route takes an id), so the web page opens instead.
+  m = RegExp(r'^/g/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/?$')
+      .firstMatch(path);
+  if (m != null) return _route('/groups/${m[1]}');
+  if (RegExp(r'^/(?:g|share/group)/[^/]+/?$').hasMatch(path)) return _web;
   // Bare /events: the event-reminder digest ("3 events coming up"). The web
   // folds it into Discover, but the reader's own upcoming events are Home.
   if (RegExp(r'^/events/?$').hasMatch(path)) return _tab(HomeTab.home);
@@ -270,6 +334,11 @@ LinkTarget resolveLink(String? url) {
   if (m != null) return _route('/games/${m[1]}/officiate');
   m = RegExp(r'^/games/([^/]+)').firstMatch(path);
   if (m != null) return _route('/games/${m[1]}');
+  // The membership link carries a secret code; an old link with the group's
+  // id in it is the group's page, where people ask to join (review H2).
+  m = RegExp(r'^/join/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/?$')
+      .firstMatch(path);
+  if (m != null) return _route('/groups/${m[1]!.toLowerCase()}');
   m = RegExp(r'^/join/([^/]+)').firstMatch(path);
   if (m != null) return _route('/join/${m[1]}');
 
@@ -312,6 +381,10 @@ LinkTarget resolveLink(String? url) {
   if (m != null) return _route('/profile/wards/${m[1]}');
   if (RegExp(r'^/profile/wards/?$').hasMatch(path)) {
     return _route('/profile/wards');
+  }
+  // Follow requests (the "{name} wants to follow you" notification's url).
+  if (RegExp(r'^/profile/follow-requests/?$').hasMatch(path)) {
+    return _route('/profile/follow-requests');
   }
   // My sports and My records — their own pages since the records redesign.
   if (RegExp(r'^/profile/sports/?$').hasMatch(path)) {

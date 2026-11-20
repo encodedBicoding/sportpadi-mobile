@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -40,6 +39,9 @@ import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/features/documents/team_documents.dart';
 import 'package:sportpadi_mobile/features/teams/edit_team_sheet.dart';
+import 'package:sportpadi_mobile/features/share/share_sheet.dart';
+import 'package:sportpadi_mobile/features/share/invite_link_sheet.dart';
+import 'package:sportpadi_mobile/data/join/join_models.dart' show InviteScope;
 import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Team page — mirrors the web team page: header + record, then scrollable
@@ -388,11 +390,26 @@ class _Header extends ConsumerWidget {
     final stats = ref.watch(teamStatsProvider(teamId)).valueOrNull;
     final canPop = context.canPop() || Navigator.of(context).canPop();
 
+    // The team's invite link (anyone with it joins the team) stays its own
+    // action, through the share sheet (features/share). It carries a secret
+    // code the group's admins can reset (review H2).
     void copyJoin() {
+      showInviteLinkSheet(context, ref,
+          scope: InviteScope.team(t.id),
+          title: t.name,
+          subtitle: t.username != null ? '@${t.username}' : null,
+          notice: context.l10n.share_anyoneWithLinkCanJoinTeam,
+          imageUrl: t.logoUrl);
+    }
+
+    // The team page itself (web /groups/<gid>/teams/<id>).
+    void shareTeam() {
       final base = ref.read(appConfigProvider).apiBaseUrl;
-      Clipboard.setData(ClipboardData(text: '$base/join-team/${t.id}'));
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(context.l10n.team_joinLinkCopiedShareIt)));
+      showShareSheet(context, ref,
+          url: '$base/groups/${t.groupId}/teams/${t.id}',
+          title: t.name,
+          subtitle: t.username != null ? '@${t.username}' : null,
+          imageUrl: t.logoUrl);
     }
 
     Widget stat(String value, String label, [Color? tone]) => Expanded(
@@ -609,6 +626,12 @@ class _Header extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
             ],
+            SpRoundButton(
+              icon: Icons.ios_share_rounded,
+              tooltip: context.l10n.share_shareTeam,
+              onTap: shareTeam,
+            ),
+            const SizedBox(width: 8),
             SpRoundButton(
               icon: Icons.groups_outlined,
               tooltip: context.l10n.team_openGroup,

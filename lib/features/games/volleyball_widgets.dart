@@ -276,8 +276,12 @@ class VolleyballSetCard extends StatelessWidget {
 
 /// Result + set-by-set table + leaders + the stat sheet.
 class VolleyballSummary extends StatelessWidget {
-  const VolleyballSummary({super.key, required this.game});
+  const VolleyballSummary({super.key, required this.game, this.afterResult});
   final GameDetail game;
+
+  /// Shown right after the result card of a finished match: the match page's
+  /// Key moments (game_screen.dart), as the web's VolleyballSummary does.
+  final Widget? afterResult;
 
   @override
   Widget build(BuildContext context) {
@@ -353,6 +357,10 @@ class VolleyballSummary extends StatelessWidget {
           ]),
         ),
         const SizedBox(height: 10),
+        if (afterResult != null) ...[
+          afterResult!,
+          const SizedBox(height: 10),
+        ],
       ],
       if (played.isNotEmpty && game.teams.length == 2) ...[
         GlassCard(

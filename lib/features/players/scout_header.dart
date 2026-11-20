@@ -6,8 +6,12 @@ import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
+import 'package:sportpadi_mobile/features/highlights/highlight_follow.dart';
 import 'package:sportpadi_mobile/features/players/player_record.dart';
+import 'package:sportpadi_mobile/features/players/profile_header.dart'
+    show ProfilePill;
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/core/i18n/l10n.dart';
@@ -15,9 +19,11 @@ import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 /// The scouting half of a public profile (docs/design/scouting-profile.md) —
 /// web twin: components/players/ScoutHeader.tsx.
 ///
-/// Follow / Message, the headline tiles, honours and recent matches with the
-/// player's match rating. Everything shown comes from officiated games: a
-/// scout reads a record, not a self-description.
+/// Follow / Message (the pills under the header, `profile_header.dart`), the
+/// per-sport rating tiles, honours and recent matches with the player's match
+/// rating (the Records tab since the Instagram-style header, 2026-11-19).
+/// Everything shown comes from officiated games: a scout reads a record, not
+/// a self-description.
 
 // ── data ────────────────────────────────────────────────────────────────────
 
@@ -38,30 +44,72 @@ final playerHonoursProvider = FutureProvider.autoDispose
   }
 });
 
+/// `follows.state` (docs/wiki/api.md "Follows and follow requests"). A server
+/// from before requests sends none of the request fields: they read as "no
+/// request, public, may see it", the old behaviour.
 class FollowState {
   const FollowState({
     required this.followers,
     required this.followingCount,
     required this.following,
     required this.isMe,
+    this.canFollow = true,
+    this.requested = false,
+    this.canRequest = false,
+    this.isPrivate = false,
+    this.canSeeProfile = true,
+    this.hiddenReason,
+    this.followsMe = false,
+    this.requestCount = 0,
   });
   final int followers;
   final int followingCount;
+
+  /// I follow them (accepted).
   final bool following;
   final bool isMe;
+
+  /// Follow goes straight through (2026-11-19): false for a guardian on their
+  /// own child's profile, a profile hidden from me — and a private adult I
+  /// don't follow ([canRequest] then). A server that doesn't send it is read
+  /// as true, the old behaviour.
+  final bool canFollow;
+
+  /// My follow request to them is waiting.
+  final bool requested;
+
+  /// Follow would send a request (an adult's private profile).
+  final bool canRequest;
+
+  /// Their "private profile" is on (the lock beside the @username).
+  final bool isPrivate;
+
+  /// I may see the profile in full (theirs, public, or an accepted follower).
+  final bool canSeeProfile;
+
+  /// Why not: "private" (the private-profile header) or "limited" (a child
+  /// their guardians keep limited).
+  final String? hiddenReason;
+
+  /// They follow me (accepted) — "Follow back", "Follows you".
+  final bool followsMe;
+
+  /// My own profile: follow requests waiting for me (0 otherwise).
+  final int requestCount;
 
   factory FollowState.fromJson(Map<String, dynamic> j) => FollowState(
         followers: parseInt(j['followers']) ?? 0,
         followingCount: parseInt(j['followingCount']) ?? 0,
         following: j['following'] == true,
         isMe: j['isMe'] == true,
-      );
-
-  FollowState copyWith({int? followers, bool? following}) => FollowState(
-        followers: followers ?? this.followers,
-        followingCount: followingCount,
-        following: following ?? this.following,
-        isMe: isMe,
+        canFollow: j['canFollow'] != false,
+        requested: j['requested'] == true,
+        canRequest: j['canRequest'] == true,
+        isPrivate: j['isPrivate'] == true,
+        canSeeProfile: j['canSeeProfile'] != false,
+        hiddenReason: parseStr(j['hiddenReason']),
+        followsMe: j['followsMe'] == true,
+        requestCount: parseInt(j['requestCount']) ?? 0,
       );
 }
 
@@ -69,6 +117,11 @@ class FollowState {
 /// (which page with their own state, not a provider) re-read.
 final followsChanged = ValueNotifier<int>(0);
 
+/// `follows.state`. A failure is an ERROR, not a made-up answer (review
+/// profile-header-app LOW): the old fallback said "may follow, may see",
+/// which put a Follow pill and "Follow this account…" in front of a child
+/// viewer. Readers use `valueOrNull` (null = unknown: no pill, '–' counts)
+/// and the locked page offers a retry.
 final followStateProvider = FutureProvider.autoDispose
     .family<FollowState, String>((ref, userId) async {
   try {
@@ -76,9 +129,8 @@ final followStateProvider = FutureProvider.autoDispose
         await ref.watch(dioProvider).get('/api/mobile/players/$userId/follow');
     return FollowState.fromJson(
         res.data is Map ? Map<String, dynamic>.from(res.data as Map) : {});
-  } catch (_) {
-    return const FollowState(
-        followers: 0, followingCount: 0, following: false, isMe: false);
+  } catch (e) {
+    throw apiError(e, fallback: l10n.profile_couldNotLoad);
   }
 });
 
@@ -106,7 +158,19 @@ class ScoutByline extends StatelessWidget {
     required this.sports,
     required this.teams,
     required this.playsIn,
+    this.alignStart = false,
+    this.showByline = true,
   });
+
+  /// Left-aligned chips (the Instagram-style profile header).
+  final bool alignStart;
+
+  /// False when the byline is shown elsewhere (the header puts it under the
+  /// name) and only the chips are wanted here.
+  final bool showByline;
+
+  /// "Striker · Surrey, BC" — their position and where they play.
+  String get byline => [_position, playsIn].whereType<String>().join(' · ');
 
   /// The record category they play most (`{ categoryId, name, emoji, setup }`).
   final Map<String, dynamic>? primary;
@@ -137,14 +201,17 @@ class ScoutByline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final byline = [_position, playsIn].whereType<String>().join(' · ');
+    final line = showByline ? byline : '';
     final name = parseStr(primary?['name']);
     final emoji = parseStr(primary?['emoji']);
-    return Column(children: [
-      if (byline.isNotEmpty) ...[
+    return Column(
+        crossAxisAlignment:
+            alignStart ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+        children: [
+      if (line.isNotEmpty) ...[
         const SizedBox(height: 6),
-        Text(byline,
-            textAlign: TextAlign.center,
+        Text(line,
+            textAlign: alignStart ? TextAlign.start : TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(color: p.muted, fontSize: 13)),
@@ -152,7 +219,7 @@ class ScoutByline extends StatelessWidget {
       if (name != null || teams.isNotEmpty) ...[
         const SizedBox(height: 10),
         Wrap(
-          alignment: WrapAlignment.center,
+          alignment: alignStart ? WrapAlignment.start : WrapAlignment.center,
           spacing: 6,
           runSpacing: 6,
           children: [
@@ -204,48 +271,30 @@ class _Chip extends StatelessWidget {
 
 // ── follow counts + buttons ─────────────────────────────────────────────────
 
-class FollowCounts extends ConsumerWidget {
-  const FollowCounts({super.key, required this.userId});
-  final String userId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final p = context.palette;
-    final s = ref.watch(followStateProvider(userId)).valueOrNull;
-    if (s == null) return const SizedBox.shrink();
-    final n = TextStyle(
-        color: p.ink, fontSize: 12.5, fontWeight: FontWeight.w800);
-    final l = TextStyle(color: p.muted, fontSize: 12.5);
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        InkWell(
-          onTap: () =>
-              context.push('/players/$userId/followers?which=followers'),
-          child: Text.rich(TextSpan(children: [
-            TextSpan(text: '${s.followers} ', style: n),
-            TextSpan(text: context.l10n.profile_followers2, style: l),
-          ])),
-        ),
-        Text('  ·  ', style: l),
-        InkWell(
-          onTap: () =>
-              context.push('/players/$userId/followers?which=following'),
-          child: Text.rich(TextSpan(children: [
-            TextSpan(text: '${s.followingCount} ', style: n),
-            TextSpan(text: context.l10n.profile_following2, style: l),
-          ])),
-        ),
-      ]),
-    );
-  }
-}
-
-/// Follow / Following — signed-out viewers are sent to sign in.
+/// The follow pill, Instagram's states (`follows.state`): Following ▾ (a
+/// sheet to unfollow — with a warning on a private profile, where coming
+/// back takes a new request), Requested (a tap withdraws the request),
+/// Follow back (they follow me), Follow (straight through, or a request to a
+/// private adult). Nothing when the server would refuse either (a guardian
+/// on their own child, a hidden child, a managed account) or on your own
+/// profile. No follower count on it (the owner asked): the counts are the
+/// header's. Signed-out viewers are sent to sign in.
 class FollowButton extends ConsumerStatefulWidget {
-  const FollowButton({super.key, required this.userId, this.compact = false});
+  const FollowButton({
+    super.key,
+    required this.userId,
+    this.name,
+    this.compact = false,
+    this.expand = false,
+  });
   final String userId;
+
+  /// The unfollow sheet's title.
+  final String? name;
   final bool compact;
+
+  /// Fill the width it is given (the header's pills row).
+  final bool expand;
   @override
   ConsumerState<FollowButton> createState() => _FollowButtonState();
 }
@@ -253,7 +302,15 @@ class FollowButton extends ConsumerStatefulWidget {
 class _FollowButtonState extends ConsumerState<FollowButton> {
   bool _busy = false;
 
-  Future<void> _toggle(FollowState s) async {
+  /// The server's answer to my last tap, shown until the re-read of
+  /// `follows.state` lands (review profile-header-app MED-1: the pill showed
+  /// its OLD label for a round trip — Riverpod keeps the previous value while
+  /// an invalidated provider re-reads — and a second tap then undid the
+  /// first). The spinner stays up for that whole time; no tap goes through.
+  ({bool following, bool requested})? _answer;
+
+  /// follow | unfollow | cancel (my waiting request).
+  Future<void> _act(String kind) async {
     final me = ref.read(meProvider).valueOrNull;
     if (me == null) {
       context.push('/sign-in');
@@ -261,29 +318,143 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
     }
     setState(() => _busy = true);
     final messenger = ScaffoldMessenger.of(context);
+    final container = ProviderScope.containerOf(context, listen: false);
+    final who = signedInUserId(container);
     try {
       final dio = ref.read(dioProvider);
-      if (s.following) {
-        await dio.delete('/api/mobile/players/${widget.userId}/follow');
+      final path = '/api/mobile/players/${widget.userId}/follow';
+      final Object? answer;
+      if (kind == 'unfollow') {
+        answer = (await dio.delete(path)).data;
+      } else if (kind == 'cancel') {
+        answer = (await dio.post(path, data: {'action': 'cancel-request'})).data;
       } else {
-        await dio.post('/api/mobile/players/${widget.userId}/follow');
+        // On a private adult this is a request (`requested: true` back).
+        answer = (await dio.post(path)).data;
+      }
+      final following = answer is Map && answer['following'] == true;
+      final requested = answer is Map && answer['requested'] == true;
+      if (mounted) {
+        setState(() => _answer = (following: following, requested: requested));
+      }
+      // The Follow button on their highlights reads this too: a reel kept
+      // in memory must neither offer a follow just made here nor hide one
+      // just undone — nor call a request a follow.
+      // ...unless another account signed in meanwhile (review LOW-2).
+      if (signedInUserId(container) == who) {
+        highlightFollowChanged(container, widget.userId, following,
+            requested: requested);
       }
       // Every follow count on screen, not just theirs: my own "following"
       // on the Me tab (kept alive by the shell, so it never re-reads by
-      // itself) and any list showing either of us.
+      // itself) and any list showing either of us. A private profile's page
+      // re-reads itself when this says it may now (or may no longer) be seen.
       ref.invalidate(followStateProvider);
       followsChanged.value++;
+      // Hold the spinner (and the answer) until the fresh state is here.
+      if (mounted) {
+        try {
+          await ref.read(followStateProvider(widget.userId).future);
+        } catch (_) {
+          // The pill shows the answer it has; a pull re-reads.
+        }
+      }
     } catch (e) {
       messenger.showSnackBar(SnackBar(
           content: Text(apiError(e, fallback: l10n.profile_couldNotUpdate2).message)));
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _answer = null;
+        });
+      }
     }
+  }
+
+  /// "Requested" asks before it withdraws (as Instagram does): with the
+  /// request notice's weekly cooldown, a mis-tap and a re-ask would leave them
+  /// with no notification.
+  void _withdrawSheet() {
+    showSpSheet<void>(
+      context,
+      builder: (ctx) {
+        final p = ctx.palette;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SpSheetHeader(
+              title: ctx.l10n.profile_withdrawRequestTitle,
+              subtitle: ctx.l10n.profile_withdrawRequestText,
+            ),
+            Material(
+              color: Colors.transparent,
+              shape: StadiumBorder(side: BorderSide(color: p.line)),
+              child: InkWell(
+                customBorder: const StadiumBorder(),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _act('cancel');
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  child: Text(ctx.l10n.profile_cancelRequest,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: p.danger,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _unfollowSheet(FollowState s) {
+    showSpSheet<void>(
+      context,
+      builder: (ctx) {
+        final p = ctx.palette;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SpSheetHeader(
+              title: widget.name ?? ctx.l10n.profile_following,
+              subtitle: s.isPrivate ? ctx.l10n.profile_unfollowPrivateNote : null,
+            ),
+            Material(
+              color: Colors.transparent,
+              shape: StadiumBorder(side: BorderSide(color: p.line)),
+              child: InkWell(
+                customBorder: const StadiumBorder(),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _act('unfollow');
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  child: Text(ctx.l10n.profile_unfollow,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: p.danger,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final p = context.palette;
     final s = ref.watch(followStateProvider(widget.userId)).valueOrNull;
     // Never on your own profile — decided here too, so a failed or not-yet-
     // deployed follow call can't show a "Follow yourself" button.
@@ -291,45 +462,43 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
     if (s == null || s.isMe || (me != null && me == widget.userId)) {
       return const SizedBox.shrink();
     }
-    final following = s.following;
-    final bg = following ? p.surface2 : p.hero;
-    final fg = following ? p.ink : p.onHero;
-    return Material(
-      color: bg,
-      shape: const StadiumBorder(),
-      child: InkWell(
-        customBorder: const StadiumBorder(),
-        onTap: _busy ? null : () => _toggle(s),
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-              horizontal: widget.compact ? 12 : 16,
-              vertical: widget.compact ? 7 : 11),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            if (_busy)
-              SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: fg))
-            else
-              Icon(following ? Icons.check_rounded : Icons.person_add_alt_1,
-                  size: 16, color: fg),
-            const SizedBox(width: 6),
-            Text(following ? context.l10n.profile_following : context.l10n.profile_follow,
-                style: TextStyle(
-                    color: fg,
-                    fontSize: widget.compact ? 13 : 14,
-                    fontWeight: FontWeight.w700)),
-            if (!widget.compact && s.followers > 0) ...[
-              const SizedBox(width: 4),
-              Text('· ${s.followers}',
-                  style: TextStyle(
-                      color: fg.withAlpha(180),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600)),
-            ],
-          ]),
-        ),
-      ),
+    final l = context.l10n;
+    final a = _answer;
+    final following = a?.following ?? s.following;
+    final requested = a != null ? a.requested && !a.following : s.requested;
+    if (following) {
+      return ProfilePill(
+        label: l.profile_following,
+        trailingIcon: Icons.expand_more_rounded,
+        busy: _busy,
+        compact: widget.compact,
+        expand: widget.expand,
+        onTap: () => _unfollowSheet(s),
+      );
+    }
+    if (requested) {
+      return ProfilePill(
+        label: l.profile_requested,
+        tooltip: l.profile_cancelRequest,
+        busy: _busy,
+        compact: widget.compact,
+        expand: widget.expand,
+        onTap: _withdrawSheet,
+      );
+    }
+    // Nothing to offer when the follow would be refused (the reel's rule
+    // too).
+    if (!s.canFollow && !s.canRequest && a == null) {
+      return const SizedBox.shrink();
+    }
+    return ProfilePill(
+      label: s.followsMe ? l.profile_followBack : l.profile_follow,
+      icon: Icons.person_add_alt_1,
+      filled: true,
+      busy: _busy,
+      compact: widget.compact,
+      expand: widget.expand,
+      onTap: () => _act('follow'),
     );
   }
 }
@@ -337,24 +506,26 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
 /// Message — opens the existing thread, or a sheet for the first message.
 /// Hidden when the rules say no (their own profile, a minor, a private profile).
 class MessageButton extends ConsumerWidget {
-  const MessageButton({super.key, required this.userId, required this.name});
+  const MessageButton(
+      {super.key, required this.userId, required this.name, this.expand = false});
   final String userId;
   final String name;
 
+  /// Fill the width it is given (the header's pills row).
+  final bool expand;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final p = context.palette;
     final me = ref.watch(meProvider).valueOrNull;
     if (me?.userId == userId) return const SizedBox.shrink();
     final can = me == null ? null : ref.watch(canMessageProvider(userId)).valueOrNull;
     if (me != null && can != null && can['ok'] != true) {
       return const SizedBox.shrink();
     }
-    return Material(
-      color: Colors.transparent,
-      shape: StadiumBorder(side: BorderSide(color: p.line)),
-      child: InkWell(
-        customBorder: const StadiumBorder(),
+    return ProfilePill(
+        label: context.l10n.profile_message,
+        icon: Icons.chat_bubble_outline_rounded,
+        expand: expand,
         onTap: () {
           if (me == null) {
             context.push('/sign-in');
@@ -372,19 +543,7 @@ class MessageButton extends ConsumerWidget {
             backgroundColor: Colors.transparent,
             builder: (_) => _FirstMessageSheet(userId: userId, name: name),
           );
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.chat_bubble_outline_rounded, size: 16, color: p.ink),
-            const SizedBox(width: 6),
-            Text(context.l10n.profile_message,
-                style: TextStyle(
-                    color: p.ink, fontSize: 14, fontWeight: FontWeight.w700)),
-          ]),
-        ),
-      ),
-    );
+        });
   }
 }
 
@@ -514,7 +673,8 @@ class SportRatingTiles extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     if (!loaded) {
-      return Center(
+      return Align(
+        alignment: AlignmentDirectional.centerStart,
         child: Container(
           height: 64,
           width: 260,
@@ -589,9 +749,10 @@ class SportRatingTiles extends StatelessWidget {
       );
     }
 
-    return Column(children: [
+    // Start-aligned under the Records title (mirrors in RTL).
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Wrap(
-        alignment: WrapAlignment.center,
+        alignment: WrapAlignment.start,
         spacing: 6,
         runSpacing: 6,
         children: [for (final c in sports) tile(c)],

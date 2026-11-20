@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -23,6 +22,7 @@ import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/features/tournaments/live_scores_sync.dart';
 import 'package:sportpadi_mobile/features/tournaments/officiant_picker.dart';
 import 'package:sportpadi_mobile/features/tournaments/registration_card.dart';
+import 'package:sportpadi_mobile/features/share/share_sheet.dart';
 import 'package:sportpadi_mobile/features/venues/venues.dart';
 import 'package:sportpadi_mobile/shared/format/event_time.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
@@ -60,10 +60,20 @@ class TournamentDetailScreen extends ConsumerWidget {
       final groupId = event['groupId']?.toString();
       if (groupId == null || groupId.isEmpty) return;
       final base = ref.read(appConfigProvider).apiBaseUrl;
-      Clipboard.setData(
-          ClipboardData(text: '$base/groups/$groupId/tournaments/$eventId'));
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(context.l10n.tournament_linkCopied)));
+      final title = parseStr(event['title']) ?? '';
+      final mode = parseStr(m?['mode']) ?? 'friendly';
+      // The web's wording, word for word ("Tournament on SportPadi — …").
+      final kind = mode == 'league'
+          ? 'League'
+          : mode == 'multi_team'
+              ? 'Tournament'
+              : 'Friendly';
+      // The share sheet (features/share): people on SportPadi, then other apps.
+      unawaited(showShareSheet(context, ref,
+          url: '$base/groups/$groupId/tournaments/$eventId',
+          title: title,
+          text: title.isEmpty ? null : context.l10n.tournament_onSportPadi(kind, title),
+          imageUrl: parseStr(event['thumbnailUrl'])));
     }
 
     // A pull refetches everything on the page: the tournament plus the cards

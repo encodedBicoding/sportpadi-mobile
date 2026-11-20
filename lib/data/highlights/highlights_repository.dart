@@ -10,7 +10,19 @@ import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/data/highlights/highlight_models.dart';
+import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+
+/// The server refused a cursor it had handed out. Since 2026-11-19 every
+/// highlights cursor is sealed for its list and its viewer, and one the
+/// server can no longer open — a week old, minted under a server secret that
+/// has since changed, or a list left open across the deploy that changed the
+/// format — is a 400 "This list is out of date". Only a page asked for WITH a
+/// cursor can fail that way (every other input is the first page's), so the
+/// list starts again from the top instead of offering a Retry that would send
+/// the same cursor back (docs/wiki/highlights.md, "Paging cursors").
+bool isRefusedCursor(Object e, String? sentCursor) =>
+    sentCursor != null && e is ApiException && e.statusCode == 400;
 
 /// Highlights REST bridge (`/api/mobile/highlights`, contract in the
 /// workspace's `docs/wiki/highlights.md`). Errors carry the server's readable
@@ -35,6 +47,10 @@ class HighlightsRepository {
       );
 
   // ── reads ────────────────────────────────────────────────────────────────
+  //
+  // Every `nextCursor` is opaque (sealed by the server for its list and its
+  // viewer since 2026-11-19): pass it back as it came, never read it — and
+  // see [isRefusedCursor] for the one way a page asked for with it can fail.
 
   /// The feed, newest first. [tab]: `following` | `discover`.
   Future<HighlightsPage<HighlightItem>> feed(
@@ -52,11 +68,22 @@ class HighlightsRepository {
   }
 
   /// Posts ABOUT a player (their profile grid), newest first.
+  ///
+  /// With [firstId] it is that player's REEL (workspace
+  /// `docs/wiki/highlights.md`, "Where a highlight was opened from"): that
+  /// post as item 0 of the FIRST page, then the grid's posts after it, then
+  /// the ones before it, each once; `nextCursor: null` is the end. Send it
+  /// with the first page only — the cursor carries it after that. A
+  /// `firstId` that isn't in this player's grid for this caller is ignored
+  /// (the plain grid from the top), and so does a server older than the
+  /// player reel: either way the caller already shows that post, and drops
+  /// by id what it already has.
   Future<HighlightsPage<HighlightItem>> byPlayer(String userId,
-      {String? cursor, int? limit}) async {
+      {String? firstId, String? cursor, int? limit}) async {
     try {
       final res = await _dio.get(_path, queryParameters: {
         'playerId': userId,
+        if (firstId != null) 'firstId': firstId,
         if (cursor != null) 'cursor': cursor,
         if (limit != null) 'limit': limit,
       });
@@ -132,14 +159,16 @@ class HighlightsRepository {
 
   /// The stat picker: my recent stats, or a ward's with [forUserId]. With
   /// [gameId]: the stats of that match — mine and my wards' — that may take
-  /// a highlight.
+  /// a highlight. [limit]: entries per page (the server's default is 30,
+  /// its most 50).
   Future<HighlightsPage<LinkableStat>> linkable(
-      {String? forUserId, String? gameId, String? cursor}) async {
+      {String? forUserId, String? gameId, String? cursor, int? limit}) async {
     try {
       final res = await _dio.get('$_path/linkable', queryParameters: {
         if (forUserId != null) 'forUserId': forUserId,
         if (gameId != null) 'gameId': gameId,
         if (cursor != null) 'cursor': cursor,
+        if (limit != null) 'limit': limit,
       });
       final d = _body(res);
       return HighlightsPage(
@@ -380,13 +409,36 @@ class HighlightsRepository {
 final highlightsRepositoryProvider = Provider<HighlightsRepository>(
     (ref) => HighlightsRepository(ref.watch(dioProvider)));
 
-/// One post by id (the `/highlights/:id` screen).
-final highlightProvider = FutureProvider.autoDispose
-    .family<HighlightItem, String>(
-        (ref, id) => ref.watch(highlightsRepositoryProvider).get(id));
+/// WHO a highlights answer was for: the signed-in account's id, and whether
+/// it was a signed-out visitor's (the server answers a visitor differently —
+/// its visitor rule — and the same id is null for a visitor and for a
+/// session that could not be checked yet). Every cached highlights read
+/// watches this, so a change of audience reads it again — a visitor who
+/// signs in on the post they were watching gets the MEMBER's item (their
+/// like, Follow, Report, delete), not the visitor's copy kept alive across
+/// the route swap (review highlights-visitors-app.md HIGH-1 / L1).
+({String? id, bool visitor}) watchHighlightsAudience(Ref ref) =>
+    ref.watch(authControllerProvider.select((s) {
+      final v = s.valueOrNull;
+      return (
+        id: v?.user?.id,
+        visitor: v != null && !v.isAuthenticated && !v.isUnknown,
+      );
+    }));
 
-/// A match's highlights by stat id — the timeline's play badges. A failure
-/// reads as "none": the badges are a bonus, never the page.
+/// One post by id (the `/highlights/:id` screen). Per audience (above).
+final highlightProvider = FutureProvider.autoDispose
+    .family<HighlightItem, String>((ref, id) {
+  watchHighlightsAudience(ref);
+  return ref.watch(highlightsRepositoryProvider).get(id);
+});
+
+/// A match's highlights by stat id — the play badges on its stat rows. A
+/// failure is an error, not an empty map: the page reads `valueOrNull`, so a
+/// failed read still shows no badges (they are a bonus, never the page), but
+/// the "+" can tell "no highlights yet" from "couldn't ask", and is offered
+/// only after a read that worked — as on the web, where `addFor` waits for
+/// `byGame` to succeed.
 final gameHighlightsProvider = FutureProvider.autoDispose
     .family<Map<String, List<GameHighlightRef>>, String>((ref, gameId) async {
   // A post made, deleted or re-linked anywhere in the app changes the badges
@@ -394,22 +446,55 @@ final gameHighlightsProvider = FutureProvider.autoDispose
   void changed() => ref.invalidateSelf();
   highlightsChanged.addListener(changed);
   ref.onDispose(() => highlightsChanged.removeListener(changed));
-  try {
-    final list = await ref.watch(highlightsRepositoryProvider).byGame(gameId);
-    final byStat = <String, List<GameHighlightRef>>{};
-    for (final h in list) {
-      if (h.activityId.isEmpty || h.id.isEmpty) continue;
-      byStat.putIfAbsent(h.activityId, () => []).add(h);
-    }
-    return byStat;
-  } catch (_) {
-    return <String, List<GameHighlightRef>>{};
+  watchHighlightsAudience(ref);
+  final list = await ref.watch(highlightsRepositoryProvider).byGame(gameId);
+  final byStat = <String, List<GameHighlightRef>>{};
+  for (final h in list) {
+    if (h.activityId.isEmpty || h.id.isEmpty) continue;
+    byStat.putIfAbsent(h.activityId, () => []).add(h);
   }
+  return byStat;
+});
+
+/// The stats of one match this viewer may pin a highlight to — their own
+/// and their wards' (`forWard`), with `highlightId` set where that place is
+/// taken, a video still processing included — by stat id: where a stat
+/// row's "+" comes from (`highlight_add.dart`). Signed-in only, like the
+/// endpoint: the match page watches it only for a signed-in viewer.
+///
+/// Pages of 50, a cursor followed up to 4 pages (an empty page with a cursor
+/// is not the end — the contract's rule for every paged list), so a long
+/// match is not cut off at its 50 newest entries. The web pages it the same
+/// way (`useGameHighlights`, `LINKABLE_PAGES`), so the two clients agree
+/// about every "+" (kmdock-r2 review MED-1).
+final gameLinkableProvider = FutureProvider.autoDispose
+    .family<Map<String, List<LinkableStat>>, String>((ref, gameId) async {
+  // A post made or removed anywhere in the app takes a place or frees one.
+  void changed() => ref.invalidateSelf();
+  highlightsChanged.addListener(changed);
+  ref.onDispose(() => highlightsChanged.removeListener(changed));
+  watchHighlightsAudience(ref);
+  final repo = ref.watch(highlightsRepositoryProvider);
+  final byStat = <String, List<LinkableStat>>{};
+  String? cursor;
+  for (var page = 0; page < 4; page++) {
+    final res = await repo.linkable(gameId: gameId, cursor: cursor, limit: 50);
+    for (final s in res.items) {
+      if (s.stat.activityId.isEmpty) continue;
+      byStat.putIfAbsent(s.stat.activityId, () => []).add(s);
+    }
+    cursor = res.nextCursor;
+    if (cursor == null) break;
+  }
+  return byStat;
 });
 
 /// The weekly allowance, for the create screen.
-final highlightQuotaProvider = FutureProvider.autoDispose<HighlightQuota>(
-    (ref) => ref.watch(highlightsRepositoryProvider).quota());
+final highlightQuotaProvider =
+    FutureProvider.autoDispose<HighlightQuota>((ref) {
+  watchHighlightsAudience(ref);
+  return ref.watch(highlightsRepositoryProvider).quota();
+});
 
 /// Bumped after a post is made, deleted, or its link changes, so the profile
 /// grids (which page with their own state, not a provider) and the timeline

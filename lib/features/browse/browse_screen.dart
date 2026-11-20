@@ -503,7 +503,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         SliverPadding(
-          // Room for the floating dock the grid now runs behind.
+          // Air under the grid's last row, above the dock's band.
           padding:
               EdgeInsets.fromLTRB(20, 6, 20, SpDock.spaceBelowList(context)),
           sliver: SliverMainAxisGroup(slivers: slivers),

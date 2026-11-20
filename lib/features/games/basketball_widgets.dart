@@ -590,8 +590,12 @@ class TargetReachedCard extends StatelessWidget {
 String _pct(int m, int a) => a > 0 ? '${(m * 100 / a).round()}%' : '–';
 
 class BasketballSummary extends StatelessWidget {
-  const BasketballSummary({super.key, required this.game});
+  const BasketballSummary({super.key, required this.game, this.afterResult});
   final GameDetail game;
+
+  /// Shown right after the result card of a finished game: the match page's
+  /// Key moments (game_screen.dart), as the web's BasketballSummary does.
+  final Widget? afterResult;
 
   @override
   Widget build(BuildContext context) {
@@ -686,6 +690,10 @@ class BasketballSummary extends StatelessWidget {
           ]),
         ),
         const SizedBox(height: 10),
+        if (afterResult != null) ...[
+          afterResult!,
+          const SizedBox(height: 10),
+        ],
       ],
       if (periods.isNotEmpty && game.teams.length == 2) ...[
         GlassCard(

@@ -99,7 +99,7 @@ class _GuestHomeScreenState extends ConsumerState<GuestHomeScreen> {
           },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            // Room for the floating dock the body runs behind.
+            // Air under the last row, above the dock's band.
             padding:
                 EdgeInsets.fromLTRB(20, 12, 20, SpDock.spaceBelowList(context)),
             children: [

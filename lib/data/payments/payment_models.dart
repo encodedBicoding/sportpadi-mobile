@@ -126,6 +126,7 @@ class MyTicket {
   const MyTicket({
     required this.id,
     required this.code,
+    this.ticketId,
     required this.amountMinor,
     required this.currency,
     this.currencyExponent = 2,
@@ -150,6 +151,10 @@ class MyTicket {
   });
   final String id;
   final String code;
+
+  /// The ticket this payment is for — its pay link is `/t/<ticketId>`, what
+  /// the web's "Share this ticket" sends (not this receipt, which is mine).
+  final String? ticketId;
   final int amountMinor;
   final String currency;
   final int currencyExponent;
@@ -213,6 +218,7 @@ class MyTicket {
     return MyTicket(
       id: parseStr(j['id']) ?? '',
       code: parseStr(j['code']) ?? '',
+      ticketId: parseStr(j['ticketId']) ?? parseStr(tm['id']),
       amountMinor: parseInt(j['amount']) ?? 0,
       currency: parseStr(j['currency']) ?? parseStr(tm['currency']) ?? '',
       currencyExponent: parseInt(tm['currencyExponent']) ??

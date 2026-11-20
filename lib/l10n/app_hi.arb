@@ -2771,6 +2771,10 @@
       }
     }
   },
+  "join_inviteLinkDeadTitle": "यह आमंत्रण लिंक काम नहीं करता",
+  "join_inviteLinkDead": "यह आमंत्रण लिंक अब काम नहीं करता। जिसने भेजा है, उससे नया लिंक माँगें।",
+  "join_linkCantAddYou": "यह लिंक आपको नहीं जोड़ सकता। ग्रुप के पेज से जुड़ने का अनुरोध करें।",
+  "join_linkCantAddYouTeam": "यह लिंक आपको टीम में नहीं जोड़ सकता। उसके एडमिन से पूछें।",
   "group_opening": "खुल रहा है…",
   "group_sportPadiHome": "SportPadi होम",
   "group_signIn": "साइन इन",
@@ -8883,6 +8887,7 @@
   "profile_notInAnyGroupsYet": "अभी किसी ग्रुप में नहीं।",
   "profile_noTournamentsYet": "अभी कोई टूर्नामेंट नहीं।",
   "profile_noHighlightsYet": "अभी कोई हाइलाइट नहीं।",
+  "profile_visitorHighlightsEmpty": "यहाँ दिखाने को कुछ नहीं है। कुछ हाइलाइट्स केवल साइन इन किए हुए लोगों को दिखती हैं।",
   "profile_highlight": "हाइलाइट",
   "profile_recordInTournament": "टूर्नामेंट में रिकॉर्ड",
   "profile_thisTournamentIsntAvailable": "यह टूर्नामेंट उपलब्ध नहीं है",
@@ -9482,8 +9487,8 @@
   "profile_couldNotUpdatePrivacy": "प्राइवेसी अपडेट नहीं हो सकी",
   "profile_profilePrivacy": "प्रोफ़ाइल प्राइवेसी",
   "profile_privateProfile": "निजी प्रोफ़ाइल",
-  "profile_othersSeeYourNameUsername": "दूसरों को आपका नाम, @username और फ़ोटो दिखते हैं, और यह कि आपकी प्रोफ़ाइल निजी है — आपके रिकॉर्ड, ग्रुप या पोस्ट नहीं।",
-  "profile_anyoneWhoTapsYourName": "जो भी आपके नाम पर टैप करता है, उसे आपके रिकॉर्ड, ग्रुप और पोस्ट दिखते हैं। इन्हें सिर्फ़ अपने तक रखने के लिए चालू करें।",
+  "profile_othersSeeYourNameUsername": "सिर्फ़ आपके मंज़ूर किए फ़ॉलोअर आपकी हाइलाइट्स, ग्रुप और रिकॉर्ड देखते हैं। बाकी लोगों को आपकी फ़ोटो, नाम, @username, बायो, लिंक और फ़ॉलोअर की संख्या दिखती है। इसे बंद करने पर इंतज़ार कर रहे सभी अनुरोध स्वीकार हो जाते हैं।",
+  "profile_anyoneWhoTapsYourName": "जो भी आपके नाम पर टैप करता है, उसे आपके रिकॉर्ड, ग्रुप और पोस्ट दिखते हैं। चालू करें ताकि सिर्फ़ आपके फ़ॉलोअर इन्हें देखें — नए फ़ॉलोअर को आपकी मंज़ूरी चाहिए होगी।",
   "profile_yourProfileIsPrivate": "आपकी प्रोफ़ाइल निजी है",
   "profile_yourProfileIsPublic": "आपकी प्रोफ़ाइल सार्वजनिक है",
   "profile_whoCanSeeYourProfile": "आपकी प्रोफ़ाइल कौन देख सकता है",
@@ -10017,7 +10022,7 @@
     }
   },
   "profile_localGroupGames3": "लोकल ग्रुप मैच",
-  "profile_thisProfileIsPrivateTheir": "यह प्रोफ़ाइल निजी है। उनके रिकॉर्ड, ग्रुप और पोस्ट सिर्फ़ उन्हें दिखते हैं।",
+  "profile_thisProfileIsPrivateTheir": "यह प्रोफ़ाइल निजी है। उनके रिकॉर्ड, ग्रुप और पोस्ट सिर्फ़ वे फ़ॉलोअर देखते हैं जिन्हें वे मंज़ूरी देते हैं।",
   "profile_showingSRecordSwitchSport2": "{first} का {value} रिकॉर्ड दिख रहा है — कभी भी खेल बदलें।",
   "@profile_showingSRecordSwitchSport2": {
     "placeholders": {
@@ -11134,6 +11139,39 @@
     }
   },
   "profile_ratingTileNotRated": "अभी रेटिंग नहीं",
+  "profile_followBack": "वापस फ़ॉलो करें",
+  "profile_requested": "अनुरोध भेजा",
+  "profile_unfollow": "अनफ़ॉलो करें",
+  "profile_unfollowPrivateNote": "यह अकाउंट निजी है। अनफ़ॉलो करने के बाद उनकी हाइलाइट्स, ग्रुप और रिकॉर्ड देखने के लिए आपको फिर से अनुरोध भेजना होगा।",
+  "profile_cancelRequest": "अनुरोध रद्द करें",
+  "profile_followsYou": "आपको फ़ॉलो करते हैं",
+  "profile_followRequests": "फ़ॉलो अनुरोध",
+  "profile_followRequestsWaiting": "{count, plural, one{{count} अनुरोध इंतज़ार में} other{{count} अनुरोध इंतज़ार में}}",
+  "@profile_followRequestsWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_privateAccount": "निजी अकाउंट",
+  "profile_privateAccountTitle": "यह अकाउंट निजी है",
+  "profile_privateAccountFollowText": "उनकी हाइलाइट्स, ग्रुप और रिकॉर्ड देखने के लिए इस अकाउंट को फ़ॉलो करें।",
+  "profile_privateAccountRequestedText": "आपका फ़ॉलो अनुरोध इंतज़ार में है। उनके स्वीकार करते ही आप उनकी हाइलाइट्स, ग्रुप और रिकॉर्ड देख पाएँगे।",
+  "profile_privateAccountSignInText": "उनकी हाइलाइट्स, ग्रुप और रिकॉर्ड देखने के लिए साइन इन करें और इस अकाउंट को फ़ॉलो करें।",
+  "profile_bio": "बायो",
+  "profile_bioPlaceholder": "अपने बारे में कुछ शब्द: आपकी पोज़िशन, आपका क्लब, आप कौन-से खेल खेलते हैं।",
+  "profile_bioSupervisedNote": "जब तक आपके अकाउंट की निगरानी हो रही है, बायो उपलब्ध नहीं है।",
+  "profile_requestsTabIncoming": "अनुरोध",
+  "profile_requestsTabSent": "भेजे गए",
+  "profile_noFollowRequests": "अभी कोई फ़ॉलो अनुरोध नहीं है।",
+  "profile_noSentRequests": "आपका कोई फ़ॉलो अनुरोध इंतज़ार में नहीं है।",
+  "profile_confirmRequest": "स्वीकार करें",
+  "profile_deleteRequest": "हटाएँ",
+  "profile_withdrawRequestTitle": "अपना फ़ॉलो अनुरोध वापस लें?",
+  "profile_withdrawRequestText": "अगर आप एक हफ़्ते के अंदर फिर से अनुरोध भेजते हैं, तो उन्हें दोबारा सूचना नहीं मिलेगी।",
+  "profile_privateAccountApprovedOnlyText": "सिर्फ़ उनके मंज़ूर किए फ़ॉलोअर उनकी हाइलाइट्स, ग्रुप और रिकॉर्ड देख सकते हैं।",
+  "profile_followRequestsMenuSub": "जो आपको फ़ॉलो करना चाहते हैं, और आपके भेजे अनुरोध",
   "inbox_discussionRemoved": "चर्चा हटा दी गई",
   "inbox_commentRemoved": "कमेंट हटा दिया गया",
   "inbox_discussion": "चर्चा",
@@ -20341,6 +20379,15 @@
       }
     }
   },
+  "highlights_followName": "{name} को फ़ॉलो करें",
+  "@highlights_followName": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_followingNow": "फ़ॉलो कर रहे हैं",
   "highlights_statMinute": "{minute}’",
   "@highlights_statMinute": {
     "placeholders": {
@@ -20963,5 +21010,147 @@
   "highlights_appKeepOpen": "SportPadi बैकग्राउंड में था, तभी यह रुक गया। पूरा होने तक ऐप स्क्रीन पर खुला रखें और फिर कोशिश करें।",
   "highlights_appLostVideoTitle": "पहले का वीडियो इस्तेमाल करें?",
   "highlights_appLostVideoBody": "यह वीडियो किसी हाइलाइट में जुड़ने से पहले SportPadi बंद हो गया था।",
-  "highlights_appLostVideoUse": "इसे इस्तेमाल करें"
+  "highlights_appLostVideoUse": "इसे इस्तेमाल करें",
+  "highlights_visitorTitle": "SportPadi से जुड़ें",
+  "highlights_visitorLikeText": "हाइलाइट्स को लाइक करने और खिलाड़ियों का हौसला बढ़ाने के लिए मुफ़्त खाता बनाएँ।",
+  "highlights_visitorCommentText": "हाइलाइट्स पर कमेंट करने के लिए मुफ़्त खाता बनाएँ।",
+  "highlights_visitorFollowText": "{name} को फ़ॉलो करने और उनकी हाइलाइट्स अपनी फ़ॉलोइंग फ़ीड में देखने के लिए मुफ़्त खाता बनाएँ।",
+  "@highlights_visitorFollowText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_visitorReportText": "इसे SportPadi टीम को रिपोर्ट करने के लिए साइन इन करें या खाता बनाएँ।",
+  "highlights_visitorPostText": "अपनी हाइलाइट्स पोस्ट करने के लिए मुफ़्त खाता बनाएँ।",
+  "highlights_visitorFollowingTitle": "फ़ॉलोइंग",
+  "highlights_visitorFollowingText": "जिन खिलाड़ियों को आप फ़ॉलो करते हैं, उनकी हाइलाइट्स देखने के लिए साइन इन करें।",
+  "highlights_visitorSignUp": "साइन अप",
+  "highlights_visitorSignIn": "साइन इन",
+  "highlights_commentsSignUp": "कमेंट करने के लिए साइन अप करें",
+  "highlights_notFoundVisitorText": "हो सकता है इसे हटा दिया गया हो, या यह केवल साइन इन किए हुए लोगों को दिखे।",
+  "highlights_reelEndTitle": "{name} की ओर से बस इतना ही",
+  "@highlights_reelEndTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reelEndTitleMine": "बस, ये रहे आपके सभी हाइलाइट",
+  "highlights_reelEndNoMore": "यहाँ और हाइलाइट नहीं हैं",
+  "highlights_reelEndText": "आप उनके वे सभी हाइलाइट देख चुके हैं जो आप देख सकते हैं।",
+  "highlights_reelEndKeepWatching": "देखते रहें",
+  "highlights_appReelEndSignIn": "उनकी प्रोफ़ाइल देखने के लिए साइन इन करें",
+  "share_share": "शेयर करें",
+  "share_sendTo": "इन्हें भेजें",
+  "share_searchPeople": "लोगों को खोजें",
+  "share_loadingPeople": "लोड हो रहा है…",
+  "share_noMatches": "कोई मेल नहीं खाता।",
+  "share_noOneYet": "अभी यहाँ कोई नहीं है। आपकी बातचीत, जिन्हें आप फ़ॉलो करते हैं और जो आपको फ़ॉलो करते हैं, वे यहाँ दिखेंगे।",
+  "share_selected": "चुना गया",
+  "share_aboutWard": "{name} के बारे में",
+  "@share_aboutWard": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_addMessage": "संदेश जोड़ें (वैकल्पिक)",
+  "share_sending": "भेजा जा रहा है…",
+  "share_sendToCount": "{count, plural, one{{count} व्यक्ति को भेजें} other{{count} लोगों को भेजें}}",
+  "@share_sendToCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "share_sentToAll": "{count, plural, one{{count} व्यक्ति को भेजा गया} other{{count} लोगों को भेजा गया}}",
+  "@share_sentToAll": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "share_sentSome": "{total} में से {sent} को भेजा गया",
+  "@share_sentSome": {
+    "placeholders": {
+      "sent": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_couldntSend": "भेजा नहीं जा सका। फिर से कोशिश करें।",
+  "share_couldntSendTo": "{name} को नहीं भेजा जा सका: {reason}",
+  "@share_couldntSendTo": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      },
+      "reason": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_maxRecipients": "आप इसे एक बार में ज़्यादा से ज़्यादा {max} लोगों को भेज सकते हैं।",
+  "@share_maxRecipients": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_cantSendInApp": "इसे संदेश के रूप में नहीं भेजा जा सकता, लेकिन आप लिंक फिर भी शेयर कर सकते हैं।",
+  "share_otherApps": "दूसरे ऐप्स में शेयर करें",
+  "share_copyLink": "लिंक कॉपी करें",
+  "share_linkCopied": "लिंक कॉपी हो गया",
+  "share_copyThisLink": "यह लिंक कॉपी करें",
+  "share_email": "ईमेल",
+  "share_sms": "SMS",
+  "share_more": "और",
+  "share_notAvailable": "यह सामग्री उपलब्ध नहीं है",
+  "share_notAvailableHint": "शायद इसे हटा दिया गया है, या यह निजी है।",
+  "share_kindEvent": "इवेंट",
+  "share_kindGroup": "ग्रुप",
+  "share_kindGroupInvite": "जुड़ने का न्योता",
+  "share_kindTournament": "टूर्नामेंट",
+  "share_kindLeague": "लीग",
+  "share_kindCompetition": "प्रतियोगिता",
+  "share_kindHighlight": "हाइलाइट",
+  "share_kindTicket": "टिकट",
+  "share_kindTeamInvite": "टीम का न्योता",
+  "share_kindCallForTeams": "टीमों के लिए आमंत्रण",
+  "share_kindPlayer": "खिलाड़ी",
+  "share_kindMatch": "मैच",
+  "share_kindTeam": "टीम",
+  "share_shareMembershipLink": "सदस्यता लिंक शेयर करें",
+  "share_joinGroupText": "SportPadi पर {name} से जुड़ें",
+  "@share_joinGroupText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_shareTeam": "टीम शेयर करें",
+  "share_shareProfile": "प्रोफ़ाइल शेयर करें",
+  "share_shareMatch": "मैच शेयर करें",
+  "share_couldntLoadPreview": "प्रीव्यू लोड नहीं हो सका",
+  "share_tryAgain": "फिर से कोशिश करें",
+  "share_couldntLoadPeople": "लोग लोड नहीं हो सके। फिर से कोशिश करें।",
+  "share_resetLink": "लिंक रीसेट करें",
+  "share_resetLinkHint": "नया लिंक बनता है। पुराना लिंक काम करना बंद कर देगा।",
+  "share_resetLinkConfirm": "यह लिंक रीसेट करें? पुराना लिंक काम करना बंद कर देगा, इसलिए जिसने अभी तक इसका उपयोग नहीं किया है उसे नया लिंक चाहिए होगा।",
+  "share_linkWasReset": "लिंक रीसेट हो गया। पुराना लिंक अब काम नहीं करता।",
+  "share_couldntResetLink": "लिंक रीसेट नहीं हो सका। फिर से कोशिश करें।",
+  "share_couldntLoadInviteLink": "आमंत्रण लिंक लोड नहीं हो सका।",
+  "share_anyoneWithLinkCanJoinTeam": "इस लिंक वाला कोई भी व्यक्ति टीम और उसके ग्रुप से जुड़ सकता है।",
+  "share_resetGroupLinkConfirm": "यह लिंक रीसेट करें? पुराना लिंक काम करना बंद कर देगा, और इस ग्रुप की हर टीम का जुड़ने का लिंक भी। जिसने अभी तक इनका उपयोग नहीं किया है उसे नए लिंक चाहिए होंगे।"
 }

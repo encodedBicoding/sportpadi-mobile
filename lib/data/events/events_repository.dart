@@ -170,11 +170,21 @@ class EventsRepository {
     }
   }
 
-  Future<void> generateTeams(String eventId, {int? teamCount}) async {
+  /// Builds the event's teams from its check-ins and kicks it off. [smart]:
+  /// the event's group has smart shuffle and the sport balances
+  /// (`EventDetail.smartTeams`). Sent by name, because a server deployed
+  /// before 2026-11-19 read a missing mode as random — which is how every
+  /// team made in the app came out random. Otherwise `auto`: the server
+  /// decides from the group's plan itself (random when it doesn't have smart;
+  /// an older server reads it as random too), so a page whose plan lookup
+  /// failed still gets smart teams.
+  Future<void> generateTeams(String eventId,
+      {int? teamCount, required bool smart}) async {
     try {
       await _dio.post('/api/mobile/event-actions/$eventId', data: {
         'action': 'generate-teams',
         if (teamCount != null) 'teamCount': teamCount,
+        'mode': smart ? 'smart' : 'auto',
       });
     } catch (e) {
       throw apiError(e, fallback: 'Could not generate teams.');
@@ -368,6 +378,26 @@ class EventsRepository {
           : const <String, dynamic>{});
     } catch (e) {
       throw apiError(e, fallback: 'Could not load reminders.');
+    }
+  }
+
+  /// Before a smart shuffle: which checked-in players haven't set the sport's
+  /// balance field (the organiser's advisory sheet, as the web's TeamSetup
+  /// shows). Null on any failure, or after 6 s — the shuffle waits no longer
+  /// than that, and the caller must read null as "don't know", never as
+  /// "everyone's ready". A server without the view (before
+  /// 2026-11-19) answers an error, so null too.
+  Future<SmartReadiness?> smartReadiness(String eventId) async {
+    try {
+      final res = await _dio.get('/api/mobile/event-actions/$eventId',
+          queryParameters: {
+            'view': 'smart-readiness'
+          }).timeout(const Duration(seconds: 6));
+      return res.data is Map
+          ? SmartReadiness.fromJson(Map<String, dynamic>.from(res.data as Map))
+          : null;
+    } catch (_) {
+      return null;
     }
   }
 

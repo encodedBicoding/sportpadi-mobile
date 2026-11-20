@@ -3,9 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/core/router/app_router.dart'
+    show safeRedirectTarget;
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/auth/auth_scaffold.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
@@ -103,10 +106,36 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
       _verifying = true;
       _error = null;
     });
+    // Where a sign-up was headed (`?redirect=`, carried here by
+    // SignInScreen._leaveAfterSuccess). Read before the await: the router
+    // moves this page away as soon as the session is verified.
+    final target = safeRedirectTarget(
+        GoRouterState.of(context).uri.queryParameters['redirect']);
+    final router = GoRouter.of(context);
+    // The router may take this page away while the call is still returning:
+    // read the session afterwards through the container, never a disposed ref.
+    final container = ProviderScope.containerOf(context, listen: false);
     try {
       await ref.read(authControllerProvider.notifier).verifyEmail(code);
       // The router redirect picks up the verified session and releases the
-      // user into the app — nothing to navigate to here.
+      // user into the app. With a target the router goes to Home only (its
+      // verify-email branch) and THIS screen puts the target on top, a frame
+      // later (after the router's own re-parse, as SignInScreen does): one
+      // instance of the target, Home under it, so Android's back stays in the
+      // app. Only when the re-read session really says verified — a re-read
+      // that came back empty leaves the session as it was, and pushing then
+      // would bring back two verify pages (re-review R-LOW-2).
+      final verified = container
+              .read(authControllerProvider)
+              .valueOrNull
+              ?.needsEmailVerification ==
+          false;
+      if (target != null && verified) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          router.go('/home');
+          router.push(target);
+        });
+      }
     } on ApiException catch (e) {
       if (mounted) {
         setState(() => _error = e.message);

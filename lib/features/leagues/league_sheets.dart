@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/leagues/leagues_repository.dart';
 import 'package:sportpadi_mobile/features/leagues/league_widgets.dart';
+import 'package:sportpadi_mobile/features/share/share_sheet.dart';
 import 'package:sportpadi_mobile/features/venues/venues.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart' show deviceTimezone;
@@ -894,10 +895,15 @@ class _DrawSetupSheetState extends ConsumerState<_DrawSetupSheet> {
   }
 }
 
-/// Share & embed a league (web ShareLeagueDialog): its link, the table image
-/// for socials, and the website widget's embed code.
-Future<void> showShareLeagueSheet(BuildContext context, {required String base, required String slug, required String title}) =>
-    showSpSheet<void>(context, builder: (_) => _ShareLeagueSheet(base: base, slug: slug, title: title));
+/// Share & embed a league (web ShareLeagueDialog): the share sheet
+/// (features/share — people on SportPadi, other apps, the link), and under it
+/// the table image for socials and the website widget's embed code.
+Future<void> showShareLeagueSheet(BuildContext context, WidgetRef ref,
+        {required String base, required String slug, required String title}) =>
+    showShareSheet(context, ref,
+        url: '$base/leagues/$slug',
+        title: title,
+        extra: (_) => _ShareLeagueSheet(base: base, slug: slug, title: title));
 
 class _ShareLeagueSheet extends StatefulWidget {
   const _ShareLeagueSheet({required this.base, required this.slug, required this.title});
@@ -920,23 +926,14 @@ class _ShareLeagueSheetState extends State<_ShareLeagueSheet> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final link = '${widget.base}/leagues/${widget.slug}';
     final image = '${widget.base}/api/leagues/${widget.slug}/table-image';
     final src = '${widget.base}/embed/leagues/${widget.slug}?view=$_view';
     final code = '<iframe src="$src" title="${widget.title.replaceAll('"', '&quot;')}" width="100%" '
         'height="${_view == 'table' ? 560 : 420}" style="border:0;border-radius:16px;max-width:640px" loading="lazy"></iframe>';
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-      SpSheetHeader(
-          title: context.l10n.league_shareEmbed,
-          subtitle: context.l10n.league_sendTheLinkPostThe,
-          icon: Icons.ios_share_rounded),
+      Text(context.l10n.league_sendTheLinkPostThe, style: TextStyle(color: p.muted, fontSize: 12.5)),
+      const SizedBox(height: 10),
       SpListCard(children: [
-        ListTile(
-          leading: const Icon(Icons.link_rounded),
-          title: Text(context.l10n.league_copyLink),
-          subtitle: Text(link, maxLines: 1, overflow: TextOverflow.ellipsis),
-          onTap: () => _copy(link, context.l10n.league_link),
-        ),
         ListTile(
           leading: const Icon(Icons.image_outlined),
           title: Text(context.l10n.league_tableImage),

@@ -99,6 +99,14 @@ class _StatPickerState extends ConsumerState<_StatPicker> {
       }
     } catch (e) {
       if (!mounted || gen != _gen) return;
+      // A cursor the server can no longer open ([isRefusedCursor]): start the
+      // list again from the top rather than offer a Retry that sends it back.
+      // A reset sends no cursor, so this cannot come round again by itself.
+      if (!reset && isRefusedCursor(e, cursor)) {
+        setState(() => _loading = false);
+        _load(reset: true);
+        return;
+      }
       error = '$e';
     }
     final failed = error;

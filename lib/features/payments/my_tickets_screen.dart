@@ -5,11 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/payments/payment_models.dart';
 import 'package:sportpadi_mobile/data/events/events_repository.dart';
 import 'package:sportpadi_mobile/data/payments/payments_repository.dart';
 import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
+import 'package:sportpadi_mobile/features/share/share_sheet.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/ticket_validity.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
@@ -558,7 +560,23 @@ class _LiveTicketSheetState extends ConsumerState<_LiveTicketSheet> {
             20, 10, 20, 24 + MediaQuery.of(context).padding.bottom),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Row(children: [
-            const SizedBox(width: 44),
+            // Share the ticket's pay link (/t/<ticketId>, the web's "Share
+            // this ticket") through the share sheet — never this receipt.
+            if (t.ticketId != null)
+              SpRoundButton(
+                icon: Icons.ios_share_rounded,
+                iconSize: 19,
+                tooltip: context.l10n.wallet_share,
+                onTap: () => showShareSheet(context, ref,
+                    url: shareSiteUrl(ref.read(appConfigProvider).apiBaseUrl,
+                        '/t/${t.ticketId}'),
+                    title: t.title,
+                    // The web's line, word for word.
+                    text: '${t.title} — pay securely on SportPadi',
+                    subtitle: t.groupName),
+              )
+            else
+              const SizedBox(width: 44),
             Expanded(
               child: Center(
                 child: Container(

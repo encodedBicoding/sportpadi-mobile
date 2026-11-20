@@ -30,6 +30,8 @@ import 'package:sportpadi_mobile/features/shell/notification_target.dart';
 import 'package:sportpadi_mobile/features/browse/browse_screen.dart';
 import 'package:sportpadi_mobile/features/highlights/highlights_screen.dart';
 import 'package:sportpadi_mobile/features/profile/profile_screen.dart';
+import 'package:sportpadi_mobile/features/players/scout_header.dart'
+    show followStateProvider;
 import 'package:sportpadi_mobile/features/tournaments/my_tournaments_screen.dart';
 import 'package:sportpadi_mobile/core/referral/referral.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
@@ -129,6 +131,10 @@ class _HomeShellState extends ConsumerState<HomeShell>
       ref.invalidate(attentionProvider);
       // Group invitations that arrived while away (menu badge, /groups).
       ref.invalidate(groupInvitationCountProvider);
+      // A follow request (or an accept) that arrived while away: the Profile
+      // tab's "Follow requests" row and menu count (only profiles on screen
+      // re-read).
+      ref.invalidate(followStateProvider);
       // Crossed a border while away? Re-read the phone's zone.
       // ignore: discarded_futures
       ref.read(timezoneControllerProvider.notifier).sync();
@@ -166,6 +172,9 @@ class _HomeShellState extends ConsumerState<HomeShell>
         ref.invalidate(announcementsUnreadProvider);
         ref.invalidate(announcementsInboxProvider);
         ref.invalidate(attentionProvider);
+        // A follow request / accept: the kept Profile tab's "Follow
+        // requests" row and counts are stale (review LOW).
+        ref.invalidate(followStateProvider);
         if (data['category'] == 'message') {
           // A message: the Messages badge and list, and — if that thread is
           // the one on screen — the thread itself (no banner is shown then).
@@ -260,13 +269,9 @@ class _HomeShellState extends ConsumerState<HomeShell>
     final p = context.palette;
     return Scaffold(
       backgroundColor: p.bg,
-      // The dock FLOATS: the tab carries on behind it, so what is behind
-      // the pill is the tab's own background — the page canvas, or the
-      // Highlights reel's black — never a band of page colour under a dark
-      // reel. Every tab leaves [SpDock.spaceBelow] at the bottom of its
-      // scrollables in exchange (and the reel ends its video there), so
-      // nothing of theirs ends up under the dock.
-      extendBody: true,
+      // No `extendBody`: the tab ends ABOVE the dock's band, on every tab —
+      // the Highlights reel's black included. The owner asked for the band
+      // back (2026-11-16) after a round where the dock floated over the tabs.
       body: _tab(index),
       bottomNavigationBar: ShellBottomBar(
         index: index,
@@ -276,16 +281,13 @@ class _HomeShellState extends ConsumerState<HomeShell>
   }
 }
 
-/// The app's bottom bar: the floating dock, and what is kept of the system
-/// inset under it ([SpDock.insetBelow]).
-/// NOTHING paints behind it — the tab shows through, which is why the shell
-/// sets `extendBody: true` and every tab's scrollable leaves
-/// [SpDock.spaceBelow] at its bottom. (An anchored ad strip used to sit
-/// under the dock; it is gone, and the inset is all that is left of it.)
+/// The app's bottom bar: the dock on a band of page colour, with the whole
+/// system inset (home indicator / gesture bar) under it. The tab's body
+/// ends above the band, so nothing of a tab is ever behind the dock.
+/// (An anchored ad strip used to sit under the dock; it is gone.)
 ///
 /// Used by the shell. A pushed screen that wanted the dock in reach would
-/// pass [onSelect] and pad itself the same way — [goToTab] is here for one —
-/// but none does today.
+/// pass [onSelect] — [goToTab] is here for one — but none does today.
 class ShellBottomBar extends ConsumerWidget {
   const ShellBottomBar(
       {super.key, required this.index, required this.onSelect});
@@ -304,17 +306,10 @@ class ShellBottomBar extends ConsumerWidget {
     // of the user's teams — an invitation to look, never a number.
     final tournamentDot =
         ref.watch(myTournamentsActiveProvider).valueOrNull ?? false;
+    final p = context.palette;
     final l = context.l10n;
-    // The bar paints nothing, so nothing of its own would absorb a tap: a
-    // dock button is 48 tall inside the 64 pill, which leaves the bands above
-    // and below it, the gaps between the icons, the gutters beside the pill
-    // and the inset strip passing taps through to the tab underneath — on
-    // Highlights straight into the reel's play/pause. The ColoredBox that
-    // used to paint here was opaque to hit tests; this is that and nothing
-    // else (a Listener hit-tests the dock's own buttons first, then swallows
-    // whatever missed them).
-    return Listener(
-      behavior: HitTestBehavior.opaque,
+    return ColoredBox(
+      color: p.bg,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -351,7 +346,7 @@ class ShellBottomBar extends ConsumerWidget {
               ),
             ],
           ),
-          SizedBox(height: SpDock.insetBelow(context)),
+          SizedBox(height: MediaQuery.paddingOf(context).bottom),
         ],
       ),
     );

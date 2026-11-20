@@ -9,10 +9,9 @@ import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/data/highlights/highlight_models.dart';
 import 'package:sportpadi_mobile/data/highlights/highlights_repository.dart';
-import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/highlights/highlight_viewer.dart';
+import 'package:sportpadi_mobile/features/highlights/highlight_visitor.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
-import 'package:sportpadi_mobile/shared/widgets/sp_dock.dart';
 
 /// Where a feed was when its tab was last on screen.
 class HighlightFeedSnapshot {
@@ -36,7 +35,11 @@ class HighlightFeedSnapshot {
 /// away. This remembers each feed (and which one was showing) so a quick
 /// look at another tab doesn't lose the viewer's place.
 class HighlightFeedMemory {
-  int tab = 0;
+  /// 0 = Following, 1 = Discover. Discover is where a fresh open lands
+  /// (owner, 2026-11-18: like TikTok's "For you", it is where players are
+  /// found — each with a Follow button); a tab picked since is kept for as
+  /// long as this memory lives (the app session, for this account).
+  int tab = 1;
   final Map<String, HighlightFeedSnapshot> feeds = {};
 
   /// Videos just posted from this phone, by post id → when. The server
@@ -66,14 +69,26 @@ class HighlightFeedMemory {
   }
 }
 
+/// Bumped to put an already-built Highlights tab on DISCOVER ("Keep watching"
+/// at the end of a reel; review context-reels-app.md nit): `memory.tab` alone
+/// only decides the tab a NEW screen opens on.
+final highlightShowDiscover = ValueNotifier<int>(0);
+
 final highlightFeedMemoryProvider = Provider<HighlightFeedMemory>((ref) {
-  // A different account must never be shown the last one's feed.
-  ref.watch(authControllerProvider.select((s) => s.valueOrNull?.user?.id));
+  // A different account must never be shown the last one's feed — nor a
+  // visitor one read with a token, or the other way round (the id alone is
+  // null for both an unchecked session and a visitor: review L1).
+  watchHighlightsAudience(ref);
   return HighlightFeedMemory();
 });
 
-/// The Highlights tab (docs/wiki/highlights.md): Following and Discover,
-/// one post per screen, and "+" to post. Signed-in shell only.
+/// The Highlights tab (docs/wiki/highlights.md): Following and Discover —
+/// Discover selected when it opens, the order on screen kept Following |
+/// Discover as on TikTok — one post per screen, and "+" to post. In both
+/// shells: a signed-out visitor (the guest dock, 2026-11-19) gets Discover
+/// alone — Following needs someone to follow from, and the server answers it
+/// 401 — under the server's visitor rule, and "+" asks them to sign up
+/// (`highlight_visitor.dart`).
 class HighlightsScreen extends ConsumerStatefulWidget {
   const HighlightsScreen({super.key});
 
@@ -92,7 +107,18 @@ class _HighlightsScreenState extends ConsumerState<HighlightsScreen> {
   void initState() {
     super.initState();
     final remembered = ref.read(highlightFeedMemoryProvider).tab;
-    _tab = remembered == 1 ? 1 : 0;
+    _tab = remembered == 0 && !ref.read(highlightVisitorProvider) ? 0 : 1;
+    highlightShowDiscover.addListener(_showDiscover);
+  }
+
+  @override
+  void dispose() {
+    highlightShowDiscover.removeListener(_showDiscover);
+    super.dispose();
+  }
+
+  void _showDiscover() {
+    if (mounted) _select(1);
   }
 
   void _select(int tab) {
@@ -102,6 +128,11 @@ class _HighlightsScreenState extends ConsumerState<HighlightsScreen> {
   }
 
   Future<void> _create() async {
+    if (ref.read(highlightVisitorProvider)) {
+      // Straight on to the composer once they are in.
+      return showHighlightSignUpPrompt(context,
+          action: HighlightVisitorAction.post, returnTo: '/highlights/new');
+    }
     final created = await context.push<HighlightItem>('/highlights/new');
     if (created == null || !mounted) return;
     // My own posts are part of Following: show it from the top, where the
@@ -120,8 +151,10 @@ class _HighlightsScreenState extends ConsumerState<HighlightsScreen> {
     });
   }
 
-  Widget _tabLabel(int tab, String label) {
-    final active = tab == _tab;
+  Widget _tabLabel(int tab, String label, {required int current}) {
+    // [current] is the tab SHOWN — a visitor's is Discover whatever [_tab]
+    // says (review L1: a screen that became a visitor's on tab 0 lit nothing).
+    final active = tab == current;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => _select(tab),
@@ -153,38 +186,31 @@ class _HighlightsScreenState extends ConsumerState<HighlightsScreen> {
   @override
   Widget build(BuildContext context) {
     final memory = ref.watch(highlightFeedMemoryProvider);
+    final visitor = ref.watch(highlightVisitorProvider);
+    // A visitor has no Following: Discover whatever was picked before.
+    final tab = visitor ? 1 : _tab;
     final l = context.l10n;
     final top = MediaQuery.paddingOf(context).top;
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      // The feed is dark whatever the theme: light status-bar icons.
-      // This region and the black under it both run to the BOTTOM of the
-      // screen (the shell extends its body behind the dock): Android takes
-      // its navigation bar's colour from the region it finds at the bottom
-      // edge, and the black is what shows behind the dock.
+      // The feed is dark whatever the theme: light status-bar icons. The
+      // tab ends ABOVE the dock's band of page colour (the shell does not
+      // extend its body behind the dock), so the Android navigation bar
+      // keeps app.dart's colour, the band's own.
       value: SystemUiOverlayStyle.light,
       child: ColoredBox(
         color: Colors.black,
         child: Stack(children: [
-          // The video stops ABOVE the dock: the feed is laid out in what is
-          // left over it, so the pill never covers the picture, and the
-          // strip behind the pill is this tab's own black rather than a
-          // band of page colour. The dock's room is taken out of the feed's
-          // MediaQuery along with it — it has been dealt with here, and a
-          // list in there would otherwise leave it a second time
-          // (pull_refresh.dart).
+          // The video fills the tab, which already ends above the dock's
+          // band: the pill never covers the picture, and there is nothing of
+          // the dock to leave room for in here.
           Positioned.fill(
-            bottom: SpDock.spaceBelow(context),
-            child: MediaQuery.removePadding(
-              context: context,
-              removeBottom: true,
-              child: HighlightFeed(
-                key: ValueKey('${_tabs[_tab]}-$_reload'),
-                tab: _tabs[_tab],
-                memory: memory,
-                topInset: top + 52,
-                onDiscover: _tab == 0 ? () => _select(1) : null,
-                onCreate: _create,
-              ),
+            child: HighlightFeed(
+              key: ValueKey('${_tabs[tab]}-$_reload-${visitor ? 'v' : 'm'}'),
+              tab: _tabs[tab],
+              memory: memory,
+              topInset: top + 52,
+              onDiscover: tab == 0 ? () => _select(1) : null,
+              onCreate: _create,
             ),
           ),
           Positioned(
@@ -199,9 +225,11 @@ class _HighlightsScreenState extends ConsumerState<HighlightsScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _tabLabel(0, l.profile_following),
-                      const SizedBox(width: 8),
-                      _tabLabel(1, l.menu_discover),
+                      if (!visitor) ...[
+                        _tabLabel(0, l.profile_following, current: tab),
+                        const SizedBox(width: 8),
+                      ],
+                      _tabLabel(1, l.menu_discover, current: tab),
                     ],
                   ),
                 ),
@@ -435,6 +463,14 @@ class _HighlightFeedState extends ConsumerState<HighlightFeed> {
       }
     } catch (e) {
       if (!mounted || gen != _gen) return;
+      // A cursor the server can no longer open ([isRefusedCursor]): start the
+      // list again from the top rather than offer a Retry that sends it back.
+      // A reset sends no cursor, so this cannot come round again by itself.
+      if (!reset && isRefusedCursor(e, cursor)) {
+        setState(() => _loading = false);
+        unawaited(_load(reset: true));
+        return;
+      }
       error = '$e';
     }
     final failed = error;

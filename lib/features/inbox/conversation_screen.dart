@@ -14,6 +14,7 @@ import 'package:sportpadi_mobile/features/inbox/message_start.dart'
     show SpRoundPhotoButton;
 import 'package:sportpadi_mobile/features/inbox/message_widgets.dart';
 import 'package:sportpadi_mobile/features/settings/timezone_provider.dart';
+import 'package:sportpadi_mobile/features/share/share_link_cards.dart';
 import 'package:sportpadi_mobile/features/wards/ward_widgets.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
@@ -947,6 +948,13 @@ class _Bubble extends StatelessWidget {
               ),
             ),
           ),
+          // A SportPadi link gets a card, as THIS reader may see it
+          // (features/share/share_link_cards.dart).
+          if (!m.deleted && m.body.isNotEmpty)
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxW > 300 ? 300.0 : maxW),
+              child: ShareLinkCards(body: m.body),
+            ),
           if (time.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(left: 6, right: 6, top: 2),

@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/data/highlights/highlight_media.dart'
 import 'package:sportpadi_mobile/data/highlights/highlight_models.dart';
 import 'package:sportpadi_mobile/data/highlights/highlights_repository.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
+import 'package:sportpadi_mobile/features/share/share_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
@@ -27,20 +28,33 @@ String highlightShareUrl(WidgetRef ref, String id) {
   return withRef('$base/highlights/$id', me, 'app');
 }
 
-/// Share = copy the link, as everywhere else in the app.
-void shareHighlight(BuildContext context, WidgetRef ref, HighlightItem item) {
+/// The more sheet's "Copy link": just the link, on the clipboard.
+void copyHighlightLink(BuildContext context, WidgetRef ref, HighlightItem item) {
   // ignore: discarded_futures
   Clipboard.setData(ClipboardData(text: highlightShareUrl(ref, item.id)));
   ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(context.l10n.event_linkCopied)));
 }
 
+/// Share: the share sheet (features/share) — people on SportPadi, then other
+/// apps. Titled like the web's ("Ada’s highlight on SportPadi").
+Future<void> shareHighlight(
+        BuildContext context, WidgetRef ref, HighlightItem item) =>
+    showShareSheet(context, ref,
+        url: highlightShareUrl(ref, item.id),
+        title: context.l10n.highlights_shareTitle(item.subject.displayName),
+        subtitle: item.caption,
+        imageUrl: item.thumbnailUrl);
+
 enum HighlightMoreAction { copyLink, link, unlink, report, delete }
 
 /// The "more" sheet. Only what this viewer may do is listed
-/// (`permissions` on the item).
+/// (`permissions` on the item) — and for a signed-out [visitor], whose
+/// permissions are all false, Report on a post that is up: picking it asks
+/// them to sign in (the caller's job), as on the web.
 Future<HighlightMoreAction?> showHighlightMore(
-    BuildContext context, HighlightItem item) {
+    BuildContext context, HighlightItem item,
+    {bool visitor = false}) {
   return showSpSheet<HighlightMoreAction>(
     context,
     builder: (ctx) {
@@ -91,7 +105,7 @@ Future<HighlightMoreAction?> showHighlightMore(
               row(Icons.link_off_rounded, l.highlights_removeStat,
                   HighlightMoreAction.unlink),
             ],
-            if (perms.canReport)
+            if (perms.canReport || (visitor && item.isReady))
               row(Icons.flag_outlined, l.inbox_report,
                   HighlightMoreAction.report),
             if (perms.canDelete)

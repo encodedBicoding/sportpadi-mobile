@@ -4,18 +4,22 @@ import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/data/join/join_models.dart';
 import 'package:sportpadi_mobile/data/join/join_repository.dart';
 import 'package:sportpadi_mobile/data/teams/teams_repository.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
+import 'package:sportpadi_mobile/features/join/join_group_screen.dart' show JoinLinkDead;
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_leading.dart';
 import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
+/// `/join-team/<code>` — a team's join link. [code] is the link's secret
+/// code (the router sends an old link with the team's id to the team page).
 class JoinTeamScreen extends ConsumerStatefulWidget {
-  const JoinTeamScreen({super.key, required this.teamId});
-  final String teamId;
+  const JoinTeamScreen({super.key, required this.code});
+  final String code;
 
   @override
   ConsumerState<JoinTeamScreen> createState() => _JoinTeamScreenState();
@@ -32,20 +36,26 @@ class _JoinTeamScreenState extends ConsumerState<JoinTeamScreen> {
     super.dispose();
   }
 
-  Future<void> _join() async {
+  Future<void> _join(TeamJoinInfo t) async {
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
       final n = int.tryParse(_jersey.text.trim());
-      await ref
-          .read(joinRepositoryProvider)
-          .joinTeam(widget.teamId, jerseyNumber: n);
+      final teamId = await ref
+              .read(joinRepositoryProvider)
+              .joinTeam(widget.code, jerseyNumber: n) ??
+          t.id;
       ref.invalidate(myGroupsProvider);
-      ref.invalidate(teamDetailProvider(widget.teamId));
-      if (mounted) goWithHome(context, '/teams/${widget.teamId}');
+      ref.invalidate(teamDetailProvider(teamId));
+      if (mounted) goWithHome(context, '/teams/$teamId');
     } on ApiException catch (e) {
+      // 412: this link can't add anyone (an id, not a code) — open the team.
+      if (e.statusCode == 412 && t.id.isNotEmpty) {
+        if (mounted) goWithHome(context, '/teams/${t.id}');
+        return;
+      }
       setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -54,7 +64,7 @@ class _JoinTeamScreenState extends ConsumerState<JoinTeamScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final info = ref.watch(teamJoinInfoProvider(widget.teamId));
+    final info = ref.watch(teamJoinInfoProvider(widget.code));
     final signedIn =
         ref.watch(authControllerProvider).value?.isAuthenticated ?? false;
     final p = context.palette;
@@ -63,8 +73,10 @@ class _JoinTeamScreenState extends ConsumerState<JoinTeamScreen> {
           AppBar(leading: const SpLeading(), title: Text(context.l10n.join_joinTeam)),
       body: AsyncView(
         value: info,
-        onRetry: () => ref.invalidate(teamJoinInfoProvider(widget.teamId)),
-        data: (t) => Center(
+        onRetry: () => ref.invalidate(teamJoinInfoProvider(widget.code)),
+        data: (t) => t == null
+            ? const JoinLinkDead()
+            : Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -95,7 +107,14 @@ class _JoinTeamScreenState extends ConsumerState<JoinTeamScreen> {
                 Text(_error!, style: TextStyle(color: p.danger, fontSize: 13)),
                 const SizedBox(height: 12),
               ],
-              if (t.alreadyOnTeam)
+              if (t.requestToJoin && !t.alreadyOnTeam) ...[
+                // An id link, or someone an admin removed: not by this link.
+                Text(context.l10n.join_linkCantAddYouTeam,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: p.muted, fontSize: 13)),
+                const SizedBox(height: 12),
+              ],
+              if (t.alreadyOnTeam || t.requestToJoin)
                 FilledButton(
                   onPressed: () => goWithHome(context, '/teams/${t.id}'),
                   child: Text(context.l10n.join_goToTeam),
@@ -112,7 +131,7 @@ class _JoinTeamScreenState extends ConsumerState<JoinTeamScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: _busy ? null : _join,
+                    onPressed: _busy ? null : () => _join(t),
                     child: _busy
                         ? const SizedBox(
                             height: 20,

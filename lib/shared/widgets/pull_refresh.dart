@@ -29,19 +29,19 @@ class PullableState extends StatelessWidget {
       {super.key, required this.child, this.bottomPadding = 0});
   final Widget child;
 
-  /// Room to keep free at the bottom. On a bottom-tab screen that is the
-  /// floating dock the body now runs behind (`SpDock.spaceBelow`): the state
-  /// stays centred in what can actually be SEEN, instead of drifting down
-  /// behind the dock.
+  /// Room to keep free at the bottom, for something laid OVER the body
+  /// there: the state stays centred in what can actually be seen. The tabs
+  /// pass `SpDock.spaceBelow`, which is 0 since the dock went back onto its
+  /// own band below the body (2026-11-16) — kept so it stays right if a
+  /// shell ever runs its body under the dock again.
   ///
   /// It is SUBTRACTED from the viewport and never added to the list: this
   /// `ListView` is given no `padding:` of its own, so
   /// `BoxScrollView.buildSlivers` already pads it by
-  /// `MediaQuery.padding.bottom` — which inside a tab IS this same number —
-  /// and a trailing box of ours would reserve the room a second time, which
-  /// is scrollable slack a loader or an empty state can be dragged up into
-  /// (and stays in, on Android). Left at 0 the list is exactly what it
-  /// always was.
+  /// `MediaQuery.padding.bottom`, and a trailing box of ours would reserve
+  /// the room a second time — scrollable slack a loader or an empty state
+  /// can be dragged up into (and stays in, on Android). Left at 0 the list
+  /// is exactly what it always was.
   final double bottomPadding;
 
   @override

@@ -10,10 +10,12 @@ import 'package:sportpadi_mobile/data/highlights/highlight_models.dart';
 import 'package:sportpadi_mobile/data/highlights/highlights_repository.dart';
 import 'package:sportpadi_mobile/features/highlights/highlight_actions.dart';
 import 'package:sportpadi_mobile/features/highlights/highlight_text_limit.dart';
+import 'package:sportpadi_mobile/features/highlights/highlight_visitor.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
+import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
 /// The comments on a highlight: a flat list, oldest first (the newest is
 /// last), paged; add one (≤ 500 characters), delete where the server says so
@@ -23,11 +25,17 @@ import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 /// changed, so the number on the post follows. [onNotFound] is called when
 /// the server answers "not found" here — the post itself may be gone (a
 /// remembered feed can be minutes old); the opener looks into it.
+///
+/// [onVisitor] set = a signed-out visitor: the list is read-only (the server
+/// masks a child commenter for them), a "Sign up to comment" bar stands where
+/// the box would be, and a comment's Report asks too — the sheet closes and
+/// [onVisitor] opens the sign-up sheet on the page.
 Future<void> showHighlightComments(
   BuildContext context, {
   required HighlightItem item,
   required ValueChanged<int> onCount,
   required VoidCallback onNotFound,
+  void Function(HighlightVisitorAction action)? onVisitor,
 }) {
   return showSpSheet<void>(
     context,
@@ -37,6 +45,7 @@ Future<void> showHighlightComments(
       item: item,
       onCount: onCount,
       onNotFound: onNotFound,
+      onVisitor: onVisitor,
       // A profile opened from here must not land under the sheet.
       launch: closeSheetThen(sheetContext, context),
     ),
@@ -49,11 +58,19 @@ class _CommentsSheet extends ConsumerStatefulWidget {
     required this.onCount,
     required this.onNotFound,
     required this.launch,
+    this.onVisitor,
   });
   final HighlightItem item;
   final ValueChanged<int> onCount;
   final VoidCallback onNotFound;
   final SheetLaunch launch;
+  final void Function(HighlightVisitorAction action)? onVisitor;
+
+  /// Close the sheet, then ask the visitor to sign up (on the page).
+  void ask(HighlightVisitorAction action) {
+    final f = onVisitor;
+    if (f != null) launch((_) => f(action));
+  }
 
   @override
   ConsumerState<_CommentsSheet> createState() => _CommentsSheetState();
@@ -71,6 +88,16 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
   bool _end = false;
   bool _loading = false;
   String? _error;
+
+  /// The thread carries on from its first comment because the server
+  /// refused a cursor ([isRefusedCursor]) — at most once per sheet, so a
+  /// server that refused its own fresh cursor is not asked in a loop.
+  bool _restarted = false;
+
+  /// After that restart: the comments the sheet already had. They stay where
+  /// they are — a comment just sent included (review highlights-cursors-seo.md
+  /// LOW-5) — and the pages that repeat them add only what is new.
+  Set<String>? _repeat;
   late int _count = widget.item.commentCount;
 
   bool _sending = false;
@@ -127,13 +154,17 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
     int? count;
     String? error;
     try {
-      // A short or empty page isn't the end while there is a cursor.
-      for (var hops = 0; hops < 5; hops++) {
+      // A short or empty page isn't the end while there is a cursor — and
+      // after a restart, nor is a page of comments the sheet already has.
+      final repeat = _repeat;
+      for (var hops = 0; hops < (repeat == null ? 5 : 20); hops++) {
         final page = await ref
             .read(highlightsRepositoryProvider)
             .comments(_id, cursor: cursor);
         if (!mounted) return;
-        fresh.addAll(page.items);
+        for (final c in page.items) {
+          if (repeat == null || !repeat.contains(c.id)) fresh.add(c);
+        }
         count = page.commentCount ?? count;
         cursor = page.nextCursor;
         if (cursor == null) {
@@ -144,6 +175,18 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
       }
     } catch (e) {
       if (!mounted) return;
+      if (!_restarted && isRefusedCursor(e, cursor)) {
+        // Carry on from the first comment, keeping everything on screen.
+        _restarted = true;
+        _repeat = {for (final c in _items) c.id};
+        setState(() {
+          _cursor = null;
+          _end = false;
+          _loading = false;
+        });
+        _load();
+        return;
+      }
       error = '$e';
       _checkNotFound(e);
     }
@@ -286,6 +329,13 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
                         : l.highlights_commentsWhenReady,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: p.muted, fontSize: 12.5))
+          else if (widget.onVisitor != null)
+            SpButton(
+              label: l.highlights_commentsSignUp,
+              icon: Icons.person_add_alt_1_rounded,
+              expand: true,
+              onTap: () => widget.ask(HighlightVisitorAction.comment),
+            )
           else
             Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Expanded(
@@ -390,8 +440,12 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
       padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         GestureDetector(
-          onTap: () => widget.launch(
-              (page) => openPlayerProfile(page, ref, c.user.userId)),
+          // No id = someone the server hides from a visitor ("SportPadi
+          // player"): nothing to open, and the sheet stays.
+          onTap: c.user.userId.isEmpty
+              ? null
+              : () => widget.launch(
+                  (page) => openPlayerProfile(page, ref, c.user.userId)),
           child: ClipOval(
             child: Crest(logoUrl: c.user.avatarUrl, label: name, size: 34),
           ),
@@ -431,6 +485,10 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
                 // ignore: discarded_futures
                 _delete(c);
               } else if (v == 'report') {
+                if (widget.onVisitor != null) {
+                  widget.ask(HighlightVisitorAction.report);
+                  return;
+                }
                 // ignore: discarded_futures
                 _report(c);
               }

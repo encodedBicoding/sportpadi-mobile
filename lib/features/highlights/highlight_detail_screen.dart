@@ -6,10 +6,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:sportpadi_mobile/core/i18n/l10n.dart';
+import 'package:sportpadi_mobile/core/links/link_resolver.dart' show HomeTab;
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/data/highlights/highlight_models.dart';
 import 'package:sportpadi_mobile/data/highlights/highlights_repository.dart';
+import 'package:sportpadi_mobile/features/auth/auth_controller.dart'
+    show authControllerProvider;
 import 'package:sportpadi_mobile/features/highlights/highlight_viewer.dart';
+import 'package:sportpadi_mobile/features/highlights/highlight_visitor.dart';
+import 'package:sportpadi_mobile/features/highlights/highlights_screen.dart'
+    show highlightFeedMemoryProvider, highlightShowDiscover;
+import 'package:sportpadi_mobile/features/shell/home_shell.dart'
+    show homeTabIndexProvider;
 
 /// The ids the API takes. A reel address is only ever minted by a timeline
 /// badge, so anything else in `?gameId=` / `?activityId=` is not an origin —
@@ -19,22 +27,56 @@ final _reelUuid = RegExp(
     r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
     caseSensitive: false);
 
+/// A profile tile's origin (`?from=player:<uuid>`, the web's
+/// `playerReelHref`), and nothing looser: `from` names a player or nothing.
+final _reelFrom = RegExp(
+    r'^player:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$',
+    caseSensitive: false);
+
 /// One highlight by id (`/highlights/:id`) in the same viewer as the feed —
 /// where a notification, a shared link, a timeline badge and a profile tile
 /// all land.
 ///
-/// With [fromGameId] — only a match timeline's play badge sends it — this is
-/// the match REEL instead: the post they tapped, then every other highlight
-/// of the whole event, and running off the end takes them back to that
-/// timeline. Without it nothing changes: one post, and no page after it.
+/// What scrolling on shows depends on where the post was opened FROM
+/// (workspace `docs/wiki/highlights.md`, "Where a highlight was opened
+/// from") — one reel, three sources:
+///  * [fromGameId] — only a match timeline's play badge sends it: the match
+///    REEL, the post they tapped, then every other highlight of the whole
+///    event, and running off the end takes them back to that timeline;
+///  * [from] `player:<id>` — a profile's Highlights tile: that player's reel
+///    (`byPlayer` + `firstId`: the tapped post, then the OLDER ones down to the
+///    oldest — no wrap, the owner's call), and the end pops back to the
+///    profile with the tile's id;
+///  * neither — a notification, a shared link, a chat card: the post, then
+///    ALL the other highlights of the player it is ABOUT (once `get` has said
+///    who: their grid from the newest, no `firstId`), and the end stays on
+///    "That's all from …" — a subject reel never navigates by itself.
+/// A post whose subject this viewer isn't shown (no id) is one post, with no
+/// page after it, as before.
 ///
 /// The server answers 404 both for a post that doesn't exist and for one
 /// this viewer may not see, so there is a single honest "can't be shown"
-/// state for both.
+/// state for both — for a signed-out visitor it says the post may only be
+/// visible signed in, and offers that (a ward's, an under-18's, a private
+/// profile's post is; workspace `docs/wiki/highlights.md` "Visitors").
+/// A visitor opens this page too (the router lets them), reel and all.
 class HighlightDetailScreen extends ConsumerStatefulWidget {
   const HighlightDetailScreen(
-      {super.key, required this.id, this.fromGameId, this.fromActivityId});
+      {super.key,
+      required this.id,
+      this.fromGameId,
+      this.fromActivityId,
+      this.from,
+      this.openComments = false});
   final String id;
+
+  /// `?from=` — `player:<uuid>` from a profile's Highlights tile; anything
+  /// else is no origin. A match origin ([fromGameId]) wins over it.
+  final String? from;
+
+  /// `?comments=1`: open the post with its comments showing — where a
+  /// visitor who signed up to comment comes back to.
+  final bool openComments;
 
   /// The match whose timeline opened this post (`?gameId=` of the reel
   /// address both clients make). `byEvent` is keyed by a match — it answers
@@ -82,9 +124,12 @@ class _HighlightDetailScreenState
 
   // ── the reel (nothing below does anything without an origin) ───────────
 
-  /// The event's other highlights, in the event's order, after the tapped
-  /// post. A reel holds `ready` posts pinned to stats that still stand and
-  /// nothing else (the contract), so none of them needs the reads above.
+  /// The reel's other highlights after the tapped post: the event's, in the
+  /// event's order (`ready` posts pinned to stats that still stand, nothing
+  /// else), or a player's older ones in grid order. A player's grid — and so a
+  /// player or subject reel — also holds the VIEWER's own posts still
+  /// processing or failed, as the grid does (nobody else is ever handed
+  /// them): those few are re-read on the poll's tick ([_rereadProcessing]).
   final List<HighlightItem> _reel = [];
   String? _cursor;
 
@@ -146,10 +191,60 @@ class _HighlightDetailScreenState
   /// reel without one is still a reel: it just ends at the match.
   String? _fromStat;
 
-  bool get _isReel => _fromGame != null;
+  /// The player whose grid opened this ([HighlightDetailScreen.from]), a uuid
+  /// or nothing; never set beside [_fromGame].
+  String? _fromPlayer;
+
+  /// With no origin at all: the player the post is ABOUT, once `get` has
+  /// answered ([_adoptSubject]) — if this viewer is shown who that is.
+  String? _subject;
+  bool _subjectKnown = false;
+
+  /// The player a player reel or a subject reel runs through.
+  String? get _reelPlayer => _fromPlayer ?? _subject;
+
+  bool get _isReel => _fromGame != null || _reelPlayer != null;
+
+  /// A reel whose way out is a PLACE — the match, or the profile it was
+  /// opened from — rather than "the page underneath": the back control, a
+  /// post that goes away, the system back and the end all take it there.
+  bool get _leavesByHand => _fromGame != null || _fromPlayer != null;
+
+  /// The end of this reel is its last page, with nowhere to go: EVERY subject
+  /// reel (lead's decision, fix round: a shared post, a notification, a chat
+  /// card stops on "That's all from …" as TikTok / IG do — it never pops by
+  /// itself; review context-reels-app.md MED-1), and a guest's player reel
+  /// with nothing underneath (a guest can't open a profile).
+  bool get _endStays =>
+      _fromGame == null &&
+      (_fromPlayer == null ||
+          (!context.canPop() && ref.read(highlightVisitorProvider)));
+
+  /// The tapped post (item 0, this screen's own read) went away after it was
+  /// shown — removed, deleted here, its file dead, a re-read answering 404 —
+  /// while it heads a reel: it leaves the reel and the rest plays on, as on
+  /// the web (review context-reels.md MED-1 / context-reels-app.md LOW-5),
+  /// instead of the whole reel giving way to "can't be shown".
+  bool _leadGone = false;
+
+  /// The last copy of item 0 this screen showed (for the end card's name once
+  /// it has gone). Set while building — a cache, not state.
+  HighlightItem? _leadSeen;
+
+  /// The reel's own address query, for a visitor coming back after signing
+  /// up (null on the one-post screen and on a subject reel, whose address is
+  /// the plain one).
+  Map<String, String>? get _visitorReel {
+    final player = _fromPlayer;
+    if (player != null) return {'from': 'player:$player'};
+    final game = _fromGame;
+    if (game == null) return null;
+    final stat = _fromStat;
+    return {'gameId': game, if (stat != null) 'activityId': stat};
+  }
 
   /// Posts in the pager: the tapped one, and the reel's after it.
-  int get _postCount => 1 + (_isReel ? _reel.length : 0);
+  int get _postCount => (_leadGone ? 0 : 1) + (_isReel ? _reel.length : 0);
 
   @override
   void initState() {
@@ -158,10 +253,29 @@ class _HighlightDetailScreenState
     _fromGame = from != null && _reelUuid.hasMatch(from) ? from : null;
     final stat = widget.fromActivityId;
     _fromStat = stat != null && _reelUuid.hasMatch(stat) ? stat : null;
-    // A badge opened this: the reel's first page carries the tapped post.
+    final player = _reelFrom.firstMatch(widget.from ?? '')?.group(1);
+    _fromPlayer =
+        _fromGame == null && player != null ? player.toLowerCase() : null;
+    // A badge or a tile opened this: the reel's first page carries the
+    // tapped post.
     if (_isReel) _loadReel();
+    // Opened with no list behind it: the reel is the post's SUBJECT's, and
+    // who that is is known once the post is.
+    if (!_leavesByHand) {
+      ref.listenManual<AsyncValue<HighlightItem>>(highlightProvider(widget.id),
+          fireImmediately: true, (_, next) {
+        final item = next.valueOrNull;
+        if (item != null) _adoptSubject(item);
+      });
+    }
     _poll = Timer.periodic(const Duration(seconds: 5), (_) {
       if (!mounted || _deleted || _gone) return;
+      // The viewer's own unfinished posts further on in a player / subject
+      // reel are read again too (review context-reels-app.md LOW-3).
+      if (_isReel) _rereadProcessing();
+      // Item 0 has left the reel: nothing of it to read again (a 404 there must
+      // not take the reel away from a viewer who has moved on — LOW-5).
+      if (_leadGone) return;
       final shown =
           _local ?? ref.read(highlightProvider(widget.id)).valueOrNull;
       if (shown == null) return;
@@ -196,6 +310,79 @@ class _HighlightDetailScreenState
     });
   }
 
+  /// The first answer for a post opened with no origin names the player it is
+  /// about: from now on the screen is that player's reel, pinned on this
+  /// post. Once — a fresher copy of the post changes nothing — and only for
+  /// a subject this viewer is shown (a person the server masks has no id:
+  /// the one post, as before). Never inside the listener's own call: it can
+  /// fire from [initState], where a `setState` is not allowed, so the first
+  /// page is asked for after the frame.
+  void _adoptSubject(HighlightItem item) {
+    if (_subjectKnown) return;
+    _subjectKnown = true;
+    final who = item.subject.userId;
+    if (!_reelUuid.hasMatch(who)) return;
+    _subject = who.toLowerCase();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadReel();
+    });
+  }
+
+  bool _rereading = false;
+
+  /// Your own posts still `processing` further on in the reel, a few at a
+  /// time: a fresh copy replaces the old, one that has gone leaves the reel.
+  Future<void> _rereadProcessing() async {
+    if (_rereading) return;
+    final due =
+        _reel.where((x) => x.status == 'processing').take(3).toList();
+    if (due.isEmpty) return;
+    _rereading = true;
+    try {
+      for (final x in due) {
+        try {
+          final fresh = await ref.read(highlightsRepositoryProvider).get(x.id);
+          if (!mounted) return;
+          _patch(fresh);
+        } catch (e) {
+          if (!mounted) return;
+          if (e is ApiException && (e.statusCode == 404 || e.statusCode == 400)) {
+            _drop(x.id);
+          }
+        }
+      }
+    } finally {
+      _rereading = false;
+    }
+  }
+
+  /// Item 0 has gone (see [_leadGone]): out of the pager, the viewer kept on
+  /// the post they were watching — the pager follows a shown post that moves
+  /// up a place — and the reel carried on: the next page asked for, or, at its
+  /// end, the way out its end always takes.
+  void _dropLead() {
+    if (_leadGone || !_isReel) return;
+    setState(() {
+      _leadGone = true;
+      if (_index > 0) _index -= 1;
+    });
+    if (_reelEnd) {
+      _snapBack();
+    } else {
+      _loadReel();
+    }
+  }
+
+  /// A sheet or a dialog over this page is what `pop` takes (mobile-app.md):
+  /// closed first, so a way out takes THIS page and the Back button left
+  /// behind is never a dead one (review context-reels-app.md LOW-2).
+  void _closeOverlays() {
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) {
+      route.navigator?.popUntil((r) => r == route);
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -216,7 +403,8 @@ class _HighlightDetailScreenState
   /// that id, so the post cannot come back a second time.
   Future<void> _loadReel() async {
     final game = _fromGame;
-    if (game == null || _reelLoading || _reelEnd) return;
+    final player = _reelPlayer;
+    if ((game == null && player == null) || _reelLoading || _reelEnd) return;
     setState(() {
       _reelLoading = true;
       _reelStalled = false;
@@ -234,13 +422,47 @@ class _HighlightDetailScreenState
     var noReel = false;
     var hops = _reelHops + _postCount ~/ _reelPage;
     if (hops > _reelHopsMax) hops = _reelHopsMax;
+    // Once per load: the server refused the cursor ([isRefusedCursor]) and
+    // the walk carried on from the top of the reel.
+    var restarted = false;
     try {
       // The contract: a page may be short — even empty — and still not be
       // the last (posts this viewer may not see were skipped). Keep asking
       // until something NEW arrives or the server says that's all.
       for (var hop = 0; hop < hops; hop++) {
-        final page = await ref.read(highlightsRepositoryProvider).byEvent(game,
-            firstId: cursor == null ? widget.id : null, cursor: cursor);
+        final HighlightsPage<HighlightItem> page;
+        try {
+          // The match reel, or a player's (a profile tile's, or the post's
+          // subject's). Both pin the tapped post on the first page only.
+          page = game != null
+              ? await ref.read(highlightsRepositoryProvider).byEvent(game,
+                  firstId: cursor == null ? widget.id : null, cursor: cursor)
+              : await ref.read(highlightsRepositoryProvider).byPlayer(player!,
+                  // A profile reel pins the tapped post on its first page; a
+                  // subject reel is the subject's whole grid (fix round 2,
+                  // review MED-6), the opened post dropped by id below.
+                  firstId: _fromPlayer != null && cursor == null
+                      ? widget.id
+                      : null,
+                  // A restart after a refused cursor says so (`cursor=` empty):
+                  // a pin gone since is then the grid from the top, not an
+                  // empty reel that would end it early (review LOW-7).
+                  cursor: restarted && cursor == null ? '' : cursor);
+        } catch (e) {
+          // A cursor the server can no longer open (a week old, a changed
+          // server secret, a reel left open across the deploy that sealed
+          // cursors): carry on from the TOP of the reel. That is the repeat
+          // the filter below already pages through — it is what a cursor
+          // whose anchor vanished reads as too — so nothing else changes.
+          if (restarted || !isRefusedCursor(e, cursor)) rethrow;
+          if (!mounted) return;
+          restarted = true;
+          cursor = null;
+          // The refused request isn't one of the walk's pages: the repeat
+          // from the top gets the whole budget (review LOW-3).
+          hops += 1;
+          continue;
+        }
         if (!mounted) return;
         // Is this the reel at all, or the following feed an older server
         // fell through to ([_notAReel])? Only while nothing has been kept
@@ -250,8 +472,13 @@ class _HighlightDetailScreenState
         // server whose first feed page comes back EMPTY with a cursor — the
         // next one used to be appended unchecked (T8 review LOW-J). The PIN
         // is the first page's promise alone: a page read from the top of the
-        // reel can carry the tapped post anywhere in it.
-        if (fresh.isEmpty &&
+        // reel can carry the tapped post anywhere in it. A PLAYER reel needs
+        // no such test: a server older than it ignores `firstId` and answers
+        // the same player's grid — the right posts, newest first — so the
+        // tapped post (item 0, this screen's own read) and the id filter
+        // below are all it takes (docs/wiki/highlights.md).
+        if (game != null &&
+            fresh.isEmpty &&
             _reel.isEmpty &&
             _notAReel(page.items, pinned: cursor == null)) {
           noReel = true;
@@ -273,6 +500,9 @@ class _HighlightDetailScreenState
           for (final i in fresh) i.id
         };
         for (final item in page.items) {
+          // A profile reel holds only what is OLDER than the post it opened;
+          // a restart whose pin has gone brings the newer ones too (LOW-7).
+          if (_newerThanLead(item)) continue;
           if (item.id.isNotEmpty && have.add(item.id)) fresh.add(item);
         }
         cursor = page.nextCursor;
@@ -328,6 +558,14 @@ class _HighlightDetailScreenState
     // They may have been waiting for this answer on the page after the last
     // post: it may have been the end of the reel.
     _snapBack();
+  }
+
+  /// On a profile reel: is this post newer than the one it opened?
+  bool _newerThanLead(HighlightItem item) {
+    if (_fromPlayer == null) return false;
+    final lead = (_local ?? _leadSeen)?.createdAt;
+    final at = item.createdAt;
+    return lead != null && at != null && at.isAfter(lead);
   }
 
   /// Is this first page of `byEvent` a reel, or the following feed an older
@@ -389,8 +627,10 @@ class _HighlightDetailScreenState
   /// page. While a page is still coming — or failed — that page says so
   /// instead, and this does nothing.
   void _snapBack() {
-    final game = _fromGame;
-    if (game == null || _snapped || !_reelEnd || _index < _postCount) return;
+    if (!_isReel || _snapped || !_reelEnd || _index < _postCount) return;
+    // A reel that ends where it is: its last page is the end card, and there
+    // is nobody to take anywhere.
+    if (_endStays) return;
     // `pop` takes the TOPMOST route (mobile-app.md): with a sheet or a
     // dialog over this page it would close that instead. Leave it for
     // [didChangeDependencies], which runs again when that one goes.
@@ -408,24 +648,51 @@ class _HighlightDetailScreenState
         _snapped = false;
         return;
       }
-      _leaveReel();
+      if (_leavesByHand) {
+        _leaveReel();
+      } else {
+        // A subject reel: back to the page it was opened over.
+        _back();
+      }
     });
   }
 
   /// Out of the reel and onto the stat it started from — the row they came
-  /// from, which is what was asked for, not merely the match.
+  /// from, which is what was asked for, not merely the match. A player reel
+  /// the same way onto the profile it was opened from, at the tile.
   void _leaveReel() {
     final game = _fromGame;
-    if (game == null || _left) return;
+    final player = _fromPlayer;
+    if ((game == null && player == null) || _left) return;
     _left = true;
+    _closeOverlays();
     // Pop, never push: the match timeline is the route underneath and
     // popping takes the reel off the stack, so the system Back button cannot
     // walk back into the reel they have just left, and the timeline keeps
     // the scroll it had. The stat rides back on the pop, because an offset
     // is not a row: the badge that pushed this reel is waiting for it and
-    // brings that row into view (`game_screen.dart` `_scrollToStat`).
+    // brings that row into view (`game_screen.dart` `_scrollToStat`). A
+    // profile keeps its tab and its offset; the TILE rides back, so a grid
+    // that re-read itself meanwhile can still bring it into view
+    // (`highlights_grid.dart`).
     if (context.canPop()) {
-      context.pop(_fromStat);
+      if (game != null) {
+        context.pop(_fromStat);
+      } else {
+        context.pop(widget.id);
+      }
+      return;
+    }
+    // A visitor who opened a reel link straight from outside: a match page
+    // needs an account in the app, so the end of the reel is the guest Home,
+    // not a sign-in wall nobody asked for.
+    if (ref.read(highlightVisitorProvider)) {
+      context.go('/home');
+      return;
+    }
+    if (game == null) {
+      // A profile tile's reel with nothing underneath: the profile itself.
+      _goToProfile(player!);
       return;
     }
     // Nothing underneath (a link that opened straight into a reel): the
@@ -434,6 +701,70 @@ class _HighlightDetailScreenState
     // by `/games/:id` in the router.
     final stat = _fromStat;
     context.go(stat == null ? '/games/$game' : '/games/$game?stat=$stat');
+  }
+
+  /// A player's profile, in place of this page: your own is the dock's
+  /// Profile tab, anyone else's `/players/<id>`. A guest has no profiles to
+  /// open: signing in comes back to it.
+  void _goToProfile(String player) {
+    if (ref.read(highlightVisitorProvider)) {
+      context.push(highlightSignInHref('/players/$player'));
+      return;
+    }
+    final me = ref.read(authControllerProvider).valueOrNull?.user?.id;
+    if (me != null && me.toLowerCase() == player) {
+      ref.read(homeTabIndexProvider.notifier).state = HomeTab.profile;
+      context.go('/home');
+      return;
+    }
+    context.go('/players/$player');
+  }
+
+  /// "Keep watching" on the end card: the Highlights tab, on Discover.
+  void _keepWatching() {
+    ref.read(highlightFeedMemoryProvider).tab = 1;
+    // ...and one that is already built switches to it.
+    highlightShowDiscover.value++;
+    ref.read(homeTabIndexProvider.notifier).state = HomeTab.highlights;
+    context.go('/home');
+  }
+
+  /// The last page of a player or subject reel: whose highlights they were,
+  /// and where next. Shown for a frame where the end goes back (the profile,
+  /// the page underneath); it IS the end where there is nowhere to go
+  /// ([_endStays]: a link opened cold).
+  Widget _endCard() {
+    final l = context.l10n;
+    final item = _local ??
+        ref.read(highlightProvider(widget.id)).valueOrNull ??
+        _leadSeen;
+    final player = _reelPlayer;
+    final visitor = ref.read(highlightVisitorProvider);
+    // Your own: said so, with no "their" (review context-reels.md LOW-3).
+    final me = ref.read(authControllerProvider).valueOrNull?.user?.id;
+    final mine = me != null && player != null && me.toLowerCase() == player;
+    // Honest copy (review LOW-R2): "That's all from … every one" only where it
+    // is true — a subject reel, which held the player's WHOLE grid. A profile
+    // reel ran from the tapped post down to the oldest: a neutral line, and no
+    // name, so it can't name anyone but the reel's player (View profile).
+    final whole = _fromPlayer == null;
+    return HighlightMessage(
+      icon: Icons.movie_filter_outlined,
+      title: !whole
+          ? l.highlights_reelEndNoMore
+          : mine
+              ? l.highlights_reelEndTitleMine
+              : l.highlights_reelEndTitle(item?.subject.displayName ?? ''),
+      body: whole && !mine ? l.highlights_reelEndText : null,
+      actionLabel: player == null
+          ? null
+          : visitor
+              ? l.highlights_appReelEndSignIn
+              : l.common_viewProfile,
+      onAction: player == null ? null : () => _goToProfile(player),
+      secondaryLabel: l.highlights_reelEndKeepWatching,
+      onSecondary: _keepWatching,
+    );
   }
 
   /// A like, a comment count, a link change, a fresher copy — of the tapped
@@ -496,6 +827,8 @@ class _HighlightDetailScreenState
       );
     }
     if (!_reelEnd) return const HighlightMessage(busy: true);
+    // A player's reel or a subject's: who it was, and where next.
+    if (_fromGame == null) return _endCard();
     // The reel has ended. This page is the way back to the match, and
     // reaching it is what takes them there ([_snapBack]) — so it says where
     // they are going rather than pretending there is more to come.
@@ -509,10 +842,16 @@ class _HighlightDetailScreenState
   /// gone. From a reel that is the match, at the stat it started from — the
   /// same place running off the end lands, so there is one way out.
   void _back() {
-    if (_isReel) {
+    if (_leavesByHand) {
       _leaveReel();
       return;
     }
+    // Once: a subject reel's end and its back control (or a post going away
+    // inside the exit) can both reach here, and a second pop would take the
+    // page underneath off too.
+    if (_left) return;
+    _left = true;
+    _closeOverlays();
     if (context.canPop()) {
       context.pop();
     } else {
@@ -530,9 +869,21 @@ class _HighlightDetailScreenState
       if (fresh != null && !next.isLoading && _local != null) {
         setState(() => _local = null);
       }
+      // A re-read saying item 0 is gone, on a reel it was already shown in:
+      // it leaves the reel, the rest stays (LOW-5).
+      final gone = next.error;
+      if (_isReel &&
+          _leadSeen != null &&
+          !next.isLoading &&
+          gone is ApiException &&
+          (gone.statusCode == 404 || gone.statusCode == 400)) {
+        _dropLead();
+      }
     });
     final fetched = ref.watch(highlightProvider(widget.id));
+    final visitor = ref.watch(highlightVisitorProvider);
     final item = _local ?? fetched.valueOrNull;
+    if (item != null) _leadSeen = item;
     final padding = MediaQuery.paddingOf(context);
     // "Not found" is the server's answer for a post that doesn't exist AND
     // for one this viewer may not see; a malformed id in a link (400 from an
@@ -543,13 +894,79 @@ class _HighlightDetailScreenState
         e is ApiException &&
         (e.statusCode == 404 || e.statusCode == 400);
 
+    // The pager's own hooks, one set for both lists below.
+    HighlightPager pager(List<HighlightItem> items) => HighlightPager(
+          items: items,
+          trailing: _reelTrailing(),
+          onNearEnd: _isReel ? _loadReel : null,
+          onIndexChanged: (i) {
+            _index = i;
+            _snapBack();
+          },
+          onChanged: _patch,
+          visitorReturnReel: _visitorReel,
+          openCommentsFirst: widget.openComments && !_leadGone,
+          onRemoved: (id) {
+            if (id != widget.id) {
+              _drop(id);
+              return;
+            }
+            // Item 0 deleted here: on a reel it leaves and the rest plays on
+            // (as on the web); the one-post screen says it is deleted.
+            if (_isReel) {
+              _dropLead();
+              return;
+            }
+            setState(() => _deleted = true);
+            _back();
+          },
+          onGone: (id) {
+            // Nobody asked for this one to go, and the reel would otherwise
+            // just slide on to the next post: say so, as the feed does.
+            if (id != widget.id || _isReel) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l.highlights_goneToast)));
+            }
+            if (id != widget.id) {
+              _drop(id);
+              return;
+            }
+            if (_isReel) {
+              _dropLead();
+              return;
+            }
+            // On the one-post screen the card stays and its own Back button
+            // is the way out, as before.
+            setState(() => _gone = true);
+          },
+          bottomInset: padding.bottom,
+        );
+
     final Widget body;
-    if (_deleted) {
+    if (_isReel && (_leadGone || (_leadSeen != null && notFound))) {
+      // Item 0 has gone from a reel it headed: the rest of the reel, or —
+      // with nothing left — the page after it (the end card, the way back,
+      // or what is still loading).
+      body = _reel.isEmpty
+          ? (_reelTrailing() ?? const HighlightMessage(busy: true))
+          : pager(_reel);
+    } else if (_deleted) {
       body = HighlightMessage(
         icon: Icons.delete_outline_rounded,
         title: l.highlights_deleted,
         actionLabel: l.common_back,
         onAction: _back,
+      );
+    } else if ((_gone || notFound) && visitor) {
+      // Signed out, "not found" may well be "not for visitors": say so, and
+      // offer the way in, back to this same address.
+      body = HighlightMessage(
+        icon: Icons.visibility_off_outlined,
+        title: l.highlights_cantShowTitle,
+        body: l.highlights_notFoundVisitorText,
+        actionLabel: l.highlights_visitorSignIn,
+        onAction: () => context.push(highlightSignInHref(
+            highlightVisitorReturnTo(widget.id, reel: _visitorReel))),
       );
     } else if (_gone || notFound) {
       body = HighlightMessage(
@@ -560,51 +977,10 @@ class _HighlightDetailScreenState
         onAction: _back,
       );
     } else if (item != null) {
-      body = HighlightPager(
-        // The tapped post, then the reel. Item 0 stays this screen's own
-        // read: the contract leaves a `firstId` this viewer may not see out
-        // of the reel instead of failing, because the client already has
-        // that post.
-        items: _isReel ? [item, ..._reel] : [item],
-        trailing: _reelTrailing(),
-        onNearEnd: _isReel ? _loadReel : null,
-        onIndexChanged: (i) {
-          _index = i;
-          _snapBack();
-        },
-        onChanged: _patch,
-        onRemoved: (id) {
-          if (id != widget.id) {
-            _drop(id);
-            return;
-          }
-          // Item 0 is this screen's own read and the post the reel hangs
-          // on: losing it empties the reel. Out to the match, at the stat —
-          // never a dead screen (reviews/highlights-t6.md MED-3, G1).
-          setState(() => _deleted = true);
-          _back();
-        },
-        onGone: (id) {
-          if (id != widget.id) {
-            // Nobody asked for this one to go, and the reel would otherwise
-            // just slide on to the next post: say so, as the feed does.
-            _drop(id);
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l.highlights_goneToast)));
-            return;
-          }
-          setState(() => _gone = true);
-          // In a reel there is nothing left to scroll onto: say why, as the
-          // feed does, and leave for the match. On the one-post screen the
-          // card stays and its own Back button is the way out, as before.
-          if (_isReel) {
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l.highlights_goneToast)));
-            _back();
-          }
-        },
-        bottomInset: padding.bottom,
-      );
+      // The tapped post, then the reel. Item 0 stays this screen's own read:
+      // the contract leaves a `firstId` this viewer may not see out of the
+      // reel instead of failing, because the client already has that post.
+      body = pager(_isReel ? [item, ..._reel] : [item]);
     } else if (fetched.hasError) {
       body = HighlightMessage(
         icon: Icons.wifi_off_rounded,
@@ -637,7 +1013,9 @@ class _HighlightDetailScreenState
       // reel, where there is nothing to hand back. (`_leaveReel`'s own
       // `context.pop` is explicit, which `canPop` does not stand in the way
       // of.)
-      canPop: !_isReel || context.canPop(),
+      // (A subject reel pops like the one-post screen it grew out of: its way
+      // out IS the page underneath, so there is nothing to hold.)
+      canPop: !_leavesByHand || context.canPop(),
       onPopInvokedWithResult: (didPop, _) {
         // It popped without [_leaveReel] — the iOS swipe, predictive back,
         // the system back where the line above lets it through. The way out

@@ -244,8 +244,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   onRefresh: () => _refresh(sportCategoryId),
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    // The dock floats over the feed: leave it room, or the
-                    // last card ends up under it.
+                    // Air under the last card, above the dock's band.
                     padding: EdgeInsets.fromLTRB(
                         20, 12, 20, SpDock.spaceBelowList(context)),
                     children: [

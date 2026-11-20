@@ -11,15 +11,22 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/data/highlights/highlight_add.dart';
 import 'package:sportpadi_mobile/data/highlights/highlight_media.dart';
 import 'package:sportpadi_mobile/data/highlights/highlight_models.dart';
 import 'package:sportpadi_mobile/data/highlights/highlights_repository.dart';
+import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/highlights/highlight_stat_picker.dart';
 import 'package:sportpadi_mobile/features/highlights/highlight_text_limit.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
+
+/// `?gameId=` / `?activityId=` count only as uuids (the web's `isUuid`).
+final _wantUuid = RegExp(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    caseSensitive: false);
 
 /// One file on its way to storage.
 class _Upload {
@@ -64,7 +71,15 @@ String? _lostVideo;
 /// without EXIF. Then each file goes to its own presigned slot and the post
 /// is published with the slots' keys. Pops with the new [HighlightItem].
 class HighlightCreateScreen extends ConsumerStatefulWidget {
-  const HighlightCreateScreen({super.key});
+  const HighlightCreateScreen(
+      {super.key, this.fromGameId, this.fromActivityId});
+
+  /// `?gameId=&activityId=` — a match row's "+" (`game_screen.dart`): start
+  /// with that stat picked, if it can still take a highlight from this
+  /// person (`_preselect`). Each counts only as a uuid, the web's rule
+  /// (`isUuid`). Both null when the Highlights tab opens the composer.
+  final String? fromGameId;
+  final String? fromActivityId;
 
   @override
   ConsumerState<HighlightCreateScreen> createState() =>
@@ -90,6 +105,15 @@ class _HighlightCreateScreenState extends ConsumerState<HighlightCreateScreen>
   PreparedVideo? _video;
   final List<PreparedImage> _photos = [];
   LinkableStat? _link;
+
+  /// The person has picked a stat, or taken one off, themselves: the stat
+  /// the "+" asked for no longer applies (the web's `picked !== undefined`).
+  bool _linkTouched = false;
+
+  /// The "+" asked for a stat that has no free place for this person (taken
+  /// since, voided, not theirs — or the list could not be had): the link
+  /// card says so until they choose (the web's `preselectMissed`).
+  bool _preselectMissed = false;
 
   /// Compressing the video / re-encoding photos.
   bool _preparing = false;
@@ -141,6 +165,7 @@ class _HighlightCreateScreenState extends ConsumerState<HighlightCreateScreen>
     WidgetsBinding.instance.addObserver(this);
     highlightComposerOpened();
     unawaited(_recoverLostVideo());
+    unawaited(_preselect());
   }
 
   @override
@@ -440,13 +465,74 @@ class _HighlightCreateScreenState extends ConsumerState<HighlightCreateScreen>
     if (_posting) return;
     final pick = await showHighlightStatPicker(context);
     if (pick == null || !mounted) return;
-    setState(() => _link = pick);
+    setState(() {
+      _link = pick;
+      _linkTouched = true;
+      _preselectMissed = false;
+    });
+  }
+
+  /// Opened from a match row's "+": start with that stat picked, as the
+  /// web's composer does (`NewHighlightClient.tsx` `preselected`) — of the
+  /// match's FREE places on that stat, this person's own first, else the
+  /// first (a ward's; `highlightPreselect`). The places are the match's
+  /// `linkable` list, in pages of 50, stopping at the page that holds the
+  /// stat (a stat's entries are listed together) and after four at most.
+  /// Nothing free there — or no answer — and nothing is picked; the card
+  /// then says so (`highlights_statPreselectMissed`), as the web's does. A
+  /// choice the person made meanwhile wins — and so does tapping Post: the
+  /// pick never changes the link once a post has begun (kmdock review LOW-1;
+  /// the web still has that race, `link = picked ?? preselected` at submit).
+  Future<void> _preselect() async {
+    final gameId = widget.fromGameId;
+    final activityId = widget.fromActivityId;
+    if (gameId == null ||
+        activityId == null ||
+        !_wantUuid.hasMatch(gameId) ||
+        !_wantUuid.hasMatch(activityId)) {
+      return;
+    }
+    final repo = ref.read(highlightsRepositoryProvider);
+    final me = ref.read(authControllerProvider).valueOrNull?.user?.id;
+    LinkableStat? found;
+    try {
+      final listed = <LinkableStat>[];
+      String? cursor;
+      for (var page = 0; page < 4; page++) {
+        final res =
+            await repo.linkable(gameId: gameId, cursor: cursor, limit: 50);
+        listed.addAll(res.items);
+        cursor = res.nextCursor;
+        if (cursor == null ||
+            res.items.any((s) => s.stat.activityId == activityId)) {
+          break;
+        }
+      }
+      found = highlightPreselect(listed, activityId: activityId, me: me);
+    } catch (_) {
+      found = null;
+    }
+    // `_linkTouched` also covers a Post tapped meanwhile (`_post` sets it),
+    // and `_posting` says the same while that post is in flight.
+    if (!mounted || _linkTouched || _posting || _link != null) return;
+    final pick = found;
+    setState(() {
+      if (pick != null) {
+        _link = pick;
+      } else {
+        _preselectMissed = true;
+      }
+    });
   }
 
   // ── posting ───────────────────────────────────────────────────────────────
 
   Future<void> _post() async {
     if (_busy || !_hasMedia) return;
+    // Whatever stat this goes out with (or none) is now the person's own
+    // choice: a pre-pick still on its way must not change the link under a
+    // post in flight, nor slip onto the retry of one that failed.
+    _linkTouched = true;
     final repo = ref.read(highlightsRepositoryProvider);
     final video = _video;
     final photos = List<PreparedImage>.of(_photos);
@@ -1149,7 +1235,9 @@ class _HighlightCreateScreenState extends ConsumerState<HighlightCreateScreen>
     final l = context.l10n;
     final link = _link;
     final where = link == null
-        ? l.highlights_linkHint
+        ? (_preselectMissed
+            ? l.highlights_statPreselectMissed
+            : l.highlights_linkHint)
         : [
             if (link.subject.displayName.isNotEmpty) link.subject.displayName,
             if (link.stat.eventTitle != null) link.stat.eventTitle!,
@@ -1187,7 +1275,10 @@ class _HighlightCreateScreenState extends ConsumerState<HighlightCreateScreen>
         if (link != null && !_posting)
           IconButton(
             tooltip: l.highlights_removeStat,
-            onPressed: () => setState(() => _link = null),
+            onPressed: () => setState(() {
+              _link = null;
+              _linkTouched = true;
+            }),
             icon: Icon(Icons.close_rounded, color: p.muted, size: 20),
           )
         else

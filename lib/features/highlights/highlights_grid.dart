@@ -18,7 +18,11 @@ final _gridsReload = ValueNotifier<int>(0);
 void reloadHighlightGrids() => _gridsReload.value++;
 
 /// A player's highlights as a grid of thumbnails (posts ABOUT them), on the
-/// public profile and on your own. A tile opens the post.
+/// public profile and on your own. A tile opens the post as this PLAYER'S
+/// reel (`?from=player:<id>`, the web's `playerReelHref`; workspace
+/// `docs/wiki/highlights.md`, "Where a highlight was opened from"):
+/// scrolling on shows the rest of this grid, and the end pops back here,
+/// handing back the tile it was opened from.
 ///
 /// It sits inside the profile's own scroll view, so it doesn't scroll
 /// itself: more are fetched with "Show more".
@@ -41,6 +45,9 @@ class _HighlightsGridState extends ConsumerState<HighlightsGrid> {
   String? _error;
   // Bumped by each reset, so a page still in flight from before is dropped.
   int _gen = 0;
+
+  /// One key per tile, so a reel coming back can find the tile it opened.
+  final _tileKeys = <String, GlobalKey>{};
 
   @override
   void initState() {
@@ -108,6 +115,14 @@ class _HighlightsGridState extends ConsumerState<HighlightsGrid> {
       }
     } catch (e) {
       if (!mounted || gen != _gen) return;
+      // A cursor the server can no longer open ([isRefusedCursor]): start the
+      // list again from the top rather than offer a Retry that sends it back.
+      // A reset sends no cursor, so this cannot come round again by itself.
+      if (!reset && isRefusedCursor(e, cursor)) {
+        setState(() => _loading = false);
+        _load(reset: true);
+        return;
+      }
       error = '$e';
     }
     final failed = error;
@@ -199,6 +214,83 @@ class _HighlightsGridState extends ConsumerState<HighlightsGrid> {
     );
   }
 
+  /// Open a tile as this player's reel, and come back to it. The pop hands
+  /// back the tile's id; an exit that doesn't go through the reel's own way
+  /// out (the iOS swipe, predictive back) hands back nothing, and the tile is
+  /// then the one opened — never unknown, as on the match timeline.
+  Future<void> _open(HighlightItem item) async {
+    final back = await context.push<String>(Uri(
+        path: '/highlights/${item.id}',
+        queryParameters: {'from': 'player:${widget.userId}'}).toString());
+    if (!mounted) return;
+    _bringIntoViewWhenBack(back ?? item.id, 0);
+  }
+
+  /// The push's future completes INSIDE the pop, before the profile is laid
+  /// out again (review context-reels-app.md LOW-1): measured then, the tile's
+  /// place is the one from before the reel. So wait for frames until this
+  /// route is the current one again and one more has laid it out (a grid
+  /// that re-read itself meanwhile has rebuilt by then too), then bring it
+  /// into view.
+  void _bringIntoViewWhenBack(String id, int frames) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final current = ModalRoute.of(context)?.isCurrent ?? true;
+      if (!current || frames < 1) {
+        // Out of frames with the profile still not on top (something else was
+        // pushed over it): give up rather than scroll a page nobody sees
+        // (review context-reels-app.md MED-R1).
+        if (frames >= 60) return;
+        WidgetsBinding.instance.scheduleFrame();
+        _bringIntoViewWhenBack(id, frames + 1);
+        return;
+      }
+      _bringIntoView(id);
+    });
+  }
+
+  /// Where the profile's pinned tab band ends, from the top of the SCREEN: the
+  /// status bar plus `SpPinnedTabsScrollView`'s copy of the track (about 58).
+  double get _pinnedBand => MediaQuery.paddingOf(context).top + 64;
+
+  /// The profile kept its offset across the reel, so the tile is usually
+  /// still on screen and nothing moves; a grid that re-read itself meanwhile
+  /// (a post deleted or posted in the reel) can have moved it — then only as
+  /// far as needed to show it whole, BELOW the pinned tab band, or above the
+  /// bottom of the profile's scroll view. Cheap: a tile not loaded is not
+  /// paged in.
+  ///
+  /// The scroll view moved is the PROFILE's — the nearest one above this
+  /// grid, looked up from this State's own context, which sits OUTSIDE the
+  /// grid's own (shrink-wrapped, never-scrolling) `GridView`; looking it up
+  /// from the tile found that one, whose extent is 0..0, and moved nothing
+  /// (MED-R1). Measured in screen coordinates.
+  void _bringIntoView(String id) {
+    final tile = _tileKeys[id]?.currentContext;
+    if (tile == null) return;
+    final box = tile.findRenderObject();
+    final scrollable = Scrollable.maybeOf(context);
+    if (box is! RenderBox || !box.hasSize || scrollable == null) return;
+    final view = scrollable.context.findRenderObject();
+    if (view is! RenderBox || !view.hasSize) return;
+    final top = box.localToGlobal(Offset.zero).dy;
+    final bottom = top + box.size.height;
+    final viewBottom = view.localToGlobal(Offset.zero).dy + view.size.height;
+    final position = scrollable.position;
+    double delta = 0;
+    if (top < _pinnedBand) {
+      delta = top - (_pinnedBand + 8);
+    } else if (bottom > viewBottom) {
+      delta = bottom - viewBottom + 8;
+    }
+    if (delta == 0) return;
+    final to = (position.pixels + delta)
+        .clamp(position.minScrollExtent, position.maxScrollExtent)
+        .toDouble();
+    position.animateTo(to,
+        duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+  }
+
   Widget _tile(AppPalette p, HighlightItem item) {
     var url = item.thumbnailUrl;
     if (url != null && url.startsWith('/')) {
@@ -206,11 +298,12 @@ class _HighlightsGridState extends ConsumerState<HighlightsGrid> {
     }
     final photos = item.isVideo ? 0 : item.media.length;
     return ClipRRect(
+      key: _tileKeys.putIfAbsent(item.id, GlobalKey.new),
       borderRadius: BorderRadius.circular(14),
       child: Material(
         color: p.surface2,
         child: InkWell(
-          onTap: () => context.push('/highlights/${item.id}'),
+          onTap: () => _open(item),
           child: Stack(fit: StackFit.expand, children: [
             if (url != null)
               CachedNetworkImage(

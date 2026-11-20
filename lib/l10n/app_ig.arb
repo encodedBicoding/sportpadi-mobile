@@ -2771,6 +2771,10 @@
       }
     }
   },
+  "join_inviteLinkDeadTitle": "Njikọ òkù a anaghị arụ ọrụ",
+  "join_inviteLinkDead": "Njikọ òkù a anaghịzi arụ ọrụ. Rịọ onye zitere ya ka o nye gị nke ọhụrụ.",
+  "join_linkCantAddYou": "Njikọ a enweghị ike itinye gị. Rịọ ịbanye site na peeji otu ahụ.",
+  "join_linkCantAddYouTeam": "Njikọ a enweghị ike itinye gị n’otu egwuregwu ahụ. Jụọ ndị nchịkwa ya.",
   "group_opening": "Na-emepe…",
   "group_sportPadiHome": "Ụlọ SportPadi",
   "group_signIn": "Banye",
@@ -8883,6 +8887,7 @@
   "profile_notInAnyGroupsYet": "Ọ nọbeghị n’otu ọ bụla.",
   "profile_noTournamentsYet": "Enwebeghị asọmpi.",
   "profile_noHighlightsYet": "Enwebeghị ihe ndị kachasị.",
+  "profile_visitorHighlightsEmpty": "Ọ dịghị ihe a ga-egosi ebe a. Ọ bụ naanị ndị banyere nwere ike ịhụ ụfọdụ ihe ndị kachasị.",
   "profile_highlight": "Ihe kachasị",
   "profile_recordInTournament": "Ndekọ n’asọmpi",
   "profile_thisTournamentIsntAvailable": "Asọmpi a adịghị",
@@ -9482,8 +9487,8 @@
   "profile_couldNotUpdatePrivacy": "Enweghị ike imelite nzuzo",
   "profile_profilePrivacy": "Nzuzo profaịlụ",
   "profile_privateProfile": "Profaịlụ nzuzo",
-  "profile_othersSeeYourNameUsername": "Ndị ọzọ na-ahụ aha gị, @aha njirimara na foto gị, na na profaịlụ gị bụ nzuzo — ọ bụghị ndekọ gị, otu gị ma ọ bụ ihe ị dere.",
-  "profile_anyoneWhoTapsYourName": "Onye ọ bụla pịrị aha gị na-ahụ ndekọ gị, otu gị na ihe ị dere. Gbanye ya ka ọ bụrụ naanị gị na-ahụ ha.",
+  "profile_othersSeeYourNameUsername": "Naanị ndị na-eso gị ị kwadoro na-ahụ ihe ndị kachasị gị, otu gị na ndekọ gị. Ndị ọzọ na-ahụ foto gị, aha gị, @aha njirimara, bio, njikọ na ọnụọgụ ndị na-eso gị. Ọ bụrụ na ị gbanyụọ nke a, a ga-anabata arịrịọ niile na-echere.",
+  "profile_anyoneWhoTapsYourName": "Onye ọ bụla pịrị aha gị na-ahụ ndekọ gị, otu gị na ihe ị dere. Gbanye ya ka ọ bụrụ naanị ndị na-eso gị na-ahụ ha — ndị ọhụrụ ga-achọ ka ị kwado ha.",
   "profile_yourProfileIsPrivate": "Profaịlụ gị bụ nzuzo",
   "profile_yourProfileIsPublic": "Profaịlụ gị bụ nke ọha",
   "profile_whoCanSeeYourProfile": "Onye nwere ike ịhụ profaịlụ gị",
@@ -10017,7 +10022,7 @@
     }
   },
   "profile_localGroupGames3": "Egwuregwu otu mpaghara",
-  "profile_thisProfileIsPrivateTheir": "Profaịlụ a bụ nzuzo. Naanị ha nwere ike ịhụ ndekọ ha, otu ha na ihe ha dere.",
+  "profile_thisProfileIsPrivateTheir": "Profaịlụ a bụ nzuzo. Naanị ndị na-eso ha ha kwadoro na-ahụ ndekọ ha, otu ha na ihe ha dere.",
   "profile_showingSRecordSwitchSport2": "Na-egosi ndekọ {value} nke {first} — gbanwee egwuregwu n’oge ọ bụla.",
   "@profile_showingSRecordSwitchSport2": {
     "placeholders": {
@@ -11134,6 +11139,39 @@
     }
   },
   "profile_ratingTileNotRated": "Enwebeghị ntụle",
+  "profile_followBack": "Soro ya azụ",
+  "profile_requested": "Arịọla",
+  "profile_unfollow": "Kwụsị iso",
+  "profile_unfollowPrivateNote": "Akaụntụ ha bụ nzuzo. Ọ bụrụ na ị kwụsị iso, ị ga-arịọ ọzọ tupu ịhụ ihe ndị kachasị ha, otu ha na ndekọ ha.",
+  "profile_cancelRequest": "Kagbuo arịrịọ",
+  "profile_followsYou": "Na-eso gị",
+  "profile_followRequests": "Arịrịọ iso",
+  "profile_followRequestsWaiting": "{count, plural, one{Arịrịọ {count} na-echere} other{Arịrịọ {count} na-echere}}",
+  "@profile_followRequestsWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_privateAccount": "Akaụntụ nzuzo",
+  "profile_privateAccountTitle": "Akaụntụ a bụ nzuzo",
+  "profile_privateAccountFollowText": "Soro akaụntụ a ka ịhụ ihe ndị kachasị ha, otu ha na ndekọ ha.",
+  "profile_privateAccountRequestedText": "Arịrịọ iso gị na-echere. Ozugbo ha nabatara ya, ị ga-ahụ ihe ndị kachasị ha, otu ha na ndekọ ha.",
+  "profile_privateAccountSignInText": "Banye ma soro akaụntụ a ka ịhụ ihe ndị kachasị ha, otu ha na ndekọ ha.",
+  "profile_bio": "Bio",
+  "profile_bioPlaceholder": "Okwu ole na ole gbasara gị: ọnọdụ gị, klọb gị, egwuregwu ị na-egwu.",
+  "profile_bioSupervisedNote": "Bio adịghị mgbe a na-elekọta akaụntụ gị.",
+  "profile_requestsTabIncoming": "Arịrịọ",
+  "profile_requestsTabSent": "Ndị ị zigara",
+  "profile_noFollowRequests": "Enweghị arịrịọ iso ugbu a.",
+  "profile_noSentRequests": "Ọ dịghị arịrịọ iso gị na-echere.",
+  "profile_confirmRequest": "Kwado",
+  "profile_deleteRequest": "Hichapụ",
+  "profile_withdrawRequestTitle": "Ị chọrọ ịkagbu arịrịọ iso gị?",
+  "profile_withdrawRequestText": "Ọ bụrụ na ị rịọ ọzọ n’ime otu izu, ha agaghị enweta ọkwa ọzọ.",
+  "profile_privateAccountApprovedOnlyText": "Naanị ndị na-eso ha kwadoro nwere ike ịhụ ihe ndị kachasị ha, otu ha na ndekọ ha.",
+  "profile_followRequestsMenuSub": "Ndị chọrọ iso gị, na arịrịọ ndị ị zigara",
   "inbox_discussionRemoved": "Ewepụla mkparịta ụka",
   "inbox_commentRemoved": "Ewepụla nkwupụta",
   "inbox_discussion": "Mkparịta ụka",
@@ -20341,6 +20379,15 @@
       }
     }
   },
+  "highlights_followName": "Soro {name}",
+  "@highlights_followName": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_followingNow": "Na-eso",
   "highlights_statMinute": "{minute}’",
   "@highlights_statMinute": {
     "placeholders": {
@@ -20963,5 +21010,147 @@
   "highlights_appKeepOpen": "Ọ kwụsịrị mgbe SportPadi nọ n’azụ. Hapụ app ahụ ka ọ nọrọ na ihuenyo ruo mgbe ọ gwụchara, wee nwaa ọzọ.",
   "highlights_appLostVideoTitle": "Jiri vidiyo nke mbụ?",
   "highlights_appLostVideoBody": "Emechiri SportPadi tupu e tinye vidiyo a n’ihe kachasị.",
-  "highlights_appLostVideoUse": "Jiri ya"
+  "highlights_appLostVideoUse": "Jiri ya",
+  "highlights_visitorTitle": "Sonye na SportPadi",
+  "highlights_visitorLikeText": "Mepụta akaụntụ n’efu ka ị masị ihe ndị kachasị ma kwado ndị egwuregwu.",
+  "highlights_visitorCommentText": "Mepụta akaụntụ n’efu ka ị kwuo okwu na ihe ndị kachasị.",
+  "highlights_visitorFollowText": "Mepụta akaụntụ n’efu ka ị soro {name} ma hụ ihe ndị kachasị ha na Ndị ị na-eso.",
+  "@highlights_visitorFollowText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_visitorReportText": "Banye ma ọ bụ mepụta akaụntụ ka ị kọọrọ ndị otu SportPadi nke a.",
+  "highlights_visitorPostText": "Mepụta akaụntụ n’efu ka ị biputere ihe ndị kachasị gị.",
+  "highlights_visitorFollowingTitle": "Ndị ị na-eso",
+  "highlights_visitorFollowingText": "Banye ka ị hụ ihe ndị kachasị sitere n’aka ndị egwuregwu ị na-eso.",
+  "highlights_visitorSignUp": "Debanye aha",
+  "highlights_visitorSignIn": "Banye",
+  "highlights_commentsSignUp": "Debanye aha ka ị kwuo okwu",
+  "highlights_notFoundVisitorText": "O nwere ike na ehichapụrụ ya, ma ọ bụ na ọ bụ naanị ndị banyere nwere ike ịhụ ya.",
+  "highlights_reelEndTitle": "Nke ahụ bụ ihe niile nke {name}",
+  "@highlights_reelEndTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reelEndTitleMine": "Nke ahụ bụ ihe kachasị gị niile",
+  "highlights_reelEndNoMore": "Enweghị ihe kachasị ọzọ ebe a",
+  "highlights_reelEndText": "Ị hụrụla ihe kachasị ha niile ị nwere ike ikiri.",
+  "highlights_reelEndKeepWatching": "Gaa n’ihu na-ekiri",
+  "highlights_appReelEndSignIn": "Banye ka ịhụ profaịlụ ha",
+  "share_share": "Kesaa",
+  "share_sendTo": "Ziga",
+  "share_searchPeople": "Chọọ ndị mmadụ",
+  "share_loadingPeople": "Ọ na-ebudata…",
+  "share_noMatches": "Ọ dịghị onye kwekọrọ na ya.",
+  "share_noOneYet": "Ọ dịbeghị onye nọ ebe a. Mkparịta ụka gị, ndị ị na-eso na ndị na-eso gị ga-apụta ebe a.",
+  "share_selected": "Ahọrọla",
+  "share_aboutWard": "Gbasara {name}",
+  "@share_aboutWard": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_addMessage": "Tinye ozi (ọ bụrụ na ịchọrọ)",
+  "share_sending": "Ọ na-eziga…",
+  "share_sendToCount": "{count, plural, one{Ziga mmadụ {count}} other{Ziga mmadụ {count}}}",
+  "@share_sendToCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "share_sentToAll": "{count, plural, one{Ezigala mmadụ {count}} other{Ezigala mmadụ {count}}}",
+  "@share_sentToAll": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "share_sentSome": "Ezigara {sent} n’ime {total}",
+  "@share_sentSome": {
+    "placeholders": {
+      "sent": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_couldntSend": "Enweghị ike iziga ya. Nwaa ọzọ.",
+  "share_couldntSendTo": "Enweghị ike iziga {name}: {reason}",
+  "@share_couldntSendTo": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      },
+      "reason": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_maxRecipients": "Ị nwere ike iziga ya nye ihe ruru mmadụ {max} n’otu oge.",
+  "@share_maxRecipients": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_cantSendInApp": "Enweghị ike iziga nke a dịka ozi, mana ị ka nwere ike ikesa njikọ ahụ.",
+  "share_otherApps": "Kesaa na ngwa ndị ọzọ",
+  "share_copyLink": "Detuo njikọ",
+  "share_linkCopied": "Edetuola njikọ",
+  "share_copyThisLink": "Detuo njikọ a",
+  "share_email": "Email",
+  "share_sms": "SMS",
+  "share_more": "Ndị ọzọ",
+  "share_notAvailable": "Ọdịnaya a adịghị",
+  "share_notAvailableHint": "Ewepụla ya ma ọ bụ na ọ bụ nzuzo.",
+  "share_kindEvent": "Mmemme",
+  "share_kindGroup": "Otu",
+  "share_kindGroupInvite": "Òkù isonye",
+  "share_kindTournament": "Asọmpi",
+  "share_kindLeague": "Liig",
+  "share_kindCompetition": "Asọmpi",
+  "share_kindHighlight": "Ihe ngosi",
+  "share_kindTicket": "Tiketi",
+  "share_kindTeamInvite": "Òkù otu",
+  "share_kindCallForTeams": "Òkù maka otu egwuregwu",
+  "share_kindPlayer": "Onye egwuregwu",
+  "share_kindMatch": "Egwuregwu",
+  "share_kindTeam": "Otu egwuregwu",
+  "share_shareMembershipLink": "Kesaa njikọ ndị otu",
+  "share_joinGroupText": "Sonye na {name} na SportPadi",
+  "@share_joinGroupText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_shareTeam": "Kesaa otu",
+  "share_shareProfile": "Kesaa profaịlụ",
+  "share_shareMatch": "Kesaa egwuregwu",
+  "share_couldntLoadPreview": "Enweghị ike ibudata ihe nlele",
+  "share_tryAgain": "Nwaa ọzọ",
+  "share_couldntLoadPeople": "Enweghị ike ibudata ndị mmadụ. Nwaa ọzọ.",
+  "share_resetLink": "Megharịa njikọ",
+  "share_resetLinkHint": "Ọ ga-eme njikọ ọhụrụ. Nke ochie ga-akwụsị ịrụ ọrụ.",
+  "share_resetLinkConfirm": "Megharịa njikọ a? Njikọ ochie ga-akwụsị ịrụ ọrụ, ya mere onye ọ bụla na-ejibeghị ya ga-achọ nke ọhụrụ.",
+  "share_linkWasReset": "Emegharịala njikọ. Nke ochie anaghịzi arụ ọrụ.",
+  "share_couldntResetLink": "Enweghị ike imegharị njikọ ahụ. Nwaa ọzọ.",
+  "share_couldntLoadInviteLink": "Enweghị ike ibudata njikọ òkù ahụ.",
+  "share_anyoneWithLinkCanJoinTeam": "Onye ọ bụla nwere njikọ a nwere ike ịbanye n’otu egwuregwu ahụ na otu ya.",
+  "share_resetGroupLinkConfirm": "Megharịa njikọ a? Njikọ ochie ga-akwụsị ịrụ ọrụ, otu ahụ kwa njikọ ịbanye otu egwuregwu ọ bụla dị n’otu a. Onye ọ bụla na-ejibeghị ha ga-achọ ndị ọhụrụ."
 }

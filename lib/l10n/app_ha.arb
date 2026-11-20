@@ -2771,6 +2771,10 @@
       }
     }
   },
+  "join_inviteLinkDeadTitle": "Wannan mahaɗin gayyata ba ya aiki",
+  "join_inviteLinkDead": "Wannan mahaɗin gayyata ba ya aiki kuma. Nemi sabo daga wanda ya aiko shi.",
+  "join_linkCantAddYou": "Wannan mahaɗin ba zai iya saka ka ba. Nemi shiga daga shafin ƙungiyar.",
+  "join_linkCantAddYouTeam": "Wannan mahaɗin ba zai iya saka ka a ƙungiyar wasan ba. Tambayi masu kula da ita.",
   "group_opening": "Ana buɗewa…",
   "group_sportPadiHome": "Shafin farko na SportPadi",
   "group_signIn": "Shiga",
@@ -8883,6 +8887,7 @@
   "profile_notInAnyGroupsYet": "Ba ya cikin wata ƙungiya tukuna.",
   "profile_noTournamentsYet": "Babu gasa tukuna.",
   "profile_noHighlightsYet": "Babu fitattun lokuta tukuna.",
+  "profile_visitorHighlightsEmpty": "Babu abin nunawa a nan. Waɗanda suka shiga ne kaɗai ke iya ganin wasu fitattun lokuta.",
   "profile_highlight": "Fitaccen lokaci",
   "profile_recordInTournament": "Bayanan ƙwazo a gasa",
   "profile_thisTournamentIsntAvailable": "Wannan gasar babu ita",
@@ -9482,8 +9487,8 @@
   "profile_couldNotUpdatePrivacy": "An kasa sabunta sirri",
   "profile_profilePrivacy": "Sirrin bayanan kai",
   "profile_privateProfile": "Bayanan kai na sirri",
-  "profile_othersSeeYourNameUsername": "Wasu suna ganin sunanka, @sunan mai amfani da hotonka, da cewa bayanan kanka na sirri ne — ba bayanan ƙwazonka, ƙungiyoyinka ko rubuce-rubucenka ba.",
-  "profile_anyoneWhoTapsYourName": "Duk wanda ya taɓa sunanka zai ga bayanan ƙwazonka, ƙungiyoyinka da rubuce-rubucenka. Kunna don ka ɓoye su ga kanka kaɗai.",
+  "profile_othersSeeYourNameUsername": "Mabiyan da ka amince da su kaɗai ke ganin fitattun lokutanka, ƙungiyoyinka da bayanan ƙwazonka. Wasu suna ganin hotonka, sunanka, @sunan mai amfani, bayani (bio), hanyoyi da adadin mabiyanka. Idan ka kashe wannan, za a amince da duk buƙatun da ke jira.",
+  "profile_anyoneWhoTapsYourName": "Duk wanda ya taɓa sunanka zai ga bayanan ƙwazonka, ƙungiyoyinka da rubuce-rubucenka. Kunna don mabiyanka kaɗai su gani — sabbin mabiya za su buƙaci amincewarka.",
   "profile_yourProfileIsPrivate": "Bayanan kanka na sirri ne",
   "profile_yourProfileIsPublic": "Bayanan kanka a bayyane suke",
   "profile_whoCanSeeYourProfile": "Wa zai iya ganin bayanan kanka",
@@ -10017,7 +10022,7 @@
     }
   },
   "profile_localGroupGames3": "Wasannin ƙungiya na gida",
-  "profile_thisProfileIsPrivateTheir": "Wannan bayanan kai na sirri ne. Bayanan ƙwazonsa, ƙungiyoyinsa da rubuce-rubucensa shi kaɗai ke gani.",
+  "profile_thisProfileIsPrivateTheir": "Wannan bayanan kai na sirri ne. Mabiyan da ya amince da su kaɗai ke ganin bayanan ƙwazonsa, ƙungiyoyinsa da rubuce-rubucensa.",
   "profile_showingSRecordSwitchSport2": "Ana nuna bayanan ƙwazon {first} a {value} — canza wasa a kowane lokaci.",
   "@profile_showingSRecordSwitchSport2": {
     "placeholders": {
@@ -11134,6 +11139,39 @@
     }
   },
   "profile_ratingTileNotRated": "Babu maki tukuna",
+  "profile_followBack": "Bi shi ma",
+  "profile_requested": "An nema",
+  "profile_unfollow": "Daina bi",
+  "profile_unfollowPrivateNote": "Asusunsu na sirri ne. Idan ka daina bi, sai ka sake nema kafin ka ga fitattun lokutansu, ƙungiyoyinsu da bayanan ƙwazonsu.",
+  "profile_cancelRequest": "Soke buƙata",
+  "profile_followsYou": "Yana bin ka",
+  "profile_followRequests": "Buƙatun bi",
+  "profile_followRequestsWaiting": "{count, plural, one{Buƙata {count} na jira} other{Buƙatu {count} na jira}}",
+  "@profile_followRequestsWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_privateAccount": "Asusun sirri",
+  "profile_privateAccountTitle": "Wannan asusun na sirri ne",
+  "profile_privateAccountFollowText": "Bi wannan asusun don ganin fitattun lokutansu, ƙungiyoyinsu da bayanan ƙwazonsu.",
+  "profile_privateAccountRequestedText": "Buƙatarka ta bi tana jira. Da zarar sun amince, za ka ga fitattun lokutansu, ƙungiyoyinsu da bayanan ƙwazonsu.",
+  "profile_privateAccountSignInText": "Shiga ka bi wannan asusun don ganin fitattun lokutansu, ƙungiyoyinsu da bayanan ƙwazonsu.",
+  "profile_bio": "Bayani (bio)",
+  "profile_bioPlaceholder": "Ɗan bayani game da kai: matsayinka, ƙungiyarka, wasannin da kake yi.",
+  "profile_bioSupervisedNote": "Babu bayani (bio) yayin da ake kula da asusunka.",
+  "profile_requestsTabIncoming": "Buƙatu",
+  "profile_requestsTabSent": "Waɗanda ka aika",
+  "profile_noFollowRequests": "Babu buƙatun bi yanzu.",
+  "profile_noSentRequests": "Babu buƙatun binka da ke jira.",
+  "profile_confirmRequest": "Amince",
+  "profile_deleteRequest": "Share",
+  "profile_withdrawRequestTitle": "Ka janye buƙatarka ta bi?",
+  "profile_withdrawRequestText": "Idan ka sake nema cikin mako guda, ba za su sake samun sanarwa ba.",
+  "profile_privateAccountApprovedOnlyText": "Mabiyan da suka amince da su kaɗai ke iya ganin fitattun lokutansu, ƙungiyoyinsu da bayanan ƙwazonsu.",
+  "profile_followRequestsMenuSub": "Masu son su bi ka, da buƙatun da ka aika",
   "inbox_discussionRemoved": "An cire tattaunawa",
   "inbox_commentRemoved": "An cire sharhi",
   "inbox_discussion": "Tattaunawa",
@@ -20341,6 +20379,15 @@
       }
     }
   },
+  "highlights_followName": "Bi {name}",
+  "@highlights_followName": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_followingNow": "Kana bi",
   "highlights_statMinute": "{minute}’",
   "@highlights_statMinute": {
     "placeholders": {
@@ -20963,5 +21010,147 @@
   "highlights_appKeepOpen": "Ya tsaya yayin da SportPadi ke baya. Ka bar app ɗin a buɗe a kan allo har sai ya ƙare, sannan sake gwadawa.",
   "highlights_appLostVideoTitle": "A yi amfani da bidiyon da ya gabata?",
   "highlights_appLostVideoBody": "An rufe SportPadi kafin a ƙara wannan bidiyon cikin fitaccen lokaci.",
-  "highlights_appLostVideoUse": "Yi amfani da shi"
+  "highlights_appLostVideoUse": "Yi amfani da shi",
+  "highlights_visitorTitle": "Kasance tare da SportPadi",
+  "highlights_visitorLikeText": "Buɗe asusu kyauta don ka so fitattun lokuta ka kuma ƙarfafa ’yan wasa.",
+  "highlights_visitorCommentText": "Buɗe asusu kyauta don ka yi sharhi a kan fitattun lokuta.",
+  "highlights_visitorFollowText": "Buɗe asusu kyauta don ka bi {name} ka kuma ga fitattun lokutansu a cikin Waɗanda kake bi.",
+  "@highlights_visitorFollowText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_visitorReportText": "Shiga ko buɗe asusu don ka kai rahoton wannan ga ƙungiyar SportPadi.",
+  "highlights_visitorPostText": "Buɗe asusu kyauta don ka wallafa fitattun lokutanka.",
+  "highlights_visitorFollowingTitle": "Waɗanda kake bi",
+  "highlights_visitorFollowingText": "Shiga don ganin fitattun lokuta daga ’yan wasan da kake bi.",
+  "highlights_visitorSignUp": "Yi rajista",
+  "highlights_visitorSignIn": "Shiga",
+  "highlights_commentsSignUp": "Yi rajista don yin sharhi",
+  "highlights_notFoundVisitorText": "Wataƙila an goge shi, ko kuma waɗanda suka shiga ne kaɗai ke iya ganinsa.",
+  "highlights_reelEndTitle": "Shi ke nan daga {name}",
+  "@highlights_reelEndTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reelEndTitleMine": "Shi ke nan, duk fitattun lokutanka ke nan",
+  "highlights_reelEndNoMore": "Babu sauran fitattun lokuta a nan",
+  "highlights_reelEndText": "Ka ga duk fitattun lokutansu da za ka iya kallo.",
+  "highlights_reelEndKeepWatching": "Ci gaba da kallo",
+  "highlights_appReelEndSignIn": "Shiga don ganin bayanan kansu",
+  "share_share": "Raba",
+  "share_sendTo": "Aika wa",
+  "share_searchPeople": "Nemi mutane",
+  "share_loadingPeople": "Ana lodawa…",
+  "share_noMatches": "Babu wanda ya dace.",
+  "share_noOneYet": "Babu kowa a nan tukuna. Tattaunawarka, mutanen da kake bi da masu bin ka za su bayyana a nan.",
+  "share_selected": "An zaɓa",
+  "share_aboutWard": "Game da {name}",
+  "@share_aboutWard": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_addMessage": "Ƙara saƙo (idan kana so)",
+  "share_sending": "Ana aikawa…",
+  "share_sendToCount": "{count, plural, one{Aika wa mutum {count}} other{Aika wa mutane {count}}}",
+  "@share_sendToCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "share_sentToAll": "{count, plural, one{An aika wa mutum {count}} other{An aika wa mutane {count}}}",
+  "@share_sentToAll": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "share_sentSome": "An aika wa {sent} daga cikin {total}",
+  "@share_sentSome": {
+    "placeholders": {
+      "sent": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_couldntSend": "Ba a iya aikawa ba. Sake gwadawa.",
+  "share_couldntSendTo": "Ba a iya aika wa {name} ba: {reason}",
+  "@share_couldntSendTo": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      },
+      "reason": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_maxRecipients": "Za ka iya aika wa mutane har {max} a lokaci ɗaya.",
+  "@share_maxRecipients": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_cantSendInApp": "Ba za a iya aika wannan a matsayin saƙo ba, amma za ka iya raba hanyar haɗin.",
+  "share_otherApps": "Raba zuwa wasu manhajoji",
+  "share_copyLink": "Kwafi hanyar haɗi",
+  "share_linkCopied": "An kwafi hanyar haɗi",
+  "share_copyThisLink": "Kwafi wannan hanyar haɗi",
+  "share_email": "Imel",
+  "share_sms": "SMS",
+  "share_more": "Ƙari",
+  "share_notAvailable": "Wannan abun ba ya samuwa",
+  "share_notAvailableHint": "Wataƙila an cire shi, ko kuma na sirri ne.",
+  "share_kindEvent": "Taron",
+  "share_kindGroup": "Ƙungiya",
+  "share_kindGroupInvite": "Gayyatar shiga",
+  "share_kindTournament": "Gasa",
+  "share_kindLeague": "Lig",
+  "share_kindCompetition": "Gasa",
+  "share_kindHighlight": "Haske",
+  "share_kindTicket": "Tikiti",
+  "share_kindTeamInvite": "Gayyatar ƙungiya",
+  "share_kindCallForTeams": "Kiran ƙungiyoyi",
+  "share_kindPlayer": "Ɗan wasa",
+  "share_kindMatch": "Wasa",
+  "share_kindTeam": "Ƙungiyar wasa",
+  "share_shareMembershipLink": "Raba hanyar zama memba",
+  "share_joinGroupText": "Shiga {name} a SportPadi",
+  "@share_joinGroupText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_shareTeam": "Raba ƙungiya",
+  "share_shareProfile": "Raba bayanan martaba",
+  "share_shareMatch": "Raba wasa",
+  "share_couldntLoadPreview": "Ba a iya loda samfoti ba",
+  "share_tryAgain": "Sake gwadawa",
+  "share_couldntLoadPeople": "Ba a iya loda mutane ba. Sake gwadawa.",
+  "share_resetLink": "Sake saita mahaɗi",
+  "share_resetLinkHint": "Zai yi sabon mahaɗi. Tsohon zai daina aiki.",
+  "share_resetLinkConfirm": "Ka sake saita wannan mahaɗin? Tsohon mahaɗin zai daina aiki, don haka duk wanda bai yi amfani da shi ba tukuna zai buƙaci sabon.",
+  "share_linkWasReset": "An sake saita mahaɗin. Tsohon ba ya aiki kuma.",
+  "share_couldntResetLink": "Ba a iya sake saita mahaɗin ba. Sake gwadawa.",
+  "share_couldntLoadInviteLink": "Ba a iya loda mahaɗin gayyata ba.",
+  "share_anyoneWithLinkCanJoinTeam": "Duk mai wannan mahaɗin zai iya shiga ƙungiyar wasan da ƙungiyarta.",
+  "share_resetGroupLinkConfirm": "Ka sake saita wannan mahaɗin? Tsohon mahaɗin zai daina aiki, haka ma duk mahaɗan shiga ƙungiyoyin wasa na wannan ƙungiyar. Duk wanda bai yi amfani da su ba tukuna zai buƙaci sababbi."
 }

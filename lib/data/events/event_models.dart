@@ -342,11 +342,13 @@ class EventDetail {
     this.locationLng,
     this.flowType = 'team_match',
     this.maxTeamsPerGame,
+    this.maxPlayersPerTeam,
     this.isTournament = false,
     this.hasLatePool = false,
     this.timezone,
     this.canCreateGames = false,
     this.smartShuffle = false,
+    this.featuresKnown = true,
     this.myWards = const [],
     this.audienceTeams = const [],
     this.capacity = EventCapacity.none,
@@ -409,12 +411,32 @@ class EventDetail {
   final String flowType; // team_match | attendance
   final int?
       maxTeamsPerGame; // 2 = VS sports (soccer): explicit home/away pickers
+
+  /// The category's team size; null = not set, which the server reads as 11.
+  final int? maxPlayersPerTeam;
   final bool isTournament;
   // Host-group entitlements (web: groups.entitlements) — gate late pool,
   // game creation and smart-shuffle copy.
   final bool hasLatePool;
   final bool canCreateGames;
   final bool smartShuffle;
+
+  /// Teams made here will be smart-shuffled: the group has the feature (plan
+  /// or promo code) AND a team holds more than one player — the server's
+  /// `smartApplicable` (teamBalance.ts). A singles sport has nothing to
+  /// balance, so it is random on any plan.
+  bool get smartTeams => smartShuffle && (maxPlayersPerTeam ?? 11) > 1;
+
+  /// The group's entitlements were read (`featuresKnown`; an older server
+  /// doesn't say, = true). False: `features` is empty because the lookup
+  /// failed, not because the plan lacks smart.
+  final bool featuresKnown;
+
+  /// We know teams made here will be random: a singles sport, or the plan
+  /// was read and has no smart. Neither this nor [smartTeams] → say neither
+  /// (the app then sends `auto` and the server decides).
+  bool get randomTeams =>
+      !smartTeams && ((maxPlayersPerTeam ?? 11) <= 1 || featuresKnown);
 
   /// Guardians only: each of my wards' RSVP / check-in for this event.
   final List<EventWard> myWards;
@@ -493,6 +515,7 @@ class EventDetail {
       locationLng: parseDouble(j['locationLng']),
       flowType: (cat is Map ? parseStr(cat['flowType']) : null) ?? 'team_match',
       maxTeamsPerGame: cat is Map ? parseInt(cat['maxTeamsPerGame']) : null,
+      maxPlayersPerTeam: cat is Map ? parseInt(cat['maxPlayersPerTeam']) : null,
       isTournament: j['isTournament'] == true,
       hasLatePool: j['features'] is Map &&
           (j['features'] as Map)['LATE_POOL_ENTRY'] == true,
@@ -501,6 +524,7 @@ class EventDetail {
           (j['features'] as Map)['LOCAL_GAME_STATS'] == true,
       smartShuffle: j['features'] is Map &&
           (j['features'] as Map)['SMART_TEAM_SHUFFLE'] == true,
+      featuresKnown: j['featuresKnown'] != false,
       myWards: [
         for (final w
             in (j['myWards'] is List ? j['myWards'] as List : const []))
@@ -517,17 +541,23 @@ class EventTeam {
     required this.id,
     required this.name,
     this.color,
+    this.isSmart = false,
     this.players = const [],
   });
   final String id;
   final String name;
   final String? color;
+
+  /// Made by smart shuffle (balanced by role and form) — the web's "Smart"
+  /// badge (EventTeamsTab.tsx).
+  final bool isSmart;
   final List<EventTeamPlayer> players;
 
   factory EventTeam.fromJson(Map<String, dynamic> j) => EventTeam(
         id: (j['id'] ?? '') as String,
         name: (j['name'] ?? 'Team') as String,
         color: parseStr(j['color']),
+        isSmart: j['isSmart'] == true,
         players: j['players'] is List
             ? [
                 for (final p in j['players'] as List)
@@ -611,5 +641,56 @@ class EventReminders {
             ? parseStrList(j['defaultSlots'])
             : const ['d2', 'h2'],
         muted: j['muted'] == true,
+      );
+}
+
+/// Asked before a smart shuffle (`?view=smart-readiness`, the server's
+/// `teams.smartReadiness`): the sport's balance field (soccer "Position") and
+/// the checked-in players who haven't set it. [hasField] false = smart can't
+/// apply here (one-player teams, or the sport has no role field) — nothing to
+/// warn about.
+class SmartReadiness {
+  const SmartReadiness({this.fieldLabel, this.missing = const []});
+
+  /// The field's name as the owner console labels it (falls back to its key).
+  final String? fieldLabel;
+  final List<SmartReadinessPlayer> missing;
+
+  bool get hasField => fieldLabel != null;
+
+  factory SmartReadiness.fromJson(Map<String, dynamic> j) {
+    final f = j['field'];
+    final list = j['missing'] is List ? j['missing'] as List : const [];
+    return SmartReadiness(
+      fieldLabel:
+          f is Map ? (parseStr(f['label']) ?? parseStr(f['key'])) : null,
+      missing: [
+        for (final m in list)
+          if (m is Map)
+            SmartReadinessPlayer.fromJson(Map<String, dynamic>.from(m)),
+      ],
+    );
+  }
+}
+
+/// A checked-in player who hasn't set the balance field.
+class SmartReadinessPlayer {
+  const SmartReadinessPlayer({
+    required this.userId,
+    required this.displayName,
+    this.username,
+    this.avatarUrl,
+  });
+  final String userId;
+  final String displayName;
+  final String? username;
+  final String? avatarUrl;
+
+  factory SmartReadinessPlayer.fromJson(Map<String, dynamic> j) =>
+      SmartReadinessPlayer(
+        userId: parseStr(j['userId']) ?? '',
+        displayName: parseStr(j['displayName']) ?? 'Player',
+        username: parseStr(j['username']),
+        avatarUrl: parseStr(j['avatarUrl']),
       );
 }
