@@ -2771,6 +2771,10 @@
       }
     }
   },
+  "join_inviteLinkDeadTitle": "Este enlace de invitación no funciona",
+  "join_inviteLinkDead": "Este enlace de invitación ya no funciona. Pide uno nuevo a quien te lo envió.",
+  "join_linkCantAddYou": "Este enlace no puede añadirte. Pide unirte desde la página del grupo.",
+  "join_linkCantAddYouTeam": "Este enlace no puede añadirte al equipo. Pregunta a sus administradores.",
   "group_opening": "Abriendo…",
   "group_sportPadiHome": "Inicio de SportPadi",
   "group_signIn": "Iniciar sesión",
@@ -8883,6 +8887,7 @@
   "profile_notInAnyGroupsYet": "Aún no está en ningún grupo.",
   "profile_noTournamentsYet": "Aún no hay torneos.",
   "profile_noHighlightsYet": "Aún no hay momentos destacados.",
+  "profile_visitorHighlightsEmpty": "No hay nada que mostrar aquí. Algunos momentos destacados solo los ven las personas con sesión iniciada.",
   "profile_highlight": "Momento destacado",
   "profile_recordInTournament": "Historial en el torneo",
   "profile_thisTournamentIsntAvailable": "Este torneo no está disponible",
@@ -9482,8 +9487,8 @@
   "profile_couldNotUpdatePrivacy": "No se pudo actualizar la privacidad",
   "profile_profilePrivacy": "Privacidad del perfil",
   "profile_privateProfile": "Perfil privado",
-  "profile_othersSeeYourNameUsername": "Otros ven tu nombre, @usuario y foto, y que tu perfil es privado, pero no tu historial, tus grupos ni tus publicaciones.",
-  "profile_anyoneWhoTapsYourName": "Cualquiera que toque tu nombre ve tu historial, tus grupos y tus publicaciones. Actívalo para guardarlos solo para ti.",
+  "profile_othersSeeYourNameUsername": "Solo los seguidores que apruebes ven tus momentos destacados, grupos e historial. Los demás ven tu foto, nombre, @nombre de usuario, biografía, enlaces y número de seguidores. Si lo desactivas, se aprueban todas las solicitudes pendientes.",
+  "profile_anyoneWhoTapsYourName": "Cualquiera que toque tu nombre ve tu historial, tus grupos y tus publicaciones. Actívalo para que solo tus seguidores puedan verlos; los nuevos necesitarán tu aprobación.",
   "profile_yourProfileIsPrivate": "Tu perfil es privado",
   "profile_yourProfileIsPublic": "Tu perfil es público",
   "profile_whoCanSeeYourProfile": "Quién puede ver tu perfil",
@@ -10017,7 +10022,7 @@
     }
   },
   "profile_localGroupGames3": "Partidos locales de grupo",
-  "profile_thisProfileIsPrivateTheir": "Este perfil es privado. Su historial, grupos y publicaciones solo los ve esa persona.",
+  "profile_thisProfileIsPrivateTheir": "Este perfil es privado. Solo los seguidores que esta persona aprueba ven su historial, grupos y publicaciones.",
   "profile_showingSRecordSwitchSport2": "Mostrando el historial de {first} en {value}: cambia de deporte cuando quieras.",
   "@profile_showingSRecordSwitchSport2": {
     "placeholders": {
@@ -11134,6 +11139,39 @@
     }
   },
   "profile_ratingTileNotRated": "Aún sin valoración",
+  "profile_followBack": "Seguir también",
+  "profile_requested": "Solicitado",
+  "profile_unfollow": "Dejar de seguir",
+  "profile_unfollowPrivateNote": "Esta cuenta es privada. Si dejas de seguirla, tendrás que volver a pedirlo para ver sus momentos destacados, grupos e historial.",
+  "profile_cancelRequest": "Cancelar solicitud",
+  "profile_followsYou": "Te sigue",
+  "profile_followRequests": "Solicitudes de seguimiento",
+  "profile_followRequestsWaiting": "{count, plural, one{{count} solicitud pendiente} other{{count} solicitudes pendientes}}",
+  "@profile_followRequestsWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_privateAccount": "Cuenta privada",
+  "profile_privateAccountTitle": "Esta cuenta es privada",
+  "profile_privateAccountFollowText": "Sigue esta cuenta para ver sus momentos destacados, grupos e historial.",
+  "profile_privateAccountRequestedText": "Tu solicitud de seguimiento está pendiente. Cuando la acepten, verás sus momentos destacados, grupos e historial.",
+  "profile_privateAccountSignInText": "Inicia sesión y sigue esta cuenta para ver sus momentos destacados, grupos e historial.",
+  "profile_bio": "Biografía",
+  "profile_bioPlaceholder": "Unas palabras sobre ti: tu posición, tu club, los deportes que practicas.",
+  "profile_bioSupervisedNote": "La biografía no está disponible mientras tu cuenta esté supervisada.",
+  "profile_requestsTabIncoming": "Solicitudes",
+  "profile_requestsTabSent": "Enviadas",
+  "profile_noFollowRequests": "No hay solicitudes de seguimiento ahora.",
+  "profile_noSentRequests": "No tienes solicitudes de seguimiento pendientes.",
+  "profile_confirmRequest": "Confirmar",
+  "profile_deleteRequest": "Eliminar",
+  "profile_withdrawRequestTitle": "¿Retirar tu solicitud de seguimiento?",
+  "profile_withdrawRequestText": "Si vuelves a pedirlo en la próxima semana, no recibirá otra notificación.",
+  "profile_privateAccountApprovedOnlyText": "Solo los seguidores que esta cuenta aprueba pueden ver sus momentos destacados, grupos e historial.",
+  "profile_followRequestsMenuSub": "Quién quiere seguirte y las solicitudes que enviaste",
   "inbox_discussionRemoved": "Debate eliminado",
   "inbox_commentRemoved": "Comentario eliminado",
   "inbox_discussion": "Debate",
@@ -20341,6 +20379,15 @@
       }
     }
   },
+  "highlights_followName": "Seguir a {name}",
+  "@highlights_followName": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_followingNow": "Siguiendo",
   "highlights_statMinute": "{minute}’",
   "@highlights_statMinute": {
     "placeholders": {
@@ -20963,5 +21010,147 @@
   "highlights_appKeepOpen": "Se detuvo mientras SportPadi estaba en segundo plano. Deja la app abierta en pantalla hasta que termine y vuelve a intentarlo.",
   "highlights_appLostVideoTitle": "¿Usar el vídeo de antes?",
   "highlights_appLostVideoBody": "SportPadi se cerró antes de que este vídeo se pudiera añadir a un destacado.",
-  "highlights_appLostVideoUse": "Usarlo"
+  "highlights_appLostVideoUse": "Usarlo",
+  "highlights_visitorTitle": "Únete a SportPadi",
+  "highlights_visitorLikeText": "Crea una cuenta gratis para dar me gusta a momentos destacados y animar a los jugadores.",
+  "highlights_visitorCommentText": "Crea una cuenta gratis para comentar momentos destacados.",
+  "highlights_visitorFollowText": "Crea una cuenta gratis para seguir a {name} y ver sus momentos destacados en Siguiendo.",
+  "@highlights_visitorFollowText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_visitorReportText": "Inicia sesión o crea una cuenta para reportar esto al equipo de SportPadi.",
+  "highlights_visitorPostText": "Crea una cuenta gratis para publicar tus propios momentos destacados.",
+  "highlights_visitorFollowingTitle": "Tu pestaña Siguiendo",
+  "highlights_visitorFollowingText": "Inicia sesión para ver los momentos destacados de los jugadores que sigues.",
+  "highlights_visitorSignUp": "Registrarse",
+  "highlights_visitorSignIn": "Iniciar sesión",
+  "highlights_commentsSignUp": "Regístrate para comentar",
+  "highlights_notFoundVisitorText": "Puede que se haya eliminado, o que solo lo vean las personas con sesión iniciada.",
+  "highlights_reelEndTitle": "Eso es todo de {name}",
+  "@highlights_reelEndTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reelEndTitleMine": "Esos son todos tus destacados",
+  "highlights_reelEndNoMore": "No hay más destacados aquí",
+  "highlights_reelEndText": "Has visto todos sus destacados que puedes ver.",
+  "highlights_reelEndKeepWatching": "Seguir viendo",
+  "highlights_appReelEndSignIn": "Inicia sesión para ver su perfil",
+  "share_share": "Compartir",
+  "share_sendTo": "Enviar a",
+  "share_searchPeople": "Buscar personas",
+  "share_loadingPeople": "Cargando…",
+  "share_noMatches": "Nadie coincide.",
+  "share_noOneYet": "Aún no hay nadie. Aquí aparecen tus conversaciones, las personas que sigues y las que te siguen.",
+  "share_selected": "Seleccionado",
+  "share_aboutWard": "Sobre {name}",
+  "@share_aboutWard": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_addMessage": "Añade un mensaje (opcional)",
+  "share_sending": "Enviando…",
+  "share_sendToCount": "{count, plural, one{Enviar a {count} persona} other{Enviar a {count} personas}}",
+  "@share_sendToCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "share_sentToAll": "{count, plural, one{Enviado a {count} persona} other{Enviado a {count} personas}}",
+  "@share_sentToAll": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "share_sentSome": "Enviado a {sent} de {total}",
+  "@share_sentSome": {
+    "placeholders": {
+      "sent": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_couldntSend": "No se pudo enviar. Inténtalo de nuevo.",
+  "share_couldntSendTo": "No se pudo enviar a {name}: {reason}",
+  "@share_couldntSendTo": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      },
+      "reason": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_maxRecipients": "Puedes enviarlo a un máximo de {max} personas a la vez.",
+  "@share_maxRecipients": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_cantSendInApp": "Esto no se puede enviar como mensaje, pero aún puedes compartir el enlace.",
+  "share_otherApps": "Compartir en otras apps",
+  "share_copyLink": "Copiar enlace",
+  "share_linkCopied": "Enlace copiado",
+  "share_copyThisLink": "Copia este enlace",
+  "share_email": "Correo",
+  "share_sms": "SMS",
+  "share_more": "Más",
+  "share_notAvailable": "Este contenido no está disponible",
+  "share_notAvailableHint": "Puede que se haya eliminado o que sea privado.",
+  "share_kindEvent": "Evento",
+  "share_kindGroup": "Grupo",
+  "share_kindGroupInvite": "Invitación para unirse",
+  "share_kindTournament": "Torneo",
+  "share_kindLeague": "Liga",
+  "share_kindCompetition": "Competición",
+  "share_kindHighlight": "Jugada destacada",
+  "share_kindTicket": "Entrada",
+  "share_kindTeamInvite": "Invitación al equipo",
+  "share_kindCallForTeams": "Convocatoria de equipos",
+  "share_kindPlayer": "Jugador",
+  "share_kindMatch": "Partido",
+  "share_kindTeam": "Equipo",
+  "share_shareMembershipLink": "Compartir enlace de membresía",
+  "share_joinGroupText": "Únete a {name} en SportPadi",
+  "@share_joinGroupText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_shareTeam": "Compartir equipo",
+  "share_shareProfile": "Compartir perfil",
+  "share_shareMatch": "Compartir partido",
+  "share_couldntLoadPreview": "No se pudo cargar la vista previa",
+  "share_tryAgain": "Reintentar",
+  "share_couldntLoadPeople": "No se pudo cargar a las personas. Inténtalo de nuevo.",
+  "share_resetLink": "Restablecer enlace",
+  "share_resetLinkHint": "Crea un enlace nuevo. El anterior deja de funcionar.",
+  "share_resetLinkConfirm": "¿Restablecer este enlace? El anterior dejará de funcionar, así que quien aún no lo haya usado necesitará el nuevo.",
+  "share_linkWasReset": "Enlace restablecido. El anterior ya no funciona.",
+  "share_couldntResetLink": "No se pudo restablecer el enlace. Inténtalo de nuevo.",
+  "share_couldntLoadInviteLink": "No se pudo cargar el enlace de invitación.",
+  "share_anyoneWithLinkCanJoinTeam": "Cualquiera con este enlace puede unirse al equipo y a su grupo.",
+  "share_resetGroupLinkConfirm": "¿Restablecer este enlace? El anterior dejará de funcionar, igual que los enlaces de los equipos de este grupo. Quien aún no los haya usado necesitará los nuevos."
 }

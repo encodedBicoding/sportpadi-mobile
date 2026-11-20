@@ -24,12 +24,17 @@ class AdAnchor extends ConsumerWidget {
   const AdAnchor({
     super.key,
     required this.anchor,
+    this.fallback,
     this.hasContent = true,
     this.padding = EdgeInsets.zero,
     this.context = const {},
   });
 
   final String anchor;
+
+  /// Another anchor whose fill is used while [anchor] has none (My profile →
+  /// the player-profile spot, so one console setting covers both profiles).
+  final String? fallback;
 
   /// What the screen shows ({'group': {'id': …}}): ads linking to
   /// /groups/{group.id}/… open THIS group (packages/lib/src/adLinks.ts).
@@ -43,9 +48,18 @@ class AdAnchor extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (!hasContent) return const SizedBox.shrink();
-    final p = ref.watch(placementProvider(anchor));
+    var p = ref.watch(placementProvider(anchor));
+    var source = anchor;
+    final fb = fallback;
+    if (fb != null && !(p != null && (p.isFirstParty || p.isAdMob))) {
+      final alt = ref.watch(placementProvider(fb));
+      if (alt != null && (alt.isFirstParty || alt.isAdMob)) {
+        p = alt;
+        source = fb;
+      }
+    }
     if (p == null) return const SizedBox.shrink();
-    return _fill(p, anchor, 0, padding, this.context);
+    return _fill(p, source, 0, padding, this.context);
   }
 }
 

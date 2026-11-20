@@ -207,6 +207,7 @@ class PlayerRecordsSection extends StatelessWidget {
     required this.loaded,
     this.mine = false,
     this.trailing,
+    this.lead,
   });
   final String userId;
   final List<Map<String, dynamic>> categories;
@@ -220,6 +221,10 @@ class PlayerRecordsSection extends StatelessWidget {
   /// e.g. an "All records" pill on your own profile.
   final Widget? trailing;
 
+  /// Under the title, above the cards — the per-sport rating tiles on the
+  /// profiles' Records tab (they sat in the old cover header).
+  final Widget? lead;
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
@@ -231,6 +236,7 @@ class PlayerRecordsSection extends StatelessWidget {
       SpSectionTitle(context.l10n.profile_records,
           count: played.isEmpty ? null : played.length, trailing: trailing),
       const SizedBox(height: 10),
+      if (lead != null) ...[lead!, const SizedBox(height: 12)],
       if (!loaded)
         GlassCard(
           child: Text(mine ? context.l10n.profile_loadingYourRecord : context.l10n.profile_loadingTheirRecord,

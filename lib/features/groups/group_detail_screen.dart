@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
@@ -40,6 +39,9 @@ import 'package:sportpadi_mobile/features/groups/group_invitations.dart';
 import 'package:sportpadi_mobile/features/groups/group_talk_section.dart';
 import 'package:sportpadi_mobile/features/groups/groups_providers.dart';
 import 'package:sportpadi_mobile/features/groups/plan_gate.dart';
+import 'package:sportpadi_mobile/features/share/share_sheet.dart';
+import 'package:sportpadi_mobile/features/share/invite_link_sheet.dart';
+import 'package:sportpadi_mobile/data/join/join_models.dart' show InviteScope;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
@@ -394,13 +396,15 @@ class _HeaderState extends ConsumerState<_Header> with WidgetsBindingObserver {
     );
   }
 
+  // The share sheet (features/share): people on SportPadi, then other apps.
+  // The link carries who shared it (community XP — referral.dart).
   void _share() {
     final base = ref.read(appConfigProvider).apiBaseUrl;
     final me = ref.read(meProvider).valueOrNull?.userId;
-    Clipboard.setData(ClipboardData(
-        text: withRef('$base/groups/$groupId', me, 'group', groupId)));
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(context.l10n.group_groupLinkCopied)));
+    unawaited(showShareSheet(context, ref,
+        url: withRef('$base/groups/$groupId', me, 'group', groupId),
+        title: name,
+        imageUrl: logoUrl));
   }
 
   @override
@@ -904,13 +908,18 @@ class _ManageMenu extends ConsumerWidget {
   void _act(BuildContext context, WidgetRef ref, String v) {
     switch (v) {
       case 'link':
-        final base = ref.read(appConfigProvider).apiBaseUrl;
+        // The membership link (anyone with it joins) goes through the share
+        // sheet too: copy it, send it to people, or to other apps. It carries
+        // a secret code the admins can reset (review H2).
         final me = ref.read(meProvider).valueOrNull?.userId;
-        Clipboard.setData(ClipboardData(
-            text: withRef('$base/join/$groupId', me, 'group', groupId)));
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content:
-                Text(context.l10n.group_membershipLinkCopiedAnyoneWith)));
+        final g = ref.read(groupProvider(groupId)).valueOrNull;
+        unawaited(showInviteLinkSheet(context, ref,
+            scope: InviteScope.group(groupId),
+            decorate: (u) => withRef(u, me, 'group', groupId),
+            title: g?.name,
+            text: g == null ? null : context.l10n.share_joinGroupText(g.name),
+            notice: context.l10n.group_anyoneWithItCanJoin,
+            imageUrl: g?.logoUrl));
         break;
       case 'edit':
         showSpSheet<void>(
@@ -1136,7 +1145,7 @@ class _ManageMenuSheet extends ConsumerWidget {
                       p.greenText),
                 row('edit', Icons.edit_outlined, context.l10n.group_editGroup,
                     context.l10n.group_nameLogoDescriptionAndSettings, p.surface2, p.ink),
-                row('link', Icons.link_rounded, context.l10n.group_copyMembershipLink,
+                row('link', Icons.link_rounded, context.l10n.share_shareMembershipLink,
                     context.l10n.group_anyoneWithItCanJoin, p.accentTint, p.greenText),
                 if (!ios)
                   row('promo', Icons.confirmation_number_outlined,

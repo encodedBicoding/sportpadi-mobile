@@ -2771,6 +2771,10 @@
       }
     }
   },
+  "join_inviteLinkDeadTitle": "This invite link no dey work",
+  "join_inviteLinkDead": "This invite link no dey work again. Ask the person wey send am make e give you new one.",
+  "join_linkCantAddYou": "This link no fit add you. Ask to join from the group page.",
+  "join_linkCantAddYouTeam": "This link no fit add you to the team. Ask the team admins.",
   "group_opening": "E dey open…",
   "group_sportPadiHome": "SportPadi home",
   "group_signIn": "Sign in",
@@ -8883,6 +8887,7 @@
   "profile_notInAnyGroupsYet": "E never dey any group yet.",
   "profile_noTournamentsYet": "No tournament yet.",
   "profile_noHighlightsYet": "No highlights yet.",
+  "profile_visitorHighlightsEmpty": "Nothing to show here. Some highlights na only people wey don sign in fit see dem.",
   "profile_highlight": "Highlight",
   "profile_recordInTournament": "Record for tournament",
   "profile_thisTournamentIsntAvailable": "This tournament no dey available",
@@ -9482,8 +9487,8 @@
   "profile_couldNotUpdatePrivacy": "We no fit update privacy",
   "profile_profilePrivacy": "Profile privacy",
   "profile_privateProfile": "Private profile",
-  "profile_othersSeeYourNameUsername": "Other people go see your name, @username and photo, and say your profile na private — dem no go see your records, groups or posts.",
-  "profile_anyoneWhoTapsYourName": "Anybody wey tap your name go see your records, groups and posts. On am make you keep dem to yourself.",
+  "profile_othersSeeYourNameUsername": "Na only followers wey you approve fit see your highlights, groups and records. Other people go see your photo, name, @username, bio, links and follower count. If you off am, every request wey dey wait go enter.",
+  "profile_anyoneWhoTapsYourName": "Anybody wey tap your name go see your records, groups and posts. On am make na only your followers fit see dem — new followers go need your OK.",
   "profile_yourProfileIsPrivate": "Your profile na private",
   "profile_yourProfileIsPublic": "Your profile na public",
   "profile_whoCanSeeYourProfile": "Who fit see your profile",
@@ -10017,7 +10022,7 @@
     }
   },
   "profile_localGroupGames3": "Local group games",
-  "profile_thisProfileIsPrivateTheir": "This profile na private. Na only dem fit see their records, groups and posts.",
+  "profile_thisProfileIsPrivateTheir": "This profile na private. Na only the followers wey dem approve fit see their records, groups and posts.",
   "profile_showingSRecordSwitchSport2": "Na {first} {value} record be this — change sport anytime.",
   "@profile_showingSRecordSwitchSport2": {
     "placeholders": {
@@ -11134,6 +11139,39 @@
     }
   },
   "profile_ratingTileNotRated": "No rating yet",
+  "profile_followBack": "Follow back",
+  "profile_requested": "You don request",
+  "profile_unfollow": "Unfollow",
+  "profile_unfollowPrivateNote": "Their account dey private. If you unfollow, you go need ask again before you fit see their highlights, groups and records.",
+  "profile_cancelRequest": "Cancel request",
+  "profile_followsYou": "E dey follow you",
+  "profile_followRequests": "Follow requests",
+  "profile_followRequestsWaiting": "{count, plural, =0{No request dey wait} one{{count} request dey wait} other{{count} requests dey wait}}",
+  "@profile_followRequestsWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_privateAccount": "Private account",
+  "profile_privateAccountTitle": "Dis account na private",
+  "profile_privateAccountFollowText": "Follow dis account make you fit see their highlights, groups and records.",
+  "profile_privateAccountRequestedText": "Your follow request dey wait. Once dem accept am, you go see their highlights, groups and records.",
+  "profile_privateAccountSignInText": "Sign in come follow dis account make you see their highlights, groups and records.",
+  "profile_bio": "Bio",
+  "profile_bioPlaceholder": "Small talk about you: your position, your club, the sports wey you dey play.",
+  "profile_bioSupervisedNote": "Bio no dey while dem dey supervise your account.",
+  "profile_requestsTabIncoming": "Requests",
+  "profile_requestsTabSent": "Wey you send",
+  "profile_noFollowRequests": "No follow request dey now.",
+  "profile_noSentRequests": "None of your follow requests dey wait.",
+  "profile_confirmRequest": "Confirm",
+  "profile_deleteRequest": "Delete",
+  "profile_withdrawRequestTitle": "You wan cancel your follow request?",
+  "profile_withdrawRequestText": "If you ask again inside one week, dem no go get another notification.",
+  "profile_privateAccountApprovedOnlyText": "Na only followers wey dem approve fit see their highlights, groups and records.",
+  "profile_followRequestsMenuSub": "People wey wan follow you, and the requests wey you send",
   "inbox_discussionRemoved": "Discussion don remove",
   "inbox_commentRemoved": "Comment don remove",
   "inbox_discussion": "Discussion",
@@ -20341,6 +20379,15 @@
       }
     }
   },
+  "highlights_followName": "Follow {name}",
+  "@highlights_followName": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_followingNow": "You dey follow",
   "highlights_statMinute": "{minute}’",
   "@highlights_statMinute": {
     "placeholders": {
@@ -20963,5 +21010,147 @@
   "highlights_appKeepOpen": "E stop while SportPadi dey background. Make the app dey open on screen till e finish, then try again.",
   "highlights_appLostVideoTitle": "Use the video from before?",
   "highlights_appLostVideoBody": "SportPadi close before dem fit add this video to highlight.",
-  "highlights_appLostVideoUse": "Use am"
+  "highlights_appLostVideoUse": "Use am",
+  "highlights_visitorTitle": "Join SportPadi",
+  "highlights_visitorLikeText": "Open free account make you fit like highlights and hail players.",
+  "highlights_visitorCommentText": "Open free account make you fit comment for highlights.",
+  "highlights_visitorFollowText": "Open free account make you fit follow {name} and see their highlights for your Following feed.",
+  "@highlights_visitorFollowText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_visitorReportText": "Sign in or open account make you fit report this one to SportPadi team.",
+  "highlights_visitorPostText": "Open free account make you fit post your own highlights.",
+  "highlights_visitorFollowingTitle": "Your Following feed",
+  "highlights_visitorFollowingText": "Sign in make you see highlights from the players wey you dey follow.",
+  "highlights_visitorSignUp": "Sign up",
+  "highlights_visitorSignIn": "Sign in",
+  "highlights_commentsSignUp": "Sign up make you comment",
+  "highlights_notFoundVisitorText": "Dem fit delete am, or na only people wey don sign in fit see am.",
+  "highlights_reelEndTitle": "Na everything from {name} be dis",
+  "@highlights_reelEndTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reelEndTitleMine": "Na all your highlights be dis",
+  "highlights_reelEndNoMore": "No more highlights for here",
+  "highlights_reelEndText": "You don see all dia highlights wey you fit watch.",
+  "highlights_reelEndKeepWatching": "Dey watch more",
+  "highlights_appReelEndSignIn": "Sign in make you see dia profile",
+  "share_share": "Share",
+  "share_sendTo": "Send give",
+  "share_searchPeople": "Find people",
+  "share_loadingPeople": "E dey load…",
+  "share_noMatches": "Nobody match am.",
+  "share_noOneYet": "Nobody dey here yet. Your chats, people wey you dey follow and people wey dey follow you go show here.",
+  "share_selected": "You don pick am",
+  "share_aboutWard": "About {name}",
+  "@share_aboutWard": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_addMessage": "Add message (if you want)",
+  "share_sending": "E dey send…",
+  "share_sendToCount": "{count, plural, one{Send give {count} person} other{Send give {count} people}}",
+  "@share_sendToCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "share_sentToAll": "{count, plural, one{E don reach {count} person} other{E don reach {count} people}}",
+  "@share_sentToAll": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "share_sentSome": "E reach {sent} out of {total}",
+  "@share_sentSome": {
+    "placeholders": {
+      "sent": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_couldntSend": "E no send. Try again.",
+  "share_couldntSendTo": "E no reach {name}: {reason}",
+  "@share_couldntSendTo": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      },
+      "reason": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_maxRecipients": "You fit send am give reach {max} people at once.",
+  "@share_maxRecipients": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_cantSendInApp": "You no fit send dis one as message, but you fit still share the link.",
+  "share_otherApps": "Share for other apps",
+  "share_copyLink": "Copy link",
+  "share_linkCopied": "Link don copy",
+  "share_copyThisLink": "Copy dis link",
+  "share_email": "Email",
+  "share_sms": "SMS",
+  "share_more": "More",
+  "share_notAvailable": "Dis thing no dey available",
+  "share_notAvailableHint": "Dem fit don remove am, or e private.",
+  "share_kindEvent": "Event",
+  "share_kindGroup": "Group",
+  "share_kindGroupInvite": "Invite to join",
+  "share_kindTournament": "Tournament",
+  "share_kindLeague": "League",
+  "share_kindCompetition": "Competition",
+  "share_kindHighlight": "Highlight",
+  "share_kindTicket": "Ticket",
+  "share_kindTeamInvite": "Team invite",
+  "share_kindCallForTeams": "Call for teams",
+  "share_kindPlayer": "Player",
+  "share_kindMatch": "Match",
+  "share_kindTeam": "Team",
+  "share_shareMembershipLink": "Share membership link",
+  "share_joinGroupText": "Join {name} for SportPadi",
+  "@share_joinGroupText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_shareTeam": "Share team",
+  "share_shareProfile": "Share profile",
+  "share_shareMatch": "Share match",
+  "share_couldntLoadPreview": "E no fit load the preview",
+  "share_tryAgain": "Try again",
+  "share_couldntLoadPeople": "E no fit load people. Try again.",
+  "share_resetLink": "Reset link",
+  "share_resetLinkHint": "E go make new link. The old one go stop to work.",
+  "share_resetLinkConfirm": "You wan reset this link? The old link go stop to work, so anybody wey never use am go need the new one.",
+  "share_linkWasReset": "Link don reset. The old one no dey work again.",
+  "share_couldntResetLink": "We no fit reset the link. Try again.",
+  "share_couldntLoadInviteLink": "We no fit load the invite link.",
+  "share_anyoneWithLinkCanJoinTeam": "Anybody wey get this link fit join the team and im group.",
+  "share_resetGroupLinkConfirm": "You wan reset this link? The old link go stop to work, and all the team join links for this group go stop too. Anybody wey never use dem go need the new ones."
 }

@@ -58,3 +58,14 @@ class AnalyticsService {
 
 final analyticsServiceProvider =
     Provider<AnalyticsService>((ref) => AnalyticsService());
+
+final _inviteCodeInUrl = RegExp(
+    r'((?:/|%2F)join(?:-team)?(?:/|%2F))[A-Za-z0-9]{22}(?![A-Za-z0-9])',
+    caseSensitive: false);
+
+/// An invite link's code is a secret (anyone holding it joins): analytics
+/// never carry it — `/join/<code>` → `/join/:code`, `/join-team/…` too, also
+/// percent-encoded in a query (the web's `redactInviteCodes`,
+/// packages/lib/src/inviteLinks.ts in the workspace; reviews/invite-links.md L1).
+String redactInviteCodes(String s) =>
+    s.replaceAllMapped(_inviteCodeInUrl, (m) => '${m[1]}:code');

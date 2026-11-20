@@ -164,6 +164,38 @@ class HighlightPermissions {
       );
 }
 
+/// `follow { following, canFollow }` — the viewer and the post's SUBJECT
+/// (the player it is about; the ward, on a guardian's post). `canFollow`:
+/// the server would take a follow (not me, not from a managed account, a
+/// profile I may see in full — the rule `POST /players/:id/follow`
+/// enforces). The reel offers "Follow" when `canFollow && !following`. A
+/// server from before 2026-11-18 sends neither: no button.
+///
+/// Since follow requests (2026-11-19): `requested` (my request to them waits)
+/// and `canRequest` (a tap would send a request — a private adult). The reel
+/// offers the pill on `(canFollow || canRequest) && !following && !requested`
+/// (review profile-header-app MED-2). Older servers send neither: false.
+class HighlightFollow {
+  const HighlightFollow({
+    this.following = false,
+    this.canFollow = false,
+    this.requested = false,
+    this.canRequest = false,
+  });
+
+  final bool following;
+  final bool canFollow;
+  final bool requested;
+  final bool canRequest;
+
+  factory HighlightFollow.fromJson(Map<String, dynamic> j) => HighlightFollow(
+        following: j['following'] == true,
+        canFollow: j['canFollow'] == true,
+        requested: j['requested'] == true,
+        canRequest: j['canRequest'] == true,
+      );
+}
+
 /// One post (`HighlightItem`).
 class HighlightItem {
   const HighlightItem({
@@ -184,6 +216,7 @@ class HighlightItem {
     this.createdAt,
     this.stat,
     required this.permissions,
+    this.follow = const HighlightFollow(),
   });
 
   final String id;
@@ -221,6 +254,9 @@ class HighlightItem {
   /// Null when unlinked, or the stat was removed since.
   final HighlightStat? stat;
   final HighlightPermissions permissions;
+
+  /// Whether the viewer follows [subject], and may (the reel's Follow button).
+  final HighlightFollow follow;
 
   bool get isVideo => kind == 'video';
   bool get isReady => status == 'ready';
@@ -268,6 +304,7 @@ class HighlightItem {
         createdAt: createdAt,
         stat: stat,
         permissions: permissions,
+        follow: follow,
       );
 
   factory HighlightItem.fromJson(Map<String, dynamic> j) {
@@ -293,6 +330,7 @@ class HighlightItem {
       createdAt: parseDate(j['createdAt']),
       stat: j['stat'] is Map ? HighlightStat.fromJson(_map(j['stat'])) : null,
       permissions: HighlightPermissions.fromJson(_map(j['permissions'])),
+      follow: HighlightFollow.fromJson(_map(j['follow'])),
     );
   }
 }

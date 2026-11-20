@@ -6,6 +6,8 @@ import 'package:sportpadi_mobile/data/profile/profile_models.dart';
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/data/wards/ward_models.dart'
     show wardVisibilities;
+import 'package:sportpadi_mobile/features/players/scout_header.dart'
+    show followStateProvider;
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/core/i18n/l10n.dart';
@@ -34,9 +36,11 @@ class ProfilePrivacySection extends ConsumerWidget {
   }
 }
 
-/// One switch: a private profile. Others who tap your name see your name,
-/// @username and photo, and that it's private — not your records, groups or
-/// posts. Public until you turn it on.
+/// One switch: a private profile, like Instagram's. Only followers you
+/// approve see your highlights, groups and records; everyone else sees the
+/// header (photo, name, @username, bio, links, follower counts) and that it's
+/// private. Turning it off approves every request still waiting (the server
+/// does it in the same step; the copy says so). Public until you turn it on.
 class _PrivateProfileCard extends ConsumerStatefulWidget {
   const _PrivateProfileCard({required this.privacy});
   final MyPrivacy privacy;
@@ -67,7 +71,12 @@ class _PrivateProfileCardState extends ConsumerState<_PrivateProfileCard> {
     });
     try {
       await ref.read(profileRepositoryProvider).setMyPrivacy(profilePrivate: v);
-      if (mounted) ref.invalidate(myPrivacyProvider);
+      if (mounted) {
+        ref.invalidate(myPrivacyProvider);
+        // The lock by my @username and the requests waiting (going public
+        // approves them all) live in follows.state.
+        ref.invalidate(followStateProvider);
+      }
       messenger.showSnackBar(SnackBar(
           content:
               Text(v ? l10n.profile_yourProfileIsPrivate : l10n.profile_yourProfileIsPublic)));

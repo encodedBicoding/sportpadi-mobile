@@ -26,6 +26,7 @@ import 'package:sportpadi_mobile/data/teams/teams_repository.dart'
 import 'package:sportpadi_mobile/data/groups/members_repository.dart';
 import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/features/events/event_menu.dart';
+import 'package:sportpadi_mobile/features/share/share_sheet.dart';
 import 'package:sportpadi_mobile/features/events/event_tickets_card.dart';
 import 'package:sportpadi_mobile/features/games/basketball_widgets.dart';
 import 'package:sportpadi_mobile/features/games/volleyball_widgets.dart';
@@ -325,6 +326,26 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
     return ok == true;
   }
 
+  /// Smart shuffle can only balance players whose role it knows. Before an
+  /// app smart shuffle (Assign teams, Reshuffle) — as the web's TeamSetup
+  /// does — if some checked-in players haven't set the sport's balance field
+  /// (soccer "Position"), say who, and let the organiser go ahead anyway or
+  /// stop to ask them first. Advisory, never blocking: true = shuffle. A
+  /// random shuffle, nobody missing, or a check that failed / timed out →
+  /// true at once, exactly as before (a failed check says nothing, rather
+  /// than pretend everyone is ready). Leaving the screen while it runs
+  /// cancels the shuffle (false): nobody is left to see it, and `ref` is
+  /// gone with the screen.
+  Future<bool> _smartReadinessOk(EventDetail e) async {
+    if (!e.smartTeams) return true;
+    final r = await ref.read(eventsRepositoryProvider).smartReadiness(e.id);
+    if (!mounted) return false;
+    if (r == null || !r.hasField || r.missing.isEmpty) return true;
+    final go = await showSpSheet<bool>(context,
+        builder: (_) => _SmartReadinessSheet(readiness: r));
+    return go == true;
+  }
+
   Future<void> _do(String key, Future<void> Function() op) async {
     if (_busy != null) return;
     setState(() => _busy = key);
@@ -382,10 +403,12 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
     final base = ref.read(appConfigProvider).apiBaseUrl;
     // Carries who shared it (gamification: community XP for bringing people).
     final me = ref.read(meProvider).valueOrNull?.userId;
-    Clipboard.setData(
-        ClipboardData(text: withRef('$base/e/${e.slug}', me, 'event', e.id)));
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(context.l10n.event_linkCopied)));
+    // The share sheet (features/share): people on SportPadi, then other apps.
+    unawaited(showShareSheet(context, ref,
+        url: withRef('$base/e/${e.slug}', me, 'event', e.id),
+        title: e.title,
+        subtitle: e.groupName,
+        imageUrl: e.thumbnailUrl));
   }
 
   /// Organizers: the event's photos, in a sheet (from the "More" menu). It
@@ -520,9 +543,10 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
               final count = await _AssignTeamsCard.pickCount(context);
               if (count == null) return;
               await _do('assign', () async {
+                if (!await _smartReadinessOk(e)) return;
                 await ref
                     .read(eventsRepositoryProvider)
-                    .generateTeams(e.id, teamCount: count);
+                    .generateTeams(e.id, teamCount: count, smart: e.smartTeams);
                 ref.invalidate(eventTeamsProvider(e.id));
               });
             },
@@ -584,9 +608,11 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
           event: e,
           busy: _busy == 'assign',
           onAssign: (count) => _do('assign', () async {
+            // "Not yet" on the readiness sheet: the event stays open.
+            if (!await _smartReadinessOk(e)) return;
             await ref
                 .read(eventsRepositoryProvider)
-                .generateTeams(e.id, teamCount: count);
+                .generateTeams(e.id, teamCount: count, smart: e.smartTeams);
             // Land on Games, in view: the next step is the first match.
             if (mounted) {
               setState(() {
@@ -1944,7 +1970,15 @@ class _AssignTeamsCard extends StatelessWidget {
           ]),
           const SizedBox(height: 4),
           Text(
-            context.l10n.event_countPluralOneAssignThe(e.attendeeCount, e.smartShuffle ? 'smart' : 'random'),
+            // Says what generateTeams will get, as the web card does — whole
+            // sentences (splicing a word in read "توزيع توزيع ذكي" in Arabic).
+            // While the plan couldn't be read, neither word: `auto` decides.
+            e.smartTeams
+                ? context.l10n.event_assignPlayersIntoTeamsSmart(e.attendeeCount)
+                : e.randomTeams
+                    ? context.l10n
+                        .event_assignPlayersIntoTeamsRandom(e.attendeeCount)
+                    : context.l10n.event_checkedInPlayersAreShuffled,
             style: TextStyle(color: p.muted, fontSize: 12),
           ),
           const SizedBox(height: 12),
@@ -1977,6 +2011,127 @@ class _AssignTeamsCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Smart-readiness sheet — before a smart shuffle (web TeamSetup's nudge).
+// ---------------------------------------------------------------------------
+
+/// The checked-in players who haven't set the sport's balance field: smart
+/// shuffle will spread them evenly but not by role. The web dialog's copy and
+/// actions — "Proceed anyway" pops true; "Not yet" (or closing it) false.
+class _SmartReadinessSheet extends StatelessWidget {
+  const _SmartReadinessSheet({required this.readiness});
+  final SmartReadiness readiness;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final field = readiness.fieldLabel ?? context.l10n.game_role;
+    final missing = readiness.missing;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(Icons.warning_amber_rounded, size: 20, color: p.amber),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+                '${context.l10n.game_somePlayersHaventSetTheir} $field',
+                style: TextStyle(
+                    color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
+          ),
+        ]),
+        const SizedBox(height: 8),
+        Text.rich(
+          TextSpan(children: [
+            TextSpan(text: '${context.l10n.game_smartShuffleBalancesTeamsBy} '),
+            TextSpan(
+                text: field,
+                style: TextStyle(color: p.ink, fontWeight: FontWeight.w600)),
+            TextSpan(
+                text: context.l10n
+                    .game_checkedInPlayersMissingField(missing.length)),
+          ]),
+          style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.35),
+        ),
+        const SizedBox(height: 12),
+        // The list scrolls on its own (as the web caps it), so the two
+        // buttons stay in view however many players are missing.
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 260),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final m in missing)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: p.surface2,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(children: [
+                        ClipOval(
+                          child: Crest(
+                              logoUrl: m.avatarUrl, label: m.displayName, size: 28),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(m.displayName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      color: p.ink,
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w600)),
+                              if (m.username != null)
+                                Text('@${m.username}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(color: p.muted, fontSize: 11.5)),
+                            ],
+                          ),
+                        ),
+                      ]),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(context.l10n.game_notYet,
+                  textAlign: TextAlign.center),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: SpButton(
+              label: context.l10n.game_proceedAnyway,
+              icon: Icons.bolt_rounded,
+              expand: true,
+              onTap: () => Navigator.pop(context, true),
+            ),
+          ),
+        ]),
+      ],
     );
   }
 }
@@ -2723,7 +2878,19 @@ class _TeamsTab extends ConsumerWidget {
     final p = context.palette;
     // Web parity: outline + "You're here" on the viewer's own team.
     final meId = ref.watch(meProvider).valueOrNull?.userId;
-    return Column(children: [
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // Web parity: smart-shuffled teams say so, on each team and — when
+      // EVERY team is smart, not over a mixed list — above it
+      // (EventTeamsTab.tsx).
+      if (teams.isNotEmpty && teams.every((t) => t.isSmart))
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: _RosterTag(
+              text: context.l10n.event_smartBalancedTeams,
+              icon: Icons.auto_awesome_rounded,
+              accent: true,
+              large: true),
+        ),
       for (final t in teams)
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
@@ -2777,6 +2944,13 @@ class _TeamsTab extends ConsumerWidget {
                                 fontWeight: FontWeight.w700,
                                 fontSize: 14.5)),
                       ),
+                      if (t.isSmart) ...[
+                        const SizedBox(width: 6),
+                        _RosterTag(
+                            text: context.l10n.event_smart2,
+                            icon: Icons.auto_awesome_rounded,
+                            accent: true),
+                      ],
                       Icon(Icons.chevron_right_rounded,
                           size: 18, color: p.muted),
                     ]),
@@ -2904,6 +3078,13 @@ class _TeamsTab extends ConsumerWidget {
                         fontSize: 16,
                         fontWeight: FontWeight.w700)),
               ),
+              if (t.isSmart) ...[
+                const SizedBox(width: 8),
+                _RosterTag(
+                    text: context.l10n.event_smart2,
+                    icon: Icons.auto_awesome_rounded,
+                    accent: true),
+              ],
             ]),
             const SizedBox(height: 10),
             Flexible(
@@ -2942,20 +3123,44 @@ class _TeamsTab extends ConsumerWidget {
 }
 
 class _RosterTag extends StatelessWidget {
-  const _RosterTag({required this.text});
+  const _RosterTag(
+      {required this.text,
+      this.icon,
+      this.accent = false,
+      this.large = false});
   final String text;
+
+  /// A leading icon (the smart badge's sparkle).
+  final IconData? icon;
+
+  /// Brand-green on its tint — the "You're here" pill's colours — instead of
+  /// the muted grey.
+  final bool accent;
+
+  /// The list-level pill ("Smart-balanced teams") rather than a row tag.
+  final bool large;
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final fg = accent ? p.accent : p.muted;
+    final size = large ? 11.0 : 9.5;
+    final label = Text(text,
+        style: TextStyle(color: fg, fontSize: size, fontWeight: FontWeight.w700));
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: EdgeInsets.symmetric(
+          horizontal: large ? 10.0 : 7.0, vertical: large ? 4.0 : 3.0),
       decoration: BoxDecoration(
-        color: p.surface2,
+        color: accent ? p.accent.withAlpha(31) : p.surface2,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(text,
-          style: TextStyle(
-              color: p.muted, fontSize: 9.5, fontWeight: FontWeight.w700)),
+      child: icon == null
+          ? label
+          : Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(icon, size: size + 1.5, color: fg),
+              const SizedBox(width: 3),
+              label,
+            ]),
     );
   }
 }
@@ -4006,7 +4211,10 @@ class _PoolSection extends ConsumerWidget {
               onTap: () => Navigator.pop(ctx, t.id),
             ),
           TextButton(
-            onPressed: () => Navigator.pop(ctx, l10n.event_auto),
+            // A fixed sentinel, not the translated label: in ar, ha, hi, ig
+            // and yo the label isn't 'AUTO', so its text went to the server
+            // as a team id and the add failed.
+            onPressed: () => Navigator.pop(ctx, 'AUTO'),
             child: Text(l10n.event_autoSlotBestFit),
           ),
         ],

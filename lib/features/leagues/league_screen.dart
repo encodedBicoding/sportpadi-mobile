@@ -44,7 +44,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
           SpRoundButton(
             icon: Icons.ios_share_rounded,
             tooltip: context.l10n.league_shareEmbed,
-            onTap: () => showShareLeagueSheet(context,
+            onTap: () => showShareLeagueSheet(context, ref,
                 base: ref.read(appConfigProvider).apiBaseUrl, slug: l.str('slug'), title: l.str('title')),
           ),
         if (d?.b('isOrganiser') == true && l != null)

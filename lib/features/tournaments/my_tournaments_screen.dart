@@ -60,7 +60,7 @@ class MyTournamentsScreen extends ConsumerWidget {
             final upcoming = teams.fold<int>(0, (a, t) => a + t.upcoming);
             return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                // Room for the floating dock the list runs behind.
+                // Air under the list's last row, above the dock's band.
                 padding: EdgeInsets.fromLTRB(
                     20, 14, 20, SpDock.spaceBelowList(context)),
                 children: [

@@ -111,6 +111,7 @@ class GameActivity {
     this.relatedPlayerId,
     this.relatedPlayerName,
     this.jersey,
+    this.relatedJersey,
   });
   final String id;
   final String type;
@@ -126,6 +127,9 @@ class GameActivity {
   final String? relatedPlayerName;
   final int? jersey;
 
+  /// The second player's shirt number (Key moments: "(assist #10 Ada)").
+  final int? relatedJersey;
+
   factory GameActivity.fromJson(Map<String, dynamic> j) => GameActivity(
         id: (j['id'] ?? '') as String,
         type: (j['type'] ?? '') as String,
@@ -138,6 +142,7 @@ class GameActivity {
         relatedPlayerId: parseStr(j['relatedPlayerId']),
         relatedPlayerName: parseStr(j['relatedPlayerName']),
         jersey: parseInt(j['jersey']),
+        relatedJersey: parseInt(j['relatedJersey']),
       );
 }
 
@@ -155,6 +160,8 @@ class ActivityDef {
     this.assistTally = const {},
     this.side,
     this.weight,
+    this.scores = false,
+    this.disciplinary = false,
   });
   final String type;
   final String label;
@@ -180,6 +187,13 @@ class ActivityDef {
 
   bool get isMistake => (weight ?? 0) < 0 || side == 'discipline';
 
+  /// The def carries a `score` rule (a goal, an own goal, a point).
+  final bool scores;
+
+  /// The def carries a `discipline` rule (a card, a foul that counts toward
+  /// a send-off).
+  final bool disciplinary;
+
   factory ActivityDef.fromJson(Map<String, dynamic> j) {
     final assist = j['assist'];
     final score = j['score'];
@@ -195,8 +209,38 @@ class ActivityDef {
       assistTally: assist is Map ? _intMap(assist['tally']) : const {},
       side: parseStr(j['side']),
       weight: j['weight'] is num ? (j['weight'] as num).toDouble() : null,
+      scores: score is Map,
+      disciplinary: j['discipline'] is Map,
     );
   }
+}
+
+/// The owner's per-sport choice of Key moments (2026-11-16), by stat type —
+/// types are stable keys (the workspace's
+/// `packages/api/src/games/activityDefaults.ts`). Basketball: field goals,
+/// blocks and steals — not free throws, misses, rebounds, turnovers or fouls.
+/// Volleyball: kills, aces and blocks — not "point (other)", the opponent's
+/// errors, digs or faults.
+const basketballMoments = ['two_points', 'three_points', 'block', 'steal'];
+const volleyballMoments = ['kill', 'ace', 'block'];
+
+/// Soccer keeps every scoring and disciplinary stat AND its saves; hockey's
+/// and handball's saves stay out (the owner: "for soccer event category").
+const soccerExtraMoments = ['save', 'penalty_save'];
+
+/// Is this stat a key moment in this sport family (games.get
+/// `officiatingProfile.family` — [OfficiatingProfile.family], the server's
+/// `sportFamilyFor`)? Every family not named here: its scoring and
+/// disciplinary stats, as before. The web's `isKeyMoment`
+/// (`apps/web/src/components/keyMoments.ts`), rule for rule.
+bool isKeyMomentStat(String? family, String type, ActivityDef? def) {
+  if (family == 'basketball') return basketballMoments.contains(type);
+  if (family == 'volleyball') return volleyballMoments.contains(type);
+  final scoresOrCards = def != null && (def.scores || def.disciplinary);
+  if (family == 'soccer') {
+    return scoresOrCards || soccerExtraMoments.contains(type);
+  }
+  return scoresOrCards;
 }
 
 Map<String, int> _intMap(dynamic v) => v is Map
@@ -555,11 +599,17 @@ class GameDetail {
     this.volleyball,
     this.clockBy,
     this.ratings = const {},
+    this.phaseLabels,
   });
 
   final String id;
   final String status;
   final List<GameTeam> teams;
+
+  /// Phase key → its label ("H1" → "First half"), in the match's own order;
+  /// null for a match not played in phases (games.get `phaseLabels`). The
+  /// post-match Key moments list is grouped by it.
+  final Map<String, String>? phaseLabels;
 
   /// Match ratings once completed (1–10, 6.0 = par): playerId → rating.
   final Map<String, double> ratings;
@@ -728,6 +778,12 @@ class GameDetail {
             }
           : const {},
       awayGoals: j['aggregate'] is Map && (j['aggregate'] as Map)['awayGoals'] == true,
+      phaseLabels: j['phaseLabels'] is Map
+          ? {
+              for (final e in (j['phaseLabels'] as Map).entries)
+                '${e.key}': '${e.value ?? ''}',
+            }
+          : null,
       legHomeTeamId: j['aggregate'] is Map ? parseStr((j['aggregate'] as Map)['homeTeamId']) : null,
       scoresheetHolder: null,
       officiantNames: j['officiants'] is Map &&

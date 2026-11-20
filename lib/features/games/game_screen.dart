@@ -4,15 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/games/game_models.dart';
 import 'package:sportpadi_mobile/data/games/games_repository.dart';
 import 'package:sportpadi_mobile/data/games/live_game_controller.dart';
+import 'package:sportpadi_mobile/data/highlights/highlight_add.dart';
 import 'package:sportpadi_mobile/data/highlights/highlight_models.dart'
-    show GameHighlightRef;
+    show GameHighlightRef, LinkableStat;
 import 'package:sportpadi_mobile/data/highlights/highlights_repository.dart'
-    show gameHighlightsProvider;
+    show gameHighlightsProvider, gameLinkableProvider;
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/events/event_mvp_card.dart';
 import 'package:sportpadi_mobile/features/games/basketball_widgets.dart';
@@ -22,6 +24,7 @@ import 'package:sportpadi_mobile/features/games/post_match_cards.dart';
 import 'package:sportpadi_mobile/features/games/scoreboard_widgets.dart';
 import 'package:sportpadi_mobile/features/games/timeout_widgets.dart';
 import 'package:sportpadi_mobile/features/games/volleyball_widgets.dart';
+import 'package:sportpadi_mobile/features/share/share_sheet.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
@@ -61,9 +64,19 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   /// The page's own scroller, so a stat's row can be brought into view.
   final _scroll = ScrollController();
 
-  /// One key per timeline row, by stat id. The screen keeps them because a
-  /// GlobalKey minted in `build` would be a new one every build; the rows
-  /// themselves are `_TimelineCard`'s.
+  /// One key per stat, by stat id: what a reel's way back and `?stat=` land
+  /// on. The screen keeps them because a GlobalKey minted in `build` would be
+  /// a new one every build; the rows themselves are `_TimelineCard`'s.
+  ///
+  /// A stat can have TWO rows — Key moments AND the timeline, on a completed
+  /// match seen by someone who can score it — and a GlobalKey may sit on one
+  /// widget only. The key goes on the FIRST of them, Key moments' (it comes
+  /// first on the page, as on the web, whose `statLanding.ts` lands on the
+  /// first `[data-stat]`); the timeline leaves it off every stat Key moments
+  /// carries (`unkeyed`). A stat with no row on this viewer's page at all
+  /// (a spectator, a finished match, a stat that is not a key moment) is not
+  /// walked for: the page lands on the Key moments card, keyed here as
+  /// [_momentsCard], or stays where it is ([_scrollToStat]).
   final _rowKeys = <String, GlobalKey>{};
 
   /// `?stat=` is honoured once: the live subscription hands the match back
@@ -95,27 +108,42 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   /// offset BELOW the row — the very case this was built for, and the one it
   /// used to miss (T8 review LOW-G). Bounded both ways: a timeline that
   /// never reaches the row is put back where they left it.
+  ///
+  /// A stat with NO row on this page as the match stands now — a spectator,
+  /// a finished match, a stat that is not a key moment; reachable when the
+  /// reel was opened from a live match's Timeline and the match ended while
+  /// they watched — is not walked for (that is the whole page down and back
+  /// over 24 frames, for nothing): the page lands on the Key moments card
+  /// when there is one, as the web lands on its stats section
+  /// (`data-stat-section`, `statLanding.ts`), and otherwise stays where it
+  /// is (kmdock review LOW-2).
   Future<void> _scrollToStat(String activityId) async {
     if (!_statUuid.hasMatch(activityId)) return;
+    var target = activityId;
+    final g = ref.read(liveGameProvider(widget.gameId)).valueOrNull;
+    if (g != null && !_hasRow(g, activityId)) {
+      if (_keyMomentsOf(g).isEmpty) return;
+      target = _momentsCard;
+    }
     final walk = ++_walk;
     // A `?stat=` arrival can land before the match has: there is no list to
     // walk yet.
     for (var wait = 0; wait < 24; wait++) {
       if (!mounted || walk != _walk) return;
-      if (_scroll.hasClients || _rowKeys[activityId]?.currentContext != null) {
+      if (_scroll.hasClients || _rowKeys[target]?.currentContext != null) {
         break;
       }
       await Future<void>.delayed(const Duration(milliseconds: 100));
     }
     if (!mounted || walk != _walk) return;
     final from = _scroll.hasClients ? _scroll.position.pixels : null;
-    var row = await _walkToStat(activityId, walk, down: true);
+    var row = await _walkToStat(target, walk, down: true);
     if (row == null) {
       if (!mounted || walk != _walk) return;
       // Not below them, so try above: back to where they were first, or the
       // walk up would start from the bottom of the match.
       if (from != null && _scroll.hasClients) _scroll.jumpTo(from);
-      row = await _walkToStat(activityId, walk, down: false);
+      row = await _walkToStat(target, walk, down: false);
     }
     if (!mounted || walk != _walk) return;
     // The context belongs to the ROW, not to this State: this State's
@@ -129,6 +157,34 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     // Leave the page where they left it, not at an end of the match.
     if (from != null && _scroll.hasClients) _scroll.jumpTo(from);
   }
+
+  /// The key, in [_rowKeys], of the Key moments CARD — where a stat with no
+  /// row of its own lands ([_scrollToStat]). Not a uuid, so no stat's id.
+  static const _momentsCard = 'key-moments';
+
+  /// The Key moments card for [g], or null when it has none — keyed: where a
+  /// stat with no row lands ([_scrollToStat]). Built in one branch of the
+  /// page only, so the key is in the tree once.
+  Widget? _keyMomentsCard(GameDetail g) {
+    if (_keyMomentsOf(g).isEmpty) return null;
+    return KeyedSubtree(
+      key: _rowKeys.putIfAbsent(_momentsCard, () => GlobalKey()),
+      child: _TimelineCard(
+        game: g,
+        gameId: widget.gameId,
+        rowKeys: _rowKeys,
+        onStatReturn: _scrollToStat,
+        keyMoments: true,
+      ),
+    );
+  }
+
+  /// Does this stat have a row on the page as [g] stands: a key moment, or
+  /// any stat while the Timeline is shown (the two cards' own rules)?
+  static bool _hasRow(GameDetail g, String activityId) =>
+      _keyMomentsOf(g).any((a) => a.id == activityId) ||
+      ((g.status != 'completed' || g.canScore) &&
+          g.activities.any((a) => a.id == activityId));
 
   /// One direction of [_scrollToStat]'s walk: a bounded number of 80 %-of-a-
   /// viewport jumps, one per frame, until the row has a context. Answers that
@@ -193,6 +249,22 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   : context.l10n.game_match,
               subtitle: kind,
               actions: [
+                // Share the match (features/share): the card is teams and
+                // score only, never a player's name.
+                if (g0 != null)
+                  SpRoundButton(
+                    icon: Icons.ios_share_rounded,
+                    iconSize: 19,
+                    tooltip: context.l10n.share_shareMatch,
+                    onTap: () => showShareSheet(context, ref,
+                        url: shareSiteUrl(
+                            ref.read(appConfigProvider).apiBaseUrl,
+                            '/games/${g0.id}'),
+                        title: g0.teams.length == 2
+                            ? '${g0.teams[0].name} ${g0.teams[0].score}–${g0.teams[1].score} ${g0.teams[1].name}'
+                            : context.l10n.game_match,
+                        subtitle: kind),
+                  ),
                 if (g0?.leagueSlug != null)
                   SpRoundButton(
                     icon: Icons.format_list_numbered_rounded,
@@ -218,8 +290,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               onRetry: () => ref.invalidate(liveGameProvider(gameId)),
               data: (g) => RefreshIndicator(
                 onRefresh: () {
-                  // The timeline's highlight badges come from their own read.
+                  // The rows' highlight badges and "+" come from their own
+                  // reads.
                   ref.invalidate(gameHighlightsProvider(gameId));
+                  ref.invalidate(gameLinkableProvider(gameId));
                   return ref.read(liveGameProvider(gameId).notifier).refresh();
                 },
                 child: ListView(
@@ -352,12 +426,22 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                       // Your match — XP, your stats, unlocks (players only).
                       YourMatchCard(gameId: gameId),
                       const SizedBox(height: 12),
+                      // Key moments right after each sport's result card,
+                      // each row with its play badges and "+" (web:
+                      // PostMatchSummary / BasketballSummary /
+                      // VolleyballSummary). Nothing when there are none.
                       if (g.isBasketball)
-                        BasketballSummary(game: g)
+                        BasketballSummary(
+                            game: g, afterResult: _keyMomentsCard(g))
                       else if (g.isVolleyball)
-                        VolleyballSummary(game: g)
+                        VolleyballSummary(
+                            game: g, afterResult: _keyMomentsCard(g))
                       else ...[
                         _SummaryCard(game: g),
+                        if (_keyMomentsOf(g).isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          _keyMomentsCard(g)!,
+                        ],
                         // Per team: totals, scorers, contributions.
                         PostMatchTeamCards(game: g),
                       ],
@@ -381,13 +465,22 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                       const SizedBox(height: 12),
                       OfficiantPanel(gameId: gameId, game: g),
                     ],
-                    const SizedBox(height: 12),
-                    _TimelineCard(
-                      game: g,
-                      gameId: gameId,
-                      rowKeys: _rowKeys,
-                      onStatReturn: _scrollToStat,
-                    ),
+                    // The timeline — every stat. Once the match is over,
+                    // spectators get Key moments instead; whoever can amend
+                    // its stats keeps it, with ✎ and 🗑 (web: GameClient,
+                    // `status !== "completed" || canScore`), in every
+                    // sport — basketball and volleyball have their own Key
+                    // moments too (2026-11-16).
+                    if (g.status != 'completed' || g.canScore) ...[
+                      const SizedBox(height: 12),
+                      _TimelineCard(
+                        game: g,
+                        gameId: gameId,
+                        rowKeys: _rowKeys,
+                        onStatReturn: _scrollToStat,
+                        unkeyed: {for (final a in _keyMomentsOf(g)) a.id},
+                      ),
+                    ],
                     // Basketball: line score + box score while it's played.
                     if (g.isBasketball && g.isLive) ...[
                       const SizedBox(height: 12),
@@ -1092,15 +1185,138 @@ class _ShootoutCard extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Timeline — web rows: minute, icon, team dot, "#7 Name — Goal (with #10)".
+// Key moments + Timeline — web rows: minute, icon, team dot,
+// "#7 Name — Goal (with #10)", then the play badges and the "+".
 // ---------------------------------------------------------------------------
 
+/// A finished match's Key moments, in every sport: the stats
+/// [isKeyMomentStat] keeps for its family (game_models.dart — the web's
+/// `keyMoments.ts`, rule for rule). None while it is played. Basketball and
+/// volleyball keep the Timeline's own order — the server's: minute, then when
+/// it was recorded, a stat with no minute last (a watch sends none) — and
+/// their groups re-split it by quarter / set; the others are by minute, as
+/// the web's.
+List<GameActivity> _keyMomentsOf(GameDetail g) {
+  if (g.status != 'completed') return const [];
+  final family = g.profile.family;
+  final keep = [
+    for (final a in g.activities)
+      if (isKeyMomentStat(family, a.type, g.defFor(a.type))) a
+  ];
+  if (family == 'basketball' || family == 'volleyball') return keep;
+  final rows = <({int at, GameActivity a})>[
+    for (var i = 0; i < keep.length; i++) (at: i, a: keep[i])
+  ];
+  // By minute (none = 0), and in their recorded order within a minute: the
+  // web's sort is stable, Dart's `sort` is not promised to be.
+  rows.sort((x, y) {
+    final m = (x.a.minute ?? 0).compareTo(y.a.minute ?? 0);
+    return m != 0 ? m : x.at.compareTo(y.at);
+  });
+  return [for (final r in rows) r.a];
+}
+
+/// Key moments' groups, or null for one flat list — the web's
+/// `momentGroups`. Volleyball: by SET, from the phase each rally is stamped
+/// with ("S1"…, the Timeline's [setStamp]), sets in order, labelled as the
+/// Timeline stamps them. Every other sport: by the match's own phases
+/// ([GameDetail.phaseLabels] — a basketball game's quarters and overtimes, a
+/// soccer match's halves). Either way whatever has no known group comes last,
+/// unlabelled.
+List<({String label, List<GameActivity> items})>? _momentGroupsOf(
+    GameDetail g, List<GameActivity> rows) {
+  if (g.profile.family == 'volleyball') {
+    String? setOf(GameActivity a) =>
+        RegExp(r'^S(\d)$').firstMatch(a.phase ?? '')?.group(1);
+    final sets = <String>{
+      for (final a in rows)
+        if (setOf(a) != null) setOf(a)!
+    }.toList()
+      ..sort();
+    final out = <({String label, List<GameActivity> items})>[
+      for (final n in sets)
+        (
+          label: setStamp('S$n'),
+          items: [
+            for (final a in rows)
+              if (setOf(a) == n) a
+          ]
+        )
+    ];
+    final rest = [
+      for (final a in rows)
+        if (setOf(a) == null) a
+    ];
+    if (rest.isNotEmpty) out.add((label: '', items: rest));
+    return out;
+  }
+  final labels = g.phaseLabels;
+  if (labels == null) return null;
+  final intervals = [
+    for (final ph in g.lifecycle?.phases ?? const <GamePhase>[])
+      if (ph.kind == 'interval') ph.key
+  ];
+  return _byPhase(rows, labels, intervals, g.profile.family);
+}
+
+/// Key moments grouped by phase, in the match's own phase order, a BREAK
+/// ([intervals]: lifecycle `kind: interval` — a quarter break, half-time…)
+/// folded into the period before it, so a stat entered during one is never a
+/// group of its own (kmdock-r2 review LOW-1); whatever has no known phase
+/// last and unlabelled. Basketball's headings are [periodShort] (Q1…, OT) —
+/// the same in every language — rather than the server's English labels.
+/// The web's `momentGroups`, rule for rule.
+List<({String label, List<GameActivity> items})> _byPhase(
+    List<GameActivity> rows,
+    Map<String, String> labels,
+    List<String> intervals,
+    String family) {
+  // Each phase's group: itself, or — a break — the period before it (none
+  // before it: the unlabelled rest).
+  final owner = <String, String?>{};
+  String? last;
+  for (final key in labels.keys) {
+    if (intervals.contains(key)) {
+      owner[key] = last;
+    } else {
+      owner[key] = key;
+      last = key;
+    }
+  }
+  String? groupOf(GameActivity a) =>
+      a.phase != null && owner.containsKey(a.phase) ? owner[a.phase] : null;
+  final out = <({String label, List<GameActivity> items})>[];
+  for (final e in labels.entries) {
+    if (owner[e.key] != e.key) continue;
+    final items = [
+      for (final a in rows)
+        if (groupOf(a) == e.key) a
+    ];
+    final label =
+        family == 'basketball' ? periodShort(e.key) ?? e.value : e.value;
+    if (items.isNotEmpty) out.add((label: label, items: items));
+  }
+  final rest = [
+    for (final a in rows)
+      if (groupOf(a) == null) a
+  ];
+  if (rest.isNotEmpty) out.add((label: '', items: rest));
+  return out;
+}
+
+/// One list of stat rows: the match's Timeline (every stat, ✎ / 🗑 for
+/// whoever can score it), or — [keyMoments] — a finished match's Key
+/// moments ([_keyMomentsOf], grouped by [_momentGroupsOf]: volleyball by
+/// set, the rest by phase when it was played in phases). Every row carries its play badges and, where the viewer may
+/// add one, the "+" (`highlight_add.dart`), in both.
 class _TimelineCard extends ConsumerWidget {
   const _TimelineCard({
     required this.game,
     required this.gameId,
     required this.rowKeys,
     required this.onStatReturn,
+    this.keyMoments = false,
+    this.unkeyed = const {},
   });
   final GameDetail game;
   final String gameId;
@@ -1112,21 +1328,56 @@ class _TimelineCard extends ConsumerWidget {
   /// A reel pushed from a row here has handed back the stat it started on.
   final ValueChanged<String> onStatReturn;
 
+  /// This card is Key moments, not the Timeline.
+  final bool keyMoments;
+
+  /// Stats whose row here goes WITHOUT its key, because another card (Key
+  /// moments, above) already carries it: a GlobalKey may be used once.
+  final Set<String> unkeyed;
+
   String _jn(int? jersey) => jersey != null ? '#$jersey ' : '';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
     final g = game;
+    final rows = keyMoments ? _keyMomentsOf(g) : g.activities;
+    final groups = keyMoments ? _momentGroupsOf(g, rows) : null;
+    // A finished match's timeline is there to correct it: say how.
+    final hint = !keyMoments && g.status == 'completed' && g.canScore
+        ? context.l10n.game_correctsWhoItWasIt
+        : null;
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(g.status == 'completed' ? context.l10n.game_keyMoments : context.l10n.game_timeline,
+          Text(
+              keyMoments
+                  ? context.l10n.game_keyMoments
+                  : context.l10n.game_timeline,
               style: TextStyle(
                   color: p.ink, fontSize: 16, fontWeight: FontWeight.w700)),
+          if (hint != null) ...[
+            const SizedBox(height: 2),
+            Text(hint, style: TextStyle(color: p.muted, fontSize: 12)),
+          ],
           const SizedBox(height: 12),
-          if (g.activities.isEmpty)
+          if (groups != null)
+            for (final group in groups) ...[
+              if (group.label.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(group.label.toUpperCase(),
+                      style: TextStyle(
+                          color: p.muted,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8)),
+                ),
+              for (final a in group.items) _row(context, ref, a),
+              const SizedBox(height: 4),
+            ]
+          else if (rows.isEmpty)
             Row(children: [
               const SpIconTile(Icons.timeline_rounded, size: 38, iconSize: 18),
               const SizedBox(width: 10),
@@ -1139,7 +1390,7 @@ class _TimelineCard extends ConsumerWidget {
               ),
             ])
           else
-            for (final a in g.activities) _row(context, ref, a),
+            for (final a in rows) _row(context, ref, a),
         ],
       ),
     );
@@ -1153,11 +1404,32 @@ class _TimelineCard extends ConsumerWidget {
     final isSub = a.type == 'substitution';
     // Highlights pinned to this stat — one per player on it, so at most two
     // (docs/wiki/highlights.md). Nothing until the read lands, or if it fails.
-    final clips = ref.watch(gameHighlightsProvider(gameId)).valueOrNull?[a.id] ??
-        const <GameHighlightRef>[];
+    final shown = ref.watch(gameHighlightsProvider(gameId));
+    final clips = shown.valueOrNull?[a.id] ?? const <GameHighlightRef>[];
+    // "+": the viewer — or a ward of theirs — is on this stat and has no
+    // highlight on it yet. Signed-in only, so a visitor never asks for the
+    // list of free places (`highlightAddFor` has the rules).
+    final me = ref.watch(
+        authControllerProvider.select((s) => s.valueOrNull?.user?.id));
+    final add = highlightAddFor(
+      me: me,
+      ready: shown.hasValue && !shown.hasError,
+      places: me == null
+          ? const <String, List<LinkableStat>>{}
+          : ref.watch(gameLinkableProvider(gameId)).valueOrNull ??
+              const <String, List<LinkableStat>>{},
+      existing: clips,
+      activityId: a.id,
+      type: a.type,
+      playerId: a.playerId,
+      relatedPlayerId: a.relatedPlayerId,
+    );
     return Padding(
-      // What the way back out of a reel scrolls to (the web's `data-stat`).
-      key: rowKeys.putIfAbsent(a.id, () => GlobalKey()),
+      // What the way back out of a reel scrolls to (the web's `data-stat`) —
+      // on this stat's first row only ([unkeyed]).
+      key: unkeyed.contains(a.id)
+          ? null
+          : rowKeys.putIfAbsent(a.id, () => GlobalKey()),
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1168,10 +1440,16 @@ class _TimelineCard extends ConsumerWidget {
               g.isBasketball
                   ? bbStamp(a)
                   : g.isVolleyball
-                      ? setStamp(a.phase)
+                      // Under Key moments' "Set n" heading the row's own
+                      // "Set n" says nothing more (kmdock-r2 review LOW-7):
+                      // the column stays, empty — as on the web.
+                      ? (keyMoments ? '' : setStamp(a.phase))
                       : a.minute != null
                           ? "${a.minute}'"
-                          : (a.phase ?? ''),
+                          // Key moments name the phase above the rows.
+                          : keyMoments
+                              ? ''
+                              : (a.phase ?? ''),
               textAlign: TextAlign.right,
               style: TextStyle(
                   color: p.muted,
@@ -1248,7 +1526,15 @@ class _TimelineCard extends ConsumerWidget {
                         PlayerTap(
                           userId: a.relatedPlayerId,
                           borderRadius: 6,
-                          child: Text(context.l10n.game_withLabel2(a.relatedPlayerName ?? ''),
+                          child: Text(
+                              keyMoments
+                                  // "(assist #10 Ada)", as the web's Key
+                                  // moments word it.
+                                  ? context.l10n.game_assist(
+                                      _jn(a.relatedJersey),
+                                      a.relatedPlayerName ?? '')
+                                  : context.l10n.game_withLabel2(
+                                      a.relatedPlayerName ?? ''),
                               style: TextStyle(color: p.muted, fontSize: 13)),
                         ),
                     ],
@@ -1257,8 +1543,11 @@ class _TimelineCard extends ConsumerWidget {
           // A play badge per highlight. It opens that post — and says
           // where it came from, so the post is the first of the whole
           // EVENT's reel and scrolling off its end comes back to this
-          // timeline, on this row (docs/wiki/highlights.md). The same
-          // address the web makes (`highlightReelHref`).
+          // match, on the stat's FIRST row: this one, or — for a Timeline
+          // row that is also a key moment — its Key moments row above
+          // (`unkeyed`; the web lands on the first `[data-stat]` too).
+          // docs/wiki/highlights.md. The same address the web makes
+          // (`highlightReelHref`).
           for (final clip in clips)
             Tooltip(
               message: context.l10n.highlights_watchHighlight,
@@ -1285,8 +1574,12 @@ class _TimelineCard extends ConsumerWidget {
                 ),
               ),
             ),
+          if (add != null) _AddHighlightButton(gameId: gameId, add: add),
           // ✎ corrects who it was (keeps the stat and its minute); 🗑 deletes.
-          if (g.canScore && (g.isLive || g.status == 'completed')) ...[
+          // On the Timeline only, as on the web: Key moments only reads.
+          if (!keyMoments &&
+              g.canScore &&
+              (g.isLive || g.status == 'completed')) ...[
             if (!isSub)
               InkWell(
                 customBorder: const CircleBorder(),
@@ -1350,6 +1643,42 @@ class _TimelineCard extends ConsumerWidget {
             .showSnackBar(SnackBar(content: Text('$e')));
       }
     }
+  }
+}
+
+/// "+" on a stat's row: post a highlight of THIS stat, with it already
+/// picked in the composer (the web's `StatHighlightBadges` `add`, and its
+/// `newHighlightHref`). Shown only where [highlightAddFor] offers it.
+///
+/// Nothing is refreshed here when the composer comes back: it bumps
+/// `highlightsChanged` as it posts, and both lists this row reads
+/// (`gameHighlightsProvider`, `gameLinkableProvider`) re-read on that — the
+/// route below a pushed one stays mounted, so they are still listening.
+class _AddHighlightButton extends StatelessWidget {
+  const _AddHighlightButton({required this.gameId, required this.add});
+  final String gameId;
+  final HighlightAdd add;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final name = add.forName;
+    final label = name != null
+        ? context.l10n.highlights_badgeAddFor(name)
+        : context.l10n.highlights_badgeAdd;
+    return Tooltip(
+      message: label,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: () => context.push(
+            '/highlights/new?gameId=$gameId&activityId=${add.activityId}'),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(6, 0, 2, 4),
+          child: Icon(Icons.add_circle_outline_rounded,
+              size: 19, color: p.muted),
+        ),
+      ),
+    );
   }
 }
 

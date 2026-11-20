@@ -8,6 +8,7 @@ import 'package:sportpadi_mobile/data/leagues/leagues_repository.dart';
 import 'package:sportpadi_mobile/data/payments/payment_models.dart';
 import 'package:sportpadi_mobile/data/tournaments/tournaments_repository.dart';
 import 'package:sportpadi_mobile/features/documents/team_documents.dart';
+import 'package:sportpadi_mobile/features/share/share_sheet.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
@@ -183,10 +184,16 @@ class _RegistrationCardState extends ConsumerState<RegistrationCard> {
             const SizedBox(height: 10),
             Row(children: [
               Expanded(
+                // The call-for-teams post goes out through the share sheet
+                // (features/share): to people on SportPadi as the link, and
+                // to other apps as the ready-made post (which carries it).
                 child: FilledButton.icon(
-                  onPressed: shareText == null ? null : () => _copy(shareText, context.l10n.tournament_callForTeamsPost),
+                  onPressed: shareText == null || link == null
+                      ? null
+                      : () => showShareSheet(context, ref,
+                          url: link, title: context.l10n.tournament_callForTeams, text: shareText),
                   icon: const Icon(Icons.campaign_rounded, size: 18),
-                  label: Text(context.l10n.tournament_copyCallForTeams),
+                  label: Text(context.l10n.tournament_shareCallForTeams),
                 ),
               ),
               if (!widget.ended) ...[

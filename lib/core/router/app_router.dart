@@ -55,6 +55,7 @@ import 'package:sportpadi_mobile/features/groups/membership_requests_screen.dart
 import 'package:sportpadi_mobile/features/payments/outstanding_tickets_screen.dart';
 import 'package:sportpadi_mobile/features/profile/my_qr_screen.dart';
 import 'package:sportpadi_mobile/features/profile/my_sports_screen.dart';
+import 'package:sportpadi_mobile/features/profile/follow_requests_screen.dart';
 import 'package:sportpadi_mobile/features/sports/my_records_screen.dart';
 import 'package:sportpadi_mobile/features/sports/sport_record_screen.dart';
 import 'package:sportpadi_mobile/features/settings/language_screen.dart';
@@ -123,6 +124,12 @@ class _AuthRefresh extends ChangeNotifier {
   /// Set once the router exists (it needs this notifier first).
   GoRouter? router;
 }
+
+final _uuidRe = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+
+/// An id where an invite link's code belongs (an old /join/<groupId> link).
+bool _isUuid(String s) => _uuidRe.hasMatch(s);
 
 /// Where sign-in should drop the user afterwards, if the `redirect` query
 /// parameter names somewhere sane: an in-app path, never an absolute URL
@@ -210,7 +217,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             // A tournament's registration link reads signed out, like a
             // join link — it asks for an account only to register.
             loc.startsWith('/register/') ||
-            loc.startsWith('/claim/')) {
+            loc.startsWith('/claim/') ||
+            // One highlight — a shared link, a notification, the match reel
+            // (its `?gameId=&activityId=` ride along) — opens signed out
+            // (owner, 2026-11-19: a visitor watches public players'
+            // highlights; the server decides which, and every action on it
+            // asks them to sign up — features/highlights/highlight_visitor.dart).
+            // The composer still needs an account: /highlights/new falls
+            // through to sign-in, with the redirect back.
+            (loc.startsWith('/highlights/') && loc != '/highlights/new')) {
           return null;
         }
         if (loc == '/') return '/home';
@@ -230,7 +245,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         // first (verify-email replaces the stack, so the redirect query
         // alone wouldn't survive).
         final pending = ref.read(pendingIntentProvider);
-        return safeRedirectTarget(state.uri.queryParameters['redirect']) ??
+        final target =
+            safeRedirectTarget(state.uri.queryParameters['redirect']);
+        // Just verified, with a target: Home only — VerifyEmailScreen pushes
+        // the target on top of it, so it is built once, with Home underneath
+        // (re-review R-LOW-2). Everywhere else the redirect goes as before.
+        if (loc == '/verify-email' && target != null) return '/home';
+        return target ??
             (pending != null ? '/start/$pending' : null) ??
             '/home';
       }
@@ -286,25 +307,39 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       // Highlights (reels). The feed is a dock tab; these are its pages: the
       // composer (declared first so "new" isn't read as an id) and one post
-      // — where notifications, shared links, timeline badges and profile
-      // tiles land.
+      // — where notifications, shared links, the match page's play badges
+      // (Timeline and Key moments) and profile tiles land.
+      // `?gameId=&activityId=` is a match row's "+" (game_screen.dart): the
+      // composer starts with that stat picked, as the web's does from
+      // `newHighlightHref`. The Highlights tab opens it with no query.
       GoRoute(
         path: '/highlights/new',
-        builder: (_, __) => const HighlightCreateScreen(),
+        builder: (_, st) => HighlightCreateScreen(
+          fromGameId: st.uri.queryParameters['gameId'],
+          fromActivityId: st.uri.queryParameters['activityId'],
+        ),
       ),
-      // `?gameId=` and `?activityId=` — the web's reel address — are added
-      // by a match timeline's play badge and by nothing else: the page is
-      // then the match reel, and running off its end goes back to that
-      // timeline, onto the stat's own row. A notification, a shared link and
-      // a profile tile carry no query, and the page is the one post it was
-      // (`link_resolver` builds the plain path from a web link, reel
-      // address or not).
+      // Where the post was opened from decides what scrolling on shows
+      // (workspace docs/wiki/highlights.md, "Where a highlight was opened
+      // from"). `?gameId=` and `?activityId=` — the web's reel address — are
+      // added by a play badge on the match page (a Timeline or a Key moments
+      // row): the match reel, which ends back on that match, onto the stat's
+      // row. `?from=player:<id>` is a profile's Highlights tile (the web's
+      // `playerReelHref`): that player's reel, which ends back on the
+      // profile. No query — a notification, a shared link, a chat card — is
+      // the post and then the other highlights of the player it is ABOUT.
+      // The screen reads each as a uuid or nothing (`link_resolver` keeps
+      // the same three, validated, from a web link).
       GoRoute(
         path: '/highlights/:id',
         builder: (_, st) => HighlightDetailScreen(
           id: st.pathParameters['id']!,
           fromGameId: st.uri.queryParameters['gameId'],
           fromActivityId: st.uri.queryParameters['activityId'],
+          from: st.uri.queryParameters['from'],
+          // `?comments=1` (the web's own): opens on the comments — where a
+          // visitor who signed up to comment is brought back to.
+          openComments: st.uri.queryParameters['comments'] == '1',
         ),
       ),
       // Gamification (docs/gamification/phase-2.md).
@@ -556,6 +591,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
           path: '/profile/links',
           builder: (_, __) => const SocialLinksScreen()),
+      // Follow requests to my private profile, and mine still waiting —
+      // the "{name} wants to follow you" notification opens it.
+      GoRoute(
+          path: '/profile/follow-requests',
+          builder: (_, __) => const FollowRequestsScreen()),
       GoRoute(
         path: '/profile/records/:categoryId',
         builder: (_, st) => SportRecordScreen(
@@ -692,14 +732,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       // Deep-link share targets (match the web URLs).
+      // `:code` is the link's secret code. An id there (an old link) joins
+      // nobody any more (review H2): it opens the group / team instead.
       GoRoute(
-        path: '/join/:groupId',
-        builder: (_, s) =>
-            JoinGroupScreen(groupId: s.pathParameters['groupId']!),
+        path: '/join/:code',
+        redirect: (_, s) {
+          final c = s.pathParameters['code'] ?? '';
+          return _isUuid(c) ? '/groups/${c.toLowerCase()}' : null;
+        },
+        builder: (_, s) => JoinGroupScreen(code: s.pathParameters['code']!),
       ),
       GoRoute(
-        path: '/join-team/:teamId',
-        builder: (_, s) => JoinTeamScreen(teamId: s.pathParameters['teamId']!),
+        path: '/join-team/:code',
+        redirect: (_, s) {
+          final c = s.pathParameters['code'] ?? '';
+          return _isUuid(c) ? '/teams/${c.toLowerCase()}' : null;
+        },
+        builder: (_, s) => JoinTeamScreen(code: s.pathParameters['code']!),
       ),
       // A tournament's registration link (the "call for teams" post).
       GoRoute(
@@ -712,7 +761,8 @@ final routerProvider = Provider<GoRouter>((ref) {
   // sessions, foreground time and the path through the app's screens.
   final usage = ref.watch(usageTrackerProvider)..start();
   router.routerDelegate.addListener(() {
-    final loc = router.routerDelegate.currentConfiguration.uri.toString();
+    // Invite codes are secrets: never into analytics (redactInviteCodes).
+    final loc = redactInviteCodes(router.routerDelegate.currentConfiguration.uri.toString());
     analytics.logScreen(loc);
     usage.onRoute(loc);
   });

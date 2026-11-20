@@ -11,6 +11,7 @@ import 'package:sportpadi_mobile/core/env/app_config.dart';
 import 'package:sportpadi_mobile/core/location/location_provider.dart';
 import 'package:sportpadi_mobile/core/network/auth_interceptor.dart';
 import 'package:sportpadi_mobile/core/storage/token_storage.dart';
+import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 
 const _buildName =
     String.fromEnvironment('FLUTTER_BUILD_NAME', defaultValue: 'dev');
@@ -39,7 +40,15 @@ final dioProvider = Provider<Dio>((ref) {
     ),
   );
 
-  dio.interceptors.add(AuthInterceptor(tokens));
+  // A token the server refused ends the session in the app too (it is
+  // cleared either way): the app then shows the guest shell and the
+  // visitor's view honestly, instead of a member's screens fed a stranger's
+  // answers (review highlights-visitors-app.md MED-2). Read lazily: the
+  // controller depends on this Dio through the auth repository.
+  dio.interceptors.add(AuthInterceptor(tokens,
+      onUnauthorized: () async {
+    ref.read(authControllerProvider.notifier).tokenRejected();
+  }));
   // Where the phone IS: once the app has a GPS fix (Discover, the Home
   // weather card), every request carries it so the server can show sport
   // names in that country's words — "football" in Lagos, "soccer" in Surrey

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -20,6 +19,8 @@ import 'package:sportpadi_mobile/features/groups/my_groups_menu.dart';
 import 'package:sportpadi_mobile/features/highlights/highlights_grid.dart';
 import 'package:sportpadi_mobile/core/links/link_resolver.dart' show HomeTab;
 import 'package:sportpadi_mobile/features/players/aka_card.dart';
+import 'package:sportpadi_mobile/features/players/profile_header.dart';
+import 'package:sportpadi_mobile/shared/format/bio.dart';
 import 'package:sportpadi_mobile/features/players/player_profile_screen.dart'
     show playerRecordsProvider, playerStatsProvider;
 import 'package:sportpadi_mobile/features/players/player_record.dart';
@@ -29,6 +30,7 @@ import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_dock.dart';
 import 'package:sportpadi_mobile/shared/widgets/sheet_scroll.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_tab_track.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/features/progression/progression_widgets.dart'
     show frameColor;
@@ -39,11 +41,18 @@ import 'package:sportpadi_mobile/data/wards/wards_repository.dart'
 import 'package:sportpadi_mobile/shared/widgets/sp_sheet.dart';
 import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 
-/// Profile (2026) — dark pitch cover with QR / menu round buttons, identity
-/// card with the avatar sitting on its edge (upload, frame, @username copy,
-/// Edit profile / Public view), the Wards card, progression, pinned pill tabs
-/// (Groups / Tournaments / Highlights) across all sports. My sports and
-/// My records live on their own pages, under the menu's "Activity & stats".
+/// Profile (2026) — Instagram's layout (owner, 2026-11-19 — no cover
+/// banner): a slim row with the QR / menu round buttons, then the header
+/// (`profile_header.dart`) — photo (upload, frame) and Followers ·
+/// Following, name, @username (copy), bio, links, then Edit profile · Share
+/// profile — "Follow requests" while anyone waits, the Wards card, then the
+/// group page's tab switch ([SpTabTrack], pinned under the status bar):
+/// Highlights / Groups / Records across all sports, Highlights open first.
+/// Your top honours, latest matches, rating tiles and sport record cards are
+/// the Records tab. Tournaments are no
+/// longer a tab: each sport's record page lists them, and the dock has
+/// Tournaments. My sports and My records live on their own pages, under the
+/// menu's "Activity & stats".
 /// The menu is a bottom sheet: quick tab tiles, then personal pages as icon
 /// rows.
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -53,8 +62,32 @@ class ProfileScreen extends ConsumerStatefulWidget {
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  int _tab = 0; // 0 groups, 1 tournaments, 2 events, 3 posts
+class _ProfileScreenState extends ConsumerState<ProfileScreen>
+    with SingleTickerProviderStateMixin {
+  /// 0 highlights, 1 groups, 2 records — the order of [_tabLabels].
+  late final TabController _tabs;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 3, vsync: this)..addListener(_onTab);
+  }
+
+  void _onTab() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  List<String> _tabLabels(BuildContext context) => [
+        context.l10n.profile_highlights,
+        context.l10n.profile_groups,
+        context.l10n.profile_records,
+      ];
 
   /// Pull to refresh: everything the page shows — the profile, the record
   /// (sports / tournaments), groups and the names they know you by, the
@@ -97,6 +130,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         framed: false,
         builder: (ctx) => _ProfileMenuSheet(
           profile: profile,
+          // Requests waiting for me — the menu row's count.
+          requestCount: profile.userId == null
+              ? 0
+              : ref
+                      .read(followStateProvider(profile.userId!))
+                      .valueOrNull
+                      ?.requestCount ??
+                  0,
           onPick: (v) {
             Navigator.pop(ctx);
             // Main destinations are bottom tabs here, so they switch tabs.
@@ -134,13 +175,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ? null
               : ref.watch(playerStatsProvider(userId)).valueOrNull;
           final categories = listOf(stats?['categories']);
-          final tournaments = listOf(stats?['tournaments']);
           // Your top honours and latest matches — the same read a scout gets
           // (docs/design/scouting-profile.md); progress lives under the menu.
           final honours = userId == null
               ? null
               : ref.watch(playerHonoursProvider(userId)).valueOrNull;
           final allHonours = listOf(honours?['honours']);
+          // My counts, whether my profile is private (the lock by my
+          // @username) and the follow requests waiting for me.
+          final follow = userId == null
+              ? null
+              : ref.watch(followStateProvider(userId)).valueOrNull;
           // No sport picker here any more: the tabs cover every sport.
           final groups =
               ref.watch(myGroupsProvider).valueOrNull ?? const <GroupSummary>[];
@@ -149,108 +194,111 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
           return RefreshIndicator(
             onRefresh: _refresh,
-            child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
+            child: SpPinnedTabsScrollView(
+              header: [
               SliverList(
                   delegate: SliverChildListDelegate([
                 _Hero(
                   profile: profile,
                   onMenu: () => openMenu(profile),
-                  categories: categories,
-                  ratings: listOf(honours?['ratingsByCategory']),
-                  ratingsLoaded: stats != null && honours != null,
+                  isPrivate: follow?.isPrivate == true,
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // Requests to follow my private profile (Instagram
+                      // keeps them in the activity feed; the notification
+                      // opens the same screen). Nothing while none wait.
+                      if ((follow?.requestCount ?? 0) > 0) ...[
+                        FollowRequestsRow(count: follow!.requestCount),
+                        const SizedBox(height: 12),
+                      ],
                       // Guardians: their wards and any co-guardian invites,
-                      // right under the cover (nothing for everyone else).
+                      // right under the header (nothing for everyone else).
                       WardsProfileCard(
                           onOpen: () => context.push('/profile/wards')),
-                      // Top three honours and last five matches, across all
-                      // sports — what a scout sees first.
-                      HonoursSection(
-                        honours: allHonours.take(3).toList(),
-                        loading: honours == null,
-                        total: allHonours.length,
-                        onMore: userId == null
-                            ? null
-                            : () => context.push('/players/$userId'),
-                      ),
-                      RecentMatchesSection(
-                        recent: listOf(honours?['recent']).take(5).toList(),
-                        loading: honours == null,
-                        playerId: userId ?? '',
-                      ),
-                      // Records — one card per sport, as on the public
-                      // profile; each opens your own record for that sport.
-                      PlayerRecordsSection(
-                        userId: userId ?? '',
-                        categories: categories,
-                        loaded: stats != null,
-                        mine: true,
-                        trailing: TextButton(
-                          onPressed: () => context.push('/profile/records'),
-                          child: Text(context.l10n.profile_allRecords),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Owner-console ad spot after the first few cards
-                      // (anchor "profile.mid"); nothing unless set.
+                      // Honours, recent matches and the rating tiles that
+                      // sat here are the Records tab now.
+                      // Owner-console ad spot right above the tabs, as on
+                      // a player's profile: anchor "profile.mid", or the
+                      // public profile's "player.profile_bottom" fill while
+                      // that is unset (one setting covers both profiles).
                       const AdAnchor(
                           anchor: 'profile.mid',
+                          fallback: 'player.profile_bottom',
                           padding: EdgeInsets.only(top: 14)),
                     ],
                   ),
                 ),
               ])),
-              // Pill tabs pin while the cover scrolls away.
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _PinnedProfileTabs(
-                  child: Container(
-                    color: context.palette.bg,
-                    alignment: Alignment.centerLeft,
-                    child: _ProfileTabs(
-                        tab: _tab,
-                        counts: [
-                          groups.length,
-                          tournaments.length,
-                          0,
-                        ],
-                        onChanged: (i) => setState(() => _tab = i)),
-                  ),
-                ),
-              ),
+              ],
+              // The group page's tab switch; it pins under the status bar
+              // while the cover scrolls away. No counts, as there.
+              track: SpTabTrack(
+                  labels: _tabLabels(context), controller: _tabs),
+              body: [
               SliverPadding(
-                // The last sliver: room for the floating dock the page now
-                // runs behind.
+                // The last sliver: air under the last card, above the
+                // dock's band.
                 padding: EdgeInsets.fromLTRB(
                     16, 12, 16, SpDock.spaceBelowList(context)),
                 sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                  if (_tab == 0)
+                  if (_tabs.index == 0)
+                    // Highlights about me (reels), newest first; a tile
+                    // opens the post. Posting is on the Highlights tab.
+                    HighlightsGrid(userId: userId ?? '', mine: true)
+                  else if (_tabs.index == 1)
                     _MyGroupsList(
                       groups: groups,
                       akas: akas,
                       userId: userId,
                     )
-                  else if (_tab == 1)
-                    TournamentList(
-                      rows: tournaments,
-                      playerId: userId,
-                      title: context.l10n.profile_myTournaments,
-                    )
-                  else
-                    // Highlights about me (reels), newest first; a tile
-                    // opens the post. Posting is on the Highlights tab.
-                    HighlightsGrid(userId: userId ?? '', mine: true),
+                  else ...[
+                    // Records — your top three honours and last five
+                    // matches across all sports (what a scout sees first),
+                    // then one card per sport, as on the public profile,
+                    // under your rating tiles; each opens your own record
+                    // for that sport. Honours, matches and tiles sat in the
+                    // old cover header (owner, 2026-11-19).
+                    HonoursSection(
+                      honours: allHonours.take(3).toList(),
+                      loading: honours == null,
+                      total: allHonours.length,
+                      onMore: userId == null
+                          ? null
+                          : () => context.push('/players/$userId'),
+                    ),
+                    RecentMatchesSection(
+                      recent: listOf(honours?['recent']).take(5).toList(),
+                      loading: honours == null,
+                      playerId: userId ?? '',
+                    ),
+                    const SizedBox(height: 18),
+                    PlayerRecordsSection(
+                      userId: userId ?? '',
+                      categories: categories,
+                      loaded: stats != null,
+                      mine: true,
+                      trailing: TextButton(
+                        onPressed: () => context.push('/profile/records'),
+                        child: Text(context.l10n.profile_allRecords),
+                      ),
+                      lead: SportRatingTiles(
+                        categories: categories,
+                        ratings: listOf(honours?['ratingsByCategory']),
+                        hrefFor: (categoryId) =>
+                            '/profile/records/$categoryId',
+                        loaded: stats != null && honours != null,
+                      ),
+                    ),
+                  ],
                 ])),
               ),
-            ]),
+              ],
+            ),
           );
         },
       ),
@@ -260,24 +308,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// Hero — gradient, avatar with camera upload, name/@username, edit profile.
+// Hero — the QR / menu row, then the Instagram-style header: avatar with
+// camera upload and counts, name / @username, bio, links, Edit · Share.
 // ---------------------------------------------------------------------------
 
 class _Hero extends ConsumerStatefulWidget {
   const _Hero({
     required this.profile,
     required this.onMenu,
-    required this.categories,
-    required this.ratings,
-    required this.ratingsLoaded,
+    this.isPrivate = false,
   });
   final Profile profile;
   final VoidCallback onMenu;
 
-  /// Header tiles: your average rating in each sport, each opening its record.
-  final List<dynamic> categories;
-  final List<dynamic> ratings;
-  final bool ratingsLoaded;
+  /// My "private profile" is on: the lock beside my @username.
+  final bool isPrivate;
 
   @override
   ConsumerState<_Hero> createState() => _HeroState();
@@ -327,251 +372,73 @@ class _HeroState extends ConsumerState<_Hero> {
     final p = context.palette;
     final profile = widget.profile;
     final userId = profile.userId;
-    final top = MediaQuery.of(context).padding.top;
-    final coverH = top + 132.0;
-    const avatar = 104.0;
-    const cardOverlap = 34.0;
+    // Earned avatar frame (gamification) replaces the default green ring
+    // once the player reaches Regular.
     final frame = frameColor(
             ref.watch(identityProvider(userId ?? '')).valueOrNull?.frame ??
                 'none') ??
         p.accent;
 
-    return Stack(clipBehavior: Clip.none, children: [
-      // Cover — dark pitch, like the other 2026 headers.
-      Positioned(
-        top: 0,
-        left: 0,
-        right: 0,
-        height: coverH,
-        child: ClipRRect(
-          borderRadius:
-              const BorderRadius.vertical(bottom: Radius.circular(32)),
-          child: CustomPaint(
-            painter: _ProfileCover(p.hero, p.accentDeep, p.orange),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16, top + 8, 16, 0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SpRoundButton(
-                    icon: Icons.qr_code_2_rounded,
-                    tooltip: context.l10n.profile_myQrCode,
-                    onTap: () => context.push('/my-qr'),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 11),
-                      child: Text(context.l10n.profile_profile,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800)),
-                    ),
-                  ),
-                  SpRoundButton(
-                    icon: Icons.more_horiz_rounded,
-                    tooltip: context.l10n.profile_menu,
-                    onTap: widget.onMenu,
-                  ),
-                ],
-              ),
-            ),
-          ),
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      ProfileTopBar(
+        title: context.l10n.profile_profile,
+        left: SpRoundButton(
+          icon: Icons.qr_code_2_rounded,
+          tooltip: context.l10n.profile_myQrCode,
+          onTap: () => context.push('/my-qr'),
+        ),
+        right: SpRoundButton(
+          icon: Icons.more_horiz_rounded,
+          tooltip: context.l10n.profile_menu,
+          onTap: widget.onMenu,
         ),
       ),
-      // Identity card.
-      Padding(
-        padding: EdgeInsets.fromLTRB(16, coverH - cardOverlap, 16, 0),
-        child: GlassCard(
-          padding: const EdgeInsets.fromLTRB(16, avatar / 2 + 12, 16, 16),
-          child: Column(children: [
-            Text(
-              profile.displayName,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: p.ink,
-                fontSize: 23,
-                fontWeight: FontWeight.w800,
-                height: 1.15,
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Tap to copy — the username is the handle friends use to buy
-            // tickets for you.
-            Material(
-              color: p.surface2,
-              shape: const StadiumBorder(),
-              child: InkWell(
-                customBorder: const StadiumBorder(),
-                onTap: () async {
-                  await Clipboard.setData(
-                      ClipboardData(text: profile.username));
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text(
-                            l10n.profile_usernameCopiedShareItSo)));
-                  }
-                },
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Flexible(
-                      child: Text('@${profile.username}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: p.ink,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600)),
-                    ),
-                    const SizedBox(width: 6),
-                    Icon(Icons.copy_rounded, size: 13, color: p.muted),
-                  ]),
-                ),
-              ),
-            ),
-            if (profile.bio != null && profile.bio!.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                profile.bio!,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: p.muted, fontSize: 13.5, height: 1.5),
-              ),
-            ],
-            SocialLinksRow(SocialLink.listFrom(profile.links)),
-            // Same identity block as the public profile: followers · following.
-            if (userId != null) FollowCounts(userId: userId),
-            const SizedBox(height: 16),
-            SportRatingTiles(
-              categories: widget.categories,
-              ratings: widget.ratings,
-              hrefFor: (categoryId) => '/profile/records/$categoryId',
-              loaded: widget.ratingsLoaded,
-            ),
-            const SizedBox(height: 16),
-            SpButton(
+      ProfileHeader(
+        avatar: ProfileAvatar(
+          photo: ClipOval(
+            child: Crest(
+                logoUrl: profile.avatarUrl,
+                label: profile.displayName,
+                size: kProfileAvatar - 10),
+          ),
+          ring: frame,
+          onCamera: _changeAvatar,
+          uploading: _uploading,
+        ),
+        name: profile.displayName,
+        // Tap to copy — the username is the handle friends use to buy
+        // tickets for you.
+        username: profile.username,
+        copiedText: l10n.profile_usernameCopiedShareItSo,
+        isPrivate: widget.isPrivate,
+        bio: profile.bio,
+        links: SocialLink.listFrom(profile.links),
+        counts: userId == null ? null : ProfileCounts(userId: userId),
+        actions: Row(children: [
+          Expanded(
+            child: ProfilePill(
               label: context.l10n.profile_editProfile,
               icon: Icons.edit_outlined,
               expand: true,
               onTap: _editProfile,
             ),
-          ]),
-        ),
-      ),
-      // Avatar on the card's edge, with the earned frame and upload button.
-      Positioned(
-        top: coverH - cardOverlap - avatar / 2,
-        left: 0,
-        right: 0,
-        child: Center(
-          child: SizedBox(
-            width: avatar,
-            height: avatar,
-            child: Stack(children: [
-              Positioned.fill(
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: p.surface,
-                    boxShadow: const [
-                      BoxShadow(
-                          color: Color(0x2A000000),
-                          blurRadius: 18,
-                          offset: Offset(0, 6)),
-                    ],
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.all(2.5),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      // Earned avatar frame (gamification) replaces the
-                      // default green ring once the player reaches Regular.
-                      border: Border.all(color: frame, width: 2.5),
-                    ),
-                    child: ClipOval(
-                      child: Crest(
-                          logoUrl: profile.avatarUrl,
-                          label: profile.displayName,
-                          size: avatar - 16),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                right: 0,
-                bottom: 2,
-                child: Material(
-                  color: p.ink,
-                  shape: CircleBorder(
-                      side: BorderSide(color: p.surface, width: 3)),
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: _uploading ? null : _changeAvatar,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: _uploading
-                          ? SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: p.bg))
-                          : Icon(Icons.photo_camera_rounded,
-                              size: 14, color: p.bg),
-                    ),
-                  ),
-                ),
-              ),
-            ]),
           ),
-        ),
+          if (userId != null) ...[
+            const SizedBox(width: 8),
+            Expanded(
+              child: ShareProfilePill(
+                  userId: userId,
+                  name: profile.displayName,
+                  username: profile.username,
+                  avatarUrl: profile.avatarUrl,
+                  expand: true),
+            ),
+          ],
+        ]),
       ),
     ]);
   }
 }
-
-class _ProfileCover extends CustomPainter {
-  _ProfileCover(this.base, this.green, this.warm);
-  final Color base;
-  final Color green;
-  final Color warm;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [base, Color.lerp(base, green, 0.7)!],
-        ).createShader(rect),
-    );
-    canvas.drawCircle(
-      Offset(size.width * 0.95, size.height * 1.05),
-      size.height * 0.9,
-      Paint()..color = warm.withAlpha(46),
-    );
-    final line = Paint()
-      ..color = const Color(0x1FFFFFFF)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawLine(
-        Offset(size.width / 2, 0), Offset(size.width / 2, size.height), line);
-    canvas.drawCircle(Offset(size.width / 2, size.height * 0.62), 44, line);
-  }
-
-  @override
-  bool shouldRepaint(covariant _ProfileCover old) =>
-      old.base != base || old.green != green || old.warm != warm;
-}
-
-/// Quiet secondary pill (surface2) — the partner of the ink [SpButton].
 
 /// Sheet handle.
 class _Grabber extends StatelessWidget {
@@ -616,9 +483,13 @@ class _EmptyNote extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _ProfileMenuSheet extends StatelessWidget {
-  const _ProfileMenuSheet({required this.profile, required this.onPick});
+  const _ProfileMenuSheet(
+      {required this.profile, required this.onPick, this.requestCount = 0});
   final Profile profile;
   final ValueChanged<String> onPick;
+
+  /// Follow requests waiting for me (the "Follow requests" row's count).
+  final int requestCount;
 
   @override
   Widget build(BuildContext context) {
@@ -648,7 +519,7 @@ class _ProfileMenuSheet extends StatelessWidget {
         );
 
     Widget row(String value, IconData icon, String label, String sub, Color bg,
-            Color fg) =>
+            Color fg, {int count = 0}) =>
         InkWell(
           borderRadius: BorderRadius.circular(18),
           onTap: () => onPick(value),
@@ -673,6 +544,20 @@ class _ProfileMenuSheet extends StatelessWidget {
                   ],
                 ),
               ),
+              if (count > 0)
+                Container(
+                  margin: const EdgeInsetsDirectional.only(end: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: p.orange,
+                      borderRadius: BorderRadius.circular(999)),
+                  child: Text('$count',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700)),
+                ),
               Icon(Icons.chevron_right_rounded, color: p.muted),
             ]),
           ),
@@ -782,6 +667,19 @@ class _ProfileMenuSheet extends StatelessWidget {
               SpListCard(children: [
                 row('/profile/links', Icons.link_rounded, l.menu_socialLinks,
                     l.menu_socialLinksSub, p.surface2, p.ink),
+                // Always here (review profile-header MED-1): the way to the
+                // requests waiting for me AND to the ones I sent (Sent tab),
+                // even while nobody is asking.
+                row(
+                    '/profile/follow-requests',
+                    Icons.person_add_alt_1_rounded,
+                    l.profile_followRequests,
+                    requestCount > 0
+                        ? l.profile_followRequestsWaiting(requestCount)
+                        : l.profile_followRequestsMenuSub,
+                    p.accentTint,
+                    p.greenText,
+                    count: requestCount),
                 WardsMenuRow(onTap: () => onPick('/profile/wards')),
                 row('/notifications', Icons.notifications_outlined,
                     l.menu_notifications, l.menu_notificationsSub, p.surface2, p.ink),
@@ -796,6 +694,10 @@ class _ProfileMenuSheet extends StatelessWidget {
   }
 }
 
+/// Edit profile: display name, username and the bio (docs/design/
+/// scouting-profile.md "The profile header" — up to 150 characters of plain
+/// text; a supervised account has none, so the field is a note there and
+/// the server refuses one anyway).
 class _EditProfileSheet extends ConsumerStatefulWidget {
   const _EditProfileSheet({required this.profile});
   final Profile profile;
@@ -809,23 +711,39 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
       TextEditingController(text: widget.profile.displayName);
   late final TextEditingController _username =
       TextEditingController(text: widget.profile.username);
+  late final TextEditingController _bio =
+      TextEditingController(text: widget.profile.bio ?? '');
   bool _busy = false;
   String? _error;
+
+  /// What the server will count: code points of the bio as it will store it
+  /// (`shared/format/bio.dart`, the twin of the server's cleaning — review
+  /// profile-header LOW: counting the raw text blocked Save early).
+  int get _bioLength => bioLength(normalizeBio(_bio.text) ?? '');
 
   @override
   void dispose() {
     _name.dispose();
     _username.dispose();
+    _bio.dispose();
     super.dispose();
   }
 
-  Future<void> _save() async {
+  /// [withBio]: the field was shown (the privacy answer is known and the
+  /// account isn't supervised) — only then may a bio be sent.
+  Future<void> _save(bool withBio) async {
     final name = _name.text.trim();
     final username = _username.text.trim().toLowerCase();
     if (name.isEmpty) {
       setState(() => _error = l10n.profile_displayNameIsRequired);
       return;
     }
+    // Only a bio that changed is sent (never from a supervised account, nor
+    // before we know whether it is one), so a name change can't be held up
+    // by it.
+    final bio = normalizeBio(_bio.text);
+    final bioChanged = withBio && bio != normalizeBio(widget.profile.bio);
+    if (bioChanged && _bioLength > bioMax) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -835,6 +753,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
         'displayName': name,
         if (username.isNotEmpty && username != widget.profile.username)
           'username': username,
+        if (bioChanged) 'bio': bio,
       });
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
@@ -851,6 +770,13 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final bottom = MediaQuery.of(context).viewInsets.bottom;
+    // The bio field only once we KNOW the account isn't supervised (review
+    // LOW: while the privacy answer loads, or if it failed, a supervised teen
+    // got the field, and saving a bio then failed the whole edit).
+    final privacy = ref.watch(myPrivacyProvider);
+    final supervised = privacy.valueOrNull?.applies == true;
+    final withBio = privacy.hasValue && !privacy.hasError && !supervised;
+    final over = withBio && _bioLength > bioMax;
     return Padding(
       padding: EdgeInsets.only(bottom: bottom),
       child: Container(
@@ -883,6 +809,39 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                 helperText: context.l10n.profile_lettersNumbersUnderscores,
               ),
             ),
+            const SizedBox(height: 12),
+            if (!withBio && !supervised)
+              const SizedBox.shrink()
+            else if (supervised)
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                    color: p.surface, borderRadius: BorderRadius.circular(16)),
+                child: Text(context.l10n.profile_bioSupervisedNote,
+                    style: TextStyle(color: p.muted, fontSize: 12.5)),
+              )
+            else
+              // No maxLength: it counts what a person sees as one character
+              // and the server counts code points (mobile-app.md) — our own
+              // counter instead, red past the limit, and Save waits.
+              TextField(
+                controller: _bio,
+                minLines: 2,
+                maxLines: 4,
+                keyboardType: TextInputType.multiline,
+                textCapitalization: TextCapitalization.sentences,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  labelText: context.l10n.profile_bio,
+                  hintText: context.l10n.profile_bioPlaceholder,
+                  alignLabelWithHint: true,
+                  counterText: '$_bioLength/$bioMax',
+                  counterStyle: TextStyle(
+                      color: over ? p.danger : p.muted, fontSize: 11.5),
+                ),
+              ),
             if (_error != null) ...[
               const SizedBox(height: 8),
               Text(_error!, style: TextStyle(color: p.danger, fontSize: 12.5)),
@@ -891,7 +850,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
             SpButton(
               label: _busy ? context.l10n.profile_saving : context.l10n.profile_save,
               expand: true,
-              onTap: _busy ? null : _save,
+              onTap: _busy || over ? null : () => _save(withBio),
             ),
             const SizedBox(height: 10),
             // Social links save on their own (docs/design/scouting-profile.md),
@@ -937,81 +896,6 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
           ],
         ),
       ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Tabs — Events / Posts / Groups (web profile tabs replica).
-// ---------------------------------------------------------------------------
-
-class _ProfileTabs extends StatelessWidget {
-  const _ProfileTabs({
-    required this.tab,
-    required this.onChanged,
-    this.counts = const [0, 0, 0],
-  });
-  final int tab;
-  final ValueChanged<int> onChanged;
-  final List<int> counts;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    Widget pill(int i, IconData icon, String label) {
-      final active = tab == i;
-      final count = i < counts.length ? counts[i] : 0;
-      final fg = active ? p.bg : p.ink;
-      return Padding(
-        padding: const EdgeInsets.only(right: 8),
-        child: Material(
-          color: active ? p.ink : p.surface,
-          shape: StadiumBorder(
-              side: active ? BorderSide.none : BorderSide(color: p.line)),
-          child: InkWell(
-            customBorder: const StadiumBorder(),
-            onTap: () => onChanged(i),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(12, 8, count > 0 ? 8 : 14, 8),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(icon, size: 16, color: active ? p.bg : p.muted),
-                const SizedBox(width: 6),
-                Text(label,
-                    style: TextStyle(
-                        color: fg, fontSize: 13, fontWeight: FontWeight.w700)),
-                if (count > 0) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    constraints: const BoxConstraints(minWidth: 22),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: active ? const Color(0x33FFFFFF) : p.surface2,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text('$count',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: active ? p.bg : p.muted,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800)),
-                  ),
-                ],
-              ]),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(children: [
-        pill(0, Icons.groups_outlined, context.l10n.profile_groups),
-        pill(1, Icons.emoji_events_outlined, context.l10n.profile_tournaments),
-        pill(2, Icons.movie_filter_outlined, context.l10n.profile_highlights),
-      ]),
     );
   }
 }
@@ -1128,29 +1012,6 @@ class _MyGroupsList extends StatelessWidget {
         ),
     ]);
   }
-}
-
-/// Pins the profile tab row to the top of the scroll view.
-class _PinnedProfileTabs extends SliverPersistentHeaderDelegate {
-  const _PinnedProfileTabs({required this.child});
-  final Widget child;
-
-  static const double _height = 56;
-
-  @override
-  double get minExtent => _height;
-  @override
-  double get maxExtent => _height;
-
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return SizedBox(height: _height, child: child);
-  }
-
-  @override
-  bool shouldRebuild(covariant _PinnedProfileTabs oldDelegate) =>
-      oldDelegate.child != child;
 }
 
 /// Loading / error aren't scrollable on their own, so they get a pullable

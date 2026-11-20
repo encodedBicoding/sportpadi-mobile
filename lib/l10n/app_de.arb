@@ -2771,6 +2771,10 @@
       }
     }
   },
+  "join_inviteLinkDeadTitle": "Dieser Einladungslink funktioniert nicht",
+  "join_inviteLinkDead": "Dieser Einladungslink funktioniert nicht mehr. Bitte die Person, die ihn geschickt hat, um einen neuen.",
+  "join_linkCantAddYou": "Über diesen Link kannst du nicht beitreten. Frag auf der Seite der Gruppe an.",
+  "join_linkCantAddYouTeam": "Über diesen Link kannst du dem Team nicht beitreten. Frag seine Admins.",
   "group_opening": "Wird geöffnet…",
   "group_sportPadiHome": "SportPadi-Startseite",
   "group_signIn": "Anmelden",
@@ -8883,6 +8887,7 @@
   "profile_notInAnyGroupsYet": "Noch in keiner Gruppe.",
   "profile_noTournamentsYet": "Noch keine Turniere.",
   "profile_noHighlightsYet": "Noch keine Highlights.",
+  "profile_visitorHighlightsEmpty": "Hier gibt es nichts zu zeigen. Manche Highlights sind nur für angemeldete Personen sichtbar.",
   "profile_highlight": "Highlight",
   "profile_recordInTournament": "Bilanz im Turnier",
   "profile_thisTournamentIsntAvailable": "Dieses Turnier ist nicht verfügbar",
@@ -9482,8 +9487,8 @@
   "profile_couldNotUpdatePrivacy": "Privatsphäre konnte nicht aktualisiert werden",
   "profile_profilePrivacy": "Profil-Privatsphäre",
   "profile_privateProfile": "Privates Profil",
-  "profile_othersSeeYourNameUsername": "Andere sehen deinen Namen, @Benutzernamen und dein Foto und dass dein Profil privat ist – aber nicht deine Bilanzen, Gruppen oder Beiträge.",
-  "profile_anyoneWhoTapsYourName": "Jeder, der auf deinen Namen tippt, sieht deine Bilanzen, Gruppen und Beiträge. Schalte das ein, um sie für dich zu behalten.",
+  "profile_othersSeeYourNameUsername": "Nur Follower, die du bestätigst, sehen deine Highlights, Gruppen und Bilanzen. Alle anderen sehen dein Foto, deinen Namen, @Benutzernamen, deine Bio, Links und Follower-Zahlen. Wenn du das ausschaltest, werden alle wartenden Anfragen angenommen.",
+  "profile_anyoneWhoTapsYourName": "Jeder, der auf deinen Namen tippt, sieht deine Bilanzen, Gruppen und Beiträge. Schalte das ein, damit nur deine Follower sie sehen – neue Follower brauchen dann dein OK.",
   "profile_yourProfileIsPrivate": "Dein Profil ist privat",
   "profile_yourProfileIsPublic": "Dein Profil ist öffentlich",
   "profile_whoCanSeeYourProfile": "Wer dein Profil sehen kann",
@@ -10017,7 +10022,7 @@
     }
   },
   "profile_localGroupGames3": "Lokale Gruppenspiele",
-  "profile_thisProfileIsPrivateTheir": "Dieses Profil ist privat. Bilanzen, Gruppen und Beiträge sind nur für die Person selbst sichtbar.",
+  "profile_thisProfileIsPrivateTheir": "Dieses Profil ist privat. Bilanzen, Gruppen und Beiträge sehen nur die Follower, die die Person bestätigt.",
   "profile_showingSRecordSwitchSport2": "Du siehst die {value}-Bilanz von {first} – wechsle jederzeit die Sportart.",
   "@profile_showingSRecordSwitchSport2": {
     "placeholders": {
@@ -11134,6 +11139,39 @@
     }
   },
   "profile_ratingTileNotRated": "Noch keine Bewertung",
+  "profile_followBack": "Zurückfolgen",
+  "profile_requested": "Angefragt",
+  "profile_unfollow": "Nicht mehr folgen",
+  "profile_unfollowPrivateNote": "Dieses Konto ist privat. Wenn du nicht mehr folgst, musst du erneut anfragen, um Highlights, Gruppen und Bilanzen zu sehen.",
+  "profile_cancelRequest": "Anfrage zurückziehen",
+  "profile_followsYou": "Folgt dir",
+  "profile_followRequests": "Follower-Anfragen",
+  "profile_followRequestsWaiting": "{count, plural, one{{count} Anfrage wartet} other{{count} Anfragen warten}}",
+  "@profile_followRequestsWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_privateAccount": "Privates Konto",
+  "profile_privateAccountTitle": "Dieses Konto ist privat",
+  "profile_privateAccountFollowText": "Folge diesem Konto, um Highlights, Gruppen und Bilanzen zu sehen.",
+  "profile_privateAccountRequestedText": "Deine Follower-Anfrage wartet. Sobald sie angenommen ist, siehst du Highlights, Gruppen und Bilanzen.",
+  "profile_privateAccountSignInText": "Melde dich an und folge diesem Konto, um Highlights, Gruppen und Bilanzen zu sehen.",
+  "profile_bio": "Bio",
+  "profile_bioPlaceholder": "Ein paar Worte über dich: deine Position, dein Verein, deine Sportarten.",
+  "profile_bioSupervisedNote": "Eine Bio ist nicht verfügbar, solange dein Konto betreut wird.",
+  "profile_requestsTabIncoming": "Anfragen",
+  "profile_requestsTabSent": "Gesendet",
+  "profile_noFollowRequests": "Gerade keine Follower-Anfragen.",
+  "profile_noSentRequests": "Keine deiner Follower-Anfragen wartet.",
+  "profile_confirmRequest": "Bestätigen",
+  "profile_deleteRequest": "Löschen",
+  "profile_withdrawRequestTitle": "Follower-Anfrage zurückziehen?",
+  "profile_withdrawRequestText": "Wenn du innerhalb einer Woche erneut anfragst, wird die Person nicht noch einmal benachrichtigt.",
+  "profile_privateAccountApprovedOnlyText": "Nur Follower, die dieses Konto bestätigt, sehen Highlights, Gruppen und Bilanzen.",
+  "profile_followRequestsMenuSub": "Wer dir folgen möchte, und deine gesendeten Anfragen",
   "inbox_discussionRemoved": "Diskussion entfernt",
   "inbox_commentRemoved": "Kommentar entfernt",
   "inbox_discussion": "Diskussion",
@@ -20341,6 +20379,15 @@
       }
     }
   },
+  "highlights_followName": "{name} folgen",
+  "@highlights_followName": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_followingNow": "Gefolgt",
   "highlights_statMinute": "{minute}’",
   "@highlights_statMinute": {
     "placeholders": {
@@ -20963,5 +21010,147 @@
   "highlights_appKeepOpen": "Es ist abgebrochen, während SportPadi im Hintergrund war. Lass die App auf dem Bildschirm offen, bis sie fertig ist, und versuch es erneut.",
   "highlights_appLostVideoTitle": "Das Video von vorhin verwenden?",
   "highlights_appLostVideoBody": "SportPadi wurde geschlossen, bevor dieses Video zu einem Highlight hinzugefügt werden konnte.",
-  "highlights_appLostVideoUse": "Verwenden"
+  "highlights_appLostVideoUse": "Verwenden",
+  "highlights_visitorTitle": "Mach mit bei SportPadi",
+  "highlights_visitorLikeText": "Erstelle ein kostenloses Konto, um Highlights zu liken und Spieler anzufeuern.",
+  "highlights_visitorCommentText": "Erstelle ein kostenloses Konto, um Highlights zu kommentieren.",
+  "highlights_visitorFollowText": "Erstelle ein kostenloses Konto, um {name} zu folgen und die Highlights unter „Gefolgt“ zu sehen.",
+  "@highlights_visitorFollowText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_visitorReportText": "Melde dich an oder erstelle ein Konto, um das dem SportPadi-Team zu melden.",
+  "highlights_visitorPostText": "Erstelle ein kostenloses Konto, um eigene Highlights zu posten.",
+  "highlights_visitorFollowingTitle": "Gefolgt",
+  "highlights_visitorFollowingText": "Melde dich an, um Highlights von Spielern zu sehen, denen du folgst.",
+  "highlights_visitorSignUp": "Registrieren",
+  "highlights_visitorSignIn": "Anmelden",
+  "highlights_commentsSignUp": "Registrieren und kommentieren",
+  "highlights_notFoundVisitorText": "Es wurde vielleicht gelöscht, oder es ist nur für angemeldete Personen sichtbar.",
+  "highlights_reelEndTitle": "Das war alles von {name}",
+  "@highlights_reelEndTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reelEndTitleMine": "Das waren alle deine Highlights",
+  "highlights_reelEndNoMore": "Keine weiteren Highlights hier",
+  "highlights_reelEndText": "Du hast alle Highlights gesehen, die du dir von dieser Person ansehen kannst.",
+  "highlights_reelEndKeepWatching": "Weiterschauen",
+  "highlights_appReelEndSignIn": "Melde dich an, um das Profil zu sehen",
+  "share_share": "Teilen",
+  "share_sendTo": "Senden an",
+  "share_searchPeople": "Personen suchen",
+  "share_loadingPeople": "Wird geladen…",
+  "share_noMatches": "Niemand passt dazu.",
+  "share_noOneYet": "Noch niemand hier. Deine Unterhaltungen, Personen, denen du folgst, und deine Follower erscheinen hier.",
+  "share_selected": "Ausgewählt",
+  "share_aboutWard": "Über {name}",
+  "@share_aboutWard": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_addMessage": "Nachricht hinzufügen (optional)",
+  "share_sending": "Wird gesendet…",
+  "share_sendToCount": "{count, plural, one{An {count} Person senden} other{An {count} Personen senden}}",
+  "@share_sendToCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "share_sentToAll": "{count, plural, one{An {count} Person gesendet} other{An {count} Personen gesendet}}",
+  "@share_sentToAll": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "share_sentSome": "An {sent} von {total} gesendet",
+  "@share_sentSome": {
+    "placeholders": {
+      "sent": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_couldntSend": "Senden fehlgeschlagen. Versuche es noch einmal.",
+  "share_couldntSendTo": "Senden an {name} fehlgeschlagen: {reason}",
+  "@share_couldntSendTo": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      },
+      "reason": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_maxRecipients": "Du kannst es an bis zu {max} Personen gleichzeitig senden.",
+  "@share_maxRecipients": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_cantSendInApp": "Das kann nicht als Nachricht gesendet werden, aber du kannst den Link trotzdem teilen.",
+  "share_otherApps": "In anderen Apps teilen",
+  "share_copyLink": "Link kopieren",
+  "share_linkCopied": "Link kopiert",
+  "share_copyThisLink": "Diesen Link kopieren",
+  "share_email": "E-Mail",
+  "share_sms": "SMS",
+  "share_more": "Mehr",
+  "share_notAvailable": "Dieser Inhalt ist nicht verfügbar",
+  "share_notAvailableHint": "Er wurde vielleicht entfernt oder ist privat.",
+  "share_kindEvent": "Event",
+  "share_kindGroup": "Gruppe",
+  "share_kindGroupInvite": "Einladung zum Beitritt",
+  "share_kindTournament": "Turnier",
+  "share_kindLeague": "Liga",
+  "share_kindCompetition": "Wettbewerb",
+  "share_kindHighlight": "Highlight",
+  "share_kindTicket": "Ticket",
+  "share_kindTeamInvite": "Team-Einladung",
+  "share_kindCallForTeams": "Aufruf an Teams",
+  "share_kindPlayer": "Spieler",
+  "share_kindMatch": "Spiel",
+  "share_kindTeam": "Team",
+  "share_shareMembershipLink": "Mitgliedslink teilen",
+  "share_joinGroupText": "Tritt {name} auf SportPadi bei",
+  "@share_joinGroupText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_shareTeam": "Team teilen",
+  "share_shareProfile": "Profil teilen",
+  "share_shareMatch": "Spiel teilen",
+  "share_couldntLoadPreview": "Vorschau konnte nicht geladen werden",
+  "share_tryAgain": "Erneut versuchen",
+  "share_couldntLoadPeople": "Personen konnten nicht geladen werden. Versuche es noch einmal.",
+  "share_resetLink": "Link zurücksetzen",
+  "share_resetLinkHint": "Erstellt einen neuen Link. Der alte funktioniert dann nicht mehr.",
+  "share_resetLinkConfirm": "Diesen Link zurücksetzen? Der alte Link funktioniert dann nicht mehr – wer ihn noch nicht benutzt hat, braucht den neuen.",
+  "share_linkWasReset": "Link zurückgesetzt. Der alte funktioniert nicht mehr.",
+  "share_couldntResetLink": "Der Link konnte nicht zurückgesetzt werden. Versuche es noch einmal.",
+  "share_couldntLoadInviteLink": "Der Einladungslink konnte nicht geladen werden.",
+  "share_anyoneWithLinkCanJoinTeam": "Wer diesen Link hat, kann dem Team und seiner Gruppe beitreten.",
+  "share_resetGroupLinkConfirm": "Diesen Link zurücksetzen? Der alte Link funktioniert dann nicht mehr – und auch die Beitrittslinks aller Teams dieser Gruppe nicht. Wer sie noch nicht benutzt hat, braucht die neuen."
 }

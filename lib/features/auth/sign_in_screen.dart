@@ -43,8 +43,12 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     super.didChangeDependencies();
     if (_prefilled) return;
     _prefilled = true;
-    final email = GoRouterState.of(context).uri.queryParameters['email'];
+    final query = GoRouterState.of(context).uri.queryParameters;
+    final email = query['email'];
     if (email != null && email.isNotEmpty) _email.text = email;
+    // `?mode=signup` (the web's own parameter): a "Sign up" button that sent
+    // them here — the highlights visitor sheet's — opens on the sign-up form.
+    if (query['mode'] == 'signup') _isSignUp = true;
   }
 
   /// Forgot password: take what's typed along, and bring the address back.
@@ -109,11 +113,28 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   /// stays. And `go`, not `pop`: it replaces the whole stack with Home (the
   /// gate renders it as the member shell), so nothing is left to reappear;
   /// the gated destination, if any, goes on top of that.
+  ///
+  /// A NEW account (or any session that still has to confirm its email)
+  /// with somewhere to go: only `/verify-email?redirect=<target>`. The router
+  /// would turn both the `go('/home')` and the `push(target)` into a
+  /// verify-email page of their own — two pages, two codes emailed, the
+  /// first one dead — and the verify page, which had no redirect, then lost
+  /// the target (review highlights-visitors-app.md MED-1; every gated
+  /// sign-up, not only highlights'). `VerifyEmailScreen` carries it on.
   void _leaveAfterSuccess() {
     final target = safeRedirectTarget(
         GoRouterState.of(context).uri.queryParameters['redirect']);
     final router = GoRouter.of(context);
+    final verify =
+        ref.read(authControllerProvider).valueOrNull?.needsEmailVerification ??
+            false;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (verify && target != null) {
+        router.go(Uri(
+            path: '/verify-email',
+            queryParameters: {'redirect': target}).toString());
+        return;
+      }
       router.go('/home');
       if (target != null) router.push(target);
     });
@@ -308,7 +329,17 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 /// One line naming what's behind the door, from the path they were sent from.
 String _gateLine(String raw, {bool signUp = false}) {
   final t = l10n;
-  final path = Uri.tryParse(Uri.decodeComponent(raw))?.path ?? '';
+  final uri = Uri.tryParse(Uri.decodeComponent(raw));
+  final path = uri?.path ?? '';
+  // From a highlight (the visitor sheet, highlight_visitor.dart): the sheet's
+  // own words where they fit — posting, or commenting — and the plain
+  // "continue" otherwise (review highlights-visitors-app.md L5; no new key).
+  if (path == '/highlights/new' && signUp) return t.highlights_visitorPostText;
+  if (path.startsWith('/highlights/') &&
+      signUp &&
+      uri?.queryParameters['comments'] == '1') {
+    return t.highlights_visitorCommentText;
+  }
   if (path.startsWith('/events/')) {
     return signUp
         ? t.auth_createAnAccountToOpenThisEvent

@@ -14,7 +14,9 @@ import 'package:sportpadi_mobile/data/highlights/highlights_repository.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/features/highlights/highlight_actions.dart';
 import 'package:sportpadi_mobile/features/highlights/highlight_comments_sheet.dart';
+import 'package:sportpadi_mobile/features/highlights/highlight_follow.dart';
 import 'package:sportpadi_mobile/features/highlights/highlight_stat_picker.dart';
+import 'package:sportpadi_mobile/features/highlights/highlight_visitor.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
@@ -33,6 +35,12 @@ import 'package:sportpadi_mobile/shared/widgets/player_link.dart';
 /// The list itself belongs to the parent: likes, comment counts, link
 /// changes, a fresher copy of a post and deletions come back through
 /// [onChanged] / [onRemoved] / [onGone].
+///
+/// A signed-out VISITOR (`highlightVisitorProvider`; workspace
+/// `docs/wiki/highlights.md` "Visitors") watches, shares and reads the
+/// comments; like, comment, follow, report and the more sheet's items that
+/// need an account open the sign-up sheet (`highlight_visitor.dart`), which
+/// brings them back to that post (in a reel, [visitorReturnReel]).
 class HighlightPager extends ConsumerStatefulWidget {
   const HighlightPager({
     super.key,
@@ -46,9 +54,19 @@ class HighlightPager extends ConsumerStatefulWidget {
     this.initialIndex = 0,
     this.onIndexChanged,
     this.bottomInset = 0,
+    this.visitorReturnReel,
+    this.openCommentsFirst = false,
   });
 
   final List<HighlightItem> items;
+
+  /// A reel's address query (`gameId`, `activityId`): a visitor who signs up
+  /// from a post of it comes back to the reel, on that post.
+  final Map<String, String>? visitorReturnReel;
+
+  /// Open the first post's comments once it is on screen (`?comments=1`: a
+  /// visitor who signed up to comment, back where they were).
+  final bool openCommentsFirst;
   final ValueChanged<HighlightItem> onChanged;
 
   /// The viewer deleted this post here.
@@ -122,7 +140,27 @@ class _HighlightPagerState extends ConsumerState<HighlightPager>
     final state = WidgetsBinding.instance.lifecycleState;
     _foreground = state == null || state == AppLifecycleState.resumed;
     _syncPlayers();
+    if (widget.openCommentsFirst) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _index >= widget.items.length) return;
+        final first = widget.items[_index];
+        // ignore: discarded_futures
+        if (first.isReady) _comments(first);
+      });
+    }
   }
+
+  /// A visitor tried to do something: the sign-up sheet, coming back here.
+  bool get _visitor => ref.read(highlightVisitorProvider);
+  Future<void> _ask(HighlightVisitorAction action, HighlightItem item) =>
+      _whileSheetOpen(() => showHighlightSignUpPrompt(
+            context,
+            action: action,
+            name: item.subject.displayName,
+            returnTo: highlightVisitorReturnTo(item.id,
+                reel: widget.visitorReturnReel,
+                comments: action == HighlightVisitorAction.comment),
+          ));
 
   @override
   void didChangeDependencies() {
@@ -139,6 +177,22 @@ class _HighlightPagerState extends ConsumerState<HighlightPager>
   @override
   void didUpdateWidget(HighlightPager oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // A post ABOVE the one on screen left the list (a reel's first post going
+    // away, review context-reels-app.md LOW-5): the page index now names the
+    // post after theirs. Follow the post they were watching instead, and say
+    // where it is now — as below, `jumpToPage` alone reports nothing.
+    final watching = _shownId;
+    if (watching != null) {
+      final at = widget.items.indexWhere((x) => x.id == watching);
+      if (at >= 0 && at < _index) {
+        _index = at;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (_pages.hasClients) _pages.jumpToPage(_index);
+          widget.onIndexChanged?.call(_index);
+        });
+      }
+    }
     // A post was removed from under us, or the trailing page went away.
     final count = _pageCount;
     if (_index >= count) _index = count > 0 ? count - 1 : 0;
@@ -380,6 +434,8 @@ class _HighlightPagerState extends ConsumerState<HighlightPager>
   /// (or flips back, with the reason, when the server says no).
   Future<void> _like(HighlightItem item) async {
     if (!item.isReady || _liking.contains(item.id)) return;
+    // Signed out: nothing is sent — the heart doesn't move; they are asked.
+    if (_visitor) return _ask(HighlightVisitorAction.like, item);
     _liking.add(item.id);
     final liked = !item.likedByMe;
     final guess = item.likeCount + (liked ? 1 : -1);
@@ -435,6 +491,13 @@ class _HighlightPagerState extends ConsumerState<HighlightPager>
     return _whileSheetOpen(() => showHighlightComments(
           context,
           item: item,
+          // Read-only for a visitor: "Sign up to comment" where the box
+          // would be, and a comment's Report asks too.
+          onVisitor: _visitor
+              ? (action) {
+                  if (mounted) unawaited(_ask(action, item));
+                }
+              : null,
           onCount: (n) {
             if (!mounted) return;
             final now = _latest(item.id);
@@ -453,6 +516,10 @@ class _HighlightPagerState extends ConsumerState<HighlightPager>
   /// opening, and its files are only kept for 72 h — so the one thing left
   /// to do with it is offered where the person is already looking.
   Future<void> _report(HighlightItem item) async {
+    // Unreachable signed out today (a visitor is handed `ready` posts only,
+    // every permission false) — gated anyway, as every other action is
+    // (review highlights-visitors-app.md L2).
+    if (_visitor) return _ask(HighlightVisitorAction.report, item);
     final messenger = ScaffoldMessenger.of(context);
     await _whileSheetOpen(() async {
       final sent = await showHighlightReport(context, highlightId: item.id);
@@ -469,12 +536,19 @@ class _HighlightPagerState extends ConsumerState<HighlightPager>
     void say(String text) =>
         messenger.showSnackBar(SnackBar(content: Text(text)));
     await _whileSheetOpen(() async {
-      final action = await showHighlightMore(context, item);
+      final visitor = _visitor;
+      final action = await showHighlightMore(context, item, visitor: visitor);
       if (action == null || !mounted) return;
+      // Signed out the sheet offers Report too (as the web does); it asks
+      // them to sign in rather than opening the report form.
+      if (visitor && action == HighlightMoreAction.report) {
+        unawaited(_ask(HighlightVisitorAction.report, item));
+        return;
+      }
       try {
         switch (action) {
           case HighlightMoreAction.copyLink:
-            shareHighlight(context, ref, item);
+            copyHighlightLink(context, ref, item);
           case HighlightMoreAction.report:
             final sent =
                 await showHighlightReport(context, highlightId: item.id);
@@ -556,6 +630,14 @@ class _HighlightPagerState extends ConsumerState<HighlightPager>
       physics: const AlwaysScrollableScrollPhysics(),
       itemCount: _pageCount,
       onPageChanged: _onPage,
+      // A post keeps its page State when the posts above it change (the
+      // opened post leaving a reel, review context-reels-app.md LOW-R1): the
+      // PageView finds it by key at its new index instead of rebuilding it.
+      findChildIndexCallback: (key) {
+        if (key is! ValueKey<String>) return null;
+        final at = widget.items.indexWhere((x) => x.id == key.value);
+        return at < 0 ? null : at;
+      },
       itemBuilder: (context, i) {
         if (i >= items.length) {
           // The page after the last post — "loading more", a retry, or a
@@ -586,9 +668,12 @@ class _HighlightPagerState extends ConsumerState<HighlightPager>
           onToggleMute: _toggleMute,
           onLike: () => _like(item),
           onComments: () => _comments(item),
-          onShare: () => shareHighlight(context, ref, item),
+          // The share sheet counts as this page's own: the clip plays on.
+          onShare: () =>
+              _whileSheetOpen(() => shareHighlight(context, ref, item)),
           onReport: () => _report(item),
           onMore: () => _more(item),
+          onVisitorFollow: () => _ask(HighlightVisitorAction.follow, item),
         );
       },
     );
@@ -626,6 +711,7 @@ class _HighlightPage extends ConsumerStatefulWidget {
     required this.onShare,
     required this.onReport,
     required this.onMore,
+    required this.onVisitorFollow,
   });
 
   final HighlightItem item;
@@ -645,6 +731,9 @@ class _HighlightPage extends ConsumerStatefulWidget {
   /// Report this post — from the state on a video the check took down (H2).
   final VoidCallback onReport;
   final VoidCallback onMore;
+
+  /// A signed-out visitor tapped Follow (the pill asks them to sign up).
+  final VoidCallback onVisitorFollow;
 
   @override
   ConsumerState<_HighlightPage> createState() => _HighlightPageState();
@@ -910,56 +999,73 @@ class _HighlightPageState extends ConsumerState<_HighlightPage> {
             padding: const EdgeInsets.only(bottom: 10),
             child: _dots(photoCount),
           ),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => openPlayerProfile(context, ref, item.author.userId),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            ClipOval(
-              child: Crest(
-                  logoUrl: item.author.avatarUrl, label: author, size: 38),
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          Flexible(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => openPlayerProfile(context, ref, item.author.userId),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                ClipOval(
+                  child: Crest(
+                      logoUrl: item.author.avatarUrl, label: author, size: 38),
+                ),
+                const SizedBox(width: 9),
+                Flexible(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(author,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w700,
+                              shadows: _textShadow)),
+                      if (item.createdAt != null)
+                        Text(fmtRelative(item.createdAt),
+                            style: const TextStyle(
+                                color: Color(0xCCFFFFFF),
+                                fontSize: 11.5,
+                                shadows: _textShadow)),
+                    ],
+                  ),
+                ),
+              ]),
             ),
-            const SizedBox(width: 9),
-            Flexible(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(author,
+          ),
+          // The post is about its author: Follow sits beside the name.
+          if (!item.aboutSomeoneElse)
+            HighlightFollowButton(
+                item: item, gap: 10, onVisitor: widget.onVisitorFollow),
+        ]),
+        // A guardian's post about a ward: say who it shows — and Follow sits
+        // beside the WARD's name, the one this post would grow a following
+        // for, not the guardian's.
+        if (item.aboutSomeoneElse)
+          Padding(
+            padding: const EdgeInsets.only(top: 7),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Flexible(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () =>
+                      openPlayerProfile(context, ref, item.subject.userId),
+                  child: Text(
+                      l.highlights_aboutPerson(item.subject.displayName),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
                           shadows: _textShadow)),
-                  if (item.createdAt != null)
-                    Text(fmtRelative(item.createdAt),
-                        style: const TextStyle(
-                            color: Color(0xCCFFFFFF),
-                            fontSize: 11.5,
-                            shadows: _textShadow)),
-                ],
+                ),
               ),
-            ),
-          ]),
-        ),
-        // A guardian's post about a ward: say who it shows.
-        if (item.aboutSomeoneElse)
-          Padding(
-            padding: const EdgeInsets.only(top: 7),
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () =>
-                  openPlayerProfile(context, ref, item.subject.userId),
-              child: Text(l.highlights_aboutPerson(item.subject.displayName),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      shadows: _textShadow)),
-            ),
+              HighlightFollowButton(
+                  item: item, gap: 8, onVisitor: widget.onVisitorFollow),
+            ]),
           ),
         if (caption != null)
           Padding(
@@ -1145,6 +1251,8 @@ class HighlightMessage extends StatelessWidget {
     this.body,
     this.actionLabel,
     this.onAction,
+    this.secondaryLabel,
+    this.onSecondary,
     this.busy = false,
   });
 
@@ -1154,6 +1262,11 @@ class HighlightMessage extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
 
+  /// A second, quieter way on, under the first (the end of a reel opened
+  /// cold: "View profile", then "Keep watching").
+  final String? secondaryLabel;
+  final VoidCallback? onSecondary;
+
   /// A spinner instead of the icon.
   final bool busy;
 
@@ -1162,6 +1275,7 @@ class HighlightMessage extends StatelessWidget {
     final t = title;
     final b = body;
     final a = actionLabel;
+    final a2 = secondaryLabel;
     return ColoredBox(
       color: Colors.black,
       child: Center(
@@ -1202,6 +1316,14 @@ class HighlightMessage extends StatelessWidget {
                   side: const BorderSide(color: Color(0x80FFFFFF)),
                 ),
                 child: Text(a),
+              ),
+            ],
+            if (a2 != null && onSecondary != null) ...[
+              const SizedBox(height: 6),
+              TextButton(
+                onPressed: onSecondary,
+                style: TextButton.styleFrom(foregroundColor: Colors.white),
+                child: Text(a2),
               ),
             ],
           ]),

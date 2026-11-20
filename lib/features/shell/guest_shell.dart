@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:sportpadi_mobile/core/analytics/analytics_service.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/core/links/deep_links.dart';
+import 'package:sportpadi_mobile/core/links/link_resolver.dart' show HomeTab;
 import 'package:sportpadi_mobile/features/ads/popup_messages.dart';
 import 'package:sportpadi_mobile/features/browse/browse_screen.dart';
+import 'package:sportpadi_mobile/features/highlights/highlights_screen.dart';
 import 'package:sportpadi_mobile/features/home/guest_home_screen.dart';
 import 'package:sportpadi_mobile/features/shell/home_shell.dart'
     show homeTabIndexProvider;
@@ -18,16 +20,20 @@ import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 /// A visitor used to hit a sign-in wall on launch. Now they land here: the
 /// same Home and Browse a member gets, minus everything that only makes sense
 /// with an account (groups, tournaments, profile, scanning, notifications).
-/// The third tab IS sign-in — it doesn't hold a screen, it opens the sign-in
-/// page — so the way in is always one tap away without being pushed on
-/// anyone. Everything that truly needs an account (opening an event, say)
-/// asks for sign-in at that moment, via the router, and returns the user to
-/// what they tapped.
+/// Highlights too (2026-11-19): the member shell's own `HighlightsScreen`,
+/// which a visitor gets as Discover alone, under the server's visitor rule,
+/// every action asking them to sign up (workspace `docs/wiki/highlights.md`
+/// "Visitors"). The last tab IS sign-in — it doesn't hold a screen, it opens
+/// the sign-in page — so the way in is always one tap away without being
+/// pushed on anyone. Everything that truly needs an account (opening an
+/// event, say) asks for sign-in at that moment, via the router, and returns
+/// the user to what they tapped.
 ///
-/// Tab indices match HomeShell's for Home (0) and Browse (1), so the shared
-/// `homeTabIndexProvider` and the link resolver's tab targets keep working;
-/// a target this shell doesn't have (Groups, Tournaments, Profile) falls back
-/// to Home.
+/// Tab indices match HomeShell's for Home (0), Browse (1) and Highlights (2)
+/// — `HomeTab` — so the shared `homeTabIndexProvider` and the link
+/// resolver's tab targets keep working; a target this shell doesn't have
+/// (Tournaments, Profile) falls back to Home. Sign in sits at 3, which is
+/// never a tab index here (3 is `HomeTab.tournaments`, read as Home).
 class GuestShell extends ConsumerStatefulWidget {
   const GuestShell({super.key});
   @override
@@ -35,7 +41,10 @@ class GuestShell extends ConsumerStatefulWidget {
 }
 
 class _GuestShellState extends ConsumerState<GuestShell> {
-  static const _signInTab = 2;
+  static const _signInTab = 3;
+
+  /// The tabs this shell has (Home, Browse, Highlights); anything else is Home.
+  static int _own(int tab) => tab >= 0 && tab <= HomeTab.highlights ? tab : 0;
 
   @override
   void initState() {
@@ -64,7 +73,7 @@ class _GuestShellState extends ConsumerState<GuestShell> {
         },
         switchTab: (tab) {
           if (!mounted) return;
-          ref.read(homeTabIndexProvider.notifier).state = tab <= 1 ? tab : 0;
+          ref.read(homeTabIndexProvider.notifier).state = _own(tab);
         },
       );
     });
@@ -72,8 +81,10 @@ class _GuestShellState extends ConsumerState<GuestShell> {
 
   Widget _tab(int i) {
     switch (i) {
-      case 1:
+      case HomeTab.browse:
         return const BrowseScreen();
+      case HomeTab.highlights:
+        return const HighlightsScreen();
       default:
         return const GuestHomeScreen();
     }
@@ -82,28 +93,24 @@ class _GuestShellState extends ConsumerState<GuestShell> {
   @override
   Widget build(BuildContext context) {
     ref.listen<int>(homeTabIndexProvider, (prev, next) {
-      const names = ['/tab/home', '/tab/browse'];
+      const names = ['/tab/home', '/tab/browse', '/tab/highlights'];
       if (prev != next && next >= 0 && next < names.length) {
         ref.read(analyticsServiceProvider).logScreen(names[next]);
       }
     });
     // The provider is shared with the signed-in shell, which has more tabs;
-    // anything past Browse means Home here.
-    final raw = ref.watch(homeTabIndexProvider);
-    final index = raw <= 1 ? raw : 0;
+    // anything past Highlights means Home here.
+    final index = _own(ref.watch(homeTabIndexProvider));
 
     final p = context.palette;
     return Scaffold(
       backgroundColor: p.bg,
-      // The dock floats here too, and the tab runs on behind it: the same
-      // bargain as the member shell (home_shell.dart).
-      extendBody: true,
+      // No `extendBody`, as in the member shell (home_shell.dart): the tab
+      // ends above the dock's band.
       body: _tab(index),
-      // The member dock (2026), with Sign in as its third button.
-      bottomNavigationBar: Listener(
-        // Opaque to hit tests, or every tap that misses a 48px dock button
-        // inside the 64px pill reaches the tab behind it (home_shell.dart).
-        behavior: HitTestBehavior.opaque,
+      // The member dock (2026): Home, Browse, Highlights, then Sign in.
+      bottomNavigationBar: ColoredBox(
+        color: p.bg,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -130,6 +137,13 @@ class _GuestShellState extends ConsumerState<GuestShell> {
                   selectedIcon: Icons.explore_rounded,
                   label: context.l10n.common_browse,
                 ),
+                // Highlights (reels): between Browse and Sign in, where the
+                // member dock has it between Browse and Tournaments.
+                SpDockItem(
+                  icon: Icons.movie_filter_outlined,
+                  selectedIcon: Icons.movie_filter_rounded,
+                  label: context.l10n.highlights_title,
+                ),
                 SpDockItem(
                   icon: Icons.login_rounded,
                   selectedIcon: Icons.login_rounded,
@@ -137,7 +151,7 @@ class _GuestShellState extends ConsumerState<GuestShell> {
                 ),
               ],
             ),
-            SizedBox(height: SpDock.insetBelow(context)),
+            SizedBox(height: MediaQuery.paddingOf(context).bottom),
           ],
         ),
       ),

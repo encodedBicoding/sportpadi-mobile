@@ -77,8 +77,12 @@ class PlatformBadge extends StatelessWidget {
 
 /// The chips on a profile. Nothing when there are no links.
 class SocialLinksRow extends StatelessWidget {
-  const SocialLinksRow(this.links, {super.key});
+  const SocialLinksRow(this.links,
+      {super.key, this.alignment = WrapAlignment.center});
   final List<SocialLink> links;
+
+  /// `start` under a profile header's bio (the Instagram layout).
+  final WrapAlignment alignment;
   @override
   Widget build(BuildContext context) {
     if (links.isEmpty) return const SizedBox.shrink();
@@ -86,7 +90,7 @@ class SocialLinksRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: Wrap(
-        alignment: WrapAlignment.center,
+        alignment: alignment,
         spacing: 6,
         runSpacing: 6,
         children: [

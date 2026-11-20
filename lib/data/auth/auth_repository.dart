@@ -24,7 +24,13 @@ class AuthRepository {
       final res = await _dio.get('/api/auth/get-session');
       return _extractUser(res.data);
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) return null;
+      // The session check's own hard 401: this token is dead. Cleared HERE —
+      // the interceptor leaves every `/api/auth/` answer alone, because Better
+      // Auth also answers 401 to a valid session there (re-review R-MED-1).
+      if (e.response?.statusCode == 401) {
+        await _tokens.clear();
+        return null;
+      }
       throw _err(e);
     }
   }

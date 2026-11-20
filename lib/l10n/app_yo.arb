@@ -2771,6 +2771,10 @@
       }
     }
   },
+  "join_inviteLinkDeadTitle": "Ìjápọ̀ ìpè yìí kò ṣiṣẹ́",
+  "join_inviteLinkDead": "Ìjápọ̀ ìpè yìí kò ṣiṣẹ́ mọ́. Béèrè tuntun lọ́wọ́ ẹni tó fi ránṣẹ́.",
+  "join_linkCantAddYou": "Ìjápọ̀ yìí kò lè fi ọ́ kún un. Béèrè láti darapọ̀ láti ojú-ìwé ẹgbẹ́ náà.",
+  "join_linkCantAddYouTeam": "Ìjápọ̀ yìí kò lè fi ọ́ kún ẹgbẹ́ agbábọ́ọ̀lù náà. Béèrè lọ́wọ́ àwọn alábòójútó rẹ̀.",
   "group_opening": "Ń ṣí i…",
   "group_sportPadiHome": "Ilé SportPadi",
   "group_signIn": "Wọlé",
@@ -8883,6 +8887,7 @@
   "profile_notInAnyGroupsYet": "Kò tíì wà nínú ẹgbẹ́ kankan.",
   "profile_noTournamentsYet": "Kò tíì sí ìdíje.",
   "profile_noHighlightsYet": "Kò tíì sí ìṣẹ́jú pàtàkì.",
+  "profile_visitorHighlightsEmpty": "Kò sí nǹkan láti fi hàn níbí. Àwọn tí wọ́n ti wọlé nìkan ló lè rí àwọn ìṣẹ́jú pàtàkì kan.",
   "profile_highlight": "Ìṣẹ́jú pàtàkì",
   "profile_recordInTournament": "Àkọsílẹ̀ nínú ìdíje",
   "profile_thisTournamentIsntAvailable": "Ìdíje yìí kò sí",
@@ -9482,8 +9487,8 @@
   "profile_couldNotUpdatePrivacy": "A kò lè ṣe àtúnṣe àṣírí",
   "profile_profilePrivacy": "Àṣírí pírófáìlì",
   "profile_privateProfile": "Pírófáìlì àdáni",
-  "profile_othersSeeYourNameUsername": "Àwọn ẹlòmíràn yóò rí orúkọ rẹ, @orúkọ olùmúlò àti àwòrán rẹ, àti pé pírófáìlì rẹ jẹ́ àdáni — wọn kò ní rí àkọsílẹ̀, ẹgbẹ́ tàbí ìfiránṣẹ́ rẹ.",
-  "profile_anyoneWhoTapsYourName": "Ẹnikẹ́ni tí ó bá tẹ orúkọ rẹ yóò rí àkọsílẹ̀, ẹgbẹ́ àti ìfiránṣẹ́ rẹ. Tàn án láti pa wọ́n mọ́ fún ara rẹ.",
+  "profile_othersSeeYourNameUsername": "Àwọn olùtẹ̀lé tí o fọwọ́ sí nìkan ni yóò rí àwọn ìṣẹ́jú pàtàkì, ẹgbẹ́ àti àkọsílẹ̀ rẹ. Àwọn ẹlòmíràn yóò rí fọ́tò, orúkọ, @orúkọ olùmúlò, bio, àwọn ìjápọ̀ àti iye olùtẹ̀lé rẹ. Tí o bá pa èyí, gbogbo ìbéèrè tó ń dúró yóò di gbígbà.",
+  "profile_anyoneWhoTapsYourName": "Ẹnikẹ́ni tí ó bá tẹ orúkọ rẹ yóò rí àkọsílẹ̀, ẹgbẹ́ àti ìfiránṣẹ́ rẹ. Tàn án kí àwọn olùtẹ̀lé rẹ nìkan lè rí wọn — olùtẹ̀lé tuntun yóò nílò ìfọwọ́sí rẹ.",
   "profile_yourProfileIsPrivate": "Pírófáìlì rẹ jẹ́ àdáni",
   "profile_yourProfileIsPublic": "Pírófáìlì rẹ wà ní gbangba",
   "profile_whoCanSeeYourProfile": "Ta ló lè rí pírófáìlì rẹ",
@@ -10017,7 +10022,7 @@
     }
   },
   "profile_localGroupGames3": "Eré ẹgbẹ́ àdúgbò",
-  "profile_thisProfileIsPrivateTheir": "Pírófáìlì yìí jẹ́ àdáni. Àkọsílẹ̀, ẹgbẹ́ àti ìfiránṣẹ́ wọn hàn sí wọn nìkan.",
+  "profile_thisProfileIsPrivateTheir": "Pírófáìlì yìí jẹ́ àdáni. Àwọn olùtẹ̀lé tí wọ́n fọwọ́ sí nìkan ló ń rí àkọsílẹ̀, ẹgbẹ́ àti ìfiránṣẹ́ wọn.",
   "profile_showingSRecordSwitchSport2": "Ń fi àkọsílẹ̀ {value} ti {first} hàn — yí eré ìdárayá padà nígbàkígbà.",
   "@profile_showingSRecordSwitchSport2": {
     "placeholders": {
@@ -11134,6 +11139,39 @@
     }
   },
   "profile_ratingTileNotRated": "Kò tíì ní ìwọ̀n",
+  "profile_followBack": "Tẹ̀lé padà",
+  "profile_requested": "O ti béèrè",
+  "profile_unfollow": "Dẹ́kun títẹ̀lé",
+  "profile_unfollowPrivateNote": "Àkọọ́lẹ̀ wọn jẹ́ àdáni. Tí o bá dẹ́kun títẹ̀lé, o ní láti tún béèrè kí o tó rí àwọn ìṣẹ́jú pàtàkì, ẹgbẹ́ àti àkọsílẹ̀ wọn.",
+  "profile_cancelRequest": "Fagilé ìbéèrè",
+  "profile_followsYou": "Ń tẹ̀lé ọ",
+  "profile_followRequests": "Ìbéèrè ìtẹ̀lé",
+  "profile_followRequestsWaiting": "{count, plural, one{Ìbéèrè {count} ń dúró} other{Ìbéèrè {count} ń dúró}}",
+  "@profile_followRequestsWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_privateAccount": "Àkọọ́lẹ̀ àdáni",
+  "profile_privateAccountTitle": "Àkọọ́lẹ̀ yìí jẹ́ àdáni",
+  "profile_privateAccountFollowText": "Tẹ̀lé àkọọ́lẹ̀ yìí láti rí àwọn ìṣẹ́jú pàtàkì, ẹgbẹ́ àti àkọsílẹ̀ wọn.",
+  "profile_privateAccountRequestedText": "Ìbéèrè ìtẹ̀lé rẹ ń dúró. Nígbà tí wọ́n bá gbà á, wàá rí àwọn ìṣẹ́jú pàtàkì, ẹgbẹ́ àti àkọsílẹ̀ wọn.",
+  "profile_privateAccountSignInText": "Wọlé kí o sì tẹ̀lé àkọọ́lẹ̀ yìí láti rí àwọn ìṣẹ́jú pàtàkì, ẹgbẹ́ àti àkọsílẹ̀ wọn.",
+  "profile_bio": "Bio",
+  "profile_bioPlaceholder": "Ọ̀rọ̀ díẹ̀ nípa rẹ: ipò rẹ, ẹgbẹ́ rẹ, eré ìdárayá tí o ń ṣe.",
+  "profile_bioSupervisedNote": "Bio kò sí nígbà tí wọ́n ń bójútó àkọọ́lẹ̀ rẹ.",
+  "profile_requestsTabIncoming": "Ìbéèrè",
+  "profile_requestsTabSent": "Tí o fi ránṣẹ́",
+  "profile_noFollowRequests": "Kò sí ìbéèrè ìtẹ̀lé báyìí.",
+  "profile_noSentRequests": "Kò sí ìbéèrè ìtẹ̀lé rẹ tó ń dúró.",
+  "profile_confirmRequest": "Gbà á",
+  "profile_deleteRequest": "Pa á rẹ́",
+  "profile_withdrawRequestTitle": "Ṣé o fẹ́ fagilé ìbéèrè ìtẹ̀lé rẹ?",
+  "profile_withdrawRequestText": "Tí o bá tún béèrè láàrín ọ̀sẹ̀ kan, wọn kò ní gba ìfitónilétí mìíràn.",
+  "profile_privateAccountApprovedOnlyText": "Àwọn olùtẹ̀lé tí wọ́n fọwọ́ sí nìkan ló lè rí àwọn ìṣẹ́jú pàtàkì, ẹgbẹ́ àti àkọsílẹ̀ wọn.",
+  "profile_followRequestsMenuSub": "Àwọn tó fẹ́ tẹ̀lé ọ, àti àwọn ìbéèrè tí o fi ránṣẹ́",
   "inbox_discussionRemoved": "A ti yọ ìjíròrò kúrò",
   "inbox_commentRemoved": "A ti yọ ọ̀rọ̀ kúrò",
   "inbox_discussion": "Ìjíròrò",
@@ -20341,6 +20379,15 @@
       }
     }
   },
+  "highlights_followName": "Tẹ̀lé {name}",
+  "@highlights_followName": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_followingNow": "Ò ń tẹ̀lé",
   "highlights_statMinute": "{minute}’",
   "@highlights_statMinute": {
     "placeholders": {
@@ -20963,5 +21010,147 @@
   "highlights_appKeepOpen": "Ó dúró nígbà tí SportPadi wà lẹ́yìn ìbòjú. Jẹ́ kí áàpù náà wà lójú ìbòjú títí ó fi parí, lẹ́yìn náà gbìyànjú lẹ́ẹ̀kan sí i.",
   "highlights_appLostVideoTitle": "Lo fídíò tí ó ṣáájú?",
   "highlights_appLostVideoBody": "SportPadi ti pa kí a lè fi fídíò yìí kún ìṣẹ́jú pàtàkì.",
-  "highlights_appLostVideoUse": "Lo ó"
+  "highlights_appLostVideoUse": "Lo ó",
+  "highlights_visitorTitle": "Darapọ̀ mọ́ SportPadi",
+  "highlights_visitorLikeText": "Ṣí àkáǹtì ọ̀fẹ́ láti fẹ́ràn àwọn ìṣẹ́jú pàtàkì kí o sì ki àwọn eléré kú iṣẹ́.",
+  "highlights_visitorCommentText": "Ṣí àkáǹtì ọ̀fẹ́ láti sọ ọ̀rọ̀ lórí àwọn ìṣẹ́jú pàtàkì.",
+  "highlights_visitorFollowText": "Ṣí àkáǹtì ọ̀fẹ́ láti tẹ̀lé {name} kí o sì rí àwọn ìṣẹ́jú pàtàkì wọn nínú Àwọn tí o ń tẹ̀lé.",
+  "@highlights_visitorFollowText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_visitorReportText": "Wọlé tàbí ṣí àkáǹtì láti jábọ̀ èyí fún ẹgbẹ́ SportPadi.",
+  "highlights_visitorPostText": "Ṣí àkáǹtì ọ̀fẹ́ láti fi àwọn ìṣẹ́jú pàtàkì tìrẹ ránṣẹ́.",
+  "highlights_visitorFollowingTitle": "Àwọn tí o ń tẹ̀lé",
+  "highlights_visitorFollowingText": "Wọlé láti rí àwọn ìṣẹ́jú pàtàkì láti ọ̀dọ̀ àwọn eléré tí o ń tẹ̀lé.",
+  "highlights_visitorSignUp": "Forúkọ sílẹ̀",
+  "highlights_visitorSignIn": "Wọlé",
+  "highlights_commentsSignUp": "Forúkọ sílẹ̀ láti sọ ọ̀rọ̀",
+  "highlights_notFoundVisitorText": "Ó ṣeé ṣe kí a ti pa á rẹ́, tàbí kí ó jẹ́ pé àwọn tí wọ́n ti wọlé nìkan ló lè rí i.",
+  "highlights_reelEndTitle": "Gbogbo ti {name} nìyẹn",
+  "@highlights_reelEndTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reelEndTitleMine": "Gbogbo ìṣẹ́jú pàtàkì rẹ nìyẹn",
+  "highlights_reelEndNoMore": "Kò sí ìṣẹ́jú pàtàkì mìíràn níbí",
+  "highlights_reelEndText": "O ti wo gbogbo ìṣẹ́jú pàtàkì wọn tí o lè wò.",
+  "highlights_reelEndKeepWatching": "Máa wò ó lọ",
+  "highlights_appReelEndSignIn": "Wọlé láti rí pírófáìlì wọn",
+  "share_share": "Pín",
+  "share_sendTo": "Fi ránṣẹ́ sí",
+  "share_searchPeople": "Wá ènìyàn",
+  "share_loadingPeople": "Ó ń gbé e wá…",
+  "share_noMatches": "Kò sí ẹni tó bá a mu.",
+  "share_noOneYet": "Kò sí ẹnìkan níbí síbẹ̀. Àwọn ìjíròrò rẹ, àwọn tí o ń tẹ̀lé àti àwọn tó ń tẹ̀lé ọ yóò hàn níbí.",
+  "share_selected": "O ti yàn án",
+  "share_aboutWard": "Nípa {name}",
+  "@share_aboutWard": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_addMessage": "Fi ọ̀rọ̀ kún un (tí o bá fẹ́)",
+  "share_sending": "Ó ń fi ránṣẹ́…",
+  "share_sendToCount": "{count, plural, one{Fi ránṣẹ́ sí ènìyàn {count}} other{Fi ránṣẹ́ sí ènìyàn {count}}}",
+  "@share_sendToCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "share_sentToAll": "{count, plural, one{A ti fi ránṣẹ́ sí ènìyàn {count}} other{A ti fi ránṣẹ́ sí ènìyàn {count}}}",
+  "@share_sentToAll": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "share_sentSome": "A ti fi ránṣẹ́ sí {sent} nínú {total}",
+  "@share_sentSome": {
+    "placeholders": {
+      "sent": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_couldntSend": "A kò lè fi ránṣẹ́. Gbìyànjú lẹ́ẹ̀kan sí i.",
+  "share_couldntSendTo": "A kò lè fi ránṣẹ́ sí {name}: {reason}",
+  "@share_couldntSendTo": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      },
+      "reason": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_maxRecipients": "O lè fi ránṣẹ́ sí ènìyàn tó tó {max} lẹ́ẹ̀kan náà.",
+  "@share_maxRecipients": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_cantSendInApp": "A kò lè fi èyí ránṣẹ́ bí ọ̀rọ̀, ṣùgbọ́n o ṣì lè pín ìjápọ̀ náà.",
+  "share_otherApps": "Pín sí àwọn áàpù mìíràn",
+  "share_copyLink": "Ṣe àdàkọ ìjápọ̀",
+  "share_linkCopied": "A ti ṣe àdàkọ ìjápọ̀",
+  "share_copyThisLink": "Ṣe àdàkọ ìjápọ̀ yìí",
+  "share_email": "Ímeèlì",
+  "share_sms": "SMS",
+  "share_more": "Síwájú sí i",
+  "share_notAvailable": "Àkóónú yìí kò sí",
+  "share_notAvailableHint": "Ó lè jẹ́ pé a ti yọ ọ́ kúrò, tàbí ó jẹ́ àdáni.",
+  "share_kindEvent": "Ìṣẹ̀lẹ̀",
+  "share_kindGroup": "Ẹgbẹ́",
+  "share_kindGroupInvite": "Ìpè láti darapọ̀",
+  "share_kindTournament": "Ìdíje",
+  "share_kindLeague": "Líìgì",
+  "share_kindCompetition": "Ìdíje",
+  "share_kindHighlight": "Àfihàn",
+  "share_kindTicket": "Tíkẹ́ẹ̀tì",
+  "share_kindTeamInvite": "Ìpè sí ẹgbẹ́",
+  "share_kindCallForTeams": "Ìpè fún àwọn ẹgbẹ́",
+  "share_kindPlayer": "Òṣèré",
+  "share_kindMatch": "Ìfẹsẹ̀wọnsẹ̀",
+  "share_kindTeam": "Ẹgbẹ́ agbábọ́ọ̀lù",
+  "share_shareMembershipLink": "Pín ìjápọ̀ ọmọ ẹgbẹ́",
+  "share_joinGroupText": "Darapọ̀ mọ́ {name} lórí SportPadi",
+  "@share_joinGroupText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_shareTeam": "Pín ẹgbẹ́",
+  "share_shareProfile": "Pín profaili",
+  "share_shareMatch": "Pín ìfẹsẹ̀wọnsẹ̀",
+  "share_couldntLoadPreview": "A kò lè gbé àwòtẹ́lẹ̀ wá",
+  "share_tryAgain": "Gbìyànjú lẹ́ẹ̀kan sí i",
+  "share_couldntLoadPeople": "A kò lè gbé àwọn ènìyàn wá. Gbìyànjú lẹ́ẹ̀kan sí i.",
+  "share_resetLink": "Tún ìjápọ̀ ṣe",
+  "share_resetLinkHint": "Yóò ṣe ìjápọ̀ tuntun. Èyí àtijọ́ yóò dá iṣẹ́ dúró.",
+  "share_resetLinkConfirm": "Ṣé o fẹ́ tún ìjápọ̀ yìí ṣe? Ìjápọ̀ àtijọ́ yóò dá iṣẹ́ dúró, nítorí náà ẹnikẹ́ni tí kò tíì lò ó yóò nílò tuntun.",
+  "share_linkWasReset": "A ti tún ìjápọ̀ ṣe. Èyí àtijọ́ kò ṣiṣẹ́ mọ́.",
+  "share_couldntResetLink": "A kò lè tún ìjápọ̀ náà ṣe. Gbìyànjú lẹ́ẹ̀kan sí i.",
+  "share_couldntLoadInviteLink": "A kò lè gbé ìjápọ̀ ìpè náà wá.",
+  "share_anyoneWithLinkCanJoinTeam": "Ẹnikẹ́ni tó ní ìjápọ̀ yìí lè darapọ̀ mọ́ ẹgbẹ́ agbábọ́ọ̀lù náà àti ẹgbẹ́ rẹ̀.",
+  "share_resetGroupLinkConfirm": "Ṣé o fẹ́ tún ìjápọ̀ yìí ṣe? Ìjápọ̀ àtijọ́ yóò dá iṣẹ́ dúró, bẹ́ẹ̀ ni gbogbo ìjápọ̀ ìdarapọ̀ ẹgbẹ́ agbábọ́ọ̀lù nínú ẹgbẹ́ yìí. Ẹnikẹ́ni tí kò tíì lò wọ́n yóò nílò àwọn tuntun."
 }

@@ -176,6 +176,18 @@ class AuthController extends AsyncNotifier<SessionState> {
     if (user != null) state = AsyncData(SessionState(user: user));
   }
 
+  /// The server refused this device's token on a request that carried it
+  /// (core/network/auth_interceptor.dart — it is already cleared): the
+  /// session is over. Signed out, once — a second 401 in flight finds it so
+  /// and does nothing, and with the token gone no request can 401 for that
+  /// reason again, so it cannot loop. A session that is already signed out
+  /// stays as it is.
+  void tokenRejected() {
+    final s = state.valueOrNull;
+    if (s == null || (!s.isAuthenticated && !s.isUnknown)) return;
+    state = const AsyncData(SessionState.unauthenticated);
+  }
+
   Future<void> signOut() async {
     // Forget this device's push token before the session dies (best-effort).
     await ref.read(pushServiceProvider).unregister();

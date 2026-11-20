@@ -1,22 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:sportpadi_mobile/core/links/link_resolver.dart' show HomeTab;
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 import 'package:sportpadi_mobile/features/highlights/highlights_grid.dart';
 import 'package:sportpadi_mobile/features/players/player_record.dart';
+import 'package:sportpadi_mobile/features/players/profile_header.dart';
 import 'package:sportpadi_mobile/features/players/scout_header.dart';
 import 'package:sportpadi_mobile/features/profile/social_links.dart';
+import 'package:sportpadi_mobile/features/shell/home_shell.dart'
+    show homeTabIndexProvider;
 import 'package:sportpadi_mobile/features/sports/sport_record_card.dart';
+import 'package:sportpadi_mobile/data/profile/profile_repository.dart'
+    show meProvider;
 import 'package:sportpadi_mobile/shared/format/parse.dart';
 import 'package:sportpadi_mobile/shared/widgets/async_view.dart';
 import 'package:sportpadi_mobile/shared/widgets/crest.dart';
 import 'package:sportpadi_mobile/shared/widgets/pull_refresh.dart';
 import 'package:sportpadi_mobile/shared/widgets/sp_header.dart';
+import 'package:sportpadi_mobile/shared/widgets/sp_tab_track.dart';
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 import 'package:sportpadi_mobile/data/progression/progression_repository.dart';
 import 'package:sportpadi_mobile/features/progression/progression_widgets.dart';
@@ -27,15 +33,22 @@ import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 /// Public player profile — the scout's view (web /players/[id] twin).
 ///
 /// The question this page exists to answer is "how well is this player doing in
-/// this sport", so each sport they've played gets its own card (Records) that
-/// opens that sport's record page — designed per sport
+/// this sport", so each sport they've played gets its own card (the Records
+/// tab) that opens that sport's record page — designed per sport
 /// (docs/design/sport-records.md). Stats are only comparable inside a sport;
 /// nothing is summed across them.
 ///
-/// 2026 design: dark pitch cover (back round button), identity card with the
-/// avatar on its edge (earned frame, @username copy pill, level badge,
-/// Sports / Groups / Tournaments tiles), Records, then pill tabs across all
-/// sports.
+/// 2026 design, Instagram's layout (owner, 2026-11-19 — no cover banner): a
+/// slim row with the back button, then the header (`profile_header.dart`) —
+/// photo (earned frame) and Followers · Following, name, @username, byline,
+/// bio, links, sport / team chips and the level badge, then Follow / Message /
+/// Share — then the group page's tab switch ([SpTabTrack], pinned under the
+/// status bar): Highlights / Groups / Records across all sports, Highlights
+/// open first. Honours, recent matches and the per-sport rating tiles are in
+/// the Records tab. A private adult's profile shows the header and a lock to
+/// anyone they haven't accepted; a ward their guardians keep limited, a name
+/// and a lock. Tournaments are no longer a tab: each sport's record page
+/// lists them.
 
 final playerProfileProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>, String>((ref, userId) async {
@@ -87,8 +100,26 @@ class PlayerProfileScreen extends ConsumerStatefulWidget {
       _PlayerProfileScreenState();
 }
 
-class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
-  int _tab = 0; // 0 groups, 1 tournaments, 2 highlights
+class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen>
+    with SingleTickerProviderStateMixin {
+  /// 0 highlights, 1 groups, 2 records — the order of the track's labels.
+  late final TabController _tabs;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 3, vsync: this)..addListener(_onTab);
+  }
+
+  void _onTab() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
 
   String get userId => widget.userId;
 
@@ -106,6 +137,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
     ref.invalidate(identityProvider(userId));
     ref.invalidate(playerHonoursProvider(userId));
     ref.invalidate(followStateProvider(userId));
+    ref.invalidate(canMessageProvider(userId));
     // The highlights grid pages with its own state, not a provider.
     reloadHighlightGrids();
     return settleAll([
@@ -119,6 +151,32 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final data = ref.watch(playerProfileProvider(userId));
+    // Whether I follow / asked to / may ask, whether they follow me — the
+    // pills and the lock's wording (follows.state).
+    final fs = ref.watch(followStateProvider(userId)).valueOrNull;
+    // Watched here, not in the header's builders (they run inside
+    // AsyncView's build): who I am, and — only once the profile is open —
+    // the level badge and whether I may message them.
+    final me = ref.watch(meProvider).valueOrNull?.userId;
+    final shown = data.hasValue && data.valueOrNull?['restricted'] != true;
+    final identity =
+        shown ? ref.watch(identityProvider(userId)).valueOrNull : null;
+    final canMessage = shown && me != null
+        ? ref.watch(canMessageProvider(userId)).valueOrNull
+        : null;
+    // A follow that opens a private profile (or an unfollow that locks it
+    // again — or their accept, seen on a refresh): re-read what the page
+    // may show.
+    ref.listen<AsyncValue<FollowState>>(followStateProvider(userId),
+        (prev, next) {
+      final was = prev?.valueOrNull?.canSeeProfile;
+      final now = next.valueOrNull?.canSeeProfile;
+      if (was != null && now != null && was != now) {
+        ref.invalidate(playerProfileProvider(userId));
+        ref.invalidate(playerRecordsProvider(userId));
+        ref.invalidate(playerHonoursProvider(userId));
+      }
+    });
     // A ward whose guardians keep their profile private from this viewer:
     // short name, no photo, no numbers — and the stats routes would refuse,
     // so they're only asked for once the profile says it's open.
@@ -131,7 +189,6 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
         : null;
 
     final categories = listOf(stats?['categories']);
-    final tournaments = listOf(stats?['tournaments']);
     // The scouting header (honours, recent matches, average rating) — the
     // slowest read, so it lands last and never holds the page.
     final honours = data.hasValue && !restricted
@@ -157,20 +214,115 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
             },
             data: (m) {
               final profile = mapOf(m['profile']);
-              if (restricted) {
+              final name = parseStr(profile['displayName']) ?? 'Player';
+              final username = parseStr(profile['username']);
+              final avatarUrl = parseStr(profile['avatarUrl']);
+              final topBar = ProfileTopBar(
+                title: context.l10n.profile_player,
+                left: SpRoundButton(
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  iconSize: 18,
+                  tooltip: context.l10n.profile_back,
+                  onTap: _back,
+                ),
+              );
+              // A ward whose guardians keep the profile private from this
+              // viewer: initials, the short name and a lock — their
+              // guardians' rules, unchanged (no photo, handle, counts or
+              // follow; the server sends none of them).
+              if (restricted && !privateProfile) {
                 return RefreshIndicator(
                   onRefresh: _refresh,
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.only(bottom: 36),
                     children: [
-                      _Hero(
-                        userId: userId,
-                        profile: profile,
-                        statsLoaded: false,
-                        restricted: true,
-                        privateProfile: privateProfile,
-                        onBack: _back,
+                      topBar,
+                      ProfileHeader(
+                        avatar: ProfileAvatar(
+                            photo: ClipOval(
+                                child: Crest(
+                                    logoUrl: null,
+                                    label: name,
+                                    size: kProfileAvatar - 10))),
+                        name: name,
+                        badges: const [WardBadge()],
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(16, 18, 16, 0),
+                        child: WardPrivateNote(),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              // A private adult's profile, seen by anyone they haven't
+              // accepted: Instagram's header — photo, counts (not opening the
+              // lists, which are refused), name, @username, bio, links — then
+              // Follow / Requested and the lock. No tabs.
+              if (restricted) {
+                // "Follow this account…" only once the follow state says a
+                // Follow (or request) is on offer; while it loads, if it
+                // failed (no pill then — and a retry), or for a viewer who
+                // can't ask (a child, a managed account): the neutral line,
+                // which doesn't say "private" twice (review LOWs).
+                final fsFailed =
+                    ref.read(followStateProvider(userId)).hasError &&
+                        fs == null;
+                final lockText = fs?.requested == true
+                    ? context.l10n.profile_privateAccountRequestedText
+                    : fs != null && (fs.canFollow || fs.canRequest)
+                        ? context.l10n.profile_privateAccountFollowText
+                        : context.l10n.profile_privateAccountApprovedOnlyText;
+                return RefreshIndicator(
+                  onRefresh: _refresh,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 36),
+                    children: [
+                      topBar,
+                      ProfileHeader(
+                        avatar: ProfileAvatar(
+                            photo: ClipOval(
+                                child: Crest(
+                                    logoUrl: avatarUrl,
+                                    label: name,
+                                    size: kProfileAvatar - 10))),
+                        name: name,
+                        username: username,
+                        isPrivate: true,
+                        badges: [
+                          if (fs?.followsMe == true)
+                            ProfileBadge(context.l10n.profile_followsYou),
+                        ],
+                        bio: parseStr(profile['bio']),
+                        links: SocialLink.listFrom(m['links']),
+                        counts: ProfileCounts(userId: userId, open: false),
+                        actions: _actions(fs,
+                            me: me,
+                            canMessage: null,
+                            name: name,
+                            username: username,
+                            avatarUrl: avatarUrl),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+                        child: ProfileLockCard(
+                            title: context.l10n.profile_privateAccountTitle,
+                            text: lockText,
+                            action: fsFailed
+                                ? Align(
+                                    alignment:
+                                        AlignmentDirectional.centerStart,
+                                    child: ProfilePill(
+                                      label: context.l10n.profile_tryAgain,
+                                      icon: Icons.refresh_rounded,
+                                      compact: true,
+                                      onTap: () => ref.invalidate(
+                                          followStateProvider(userId)),
+                                    ),
+                                  )
+                                : null),
                       ),
                     ],
                   ),
@@ -185,92 +337,97 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
 
               return RefreshIndicator(
                 onRefresh: _refresh,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.zero,
-                  children: [
-                    _Hero(
-                      userId: userId,
+                child: SpPinnedTabsScrollView(
+                  header: [
+                    SliverToBoxAdapter(child: topBar),
+                    SliverToBoxAdapter(
+                        child: _header(
+                      fs,
+                      me: me,
+                      identity: identity,
+                      canMessage: canMessage,
                       profile: profile,
+                      name: name,
+                      username: username,
+                      avatarUrl: avatarUrl,
                       primary: primary,
                       sports: listOf(m['sports']),
                       teams: listOf(m['teams']),
                       playsIn: parseStr(m['playsIn']),
                       links: SocialLink.listFrom(m['links']),
-                      categories: categories,
-                      ratings: listOf(honours?['ratingsByCategory']),
-                      statsLoaded: stats != null && honours != null,
-                      onBack: _back,
+                    )),
+                    // Owner-console ad spot (anchor "player.profile_bottom")
+                    // under the header, above the tabs; nothing unless set.
+                    // Honours and recent matches that sat here are in the
+                    // Records tab.
+                    const SliverToBoxAdapter(
+                      child: AdAnchor(
+                          anchor: 'player.profile_bottom',
+                          padding: EdgeInsets.fromLTRB(20, 14, 20, 0)),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 22, 16, 36),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          HonoursSection(
-                              honours: listOf(honours?['honours']),
-                              loading: honours == null),
-                          RecentMatchesSection(
-                              recent: listOf(honours?['recent']),
-                              loading: honours == null,
-                              playerId: userId),
-                          // One sport card per sport played, each opening
-                          // that sport's own record page.
-                          PlayerRecordsSection(
-                            userId: userId,
-                            categories: categories,
-                            loaded: stats != null,
-                          ),
-                          // Owner-console ad spot (anchor "player.profile_bottom");
-                          // nothing unless set.
-                          const AdAnchor(
-                              anchor: 'player.profile_bottom',
-                              padding: EdgeInsets.fromLTRB(20, 14, 20, 14)),
-                          const SizedBox(height: 22),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(children: [
-                              _PillTab(
-                                  icon: Icons.groups_outlined,
-                                  label: context.l10n.profile_groups,
-                                  count: groups.length,
-                                  selected: _tab == 0,
-                                  onTap: () => setState(() => _tab = 0)),
-                              _PillTab(
-                                  icon: Icons.emoji_events_outlined,
-                                  label: context.l10n.profile_tournaments,
-                                  count: tournaments.length,
-                                  selected: _tab == 1,
-                                  onTap: () => setState(() => _tab = 1)),
-                              // No count: the grid pages itself
-                              // (features/highlights/highlights_grid.dart).
-                              _PillTab(
-                                  icon: Icons.movie_filter_outlined,
-                                  label: context.l10n.profile_highlights,
-                                  count: 0,
-                                  selected: _tab == 2,
-                                  onTap: () => setState(() => _tab = 2)),
-                            ]),
-                          ),
-                          const SizedBox(height: 12),
-                          if (_tab == 0)
-                            ..._groups(p, groups)
-                          else if (_tab == 1)
-                            ..._tournamentsTab(tournaments)
-                          else
-                            // Highlights about this player (reels), newest
-                            // first; a tile opens the post.
-                            ...[
-                              HighlightsGrid(userId: userId),
-                              if (posts.isNotEmpty) ...[
-                                const SizedBox(height: 18),
-                                Eyebrow(context.l10n.highlights_groupPostsTitle),
-                                const SizedBox(height: 8),
-                                _posts(p, posts),
-                              ],
+                    const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                  ],
+                  // The group page's tab switch; it pins under the status
+                  // bar while the header scrolls away. No counts, as there.
+                  track: SpTabTrack(labels: [
+                    context.l10n.profile_highlights,
+                    context.l10n.profile_groups,
+                    context.l10n.profile_records,
+                  ], controller: _tabs),
+                  body: [
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 36),
+                      sliver: SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (_tabs.index == 0)
+                              // Highlights about this player (reels), newest
+                              // first; a tile opens the post.
+                              ...[
+                                HighlightsGrid(userId: userId),
+                                if (posts.isNotEmpty) ...[
+                                  const SizedBox(height: 18),
+                                  Eyebrow(context.l10n.highlights_groupPostsTitle),
+                                  const SizedBox(height: 8),
+                                  _posts(p, posts),
+                                ],
+                              ]
+                            else if (_tabs.index == 1)
+                              ..._groups(p, groups)
+                            else ...[
+                              // Their honours and latest matches, then one
+                              // sport card per sport played (under the
+                              // per-sport rating tiles), each opening that
+                              // sport's own record page. Honours, matches
+                              // and tiles sat in the old cover header.
+                              HonoursSection(
+                                  honours: listOf(honours?['honours']),
+                                  loading: honours == null),
+                              RecentMatchesSection(
+                                  recent: listOf(honours?['recent']),
+                                  loading: honours == null,
+                                  playerId: userId),
+                              const SizedBox(height: 18),
+                              PlayerRecordsSection(
+                                userId: userId,
+                                categories: categories,
+                                loaded: stats != null,
+                                lead: SportRatingTiles(
+                                    categories: categories,
+                                    ratings:
+                                        listOf(honours?['ratingsByCategory']),
+                                    hrefFor: (categoryId) =>
+                                        '/players/$userId/records/$categoryId',
+                                    loaded: stats != null && honours != null),
+                              ),
                             ],
-                          RecordFootnote(games: parseInt(honours?['games'])),
-                        ],
+                            // The page's foot on every tab: it vouches for
+                            // the honours, matches and tiles as much as for
+                            // the records.
+                            RecordFootnote(games: parseInt(honours?['games'])),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -295,7 +452,135 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
     );
   }
 
-  // ── groups / tournaments / highlights ──────────────────────────────────────
+  // ── header ────────────────────────────────────────────────────────────────
+
+  /// The full view's header: identity only — the record is the Records tab.
+  Widget _header(
+    FollowState? fs, {
+    required String? me,
+    required Identity? identity,
+    required Map<String, dynamic>? canMessage,
+    required Map<String, dynamic> profile,
+    required String name,
+    required String? username,
+    required String? avatarUrl,
+    required Map<String, dynamic>? primary,
+    required List<Map<String, dynamic>> sports,
+    required List<Map<String, dynamic>> teams,
+    required String? playsIn,
+    required List<SocialLink> links,
+  }) {
+    // Gamification identity ([identity]): level (always public), streak (if
+    // the player made it public).
+    final id = identity;
+    final isMe = fs?.isMe == true || me == userId;
+    final scout = ScoutByline(
+        primary: primary,
+        sports: sports,
+        teams: teams,
+        playsIn: playsIn,
+        alignStart: true,
+        showByline: false);
+    return ProfileHeader(
+      // Earned avatar frame (gamification status perk) — drawn inside the
+      // same box as on your own profile, so the counts never shift.
+      avatar: ProfileAvatar(
+        photo: ClipOval(
+            child: Crest(
+                logoUrl: avatarUrl, label: name, size: kProfileAvatar - 10)),
+        ring: id == null ? null : frameColor(id.frame),
+      ),
+      name: name,
+      username: username,
+      isPrivate: fs?.isPrivate == true,
+      badges: [
+        if (!isMe && fs?.followsMe == true)
+          ProfileBadge(context.l10n.profile_followsYou),
+      ],
+      byline: scout.byline,
+      bio: parseStr(profile['bio']),
+      links: links,
+      // Sport · team · level — the chips a scout scans first.
+      chips: [
+        scout,
+        if (id != null) ...[
+          const SizedBox(height: 10),
+          LevelBadge(level: id.level, title: id.title, streak: id.weeklyStreak),
+        ],
+      ],
+      counts: ProfileCounts(userId: userId),
+      actions: _actions(fs,
+          me: me,
+          canMessage: canMessage,
+          name: name,
+          username: username,
+          avatarUrl: avatarUrl),
+    );
+  }
+
+  /// The pills row. My own page: Edit profile (the Profile tab) · Share.
+  /// Someone else's: Follow / Following / Requested · Message (only when
+  /// messaging allows it — [canMessage], `{ ok }`; null on a locked private
+  /// profile, which can't be messaged) · Share. A pill the rules hide leaves
+  /// no gap.
+  Widget _actions(
+    FollowState? fs, {
+    required String? me,
+    required Map<String, dynamic>? canMessage,
+    required String name,
+    required String? username,
+    required String? avatarUrl,
+  }) {
+    final isMe = fs?.isMe == true || me == userId;
+    if (isMe) {
+      return Row(children: [
+        Expanded(
+          child: ProfilePill(
+            label: context.l10n.profile_editProfile,
+            icon: Icons.edit_outlined,
+            expand: true,
+            onTap: () {
+              // Edit profile lives on the Profile tab.
+              ref.read(homeTabIndexProvider.notifier).state = HomeTab.profile;
+              context.go('/home');
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: ShareProfilePill(
+              userId: userId,
+              name: name,
+              username: username,
+              avatarUrl: avatarUrl,
+              expand: true),
+        ),
+      ]);
+    }
+    final share = ShareProfilePill(
+        userId: userId,
+        name: name,
+        username: username,
+        avatarUrl: avatarUrl,
+        iconOnly: true);
+    final showFollow = fs != null &&
+        (fs.following || fs.requested || fs.canFollow || fs.canRequest);
+    final showMessage = canMessage != null && canMessage['ok'] == true;
+    if (!showFollow && !showMessage) {
+      return Align(alignment: AlignmentDirectional.centerStart, child: share);
+    }
+    return Row(children: [
+      if (showFollow)
+        Expanded(child: FollowButton(userId: userId, name: name, expand: true)),
+      if (showFollow && showMessage) const SizedBox(width: 8),
+      if (showMessage)
+        Expanded(child: MessageButton(userId: userId, name: name, expand: true)),
+      const SizedBox(width: 8),
+      share,
+    ]);
+  }
+
+  // ── highlights / groups / records ──────────────────────────────────────────
 
   List<Widget> _groups(AppPalette p, List<Map<String, dynamic>> groups) {
     if (groups.isEmpty) {
@@ -398,18 +683,6 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
     ];
   }
 
-  List<Widget> _tournamentsTab(List<Map<String, dynamic>> rows) {
-    if (rows.isEmpty) {
-      return [
-        _Empty(
-          icon: Icons.emoji_events_outlined,
-          text: context.l10n.profile_noTournamentsYet,
-        ),
-      ];
-    }
-    return [TournamentList(rows: rows, playerId: userId)];
-  }
-
   /// Group posts (`posts` on the profile payload): a plain grid, not opened.
   Widget _posts(AppPalette p, List<Map<String, dynamic>> posts) {
     return GridView.count(
@@ -445,342 +718,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
   }
 }
 
-// ─── Header ─────────────────────────────────────────────────────────────────
-
-class _Hero extends ConsumerWidget {
-  const _Hero({
-    required this.userId,
-    required this.profile,
-    required this.statsLoaded,
-    required this.onBack,
-    this.primary,
-    this.sports = const [],
-    this.teams = const [],
-    this.playsIn,
-    this.links = const [],
-    this.categories = const [],
-    this.ratings = const [],
-    this.restricted = false,
-    this.privateProfile = false,
-  });
-  final String userId;
-  final Map<String, dynamic> profile;
-
-  /// Scouting header (docs/design/scouting-profile.md): the sport they play
-  /// most, their per-sport setup, the teams they're on, where they play, and
-  /// the headline numbers.
-  final Map<String, dynamic>? primary;
-  final List<Map<String, dynamic>> sports;
-  final List<Map<String, dynamic>> teams;
-  final String? playsIn;
-  final List<SocialLink> links;
-  /// Every sport they have a record in, and their average rating per sport —
-  /// the header tiles, each opening that sport's record.
-  final List<dynamic> categories;
-  final List<dynamic> ratings;
-  final bool statsLoaded;
-  final VoidCallback onBack;
-
-  /// A private ward: initials, short name and a lock — nothing else.
-  final bool restricted;
-
-  /// With [restricted]: the player made their own profile private — their
-  /// name, @username and photo still show, then the lock.
-  final bool privateProfile;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final p = context.palette;
-    final top = MediaQuery.of(context).padding.top;
-    final coverH = top + 132.0;
-    const avatar = 104.0;
-    const overlap = 34.0;
-    final name = parseStr(profile['displayName']) ?? 'Player';
-    final username =
-        restricted && !privateProfile ? null : parseStr(profile['username']);
-    // Gamification identity: level (always public), streak (if the player
-    // made it public). Not for a private ward.
-    final id =
-        restricted ? null : ref.watch(identityProvider(userId)).valueOrNull;
-
-    return Stack(clipBehavior: Clip.none, children: [
-      Positioned(
-        top: 0,
-        left: 0,
-        right: 0,
-        height: coverH,
-        child: ClipRRect(
-          borderRadius:
-              const BorderRadius.vertical(bottom: Radius.circular(32)),
-          child: CustomPaint(
-            painter: _PlayerCover(p.hero, p.accentDeep, p.orange),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16, top + 8, 16, 0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SpRoundButton(
-                    icon: Icons.arrow_back_ios_new_rounded,
-                    iconSize: 18,
-                    tooltip: context.l10n.profile_back,
-                    onTap: onBack,
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 11),
-                      child: Text(context.l10n.profile_player,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800)),
-                    ),
-                  ),
-                  const SizedBox(width: 44),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-      Padding(
-        padding: EdgeInsets.fromLTRB(16, coverH - overlap, 16, 0),
-        child: GlassCard(
-          padding: const EdgeInsets.fromLTRB(16, avatar / 2 + 12, 16, 16),
-          child: Column(children: [
-            Text(name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: p.ink,
-                    fontSize: 23,
-                    height: 1.15,
-                    fontWeight: FontWeight.w800)),
-            if (username != null) ...[
-              const SizedBox(height: 8),
-              Material(
-                color: p.surface2,
-                shape: const StadiumBorder(),
-                child: InkWell(
-                  customBorder: const StadiumBorder(),
-                  onTap: () async {
-                    await Clipboard.setData(ClipboardData(text: username));
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.profile_copied(username))));
-                    }
-                  },
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Flexible(
-                        child: Text('@$username',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: p.ink,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600)),
-                      ),
-                      const SizedBox(width: 6),
-                      Icon(Icons.copy_rounded, size: 13, color: p.muted),
-                    ]),
-                  ),
-                ),
-              ),
-            ],
-            if (!restricted)
-              ScoutByline(
-                  primary: primary,
-                  sports: sports,
-                  teams: teams,
-                  playsIn: playsIn),
-            if (id != null) ...[
-              const SizedBox(height: 10),
-              LevelBadge(
-                  level: id.level, title: id.title, streak: id.weeklyStreak),
-            ],
-            if (!restricted) SocialLinksRow(links),
-            if (!restricted) FollowCounts(userId: userId),
-            if (restricted && privateProfile) ...[
-              const SizedBox(height: 16),
-              WardPrivateNote(
-                  text: context.l10n.profile_thisProfileIsPrivateTheir),
-            ] else if (restricted) ...[
-              const SizedBox(height: 10),
-              const WardBadge(),
-              const SizedBox(height: 16),
-              const WardPrivateNote(),
-            ] else ...[
-              // Positions / strong foot are per-sport: they live in the sport's
-              // own card below, not up here as one fixed fact.
-              const SizedBox(height: 16),
-              SportRatingTiles(
-                  categories: categories,
-                  ratings: ratings,
-                  hrefFor: (categoryId) => '/players/$userId/records/$categoryId',
-                  loaded: statsLoaded),
-              const SizedBox(height: 12),
-              Row(children: [
-                Expanded(child: Center(child: FollowButton(userId: userId))),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: Center(
-                        child: MessageButton(userId: userId, name: name))),
-              ]),
-            ],
-          ]),
-        ),
-      ),
-      Positioned(
-        top: coverH - overlap - avatar / 2,
-        left: 0,
-        right: 0,
-        child: Center(
-          child: Container(
-            width: avatar,
-            height: avatar,
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: p.surface,
-              boxShadow: const [
-                BoxShadow(
-                    color: Color(0x2A000000),
-                    blurRadius: 18,
-                    offset: Offset(0, 6)),
-              ],
-            ),
-            // Earned avatar frame (gamification status perk). A private
-            // ward shows initials only.
-            child: restricted
-                ? ClipOval(
-                    child: Crest(
-                        logoUrl: privateProfile
-                            ? parseStr(profile['avatarUrl'])
-                            : null,
-                        label: name,
-                        size: avatar - 12),
-                  )
-                : FramedAvatar(
-                    userId: userId,
-                    child: ClipOval(
-                      child: Crest(
-                          logoUrl: parseStr(profile['avatarUrl']),
-                          label: name,
-                          size: avatar - 12),
-                    ),
-                  ),
-          ),
-        ),
-      ),
-    ]);
-  }
-}
-
-
-class _PlayerCover extends CustomPainter {
-  _PlayerCover(this.base, this.green, this.warm);
-  final Color base;
-  final Color green;
-  final Color warm;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [base, Color.lerp(base, green, 0.7)!],
-        ).createShader(rect),
-    );
-    canvas.drawCircle(
-      Offset(size.width * 0.05, size.height * 1.05),
-      size.height * 0.9,
-      Paint()..color = warm.withAlpha(40),
-    );
-    final line = Paint()
-      ..color = const Color(0x1FFFFFFF)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawLine(
-        Offset(size.width / 2, 0), Offset(size.width / 2, size.height), line);
-    canvas.drawCircle(Offset(size.width / 2, size.height * 0.62), 44, line);
-  }
-
-  @override
-  bool shouldRepaint(covariant _PlayerCover old) =>
-      old.base != base || old.green != green || old.warm != warm;
-}
-
-// ─── Tabs & empty ───────────────────────────────────────────────────────────
-
-class _PillTab extends StatelessWidget {
-  const _PillTab({
-    required this.icon,
-    required this.label,
-    required this.count,
-    required this.selected,
-    required this.onTap,
-  });
-  final IconData icon;
-  final String label;
-  final int count;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: Material(
-        color: selected ? p.ink : p.surface,
-        shape: StadiumBorder(
-            side: selected ? BorderSide.none : BorderSide(color: p.line)),
-        child: InkWell(
-          customBorder: const StadiumBorder(),
-          onTap: onTap,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(12, 8, count > 0 ? 8 : 14, 8),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(icon, size: 16, color: selected ? p.bg : p.muted),
-              const SizedBox(width: 6),
-              Text(label,
-                  style: TextStyle(
-                      color: selected ? p.bg : p.ink,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700)),
-              if (count > 0) ...[
-                const SizedBox(width: 6),
-                Container(
-                  constraints: const BoxConstraints(minWidth: 22),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: selected ? const Color(0x33FFFFFF) : p.surface2,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text('$count',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: selected ? p.bg : p.muted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800)),
-                ),
-              ],
-            ]),
-          ),
-        ),
-      ),
-    );
-  }
-}
+// ─── Empty ───────────────────────────────────────────────────────────
 
 class _Empty extends StatelessWidget {
   const _Empty({required this.icon, required this.text});

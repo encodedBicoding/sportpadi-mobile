@@ -2771,6 +2771,10 @@
       }
     }
   },
+  "join_inviteLinkDeadTitle": "رابط الدعوة هذا لا يعمل",
+  "join_inviteLinkDead": "رابط الدعوة هذا لم يعد يعمل. اطلب رابطًا جديدًا ممن أرسله إليك.",
+  "join_linkCantAddYou": "لا يمكن لهذا الرابط إضافتك. اطلب الانضمام من صفحة المجموعة.",
+  "join_linkCantAddYouTeam": "لا يمكن لهذا الرابط إضافتك إلى الفريق. اسأل مشرفيه.",
   "group_opening": "جارٍ الفتح…",
   "group_sportPadiHome": "الصفحة الرئيسية لـ SportPadi",
   "group_signIn": "تسجيل الدخول",
@@ -8883,6 +8887,7 @@
   "profile_notInAnyGroupsYet": "ليس في أي مجموعة بعد.",
   "profile_noTournamentsYet": "لا توجد بطولات بعد.",
   "profile_noHighlightsYet": "لا توجد لقطات مميزة بعد.",
+  "profile_visitorHighlightsEmpty": "لا يوجد ما يُعرض هنا. بعض اللقطات المميزة مرئية فقط لمن سجّلوا الدخول.",
   "profile_highlight": "لقطة مميزة",
   "profile_recordInTournament": "السجل في البطولة",
   "profile_thisTournamentIsntAvailable": "هذه البطولة غير متاحة",
@@ -9482,8 +9487,8 @@
   "profile_couldNotUpdatePrivacy": "تعذّر تحديث الخصوصية",
   "profile_profilePrivacy": "خصوصية الملف الشخصي",
   "profile_privateProfile": "ملف شخصي خاص",
-  "profile_othersSeeYourNameUsername": "يرى الآخرون اسمك و@اسم المستخدم وصورتك، وأن ملفك الشخصي خاص — وليس سجلاتك أو مجموعاتك أو منشوراتك.",
-  "profile_anyoneWhoTapsYourName": "أي شخص يضغط على اسمك يرى سجلاتك ومجموعاتك ومنشوراتك. فعّل هذا الخيار لتبقيها لنفسك.",
+  "profile_othersSeeYourNameUsername": "لا يرى لقطاتك المميزة ومجموعاتك وسجلاتك إلا المتابعون الذين توافق عليهم. يرى الآخرون صورتك واسمك و@اسم المستخدم والنبذة والروابط وعدد المتابعين. إيقاف هذا الخيار يقبل كل الطلبات المنتظرة.",
+  "profile_anyoneWhoTapsYourName": "أي شخص يضغط على اسمك يرى سجلاتك ومجموعاتك ومنشوراتك. فعّل هذا الخيار ليراها متابعوك وحدهم — وسيحتاج المتابعون الجدد إلى موافقتك.",
   "profile_yourProfileIsPrivate": "ملفك الشخصي خاص",
   "profile_yourProfileIsPublic": "ملفك الشخصي عام",
   "profile_whoCanSeeYourProfile": "من يمكنه رؤية ملفك الشخصي",
@@ -10017,7 +10022,7 @@
     }
   },
   "profile_localGroupGames3": "مباريات المجموعات المحلية",
-  "profile_thisProfileIsPrivateTheir": "هذا الملف الشخصي خاص. سجلاته ومجموعاته ومنشوراته مرئية له وحده.",
+  "profile_thisProfileIsPrivateTheir": "هذا الملف الشخصي خاص. لا يرى سجلاته ومجموعاته ومنشوراته إلا المتابعون الذين يوافق عليهم.",
   "profile_showingSRecordSwitchSport2": "عرض سجل {first} في {value} — بدّل الرياضة في أي وقت.",
   "@profile_showingSRecordSwitchSport2": {
     "placeholders": {
@@ -11134,6 +11139,39 @@
     }
   },
   "profile_ratingTileNotRated": "لا تقييم بعد",
+  "profile_followBack": "رد المتابعة",
+  "profile_requested": "تم الطلب",
+  "profile_unfollow": "إلغاء المتابعة",
+  "profile_unfollowPrivateNote": "هذا الحساب خاص. إذا ألغيت المتابعة، فستحتاج إلى الطلب مجددًا لرؤية لقطاته المميزة ومجموعاته وسجلاته.",
+  "profile_cancelRequest": "إلغاء الطلب",
+  "profile_followsYou": "يتابعك",
+  "profile_followRequests": "طلبات المتابعة",
+  "profile_followRequestsWaiting": "{count, plural, zero{لا توجد طلبات بانتظارك} one{طلب واحد بانتظارك} two{طلبان بانتظارك} few{{count} طلبات بانتظارك} many{{count} طلبًا بانتظارك} other{{count} طلب بانتظارك}}",
+  "@profile_followRequestsWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_privateAccount": "حساب خاص",
+  "profile_privateAccountTitle": "هذا الحساب خاص",
+  "profile_privateAccountFollowText": "تابع هذا الحساب لرؤية لقطاته المميزة ومجموعاته وسجلاته.",
+  "profile_privateAccountRequestedText": "طلب المتابعة الخاص بك قيد الانتظار. بمجرد قبوله، سترى لقطاته المميزة ومجموعاته وسجلاته.",
+  "profile_privateAccountSignInText": "سجّل الدخول وتابع هذا الحساب لرؤية لقطاته المميزة ومجموعاته وسجلاته.",
+  "profile_bio": "النبذة",
+  "profile_bioPlaceholder": "بضع كلمات عنك: مركزك، ناديك، الرياضات التي تمارسها.",
+  "profile_bioSupervisedNote": "النبذة غير متاحة ما دام حسابك خاضعًا للإشراف.",
+  "profile_requestsTabIncoming": "الطلبات",
+  "profile_requestsTabSent": "المُرسلة",
+  "profile_noFollowRequests": "لا توجد طلبات متابعة الآن.",
+  "profile_noSentRequests": "لا توجد طلبات متابعة منك قيد الانتظار.",
+  "profile_confirmRequest": "تأكيد",
+  "profile_deleteRequest": "حذف",
+  "profile_withdrawRequestTitle": "هل تريد سحب طلب المتابعة؟",
+  "profile_withdrawRequestText": "إذا طلبت مجددًا خلال أسبوع، فلن يصل إشعار جديد.",
+  "profile_privateAccountApprovedOnlyText": "لا يرى لقطاته المميزة ومجموعاته وسجلاته إلا المتابعون الذين يوافق عليهم هذا الحساب.",
+  "profile_followRequestsMenuSub": "من يريدون متابعتك، والطلبات التي أرسلتها",
   "inbox_discussionRemoved": "تمت إزالة النقاش",
   "inbox_commentRemoved": "تمت إزالة التعليق",
   "inbox_discussion": "النقاش",
@@ -20341,6 +20379,15 @@
       }
     }
   },
+  "highlights_followName": "متابعة {name}",
+  "@highlights_followName": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_followingNow": "تمت المتابعة",
   "highlights_statMinute": "{minute}’",
   "@highlights_statMinute": {
     "placeholders": {
@@ -20963,5 +21010,147 @@
   "highlights_appKeepOpen": "توقّف الرفع بينما كان SportPadi في الخلفية. أبقِ التطبيق مفتوحًا على الشاشة حتى ينتهي، ثم حاول مجددًا.",
   "highlights_appLostVideoTitle": "استخدام الفيديو السابق؟",
   "highlights_appLostVideoBody": "أُغلق SportPadi قبل أن يُضاف هذا الفيديو إلى لقطة مميزة.",
-  "highlights_appLostVideoUse": "استخدمه"
+  "highlights_appLostVideoUse": "استخدمه",
+  "highlights_visitorTitle": "انضم إلى SportPadi",
+  "highlights_visitorLikeText": "أنشئ حسابًا مجانيًا لتُعجب باللقطات المميزة وتشجّع اللاعبين.",
+  "highlights_visitorCommentText": "أنشئ حسابًا مجانيًا للتعليق على اللقطات المميزة.",
+  "highlights_visitorFollowText": "أنشئ حسابًا مجانيًا لمتابعة {name} ورؤية اللقطات المميزة الجديدة في قائمة المتابَعين.",
+  "@highlights_visitorFollowText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_visitorReportText": "سجّل الدخول أو أنشئ حسابًا للإبلاغ عن هذا إلى فريق SportPadi.",
+  "highlights_visitorPostText": "أنشئ حسابًا مجانيًا لنشر لقطاتك المميزة.",
+  "highlights_visitorFollowingTitle": "المتابَعون",
+  "highlights_visitorFollowingText": "سجّل الدخول لرؤية اللقطات المميزة من اللاعبين الذين تتابعهم.",
+  "highlights_visitorSignUp": "إنشاء حساب",
+  "highlights_visitorSignIn": "تسجيل الدخول",
+  "highlights_commentsSignUp": "أنشئ حسابًا للتعليق",
+  "highlights_notFoundVisitorText": "ربما حُذفت، أو أنها مرئية فقط لمن سجّلوا الدخول.",
+  "highlights_reelEndTitle": "هذا كل شيء من {name}",
+  "@highlights_reelEndTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "highlights_reelEndTitleMine": "هذه كل لقطاتك المميزة",
+  "highlights_reelEndNoMore": "لا مزيد من اللقطات المميزة هنا",
+  "highlights_reelEndText": "شاهدت كل لقطاته المميزة المتاحة لك.",
+  "highlights_reelEndKeepWatching": "تابع المشاهدة",
+  "highlights_appReelEndSignIn": "سجّل الدخول لرؤية ملفه الشخصي",
+  "share_share": "مشاركة",
+  "share_sendTo": "إرسال إلى",
+  "share_searchPeople": "ابحث عن أشخاص",
+  "share_loadingPeople": "جارٍ التحميل…",
+  "share_noMatches": "لا أحد يطابق ذلك.",
+  "share_noOneYet": "لا أحد هنا بعد. ستظهر هنا محادثاتك والأشخاص الذين تتابعهم ومن يتابعونك.",
+  "share_selected": "محدد",
+  "share_aboutWard": "بخصوص {name}",
+  "@share_aboutWard": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_addMessage": "أضف رسالة (اختياري)",
+  "share_sending": "جارٍ الإرسال…",
+  "share_sendToCount": "{count, plural, zero{إرسال إلى {count} شخص} one{إرسال إلى شخص واحد} two{إرسال إلى شخصين} few{إرسال إلى {count} أشخاص} many{إرسال إلى {count} شخصًا} other{إرسال إلى {count} شخص}}",
+  "@share_sendToCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "share_sentToAll": "{count, plural, zero{أُرسل إلى {count} شخص} one{أُرسل إلى شخص واحد} two{أُرسل إلى شخصين} few{أُرسل إلى {count} أشخاص} many{أُرسل إلى {count} شخصًا} other{أُرسل إلى {count} شخص}}",
+  "@share_sentToAll": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "share_sentSome": "أُرسل إلى {sent} من {total}",
+  "@share_sentSome": {
+    "placeholders": {
+      "sent": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_couldntSend": "تعذّر الإرسال. حاول مرة أخرى.",
+  "share_couldntSendTo": "تعذّر الإرسال إلى {name}: {reason}",
+  "@share_couldntSendTo": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      },
+      "reason": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_maxRecipients": "يمكنك الإرسال إلى {max} أشخاص كحد أقصى في المرة الواحدة.",
+  "@share_maxRecipients": {
+    "placeholders": {
+      "max": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_cantSendInApp": "لا يمكن إرسال هذا كرسالة، لكن لا يزال بإمكانك مشاركة الرابط.",
+  "share_otherApps": "المشاركة في تطبيقات أخرى",
+  "share_copyLink": "نسخ الرابط",
+  "share_linkCopied": "تم نسخ الرابط",
+  "share_copyThisLink": "انسخ هذا الرابط",
+  "share_email": "البريد الإلكتروني",
+  "share_sms": "رسالة نصية",
+  "share_more": "المزيد",
+  "share_notAvailable": "هذا المحتوى غير متاح",
+  "share_notAvailableHint": "ربما تمت إزالته، أو أنه خاص.",
+  "share_kindEvent": "فعالية",
+  "share_kindGroup": "مجموعة",
+  "share_kindGroupInvite": "دعوة للانضمام",
+  "share_kindTournament": "بطولة",
+  "share_kindLeague": "دوري",
+  "share_kindCompetition": "مسابقة",
+  "share_kindHighlight": "لقطة مميزة",
+  "share_kindTicket": "تذكرة",
+  "share_kindTeamInvite": "دعوة إلى الفريق",
+  "share_kindCallForTeams": "دعوة للفرق",
+  "share_kindPlayer": "لاعب",
+  "share_kindMatch": "مباراة",
+  "share_kindTeam": "فريق",
+  "share_shareMembershipLink": "مشاركة رابط العضوية",
+  "share_joinGroupText": "انضم إلى {name} على SportPadi",
+  "@share_joinGroupText": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "share_shareTeam": "مشاركة الفريق",
+  "share_shareProfile": "مشاركة الملف الشخصي",
+  "share_shareMatch": "مشاركة المباراة",
+  "share_couldntLoadPreview": "تعذّر تحميل المعاينة",
+  "share_tryAgain": "حاول مرة أخرى",
+  "share_couldntLoadPeople": "تعذّر تحميل الأشخاص. حاول مرة أخرى.",
+  "share_resetLink": "إعادة تعيين الرابط",
+  "share_resetLinkHint": "يُنشئ رابطًا جديدًا. سيتوقف الرابط القديم عن العمل.",
+  "share_resetLinkConfirm": "هل تريد إعادة تعيين هذا الرابط؟ سيتوقف الرابط القديم عن العمل، لذا سيحتاج من لم يستخدمه بعد إلى الرابط الجديد.",
+  "share_linkWasReset": "تمت إعادة تعيين الرابط. الرابط القديم لم يعد يعمل.",
+  "share_couldntResetLink": "تعذّرت إعادة تعيين الرابط. حاول مرة أخرى.",
+  "share_couldntLoadInviteLink": "تعذّر تحميل رابط الدعوة.",
+  "share_anyoneWithLinkCanJoinTeam": "يمكن لأي شخص لديه هذا الرابط الانضمام إلى الفريق ومجموعته.",
+  "share_resetGroupLinkConfirm": "هل تريد إعادة تعيين هذا الرابط؟ سيتوقف الرابط القديم عن العمل، وكذلك روابط انضمام كل فرق هذه المجموعة. سيحتاج من لم يستخدمها بعد إلى الروابط الجديدة."
 }

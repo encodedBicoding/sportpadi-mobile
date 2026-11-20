@@ -1,7 +1,7 @@
 name: sportpadi_mobile
 description: sportpadi — native mobile client (Flutter).
 publish_to: "none"
-version: 1.3.62+60
+version: 1.3.64+62
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -54,6 +54,11 @@ dependencies:
   # The app's temp folder, for those prepared files.
   path_provider: ^2.1.4
   url_launcher: ^6.3.0
+  # The share sheet's "More" button: the phone's own share sheet
+  # (docs/wiki/sharing.md in the workspace). 13.x is the line on win32 6,
+  # which pubspec.lock already resolves (package_info_plus); 12.x would pin
+  # win32 5 and drag package_info_plus back.
+  share_plus: ^13.0.0
   # App Store in-app purchase for the group plan. Anything unlocking in-app
   # functionality must be bought this way (App Store guideline 3.1.1); tickets,
   # entry fees and fines are real-world services and stay on the web checkout.
