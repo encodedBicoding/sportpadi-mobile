@@ -21043,6 +21043,8 @@
   "highlights_reelEndText": "Vous avez vu tous ses temps forts que vous pouvez regarder.",
   "highlights_reelEndKeepWatching": "Continuer à regarder",
   "highlights_appReelEndSignIn": "Connectez-vous pour voir son profil",
+  "highlights_previousHighlight": "Temps fort précédent",
+  "highlights_nextHighlight": "Temps fort suivant",
   "share_share": "Partager",
   "share_sendTo": "Envoyer à",
   "share_searchPeople": "Rechercher des personnes",

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:sportpadi_mobile/core/links/link_resolver.dart'
+    show resolveLinkRoute;
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
@@ -235,8 +237,14 @@ class ScoutByline extends StatelessWidget {
                     : '${t['name']}',
                 bg: p.surface2,
                 fg: p.ink,
-                onTap: () =>
-                    context.push('/groups/${t['groupId']}/teams/${t['id']}'),
+                // The team's page. The web links it as
+                // /groups/<group>/teams/<team>; the app's page for a group
+                // team is /teams/<team> (link_resolver maps one to the
+                // other) — pushing the web's path verbatim found no route
+                // and broke the page.
+                onTap: parseStr(t['id']) == null
+                    ? null
+                    : () => context.push('/teams/${parseStr(t['id'])}'),
               ),
           ],
         ),
@@ -858,9 +866,12 @@ class HonoursSection extends StatelessWidget {
           for (final h in honours)
             InkWell(
               borderRadius: BorderRadius.circular(16),
-              onTap: parseStr(h['href']) == null
+              // `href` is a web path (/e/<slug>, /events/<id>, /leagues/<x>):
+              // resolved the way pushes and shared links are — /e/<slug> has
+              // no app route of its own and pushed verbatim it broke the page.
+              onTap: resolveLinkRoute(parseStr(h['href'])) == null
                   ? null
-                  : () => context.push(h['href'] as String),
+                  : () => context.push(resolveLinkRoute(parseStr(h['href']))!),
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 9),

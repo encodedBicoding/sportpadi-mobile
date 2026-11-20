@@ -8,6 +8,10 @@ import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
 import 'package:sportpadi_mobile/data/highlights/highlight_models.dart';
 import 'package:sportpadi_mobile/data/highlights/highlights_repository.dart';
+import 'package:sportpadi_mobile/features/highlights/highlights_screen.dart'
+    show highlightFeedMemoryProvider;
+import 'package:sportpadi_mobile/shared/widgets/sp_page_bits.dart'
+    show SpPill, SpPillTone;
 import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
 /// Bumped by a profile's pull-to-refresh ([reloadHighlightGrids]).
@@ -30,7 +34,9 @@ class HighlightsGrid extends ConsumerStatefulWidget {
   const HighlightsGrid({super.key, required this.userId, this.mine = false});
   final String userId;
 
-  /// Your own profile: the empty state invites you to post.
+  /// Your own profile: "Post a highlight" above the grid, and in the empty
+  /// state (the web profile's `action` / `empty` pills) — the profile is
+  /// always someone signed in.
   final bool mine;
 
   @override
@@ -143,6 +149,32 @@ class _HighlightsGridState extends ConsumerState<HighlightsGrid> {
     });
   }
 
+  /// "Post a highlight" on your own profile: the composer, as from the
+  /// Highlights tab's "+" (a guardian picks a ward's stat there; a paused
+  /// account or a full week is told there, as on the web — the profile asks
+  /// no quota). The composer bumps [highlightsChanged] as it posts, so this
+  /// grid re-reads from the top and the new post is the first tile.
+  Future<void> _post() async {
+    final created = await context.push<HighlightItem>('/highlights/new');
+    if (created == null || !mounted) return;
+    // As after posting from the Highlights tab: my own posts are part of
+    // Following, so a remembered Following feed starts afresh — even one a
+    // kept-alive tab still holds (`forgetFromOutside`); and an app video is
+    // read again a little later, when the server has checked it.
+    final memory = ref.read(highlightFeedMemoryProvider);
+    memory.forgetFromOutside('following');
+    if (created.isVideo && created.source == 'app') {
+      memory.unsettled[created.id] = DateTime.now();
+    }
+  }
+
+  Widget _postPill({required SpPillTone tone}) => SpPill(
+        label: context.l10n.highlights_postHighlight,
+        icon: Icons.add_rounded,
+        tone: tone,
+        onTap: _post,
+      );
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
@@ -156,18 +188,28 @@ class _HighlightsGridState extends ConsumerState<HighlightsGrid> {
           child: Center(child: CircularProgressIndicator()),
         );
       }
+      // Your own, settled and empty: the web profile's empty state — a
+      // title, a line, and "Post a highlight".
+      final mineEmpty = widget.mine && _end && error == null;
       return GlassCard(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
         child: Column(children: [
           SpIconTile(Icons.movie_filter_outlined,
               bg: p.surface2, fg: p.muted, size: 52, iconSize: 24),
-          const SizedBox(height: 6),
+          if (mineEmpty) ...[
+            const SizedBox(height: 10),
+            Text(l.highlights_profileEmptyMineTitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: p.ink, fontSize: 15, fontWeight: FontWeight.w800)),
+          ],
+          SizedBox(height: mineEmpty ? 4 : 6),
           Text(
             error ??
                 (!_end
                     ? l.highlights_noneFoundSoFar
                     : widget.mine
-                        ? l.highlights_gridEmptyMine
+                        ? l.highlights_profileEmptyMineText
                         : l.profile_noHighlightsYet),
             textAlign: TextAlign.center,
             style: TextStyle(color: p.muted, fontSize: 13, height: 1.4),
@@ -178,7 +220,11 @@ class _HighlightsGridState extends ConsumerState<HighlightsGrid> {
                 child: Text(l.common_retry))
           else if (!_end)
             TextButton(
-                onPressed: _load, child: Text(l.highlights_keepLooking)),
+                onPressed: _load, child: Text(l.highlights_keepLooking))
+          else if (mineEmpty) ...[
+            const SizedBox(height: 14),
+            _postPill(tone: SpPillTone.ink),
+          ],
         ]),
       );
     }
@@ -186,6 +232,16 @@ class _HighlightsGridState extends ConsumerState<HighlightsGrid> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Your own: "Post a highlight" above the tiles, at the end of the
+        // row (the web's `mb-3 flex justify-end`).
+        if (widget.mine)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: _postPill(tone: SpPillTone.soft),
+            ),
+          ),
         GridView.count(
           crossAxisCount: 3,
           shrinkWrap: true,
