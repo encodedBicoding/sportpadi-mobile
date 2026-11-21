@@ -9057,6 +9057,30 @@
   },
   "profile_followers2": "متابِعون",
   "profile_following2": "يتابع",
+  "profile_countHighlights": "{count, plural, zero{لقطة} one{لقطة} two{لقطتان} few{لقطات} many{لقطة} other{لقطة}}",
+  "@profile_countHighlights": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_countFollowers": "{count, plural, zero{متابِع} one{متابِع} two{متابِعان} few{متابِعين} many{متابِعًا} other{متابِع}}",
+  "@profile_countFollowers": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_countFollowing": "{count, plural, other{يتابع}}",
+  "@profile_countFollowing": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
   "profile_fold": "طي",
   "profile_unfold": "توسيع",
   "profile_sport": "الرياضة",

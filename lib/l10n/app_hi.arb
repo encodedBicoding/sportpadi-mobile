@@ -9057,6 +9057,30 @@
   },
   "profile_followers2": "फ़ॉलोअर",
   "profile_following2": "फ़ॉलो कर रहे",
+  "profile_countHighlights": "{count, plural, one{हाइलाइट} other{हाइलाइट्स}}",
+  "@profile_countHighlights": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_countFollowers": "{count, plural, one{फ़ॉलोअर} other{फ़ॉलोअर}}",
+  "@profile_countFollowers": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_countFollowing": "{count, plural, other{फ़ॉलो कर रहे}}",
+  "@profile_countFollowing": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
   "profile_fold": "समेटें",
   "profile_unfold": "फैलाएँ",
   "profile_sport": "खेल",

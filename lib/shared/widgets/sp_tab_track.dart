@@ -35,6 +35,15 @@ class SpPinnedTabsScrollView extends StatefulWidget {
 
   @override
   State<SpPinnedTabsScrollView> createState() => _SpPinnedTabsScrollViewState();
+
+  /// Scrolls the page [context] sits in (a header widget's own context) so
+  /// the tab switch is at its pinned place under the status bar — the
+  /// profiles' highlights count, after it selects the Highlights tab.
+  /// Waits a frame, so the new tab's content (and the page's length) is in.
+  static void revealTabs(BuildContext context) {
+    final state = context.findAncestorStateOfType<_SpPinnedTabsScrollViewState>();
+    state?._revealTabs();
+  }
 }
 
 class _SpPinnedTabsScrollViewState extends State<SpPinnedTabsScrollView> {
@@ -105,6 +114,28 @@ class _SpPinnedTabsScrollViewState extends State<SpPinnedTabsScrollView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkQueued = false;
       _check();
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  void _revealTabs() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scroll.hasClients) return;
+      _check();
+      final at = _trackAt;
+      if (at == null) return;
+      final pos = _scroll.position;
+      final target = (at - _inset)
+          .clamp(pos.minScrollExtent, pos.maxScrollExtent)
+          .toDouble();
+      // Less motion when the viewer asked for it.
+      if (MediaQuery.disableAnimationsOf(context)) {
+        _scroll.jumpTo(target);
+      } else {
+        _scroll.animateTo(target,
+            duration: const Duration(milliseconds: 320),
+            curve: Curves.easeOutCubic);
+      }
     });
     WidgetsBinding.instance.ensureVisualUpdate();
   }

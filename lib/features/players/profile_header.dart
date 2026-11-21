@@ -15,7 +15,8 @@ import 'package:sportpadi_mobile/shared/widgets/ui.dart';
 
 /// The profile header, laid out like Instagram's (owner, 2026-11-19) — web
 /// twin: components/players/ProfileHeader.tsx. No cover banner: the photo on
-/// the left and Followers · Following on the right, then the name and
+/// the left and Highlights · Followers · Following on the right (2026-11-20),
+/// then the name and
 /// @username, a line about where they play, the bio, the links and the chips,
 /// then a row of full-width pills (Edit profile · Share profile on your own;
 /// Follow / Following / Requested · Message · Share on someone else's).
@@ -76,24 +77,43 @@ class ProfileTopBar extends StatelessWidget {
   }
 }
 
-/// Followers · Following beside the photo. Each opens its list only when the
-/// viewer may see the profile in full ([open]): the lists are refused on a
-/// locked private profile, so the numbers are plain there, as on Instagram.
+/// Highlights · Followers · Following beside the photo (owner, 2026-11-20:
+/// "a post count beside followers and following — by post I mean
+/// highlights"), in Instagram's order, each a column (number over label).
+/// Followers / Following open their lists only when the viewer may see the
+/// profile in full ([open]): the lists are refused on a locked private
+/// profile, so the numbers are plain there, as on Instagram. The highlights
+/// number (`follows.state` `highlights`: what this viewer's grid lists,
+/// ready posts only) selects the Highlights tab and scrolls to it
+/// ([onHighlights], given only where the tabs are — it gets this widget's
+/// context, which sits inside the page's `SpPinnedTabsScrollView`); null
+/// from the server hides the cell.
 class ProfileCounts extends ConsumerWidget {
-  const ProfileCounts({super.key, required this.userId, this.open = true});
+  const ProfileCounts(
+      {super.key, required this.userId, this.open = true, this.onHighlights});
   final String userId;
   final bool open;
+  final void Function(BuildContext context)? onHighlights;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
-    final s = ref.watch(followStateProvider(userId)).valueOrNull;
+    final state = ref.watch(followStateProvider(userId));
+    final s = state.valueOrNull;
     final locale = Localizations.localeOf(context).toLanguageTag();
-    Widget item(String which, int? value, String label) {
+    final l = context.l10n;
+    // Until the first answer: nothing — a row of the same height, so the
+    // highlights cell never shows "–" and then goes away (a null answer). A
+    // failed read: "–" for the follower counts, no highlights cell. No number
+    // from the server (or an older server): no highlights cell.
+    if (s == null && !state.hasError) return const SizedBox(height: 44);
+    final showPosts = s?.highlights != null;
+    Widget item(int? value, String label, {VoidCallback? onTap}) {
+      // Number and label each on one line, shrunk rather than wrapped or
+      // cut on a narrow phone or at large text.
       final body = Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          // One line, shrunk rather than broken mid-number at large text.
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(value == null ? '–' : compactCount(value, locale),
@@ -105,26 +125,42 @@ class ProfileCounts extends ConsumerWidget {
                     height: 1.2,
                     fontWeight: FontWeight.w800)),
           ),
-          Text(label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: p.muted, fontSize: 12.5)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(label,
+                maxLines: 1,
+                softWrap: false,
+                style: TextStyle(color: p.muted, fontSize: 12.5)),
+          ),
         ]),
       );
-      if (!open || value == null) return body;
+      if (value == null || onTap == null) return body;
       return InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => context.push('/players/$userId/followers?which=$which'),
+        onTap: onTap,
         child: body,
       );
     }
 
-    return Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-      Flexible(
-          child: item('followers', s?.followers, context.l10n.profile_followers2)),
-      Flexible(
-          child: item(
-              'following', s?.followingCount, context.l10n.profile_following2)),
+    final posts = s?.highlights;
+    final tapPosts = onHighlights;
+    return Row(children: [
+      if (showPosts)
+        Expanded(
+            child: item(posts, l.profile_countHighlights(posts ?? 0),
+                onTap: tapPosts == null ? null : () => tapPosts(context))),
+      Expanded(
+          child: item(s?.followers,
+              l.profile_countFollowers(s?.followers ?? 0),
+              onTap: open
+                  ? () => context.push('/players/$userId/followers?which=followers')
+                  : null)),
+      Expanded(
+          child: item(s?.followingCount,
+              l.profile_countFollowing(s?.followingCount ?? 0),
+              onTap: open
+                  ? () => context.push('/players/$userId/followers?which=following')
+                  : null)),
     ]);
   }
 }

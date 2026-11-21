@@ -9057,6 +9057,30 @@
   },
   "profile_followers2": "mabiya",
   "profile_following2": "ana bi",
+  "profile_countHighlights": "{count, plural, one{fitaccen lokaci} other{fitattun lokuta}}",
+  "@profile_countHighlights": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_countFollowers": "{count, plural, one{mabiyi} other{mabiya}}",
+  "@profile_countFollowers": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_countFollowing": "{count, plural, other{ana bi}}",
+  "@profile_countFollowing": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
   "profile_fold": "Naɗe",
   "profile_unfold": "Buɗe",
   "profile_sport": "Wasa",
