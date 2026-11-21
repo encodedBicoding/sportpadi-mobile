@@ -9057,6 +9057,30 @@
   },
   "profile_followers2": "abonnés",
   "profile_following2": "abonnements",
+  "profile_countHighlights": "{count, plural, one{temps fort} other{temps forts}}",
+  "@profile_countHighlights": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_countFollowers": "{count, plural, one{abonné} other{abonnés}}",
+  "@profile_countFollowers": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_countFollowing": "{count, plural, one{suivi} other{suivis}}",
+  "@profile_countFollowing": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
   "profile_fold": "Replier",
   "profile_unfold": "Déplier",
   "profile_sport": "Sport",

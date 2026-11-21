@@ -9057,6 +9057,30 @@
   },
   "profile_followers2": "olùtẹ̀lé",
   "profile_following2": "ń tẹ̀lé",
+  "profile_countHighlights": "{count, plural, one{ìṣẹ́jú pàtàkì} other{ìṣẹ́jú pàtàkì}}",
+  "@profile_countHighlights": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_countFollowers": "{count, plural, one{olùtẹ̀lé} other{olùtẹ̀lé}}",
+  "@profile_countFollowers": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_countFollowing": "{count, plural, one{ń tẹ̀lé} other{ń tẹ̀lé}}",
+  "@profile_countFollowing": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
   "profile_fold": "Ká a",
   "profile_unfold": "Tú u",
   "profile_sport": "Eré ìdárayá",

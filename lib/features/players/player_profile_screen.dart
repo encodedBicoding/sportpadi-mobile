@@ -194,6 +194,11 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen>
     final honours = data.hasValue && !restricted
         ? ref.watch(playerHonoursProvider(userId)).valueOrNull
         : null;
+    // A failed honours read: the cards' rating corners say "–" (not a
+    // placeholder forever).
+    final honoursFailed = data.hasValue &&
+        !restricted &&
+        ref.watch(playerHonoursProvider(userId)).hasError;
     // The sport they play most leads the header; stats never cross sports.
     final sorted = [...categories]
       ..sort((a, b) => (parseInt(mapOf(b['overall'])['games']) ?? 0)
@@ -396,11 +401,13 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen>
                             else if (_tabs.index == 1)
                               ..._groups(p, groups)
                             else ...[
-                              // Their honours and latest matches, then one
-                              // sport card per sport played (under the
-                              // per-sport rating tiles), each opening that
-                              // sport's own record page. Honours, matches
-                              // and tiles sat in the old cover header.
+                              // Their honours and latest matches, then ONE
+                              // sport card per sport, its rating in the
+                              // card's corner (owner, 2026-11-20: the
+                              // separate rating tiles are gone), each
+                              // opening that sport's own record page.
+                              // Honours and matches sat in the old cover
+                              // header.
                               HonoursSection(
                                   honours: listOf(honours?['honours']),
                                   loading: honours == null),
@@ -413,18 +420,16 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen>
                                 userId: userId,
                                 categories: categories,
                                 loaded: stats != null,
-                                lead: SportRatingTiles(
-                                    categories: categories,
-                                    ratings:
-                                        listOf(honours?['ratingsByCategory']),
-                                    hrefFor: (categoryId) =>
-                                        '/players/$userId/records/$categoryId',
-                                    loaded: stats != null && honours != null),
+                                ratings: honours != null
+                                    ? listOf(honours['ratingsByCategory'])
+                                    : honoursFailed
+                                        ? const <Map<String, dynamic>>[]
+                                        : null,
                               ),
                             ],
                             // The page's foot on every tab: it vouches for
-                            // the honours, matches and tiles as much as for
-                            // the records.
+                            // the honours, matches and ratings as much as
+                            // for the records.
                             RecordFootnote(games: parseInt(honours?['games'])),
                           ],
                         ),
@@ -508,7 +513,14 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen>
           LevelBadge(level: id.level, title: id.title, streak: id.weeklyStreak),
         ],
       ],
-      counts: ProfileCounts(userId: userId),
+      // "N highlights": the Highlights tab, scrolled to.
+      counts: ProfileCounts(
+        userId: userId,
+        onHighlights: (ctx) {
+          _tabs.animateTo(0);
+          SpPinnedTabsScrollView.revealTabs(ctx);
+        },
+      ),
       actions: _actions(fs,
           me: me,
           canMessage: canMessage,

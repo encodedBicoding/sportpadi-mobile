@@ -9057,6 +9057,30 @@
   },
   "profile_followers2": "Fans",
   "profile_following2": "folgt",
+  "profile_countHighlights": "{count, plural, one{Highlight} other{Highlights}}",
+  "@profile_countHighlights": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_countFollowers": "{count, plural, one{Fan} other{Fans}}",
+  "@profile_countFollowers": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "profile_countFollowing": "{count, plural, other{folgt}}",
+  "@profile_countFollowing": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
   "profile_fold": "Einklappen",
   "profile_unfold": "Ausklappen",
   "profile_sport": "Sportart",

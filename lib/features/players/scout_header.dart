@@ -7,6 +7,8 @@ import 'package:sportpadi_mobile/core/links/link_resolver.dart'
 import 'package:sportpadi_mobile/core/network/api_exception.dart';
 import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/core/theme/app_colors.dart';
+import 'package:sportpadi_mobile/data/highlights/highlights_repository.dart'
+    show highlightsChanged;
 import 'package:sportpadi_mobile/data/profile/profile_repository.dart';
 import 'package:sportpadi_mobile/features/highlights/highlight_follow.dart';
 import 'package:sportpadi_mobile/features/players/player_record.dart';
@@ -63,6 +65,7 @@ class FollowState {
     this.hiddenReason,
     this.followsMe = false,
     this.requestCount = 0,
+    this.highlights,
   });
   final int followers;
   final int followingCount;
@@ -99,6 +102,12 @@ class FollowState {
   /// My own profile: follow requests waiting for me (0 otherwise).
   final int requestCount;
 
+  /// The header's post count (2026-11-20): exactly the ready highlights my
+  /// grid of them lists (a private adult I'm not let into: what an accepted
+  /// follower's lists). Null — a child kept limited, a guest the visitor rule
+  /// keeps out, or a server older than the count — hides the cell.
+  final int? highlights;
+
   factory FollowState.fromJson(Map<String, dynamic> j) => FollowState(
         followers: parseInt(j['followers']) ?? 0,
         followingCount: parseInt(j['followingCount']) ?? 0,
@@ -112,6 +121,7 @@ class FollowState {
         hiddenReason: parseStr(j['hiddenReason']),
         followsMe: j['followsMe'] == true,
         requestCount: parseInt(j['requestCount']) ?? 0,
+        highlights: parseInt(j['highlights']),
       );
 }
 
@@ -126,6 +136,12 @@ final followsChanged = ValueNotifier<int>(0);
 /// and the locked page offers a retry.
 final followStateProvider = FutureProvider.autoDispose
     .family<FollowState, String>((ref, userId) async {
+  // A post made, deleted or re-linked anywhere in the app changes a profile
+  // header's "N highlights" (review profile-counts-records MED-2): re-read,
+  // as the grids do. The last answer stays on screen meanwhile.
+  void changed() => ref.invalidateSelf();
+  highlightsChanged.addListener(changed);
+  ref.onDispose(() => highlightsChanged.removeListener(changed));
   try {
     final res =
         await ref.watch(dioProvider).get('/api/mobile/players/$userId/follow');
@@ -653,119 +669,6 @@ class _FirstMessageSheetState extends ConsumerState<_FirstMessageSheet> {
         ]),
       ),
     );
-  }
-}
-
-// ── headline tiles ──────────────────────────────────────────────────────────
-
-/// Games · the sport's first two tallies · average rating (the sport they
-/// play most — stats never cross sports).
-/// The header's sport tiles: one per sport the player has a record in, with
-/// their average match rating there (last 10 rated games, `ratingsByCategory`
-/// from the honours read). Each opens that sport's record — the tallies live
-/// on the record cards below.
-class SportRatingTiles extends StatelessWidget {
-  const SportRatingTiles({
-    super.key,
-    required this.categories,
-    required this.ratings,
-    required this.hrefFor,
-    required this.loaded,
-  });
-  final List<dynamic> categories;
-  final List<dynamic> ratings;
-  final String Function(String categoryId) hrefFor;
-  final bool loaded;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    if (!loaded) {
-      return Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: Container(
-          height: 64,
-          width: 260,
-          decoration: BoxDecoration(color: p.surface2, borderRadius: BorderRadius.circular(14)),
-        ),
-      );
-    }
-    final byId = {
-      for (final r in ratings) parseStr(mapOf(r)['categoryId']) ?? '': mapOf(r),
-    };
-    final sports = categories
-        .map(mapOf)
-        .where((c) =>
-            (parseInt(mapOf(c['overall'])['games']) ?? 0) > 0 ||
-            (parseInt(mapOf(c['attendance'])['checkIns']) ?? 0) > 0)
-        .toList()
-      ..sort((a, b) => (parseInt(mapOf(b['overall'])['games']) ?? 0)
-          .compareTo(parseInt(mapOf(a['overall'])['games']) ?? 0));
-    if (sports.isEmpty) return const SizedBox.shrink();
-
-    // Small fixed-width cards that sit side by side and wrap — never a scroller.
-    Widget tile(Map<String, dynamic> c) {
-      final id = parseStr(c['categoryId']) ?? '';
-      final r = byId[id];
-      final avg = parseDouble(r?['avg']);
-      final games = parseInt(r?['games']) ?? parseInt(mapOf(c['overall'])['games']) ?? 0;
-      final name = parseStr(c['name']) ?? '';
-      final emoji = parseStr(c['emoji']);
-      final value = avg == null ? '–' : avg.toStringAsFixed(1);
-      return SizedBox(
-        width: 84,
-        child: Semantics(
-          button: true,
-          label: context.l10n.profile_ratingTileOpen(
-              name, avg == null ? context.l10n.profile_ratingTileNotRated : value),
-          child: Material(
-            color: p.surface2,
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: id.isEmpty ? null : () => context.push(hrefFor(id)),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
-                child: ExcludeSemantics(
-                  child: Column(children: [
-                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      if (emoji != null) ...[
-                        Text(emoji, style: const TextStyle(fontSize: 13)),
-                        const SizedBox(width: 3),
-                      ],
-                      Text(value,
-                          style: TextStyle(
-                              color: avg == null ? p.muted : p.greenText,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800)),
-                    ]),
-                    const SizedBox(height: 2),
-                    Text(name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: p.ink, fontSize: 10.5, fontWeight: FontWeight.w600)),
-                    Text(context.l10n.profile_ratingTileGames(games),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: p.muted, fontSize: 10)),
-                  ]),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    // Start-aligned under the Records title (mirrors in RTL).
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Wrap(
-        alignment: WrapAlignment.start,
-        spacing: 6,
-        runSpacing: 6,
-        children: [for (final c in sports) tile(c)],
-      ),
-    ]);
   }
 }
 

@@ -43,13 +43,14 @@ import 'package:sportpadi_mobile/features/ads/ad_anchor.dart';
 
 /// Profile (2026) — Instagram's layout (owner, 2026-11-19 — no cover
 /// banner): a slim row with the QR / menu round buttons, then the header
-/// (`profile_header.dart`) — photo (upload, frame) and Followers ·
-/// Following, name, @username (copy), bio, links, then Edit profile · Share
+/// (`profile_header.dart`) — photo (upload, frame) and Highlights ·
+/// Followers · Following (the highlights count opens the Highlights tab),
+/// name, @username (copy), bio, links, then Edit profile · Share
 /// profile — "Follow requests" while anyone waits, the Wards card, then the
 /// group page's tab switch ([SpTabTrack], pinned under the status bar):
 /// Highlights / Groups / Records across all sports, Highlights open first.
-/// Your top honours, latest matches, rating tiles and sport record cards are
-/// the Records tab. Tournaments are no
+/// Your top honours, latest matches and sport record cards (each with that
+/// sport's rating) are the Records tab. Tournaments are no
 /// longer a tab: each sport's record page lists them, and the dock has
 /// Tournaments. My sports and My records live on their own pages, under the
 /// menu's "Activity & stats".
@@ -181,6 +182,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               ? null
               : ref.watch(playerHonoursProvider(userId)).valueOrNull;
           final allHonours = listOf(honours?['honours']);
+          // A failed honours read: the cards' rating corners say "–" (not a
+          // placeholder forever).
+          final honoursFailed = userId != null &&
+              ref.watch(playerHonoursProvider(userId)).hasError;
           // My counts, whether my profile is private (the lock by my
           // @username) and the follow requests waiting for me.
           final follow = userId == null
@@ -202,6 +207,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   profile: profile,
                   onMenu: () => openMenu(profile),
                   isPrivate: follow?.isPrivate == true,
+                  // "N highlights": the Highlights tab, scrolled to.
+                  onHighlights: (ctx) {
+                    _tabs.animateTo(0);
+                    SpPinnedTabsScrollView.revealTabs(ctx);
+                  },
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
@@ -268,10 +278,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   else ...[
                     // Records — your top three honours and last five
                     // matches across all sports (what a scout sees first),
-                    // then one card per sport, as on the public profile,
-                    // under your rating tiles; each opens your own record
-                    // for that sport. Honours, matches and tiles sat in the
-                    // old cover header (owner, 2026-11-19).
+                    // then ONE card per sport, as on the public profile,
+                    // its rating in the card's corner (owner, 2026-11-20:
+                    // the separate rating tiles are gone); each opens your
+                    // own record for that sport. Honours and matches sat in
+                    // the old cover header (owner, 2026-11-19).
                     HonoursSection(
                       honours: allHonours.take(3).toList(),
                       loading: honours == null,
@@ -295,13 +306,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                         onPressed: () => context.push('/profile/records'),
                         child: Text(context.l10n.profile_allRecords),
                       ),
-                      lead: SportRatingTiles(
-                        categories: categories,
-                        ratings: listOf(honours?['ratingsByCategory']),
-                        hrefFor: (categoryId) =>
-                            '/profile/records/$categoryId',
-                        loaded: stats != null && honours != null,
-                      ),
+                      ratings: honours != null
+                          ? listOf(honours['ratingsByCategory'])
+                          : honoursFailed
+                              ? const <Map<String, dynamic>>[]
+                              : null,
                     ),
                   ],
                 ])),
@@ -326,9 +335,13 @@ class _Hero extends ConsumerStatefulWidget {
     required this.profile,
     required this.onMenu,
     this.isPrivate = false,
+    this.onHighlights,
   });
   final Profile profile;
   final VoidCallback onMenu;
+
+  /// The highlights count's tap (see [ProfileCounts.onHighlights]).
+  final void Function(BuildContext context)? onHighlights;
 
   /// My "private profile" is on: the lock beside my @username.
   final bool isPrivate;
@@ -422,7 +435,9 @@ class _HeroState extends ConsumerState<_Hero> {
         isPrivate: widget.isPrivate,
         bio: profile.bio,
         links: SocialLink.listFrom(profile.links),
-        counts: userId == null ? null : ProfileCounts(userId: userId),
+        counts: userId == null
+            ? null
+            : ProfileCounts(userId: userId, onHighlights: widget.onHighlights),
         actions: Row(children: [
           Expanded(
             child: ProfilePill(
