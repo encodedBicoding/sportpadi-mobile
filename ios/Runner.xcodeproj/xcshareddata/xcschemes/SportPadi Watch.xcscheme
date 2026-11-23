@@ -78,7 +78,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "2C9C1832308B0EA5009ECF78"
             BuildableName = "SportPadi Watch.app"
-            BlueprintName = "SportPadi Watch"
             ReferencedContainer = "container:Runner.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -95,7 +94,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "2C9C1832308B0EA5009ECF78"
             BuildableName = "SportPadi Watch.app"
-            BlueprintName = "SportPadi Watch"
             ReferencedContainer = "container:Runner.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

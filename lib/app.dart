@@ -18,6 +18,7 @@ import 'package:sportpadi_mobile/core/theme/app_theme.dart';
 import 'package:sportpadi_mobile/core/theme/theme_mode.dart';
 import 'package:sportpadi_mobile/core/update/app_update.dart';
 import 'package:sportpadi_mobile/shared/widgets/push_banner.dart';
+import 'package:sportpadi_mobile/shared/widgets/time_zone_rules_host.dart';
 
 class SportpadiApp extends ConsumerWidget {
   const SportpadiApp({super.key});
@@ -85,7 +86,11 @@ class SportpadiApp extends ConsumerWidget {
             child: AppUpdateGate(
               child: AppOpenAdHost(
                 child: LocaleProfileSync(
-                  child: PushBannerHost(child: child ?? const SizedBox.shrink()),
+                  // TimeZoneRulesHost: repaints every screen when newer zone
+                  // rules arrive, and fetches them on resume (signed out too).
+                  child: PushBannerHost(
+                      child: TimeZoneRulesHost(
+                          child: child ?? const SizedBox.shrink())),
                 ),
               ),
             ),
