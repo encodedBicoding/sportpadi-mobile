@@ -5,6 +5,7 @@ import 'package:sportpadi_mobile/core/network/dio_client.dart';
 import 'package:sportpadi_mobile/features/auth/auth_controller.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
+import 'package:sportpadi_mobile/shared/format/zone_rules.dart' show zoneRulesCover;
 
 /// The signed-in player's time-zone setting, as the server holds it.
 class TimezonePref {
@@ -69,6 +70,9 @@ class TimezoneController extends Notifier<TimezonePref> {
 
   Future<void> _sync() async {
     final device = await refreshDeviceTimezone();
+    // The server's current zone rules (at most twice a day — zone_rules.dart),
+    // alongside the profile read; in before the repaint below. Never throws.
+    final rules = refreshTimeZoneRules();
     try {
       final dio = ref.read(dioProvider);
       var pref = TimezonePref.fromJson((await dio.get(_path)).data);
@@ -79,9 +83,11 @@ class TimezoneController extends Notifier<TimezonePref> {
         );
         pref = TimezonePref.fromJson(res.data);
       }
+      await rules;
       _apply(pref);
     } catch (_) {
       // Re-publish anyway: the device zone may have moved while offline.
+      await rules;
       _apply(state);
     }
   }
@@ -96,6 +102,12 @@ class TimezoneController extends Notifier<TimezonePref> {
       _apply(TimezonePref.fromJson(res.data));
     } catch (e) {
       throw apiError(e, fallback: 'Could not change your time zone.');
+    }
+    // A picked name the server's last answer didn't have (the picker lists
+    // the bundled table's names, some of them stale): ask for it now rather
+    // than show the bundled rules for up to 12 hours. Never throws.
+    if (!zoneRulesCover(zone) && await refreshTimeZoneRules(force: true)) {
+      _apply(state);
     }
   }
 

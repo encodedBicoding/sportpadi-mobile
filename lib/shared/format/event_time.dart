@@ -1,10 +1,8 @@
 import 'package:intl/intl.dart';
-import 'package:timezone/timezone.dart' as tz;
 
 import 'package:sportpadi_mobile/shared/format/formatters.dart';
 import 'package:sportpadi_mobile/shared/format/instant.dart';
 import 'package:sportpadi_mobile/shared/format/parse.dart';
-import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 
 /// Zone-aware event times — the Dart half of `packages/lib/src/time.ts`.
 ///
@@ -19,42 +17,23 @@ import 'package:sportpadi_mobile/core/i18n/l10n.dart';
 /// needs computing is the zone's label at that moment (DST-dependent) and the
 /// same instant on the viewer's own clock.
 ///
-/// Flutter has no tz database of its own, which is why this needs the
-/// `timezone` package; the web side gets the same data free from ICU.
+/// Flutter has no tz database of its own: the `timezone` package bakes one
+/// into the build, and it goes stale when a government changes its clock (BC,
+/// November 2026: the app said "8:15 AM PST" and "9:15 AM your time" where
+/// the web said "8:15 AM PDT"). So every zone lookup goes through
+/// `instant.dart`: the phone's own zone from the OS, any other from the
+/// bundled table with the server's current rules laid over it
+/// (`zone_rules.dart`). The web side gets the same data from the browser's ICU.
 
-/// Load the tz database and read the device's zone (shared with instant
-/// formatting — see `instant.dart`). Safe to call more than once; failures
-/// leave the app on venue-time-only, which is never wrong, just less helpful.
-Future<void> initEventTime() => initTimeZones();
+/// Load the tz database, read the device's zone and apply the server's zone
+/// rules (shared with instant formatting — see `instant.dart`). Safe to call
+/// more than once; failures leave the app on venue-time-only, which is never
+/// wrong, just less helpful.
+Future<void> initEventTime({String? apiBaseUrl}) =>
+    initTimeZones(apiBaseUrl: apiBaseUrl);
 
 /// Same shape as `formatDay` ("Sat, 12 Oct"), for the viewer's own day.
 DateFormat get _viewerDay => DateFormat('EEE, d MMM');
-
-tz.Location? _loc(String? name) {
-  if (name == null || name.isEmpty) return null;
-  try {
-    return tz.getLocation(name);
-  } catch (_) {
-    return null;
-  }
-}
-
-/// "GMT+1", "PDT", "GMT+5:45" — the zone's name at that instant.
-///
-/// Never hand-rolled from an offset: abbreviations aren't unique (IST is India,
-/// Israel and Irish Standard Time), they flip with DST, and the half- and
-/// quarter-hour zones have none at all.
-String _zoneLabel(tz.TZDateTime at) {
-  final abbr = at.timeZoneName;
-  // The database gives a real abbreviation where one exists ("PDT", "WAT") and
-  // a numeric form like "+0545" otherwise — render that as GMT+5:45.
-  final m = RegExp(r'^([+-])(\d{2})(\d{2})$').firstMatch(abbr);
-  if (m == null) return abbr;
-  final sign = m.group(1);
-  final h = int.parse(m.group(2)!);
-  final min = int.parse(m.group(3)!);
-  return min == 0 ? l10n.common_gmt(sign ?? '', h) : l10n.common_gmt2(sign ?? '', h, m.group(3) ?? '');
-}
 
 class EventTimeParts {
   const EventTimeParts({
@@ -100,35 +79,37 @@ EventTimeParts formatEventTime({
   final b = formatClock(endTime);
   final venueTime = a == null ? null : (b != null ? '$a – $b' : a);
 
-  final venue = _loc(timezone);
-  if (venueTime == null ||
-      venue == null ||
-      eventDate == null ||
-      startTime == null) {
+  if (venueTime == null || eventDate == null || startTime == null) {
     return EventTimeParts(day: day, venueTime: venueTime);
   }
 
-  // Rebuild the wall clock inside the venue's zone to get the real instant.
+  // Rebuild the wall clock inside the venue's zone to get the real instant
+  // (null: no zone, or one no table knows — venue time only).
   final d = eventDate.toUtc();
   final t = startTime.toUtc();
   final instant =
-      tz.TZDateTime(venue, d.year, d.month, d.day, t.hour, t.minute);
-  final venueZone = _zoneLabel(instant);
+      zonedWallClock(timezone, d.year, d.month, d.day, t.hour, t.minute);
+  if (instant == null) return EventTimeParts(day: day, venueTime: venueTime);
+  final venueZone = zoneLabelAt(timezone, instant);
 
   // The viewer's zone: the one they picked in Settings, else the device's —
-  // the same zone every message and notification timestamp is shown in.
-  final viewer = _loc(viewerTimezone);
-  if (viewer == null ||
-      viewer.name == venue.name ||
-      instant.timeZoneOffset ==
-          tz.TZDateTime.from(instant, viewer).timeZoneOffset) {
+  // the same zone every message and notification timestamp is shown in
+  // (unknown: the phone's own clock).
+  final viewer = viewerTimezone;
+  final viewerOffset = viewer == null
+      ? osLocal(instant).timeZoneOffset
+      : zoneOffsetAt(viewer, instant);
+  if (viewer == timezone ||
+      viewerOffset == null ||
+      viewerOffset == zoneOffsetAt(timezone, instant)) {
     return EventTimeParts(day: day, venueTime: venueTime, venueZone: venueZone);
   }
 
-  final mine = tz.TZDateTime.from(instant, viewer);
+  final mine = inViewerZone(instant);
   // Include the weekday when the conversion lands on another day — a bare
   // "9:30 AM" would be quietly wrong.
-  final rolled = mine.day != instant.day;
+  final rolled =
+      mine.year != d.year || mine.month != d.month || mine.day != d.day;
   // Format [mine]'s own fields: formatDay()/formatClock() read the UTC face
   // (right for the stored venue wall clock, wrong for a zoned instant).
   final clock = formatTime12('${mine.hour}:${mine.minute}');

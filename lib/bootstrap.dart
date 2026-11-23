@@ -45,12 +45,15 @@ Future<void> bootstrap(Flavor flavor) async {
     if (kDebugMode) debugPrint('[push] Firebase init skipped: $e');
   }
 
-  // Load the IANA database and the device's own zone so event times can be
-  // shown at the venue's clock and, when the viewer is elsewhere, on theirs.
-  // Failure is survivable: the app falls back to venue time only.
-  await initEventTime();
-
   final config = AppConfig.of(flavor);
+
+  // Load the IANA database and the device's own zone so event times can be
+  // shown at the venue's clock and, when the viewer is elsewhere, on theirs;
+  // the server's current zone rules go over the bundled (possibly stale)
+  // table (shared/format/zone_rules.dart). Failure is survivable: the app
+  // falls back to the bundled table, or to venue time only.
+  await initEventTime(apiBaseUrl: config.apiBaseUrl);
+
   // The first thing to check when the app "can't connect": where it points.
   if (kDebugMode) debugPrint('[env] ${config.appName} → ${config.apiBaseUrl}');
   runApp(
